@@ -11,7 +11,7 @@ class FileProcessingJob < ApplicationJob
       # Decode Base64 content back to binary
       file_content = Base64.decode64(encoded_content)
       Rails.logger.info "Decoded file content size: #{file_content.bytesize} bytes"
-      
+
       # Save file content to shared volume for processing
       temp_file_path = save_file_to_shared_volume(file_content, file_extension, job_id)
 
@@ -139,6 +139,11 @@ class FileProcessingJob < ApplicationJob
   end
 
   def process_row(row_data, job_id)
+    # Convert CSV::Row to hash if needed
+    if row_data.is_a?(CSV::Row)
+      row_data = row_data.to_h
+    end
+
     # Implement your specific data processing logic here
     # This is where you would:
     # - Validate the data
