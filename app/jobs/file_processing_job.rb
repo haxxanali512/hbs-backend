@@ -4,24 +4,23 @@ class FileProcessingJob < ApplicationJob
   # Configuration for API format
   API_FORMAT = ENV.fetch("API_FORMAT", "json").downcase # "json" or "csv"
 
-  def perform(encoded_content, file_extension, file_type, job_id)
-    Rails.logger.info "Starting file processing for Job ID: #{job_id}, File type: #{file_type}, Encoded content size: #{encoded_content.bytesize} bytes"
+  def perform(file_path, file_type, job_id)
+    Rails.logger.info "Starting file processing for #{file_path} (Job ID: #{job_id})"
+
+    # Check if file exists
+    unless File.exist?(file_path)
+      Rails.logger.error "File does not exist: #{file_path}"
+      raise "File not found: #{file_path}"
+    end
+
+    Rails.logger.info "File exists, proceeding with processing. File size: #{File.size(file_path)} bytes"
 
     begin
-      # Decode Base64 content back to binary
-      file_content = Base64.decode64(encoded_content)
-      Rails.logger.info "Decoded file content size: #{file_content.bytesize} bytes"
-
-      # Save file content to shared volume for processing
-      temp_file_path = save_file_to_shared_volume(file_content, file_extension, job_id)
-
-      Rails.logger.info "File saved to shared volume: #{temp_file_path}"
-
       case file_type.downcase
       when "csv"
-        process_csv_file(temp_file_path, job_id)
+        process_csv_file(file_path, job_id)
       when "xlsx", "xls"
-        process_excel_file(temp_file_path, job_id)
+        process_excel_file(file_path, job_id)
       else
         raise "Unsupported file type: #{file_type}"
       end
@@ -44,39 +43,21 @@ class FileProcessingJob < ApplicationJob
       Rails.logger.error "File processing failed for Job ID: #{job_id}: #{e.message}"
       raise e
     ensure
-      # Clean up the temporary file after processing is complete
+      # Clean up the uploaded file after processing is complete
       begin
-        File.delete(temp_file_path) if temp_file_path && File.exist?(temp_file_path)
-        Rails.logger.info "Cleaned up temporary file: #{temp_file_path}"
+        if File.exist?(file_path)
+          File.delete(file_path)
+          Rails.logger.info "Cleaned up uploaded file: #{file_path}"
+        else
+          Rails.logger.warn "File already deleted or not found: #{file_path}"
+        end
       rescue => cleanup_error
-        Rails.logger.warn "Failed to clean up temporary file #{temp_file_path}: #{cleanup_error.message}"
+        Rails.logger.warn "Failed to clean up uploaded file #{file_path}: #{cleanup_error.message}"
       end
     end
   end
 
   private
-
-  def save_file_to_shared_volume(file_content, file_extension, job_id)
-    # Save file to the shared volume that both web and job containers can access
-    temp_dir = Rails.root.join("tmp", "uploads")
-    FileUtils.mkdir_p(temp_dir)
-
-    temp_file_path = temp_dir.join("#{job_id}#{file_extension}")
-
-    Rails.logger.info "Saving file content to: #{temp_file_path}"
-
-    File.open(temp_file_path, "wb") do |file|
-      file.write(file_content)
-    end
-
-    # Verify file was saved correctly
-    if File.exist?(temp_file_path) && File.readable?(temp_file_path)
-      Rails.logger.info "File saved successfully. Size: #{File.size(temp_file_path)} bytes"
-      temp_file_path.to_s
-    else
-      raise "Failed to save file to shared volume: #{temp_file_path}"
-    end
-  end
 
   def process_csv_file(file_path, job_id)
     Rails.logger.info "Processing CSV file: #{file_path}"
@@ -139,11 +120,6 @@ class FileProcessingJob < ApplicationJob
   end
 
   def process_row(row_data, job_id)
-    # Convert CSV::Row to hash if needed
-    if row_data.is_a?(CSV::Row)
-      row_data = row_data.to_h
-    end
-
     # Implement your specific data processing logic here
     # This is where you would:
     # - Validate the data
@@ -396,7 +372,13 @@ class FileProcessingJob < ApplicationJob
     # Add CSV file path if available
     if csv_file_path.present?
       payload[:csv_file_path] = csv_file_path
-      payload[:csv_download_url] = "#{Rails.application.routes.url_helpers.root_url.chomp('/')}#{csv_file_path}"
+      # Generate download URL - use relative path if host is not configured
+      begin
+        payload[:csv_download_url] = "#{Rails.application.routes.url_helpers.root_url.chomp('/')}#{csv_file_path}"
+      rescue => e
+        Rails.logger.warn "Could not generate full URL, using relative path: #{e.message}"
+        payload[:csv_download_url] = csv_file_path
+      end
     end
 
     Rails.logger.info "Sending #{payment_data.length} records to API: #{api_url}"
@@ -463,7 +445,13 @@ class FileProcessingJob < ApplicationJob
     # Add CSV file path if available
     if csv_file_path.present?
       payload[:csv_file_path] = csv_file_path
-      payload[:csv_download_url] = "#{Rails.application.routes.url_helpers.root_url.chomp('/')}#{csv_file_path}"
+      # Generate download URL - use relative path if host is not configured
+      begin
+        payload[:csv_download_url] = "#{Rails.application.routes.url_helpers.root_url.chomp('/')}#{csv_file_path}"
+      rescue => e
+        Rails.logger.warn "Could not generate full URL, using relative path: #{e.message}"
+        payload[:csv_download_url] = csv_file_path
+      end
     end
 
     Rails.logger.info "Sending #{payment_data.length} records as CSV to API: #{api_url}"

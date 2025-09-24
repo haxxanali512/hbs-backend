@@ -6,19 +6,15 @@ class Api::V1::FileUploadsController < ApplicationController
       # Generate unique job ID
       job_id = SecureRandom.uuid
 
-      # Read file content and encode as Base64 for Sidekiq
-      file_content = params[:file].read
-      file_extension = File.extname(params[:file].original_filename)
+      # Save uploaded file to public folder
+      public_file_path = save_file_to_public(job_id)
+
+      # Determine file type
       file_type = determine_file_type(params[:file])
-      
-      # Encode file content as Base64 to handle binary data
-      encoded_content = Base64.encode64(file_content)
 
-      Rails.logger.info "File uploaded successfully. Size: #{file_content.bytesize} bytes, Type: #{file_type}, Job ID: #{job_id}"
-
-      # Queue the file processing job with encoded file content
-      Rails.logger.info "Queuing job with encoded_content size: #{encoded_content.bytesize}, file_type: #{file_type}, job_id: #{job_id}"
-      FileProcessingJob.set(wait: 2.seconds).perform_later(encoded_content, file_extension, file_type, job_id)
+      # Queue the file processing job
+      Rails.logger.info "Queuing job with file_path: #{public_file_path}, file_type: #{file_type}, job_id: #{job_id}"
+      FileProcessingJob.perform_later(public_file_path, file_type, job_id)
 
       render json: {
         message: "File uploaded successfully and processing started",
@@ -86,6 +82,44 @@ class Api::V1::FileUploadsController < ApplicationController
     end
   end
 
+  def save_file_to_public(job_id)
+    file = params[:file]
+    public_dir = Rails.root.join("public", "uploads")
+
+    # Ensure directory exists and is writable
+    FileUtils.mkdir_p(public_dir)
+    unless File.writable?(public_dir)
+      Rails.logger.error "Public upload directory is not writable: #{public_dir}"
+      raise "Public upload directory is not writable"
+    end
+
+    file_extension = File.extname(file.original_filename)
+    public_file_path = public_dir.join("#{job_id}#{file_extension}")
+
+    Rails.logger.info "Saving file to: #{public_file_path}"
+    Rails.logger.info "File size: #{file.size} bytes"
+
+    # Read file content once and store it
+    file_content = file.read
+
+    # Write file content
+    File.open(public_file_path, "wb") do |f|
+      f.write(file_content)
+    end
+
+    # Verify file was saved correctly and is readable
+    if File.exist?(public_file_path) && File.readable?(public_file_path)
+      Rails.logger.info "File saved successfully. Size: #{File.size(public_file_path)} bytes"
+      Rails.logger.info "File permissions: #{File.stat(public_file_path).mode.to_s(8)}"
+    else
+      Rails.logger.error "Failed to save file to: #{public_file_path}"
+      Rails.logger.error "File exists: #{File.exist?(public_file_path)}"
+      Rails.logger.error "File readable: #{File.readable?(public_file_path)}" if File.exist?(public_file_path)
+      raise "Failed to save file to public folder"
+    end
+
+    public_file_path.to_s
+  end
 
   def determine_file_type(file)
     file_extension = File.extname(file.original_filename).downcase
