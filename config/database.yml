@@ -34,6 +34,6 @@ production:
   <<: *default
   database: hbs_data_processing_production
   username: postgres
-  password: deployer@1234
-  host: hbs_data_processing-db
+  password: password
+  host: localhost
   port: 5432

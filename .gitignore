@@ -34,4 +34,8 @@
 # Ignore exported CSV files
 /public/exports/*
 !/public/exports/.keep
-.kamal/secrets
+
+# Ignore uploaded files (temporary)
+/public/uploads/*
+!/public/uploads/.keep
+public/*

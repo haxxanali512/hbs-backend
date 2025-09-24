@@ -21,11 +21,13 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = true
+  # SSL configuration - set via environment variables for manual deployment
+  config.assume_ssl = ENV.fetch("ASSUME_SSL", "false") == "true"
+  config.force_ssl = ENV.fetch("FORCE_SSL", "false") == "true"
 
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
+  # Set default URL options for URL generation
+  config.action_mailer.default_url_options = { host: ENV.fetch("HOST", "localhost") }
+  Rails.application.routes.default_url_options = { host: ENV.fetch("HOST", "localhost") }
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -43,11 +45,12 @@ Rails.application.configure do
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
 
-  # Use Redis for caching
-  config.cache_store = :redis_cache_store, { url: ENV.fetch("REDIS_URL", "redis://hbs_data_processing-redis:6379/0") }
+  # Replace the default in-process memory cache store with a durable alternative.
+  config.cache_store = :solid_cache_store
 
-  # Use Sidekiq for background jobs
-  config.active_job.queue_adapter = :sidekiq
+  # Replace the default in-process and non-durable queuing backend for Active Job.
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.

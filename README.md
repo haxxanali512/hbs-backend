@@ -14,8 +14,7 @@ A Rails API application for processing large Excel and CSV files using Sidekiq f
 - **CSV Export**: Generates and saves CSV files to public folder for download
 - **PostgreSQL Database**: Production-ready database configuration
 - **Redis**: For Sidekiq job queue management
-- **Docker Support**: Containerized application with Kamal deployment
-- **EC2 Deployment**: Ready for AWS EC2 deployment
+- **Manual Deployment**: Ready for manual deployment to any server
 
 ## API Endpoints
 
@@ -59,7 +58,6 @@ GET /sidekiq
 - Ruby 3.2.0
 - PostgreSQL
 - Redis
-- Docker (optional)
 
 ### Installation
 
@@ -69,23 +67,32 @@ GET /sidekiq
    bundle install
    ```
 
-3. Setup database:
+3. Set up environment variables:
+   ```bash
+   # Copy the environment template
+   cp config/environment.template .env.development
+   
+   # Edit with your development values
+   nano .env.development
+   ```
+
+4. Setup database:
    ```bash
    rails db:create
    rails db:migrate
    ```
 
-4. Start Redis:
+5. Start Redis:
    ```bash
    redis-server
    ```
 
-5. Start Sidekiq:
+6. Start Sidekiq:
    ```bash
    bundle exec sidekiq
    ```
 
-6. Start Rails server:
+7. Start Rails server:
    ```bash
    rails server
    ```
@@ -103,65 +110,92 @@ REDIS_URL=redis://localhost:6379/0
 API_FORMAT=json  # or "csv" for CSV format
 ```
 
-## Docker Development
 
-```bash
-# Build the image
-docker build -t hbs_data_processing .
-
-# Run with docker-compose (create docker-compose.yml)
-docker-compose up
-```
-
-## Production Deployment with Kamal
+## Manual Production Deployment
 
 ### Prerequisites
-- EC2 instance with Docker installed
-- Domain name (optional, for SSL)
-- Docker registry access
+- Server with Ruby 3.2.0+ installed
+- PostgreSQL 15+ installed and running
+- Redis 7.0+ installed and running
+- Nginx (optional, for reverse proxy)
 
 ### Setup
 
-1. Update `config/deploy.yml`:
-   - Replace `your-ec2-ip-address` with your actual EC2 IP
-   - Replace `your-user` with your Docker registry username
-   - Update `host` in proxy section if using custom domain
-
-2. Create secrets file:
+1. Clone the repository:
    ```bash
-   mkdir -p .kamal
-   touch .kamal/secrets
+   git clone <repository-url>
+   cd hbs_data_processing
    ```
 
-3. Add secrets to `.kamal/secrets`:
-   ```
-   KAMAL_REGISTRY_PASSWORD=your_docker_registry_password
-   RAILS_MASTER_KEY=your_rails_master_key
-   DATABASE_PASSWORD=your_secure_database_password
-   REDIS_PASSWORD=your_secure_redis_password
-   POSTGRES_PASSWORD=your_secure_database_password
-   ```
-
-4. Deploy:
+2. Install dependencies:
    ```bash
-   # Build and push image
-   kamal build push
-
-   # Deploy to EC2
-   kamal deploy
-
-   # Run database migrations
-   kamal app exec "rails db:migrate"
+   bundle install
    ```
 
-### EC2 Security Group
+3. Set up environment variables:
+   ```bash
+   # Copy the environment template
+   cp config/environment.template .env.production
+   
+   # Edit with your production values
+   nano .env.production
+   ```
 
-Ensure your EC2 security group allows:
-- Port 22 (SSH)
-- Port 80 (HTTP)
-- Port 443 (HTTPS)
-- Port 5432 (PostgreSQL) - only from EC2 instance
-- Port 6379 (Redis) - only from EC2 instance
+4. Configure the database:
+   ```bash
+   # Create the database
+   rails db:create RAILS_ENV=production
+   
+   # Run migrations
+   rails db:migrate RAILS_ENV=production
+   ```
+
+5. Precompile assets:
+   ```bash
+   rails assets:precompile RAILS_ENV=production
+   ```
+
+6. Start the application:
+   ```bash
+   # Start Rails server
+   rails server -e production -p 3000
+   
+   # In another terminal, start Sidekiq
+   bundle exec sidekiq -e production
+   ```
+
+### Environment Variables
+
+Create a `.env.production` file with:
+```
+DATABASE_HOST=localhost
+DATABASE_USERNAME=your_db_user
+DATABASE_PASSWORD=your_db_password
+DATABASE_PORT=5432
+REDIS_URL=redis://localhost:6379/0
+RAILS_ENV=production
+HOST=your-domain.com
+ASSUME_SSL=false
+FORCE_SSL=false
+API_FORMAT=json
+```
+
+### Nginx Configuration (Optional)
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
 ## File Processing
 
@@ -235,7 +269,7 @@ https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/wayster_data
 
 - **Sidekiq Dashboard**: `/sidekiq` - Monitor job queues and processing
 - **Health Check**: `/up` - Application health status
-- **Logs**: Use `kamal logs` to view application logs
+- **Logs**: Check application logs in your deployment environment
 
 ## Performance Considerations
 
@@ -265,14 +299,15 @@ https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/wayster_data
 
 ```bash
 # Check application status
-kamal app details
+ps aux | grep rails
+ps aux | grep sidekiq
 
 # View logs
-kamal logs
+tail -f log/production.log
 
 # Access Rails console
-kamal app exec "rails console"
+rails console -e production
 
 # Restart services
-kamal app restart
+# Stop and restart your Rails server and Sidekiq processes
 ```
