@@ -39,6 +39,8 @@ set :sidekiq_systemctl_user, :user    # User-level systemd service
 set :sidekiq_service_unit_env_files, [ "#{shared_path}/.env.production" ]
 set :sidekiq_service_unit_env_vars, [ "MALLOC_ARENA_MAX=2" ] # Memory optimization
 
+set :puma_bind, "unix://#{shared_path}/tmp/sockets/puma.sock"
+
 # Deployment tracking for Sidekiq 7+
 set :sidekiq_mark_deploy, true
 set :sidekiq_deploy_label, -> { "#{fetch(:stage)}-#{fetch(:current_revision, "unknown")[0..6]}" }
@@ -75,15 +77,6 @@ namespace :deploy do
       upload!("config/master.key", "#{deploy_to}/shared/config/master.key")
       upload!("config/credentials.yml.enc", "#{deploy_to}/shared/config/credentials.yml.enc")
     end
-  end
-
-  namespace :deploy do
-    desc "Restart application"
-    task :restart do
-      invoke "pm2:restart"
-    end
-
-    after :publishing, :restart
   end
 
   desc "Seeds database"

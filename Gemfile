@@ -45,7 +45,7 @@ group :development, :test do
   gem "capistrano-bundler", require: false
   gem "capistrano-sidekiq", "~> 3.0"
   gem "rvm1-capistrano3", require: false
-  gem "capistrano-pm2", require: false
+  gem "capistrano3-puma", require: false
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 

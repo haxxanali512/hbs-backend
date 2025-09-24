@@ -7,12 +7,14 @@ require "capistrano/scm/git"
 require 'rvm1/capistrano3'
 require 'capistrano/bundler'
 require 'capistrano/rails/migrations'
-require 'capistrano/sidekiq'
-install_plugin Capistrano::Sidekiq # Default sidekiq tasks
-install_plugin Capistrano::Sidekiq::Systemd
+# require 'capistrano/sidekiq'
+# install_plugin Capistrano::Sidekiq # Default sidekiq tasks
+# install_plugin Capistrano::Sidekiq::Systemd
 
 install_plugin Capistrano::SCM::Git
-require 'capistrano/pm2'
+require 'capistrano/puma'
+install_plugin Capistrano::Puma  # Default puma tasks
+install_plugin Capistrano::Puma::Systemd
 
 
 Dir.glob('lib/capistrano/tasks/*.rake').each { |r| import r }
