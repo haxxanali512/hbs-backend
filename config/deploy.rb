@@ -19,13 +19,29 @@ set :ssh_options, {
 }
 set :deploy_to, "/home/deployer/www/hbs-backend"
 set :sidekiq_service_unit_name, "hbs-backend-sidekiq"
-set :linked_files, %w[config/master.key config/credentials.yml.enc config/database.yml]
+set :linked_files, %w[config/master.key config/credentials.yml.enc config/database.yml config/puma.rb]
 set :linked_dirs, %w[log tmp/pids tmp/cache tmp/sockets vendor/bundle]
 set :pm2_start_command, "bundle exec rails server -e production"
 set :rvm1_ruby_version, "ruby-3.2.0"
 set :rvm_type, :user
 set :default_env, { rvm_bin_path: "~/.rvm/bin" }
 set :rvm1_map_bins, -> { fetch(:rvm_map_bins).to_a.concat(%w[rake gem bundle ruby]).uniq }
+
+# Sidekiq configuration
+set :sidekiq_config_files, %w[sidekiq.yml]
+set :sidekiq_env, "production"
+set :sidekiq_roles, :worker
+set :init_system, :systemd
+set :sidekiq_systemctl_user, :system
+set :sidekiq_log, "#{shared_path}/log/sidekiq.log"
+set :sidekiq_error_log, "#{shared_path}/log/sidekiq_error.log"
+set :sidekiq_systemctl_user, :user    # User-level systemd service
+set :sidekiq_service_unit_env_files, [ "#{shared_path}/.env.production" ]
+set :sidekiq_service_unit_env_vars, [ "MALLOC_ARENA_MAX=2" ] # Memory optimization
+
+# Deployment tracking for Sidekiq 7+
+set :sidekiq_mark_deploy, true
+set :sidekiq_deploy_label, -> { "#{fetch(:stage)}-#{fetch(:current_revision, "unknown")[0..6]}" }
 
 # set :sidekiq_monit_conf_dir, '/etc/monit/conf.d'
 # set :sidekiq_monit_use_sudo, true
@@ -59,6 +75,15 @@ namespace :deploy do
       upload!("config/master.key", "#{deploy_to}/shared/config/master.key")
       upload!("config/credentials.yml.enc", "#{deploy_to}/shared/config/credentials.yml.enc")
     end
+  end
+
+  namespace :deploy do
+    desc "Restart application"
+    task :restart do
+      invoke "pm2:restart"
+    end
+
+    after :publishing, :restart
   end
 
   desc "Seeds database"

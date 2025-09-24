@@ -1,11 +1,15 @@
-const { exec } = require('child_process');
-
-// Ensure the correct environment is sourced first
-exec('source /usr/local/rvm/scripts/rvm && bundle exec rails s -e production', (err, stdout, stderr) => {
-  if (err) {
-    console.log(`exec error: ${err}`);
-    return;
-  }
-  console.log(`stdout: ${stdout}`);
-  console.log(`stderr: ${stderr}`);
-});
+module.exports = {
+    apps: [
+      {
+        name: "hbs-backend",
+        script: "bundle",
+        args: "exec puma -C config/puma.rb -e production",
+        cwd: "/home/deployer/www/hbs-backend/current",
+        interpreter: "/bin/bash",
+        env: {
+          RAILS_ENV: "production"
+        }
+      }
+    ]
+  };
+  
