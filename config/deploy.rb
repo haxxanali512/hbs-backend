@@ -19,27 +19,36 @@ set :ssh_options, {
 }
 set :deploy_to, "/home/deployer/www/hbs-backend"
 set :sidekiq_service_unit_name, "hbs-backend-sidekiq"
-set :linked_files, %w[config/master.key config/credentials.yml.enc config/database.yml config/puma.rb]
+set :linked_files, %w[config/master.key config/credentials.yml.enc config/database.yml config/puma.rb config/sidekiq.yml]
 set :linked_dirs, %w[log tmp/pids tmp/cache tmp/sockets vendor/bundle]
 set :pm2_start_command, "bundle exec rails server -e production"
-set :rvm1_ruby_version, "ruby-3.2.0"
+set :rvm1_ruby_version, "3.2.0"
 set :rvm_type, :user
 set :default_env, { rvm_bin_path: "~/.rvm/bin" }
 set :rvm1_map_bins, -> { fetch(:rvm_map_bins).to_a.concat(%w[rake gem bundle ruby]).uniq }
 
 # Sidekiq configuration
-set :sidekiq_config_files, %w[sidekiq.yml]
-set :sidekiq_env, "production"
 set :sidekiq_roles, :worker
-set :init_system, :systemd
-set :sidekiq_systemctl_user, :system
-set :sidekiq_log, "#{shared_path}/log/sidekiq.log"
-set :sidekiq_error_log, "#{shared_path}/log/sidekiq_error.log"
-set :sidekiq_systemctl_user, :user    # User-level systemd service
-set :sidekiq_service_unit_env_files, [ "#{shared_path}/.env.production" ]
-set :sidekiq_service_unit_env_vars, [ "MALLOC_ARENA_MAX=2" ] # Memory optimization
+set :sidekiq_env, fetch(:rack_env, fetch(:rails_env, "production"))
+set :sidekiq_log, -> { File.join(shared_path, "log", "sidekiq.log") }
+set :sidekiq_pid, -> { File.join(shared_path, "tmp", "pids", "sidekiq.pid") }
+set :sidekiq_cmd, "bundle exec sidekiq"
+set :sidekiq_systemctl_user, :user # ensures systemd runs under deployer
+set :sidekiq_config, -> { File.join(current_path, "config", "sidekiq.yml") }
+set :sidekiq_require, -> { File.join(current_path, "config", "environment.rb") }
 
 set :puma_bind, "unix://#{shared_path}/tmp/sockets/puma.sock"
+set :puma_conf, "#{shared_path}/puma.rb"
+set :puma_state, "#{shared_path}/tmp/pids/puma.state"
+set :puma_pid, "#{shared_path}/tmp/pids/puma.pid"
+set :puma_access_log, "#{shared_path}/log/puma_access.log"
+set :puma_error_log, "#{shared_path}/log/puma_error.log"
+set :puma_role, :app
+set :puma_env, fetch(:rack_env, fetch(:rails_env, "production"))
+set :puma_threads, [ 4, 16 ]
+set :puma_workers, 2
+set :puma_worker_timeout, nil
+set :puma_init_active_record, true
 
 # Deployment tracking for Sidekiq 7+
 set :sidekiq_mark_deploy, true

@@ -27,14 +27,14 @@ gem "bootsnap", require: false
 gem "rack-cors"
 
 # Background job processing
-gem "sidekiq"
+gem "sidekiq", "~> 6.5.12"
 
 # File processing
 gem "roo"
 gem "csv"  # For CSV file processing
 
 # Redis for Sidekiq
-gem "redis", "~> 5.0"
+gem "redis", "~> 4.8"
 
 # HTTP client for API requests
 gem "httparty"
