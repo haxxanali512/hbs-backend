@@ -6,16 +6,19 @@ class Api::V1::FileUploadsController < ApplicationController
       # Generate unique job ID
       job_id = SecureRandom.uuid
 
-      # Read file content directly
+      # Read file content and encode as Base64 for Sidekiq
       file_content = params[:file].read
       file_extension = File.extname(params[:file].original_filename)
       file_type = determine_file_type(params[:file])
+      
+      # Encode file content as Base64 to handle binary data
+      encoded_content = Base64.encode64(file_content)
 
       Rails.logger.info "File uploaded successfully. Size: #{file_content.bytesize} bytes, Type: #{file_type}, Job ID: #{job_id}"
 
-      # Queue the file processing job with file content
-      Rails.logger.info "Queuing job with file_content size: #{file_content.bytesize}, file_type: #{file_type}, job_id: #{job_id}"
-      FileProcessingJob.set(wait: 2.seconds).perform_later(file_content, file_extension, file_type, job_id)
+      # Queue the file processing job with encoded file content
+      Rails.logger.info "Queuing job with encoded_content size: #{encoded_content.bytesize}, file_type: #{file_type}, job_id: #{job_id}"
+      FileProcessingJob.set(wait: 2.seconds).perform_later(encoded_content, file_extension, file_type, job_id)
 
       render json: {
         message: "File uploaded successfully and processing started",
@@ -98,5 +101,4 @@ class Api::V1::FileUploadsController < ApplicationController
       "unknown"
     end
   end
-
 end
