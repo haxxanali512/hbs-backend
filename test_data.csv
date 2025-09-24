@@ -1,0 +1,3 @@
+Remit Patient Name,Remit Service From Date,Remit Service to Date,Remit Account,Remit Total Paid Amount,RemitReceived Date,Service Line Procedure Code,Servie Line Adjustment CARC,owned_by,procedure_code_id,encounter_id,user_id
+"Smith, John",2024-01-15,2024-01-15,"Test Organization (123456)",100.50,2024-01-20,99213,242,1,101,201,301
+"Doe, Jane",2024-01-16,2024-01-16,"Test Organization (123456)",200.75,2024-01-21,99214,2,1,102,202,302

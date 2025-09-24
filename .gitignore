@@ -34,3 +34,4 @@
 # Ignore exported CSV files
 /public/exports/*
 !/public/exports/.keep
+.kamal/secrets

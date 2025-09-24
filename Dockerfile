@@ -45,6 +45,9 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
+# Create public/assets directory for Kamal
+RUN mkdir -p public/assets
+
 
 
 
