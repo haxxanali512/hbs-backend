@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "~> 7.2.2", ">= 7.2.2.1"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]
@@ -16,10 +16,6 @@ gem "puma", ">= 5.0"
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-gem "solid_cache"
-gem "solid_queue"
-gem "solid_cable"
-
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
@@ -34,7 +30,7 @@ gem "rack-cors"
 gem "sidekiq"
 
 # File processing
-gem "roo", "~> 2.10"  # For Excel file processing
+gem "roo"
 gem "csv"  # For CSV file processing
 
 # Redis for Sidekiq
@@ -44,6 +40,12 @@ gem "redis", "~> 5.0"
 gem "httparty"
 
 group :development, :test do
+  gem "capistrano", require: false
+  gem "capistrano-rails", require: false
+  gem "capistrano-bundler", require: false
+  gem "capistrano-sidekiq", "~> 3.0"
+  gem "rvm1-capistrano3", require: false
+  gem "capistrano-pm2", require: false
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
