@@ -33,7 +33,7 @@ test:
 production:
   <<: *default
   database: hbs_data_processing_production
-  username: deployer
+  username: postgres
   password: deployer@1234
   host: hbs_data_processing-db
   port: 5432
