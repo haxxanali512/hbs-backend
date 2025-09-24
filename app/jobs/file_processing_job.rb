@@ -59,13 +59,6 @@ class FileProcessingJob < ApplicationJob
       begin
         File.delete(file_path) if File.exist?(file_path)
         Rails.logger.info "Cleaned up temporary file: #{file_path}"
-
-        # Also clean up the original upload file if it's a backup
-        if file_path.include?("_backup")
-          original_file_path = file_path.gsub("_backup", "")
-          File.delete(original_file_path) if File.exist?(original_file_path)
-          Rails.logger.info "Cleaned up original file: #{original_file_path}"
-        end
       rescue => cleanup_error
         Rails.logger.warn "Failed to clean up temporary file #{file_path}: #{cleanup_error.message}"
       end

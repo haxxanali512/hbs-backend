@@ -18,12 +18,9 @@ class Api::V1::FileUploadsController < ApplicationController
         raise "File not found before queuing job"
       end
 
-      # Create a backup copy to ensure file persistence
-      backup_file_path = create_backup_file(temp_file_path, job_id)
-
       # Queue the file processing job with a delay to ensure file is written
-      Rails.logger.info "Queuing job with file_path: #{temp_file_path}, backup_path: #{backup_file_path}, file_type: #{file_type}, job_id: #{job_id}"
-      FileProcessingJob.set(wait: 5.seconds).perform_later(backup_file_path, file_type, job_id)
+      Rails.logger.info "Queuing job with file_path: #{temp_file_path}, file_type: #{file_type}, job_id: #{job_id}"
+      FileProcessingJob.set(wait: 5.seconds).perform_later(temp_file_path, file_type, job_id)
 
       render json: {
         message: "File uploaded successfully and processing started",
