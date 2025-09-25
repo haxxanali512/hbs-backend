@@ -30,6 +30,7 @@ gem "rack-cors"
 gem "sidekiq", "~> 6.5.12"
 
 # File processing
+gem "byebug"
 gem "roo"
 gem "csv"  # For CSV file processing
 

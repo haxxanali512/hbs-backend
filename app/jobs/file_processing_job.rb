@@ -2,7 +2,7 @@ class FileProcessingJob < ApplicationJob
   queue_as :default
 
   # Configuration for API format
-  API_FORMAT = ENV.fetch("API_FORMAT", "json").downcase # "json" or "csv"
+  API_FORMAT = ENV.fetch("API_FORMAT", "csv").downcase # "json" or "csv"
 
   def perform(file_path, file_type, job_id)
     Rails.logger.info "Starting file processing for #{file_path} (Job ID: #{job_id})"
@@ -187,8 +187,9 @@ class FileProcessingJob < ApplicationJob
     # Valid CARC codes that should be processed
     valid_carc_codes = [ "242", "2", "1", "0" ]
 
-    # Group records by their key fields
+    # Group records by their key fields - only group if CARC is "2" or "242" (PAID)
     grouped = {}
+    individual_records = []
 
     valid_records.each do |item|
       # Debug: Log available fields to see what CARC field name is
@@ -197,25 +198,62 @@ class FileProcessingJob < ApplicationJob
         Rails.logger.info "Looking for CARC field. Available CARC-related fields: #{item.keys.select { |k| k.downcase.include?('carc') }.join(', ')}"
       end
 
-      # Create grouping key from the specified fields (excluding CARC codes)
-      # CARC codes will be collected separately for each group
-      key = {
-        patient: item["Remit Patient Name"],
-        Encounter_Date: item["Remit Service From Date"],
-        Encounter_Date2: item["Remit Service to Date"],
-        organization: clean_organization_name(item["Remit Account"]),
-        Amount: item["Remit Total Paid Amount"],
-        Date_Processed: item["Remit Received Date"],
-        Date_Logged: item["Remit Received Date"],
-        procedure_code: item["Service Line Procedure Code"],
-        owned_by: item["owned_by"],
-        procedure_code_id: item["procedure_code_id"],
-        encounter_id: item["encounter_id"],
-        user_id: item["user_id"]
-      }.to_json
+      # Get CARC code first to determine if we should group
+      carc_value = item["Servie Line Adjustment CARC"] ||
+                   item["Service Line Adjustment CARC"] ||
+                   item["CARC"] ||
+                   item["carc"] ||
+                   item["Servie Line Adjustment"] ||
+                   item["Service Line Adjustment"]
 
-      if grouped[key].nil?
-        grouped[key] = {
+      # Only group records with CARC codes "2" or "242" (PAID status)
+      if carc_value.present? && [ "2", "242" ].include?(carc_value.to_s.strip)
+        # Create grouping key from the specified fields (excluding CARC codes)
+        key = {
+          patient: item["Remit Patient Name"],
+          Encounter_Date: item["Remit Service From Date"],
+          Encounter_Date2: item["Remit Service to Date"],
+          organization: clean_organization_name(item["Remit Account"]),
+          Amount: item["Remit Total Paid Amount"],
+          Date_Processed: item["Remit Received Date"],
+          Date_Logged: item["Remit Received Date"],
+          procedure_code: item["Service Line Procedure Code"],
+          owned_by: item["owned_by"],
+          procedure_code_id: item["procedure_code_id"],
+          encounter_id: item["encounter_id"],
+          user_id: item["user_id"]
+        }.to_json
+
+        if grouped[key].nil?
+          grouped[key] = {
+            patient: item["Remit Patient Name"],
+            Encounter_Date: item["Remit Service From Date"],
+            Encounter_Date2: item["Remit Service to Date"],
+            organization: clean_organization_name(item["Remit Account"]),
+            Amount: item["Remit Total Paid Amount"],
+            Date_Processed: item["Remit Received Date"],
+            Date_Logged: item["Remit Received Date"],
+            procedure_code: item["Service Line Procedure Code"],
+            owned_by: item["owned_by"],
+            procedure_code_id: item["procedure_code_id"],
+            encounter_id: item["encounter_id"],
+            user_id: item["user_id"],
+            carc_set: Set.new
+          }
+        end
+
+        # Add CARC code to the set
+        grouped[key][:carc_set].add(carc_value.to_s.strip)
+        Rails.logger.debug "Added PAID CARC code: #{carc_value} for patient: #{item['Remit Patient Name']} - will be grouped"
+      else
+        # For non-PAID CARC codes or no CARC code, process individually
+        # Add ALL CARC codes to the set (both valid and invalid)
+        carc_set = Set.new
+        if carc_value.present?
+          carc_set.add(carc_value.to_s.strip)
+        end
+
+        individual_records << {
           patient: item["Remit Patient Name"],
           Encounter_Date: item["Remit Service From Date"],
           Encounter_Date2: item["Remit Service to Date"],
@@ -228,36 +266,16 @@ class FileProcessingJob < ApplicationJob
           procedure_code_id: item["procedure_code_id"],
           encounter_id: item["encounter_id"],
           user_id: item["user_id"],
-          carc_set: Set.new
+          carc_set: carc_set
         }
-      end
-
-      # Add CARC code to the set (this will handle duplicates automatically)
-      # Try different possible CARC field names
-      carc_value = item["Servie Line Adjustment CARC"] ||
-                   item["Service Line Adjustment CARC"] ||
-                   item["CARC"] ||
-                   item["carc"] ||
-                   item["Servie Line Adjustment"] ||
-                   item["Service Line Adjustment"]
-
-      if carc_value.present?
-        # Only add valid CARC codes that are in our status mapping
-        if valid_carc_codes.include?(carc_value.to_s.strip)
-          grouped[key][:carc_set].add(carc_value.to_s.strip)
-          Rails.logger.debug "Added valid CARC code: #{carc_value} for patient: #{item['Remit Patient Name']}"
-        else
-          Rails.logger.debug "Skipped invalid CARC code: #{carc_value} for patient: #{item['Remit Patient Name']}"
-        end
-      else
-        Rails.logger.debug "No CARC code found for patient: #{item['Remit Patient Name']}"
+        Rails.logger.debug "Added individual record for patient: #{item['Remit Patient Name']} with CARC: #{carc_value || 'none'}"
       end
     end
 
-    Rails.logger.info "Grouped #{valid_records.length} records into #{grouped.length} groups"
+    Rails.logger.info "Grouped #{valid_records.length} records into #{grouped.length} groups and #{individual_records.length} individual records"
 
-    # Process grouped records and create final result
-    result = grouped.values.map do |entry|
+    # Process grouped records and individual records
+    grouped_results = grouped.values.map do |entry|
       carc_array = entry[:carc_set].to_a.sort
 
       # Calculate payment status from CARC codes
@@ -286,7 +304,39 @@ class FileProcessingJob < ApplicationJob
       }
     end
 
-    result
+    # Process individual records (non-PAID CARC codes)
+    individual_results = individual_records.map do |entry|
+      carc_array = entry[:carc_set].to_a.sort
+
+      # Calculate payment status from CARC codes
+      if carc_array.empty?
+        payment_status = "unknown"
+        Rails.logger.debug "Individual record: #{entry[:patient]} - No CARC codes - Status: #{payment_status}"
+      else
+        # Map valid CARC codes to status, invalid ones get "unknown"
+        statuses = carc_array.map do |code|
+          status_map[code] || "unknown"
+        end
+        payment_status = statuses.uniq.join(", ")
+        Rails.logger.debug "Individual record: #{entry[:patient]} - CARC codes: #{carc_array.join(', ')} - Status: #{payment_status}"
+      end
+
+      {
+        patient: entry[:patient],
+        Encounter_Date: entry[:Encounter_Date],
+        Encounter_Date2: entry[:Encounter_Date2],
+        organization: entry[:organization],
+        Amount: parse_currency(entry[:Amount]),
+        carc: carc_array.join(", "),
+        Date_Processed: entry[:Date_Processed],
+        Date_Logged: entry[:Date_Logged],
+        procedure_code: entry[:procedure_code],
+        payment_status: payment_status
+      }
+    end
+
+    # Combine grouped and individual results
+    grouped_results + individual_results
   end
 
   def parse_currency(value)
@@ -359,7 +409,7 @@ class FileProcessingJob < ApplicationJob
   end
 
   def send_to_api(payment_data, job_id, csv_file_path = nil)
-    api_url = "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/wayster_data"
+    api_url = "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/payment/upload_payment"
 
     # Prepare the payload
     payload = {
@@ -428,54 +478,39 @@ class FileProcessingJob < ApplicationJob
   end
 
   def send_csv_to_api(payment_data, job_id, csv_file_path = nil)
-    api_url = "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/wayster_data"
+    api_url = "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/payment/upload_payment"
 
-    # Generate CSV data
+    # Generate CSV data and save to temporary file
     csv_content = generate_csv_data(payment_data)
+    temp_file = Tempfile.new([ "payment_data", ".csv" ])
+    temp_file.write(csv_content)
+    temp_file.rewind
+    Rails.logger.info "Uploading #{payment_data.length} records as CSV file to API: #{api_url}"
 
-    # Prepare the payload with CSV data
-    payload = {
-      job_id: job_id,
-      processed_at: Time.current.iso8601,
-      record_count: payment_data.length,
-      format: "csv",
-      data: csv_content
-    }
+    begin
+      # Make HTTP request with file upload
+      response = HTTParty.post(
+        api_url,
+        body: {
+          file: File.open(temp_file.path, "rb")
+        },
+        timeout: 30
+      )
 
-    # Add CSV file path if available
-    if csv_file_path.present?
-      payload[:csv_file_path] = csv_file_path
-      # Generate download URL - use relative path if host is not configured
-      begin
-        payload[:csv_download_url] = "#{Rails.application.routes.url_helpers.root_url.chomp('/')}#{csv_file_path}"
-      rescue => e
-        Rails.logger.warn "Could not generate full URL, using relative path: #{e.message}"
-        payload[:csv_download_url] = csv_file_path
+      if response.success?
+        Rails.logger.info "CSV file uploaded successfully to API: #{response.code} - #{response.message}"
+        Rails.logger.debug "API response body: #{response.body}" if response.body.present?
+      else
+        Rails.logger.error "CSV file upload failed: #{response.code} - #{response.message}"
+        Rails.logger.error "API response body: #{response.body}" if response.body.present?
+        raise "API request failed with status #{response.code}: #{response.message}"
       end
+
+      response
+    ensure
+      # Clean up temporary file
+      temp_file.close
+      temp_file.unlink
     end
-
-    Rails.logger.info "Sending #{payment_data.length} records as CSV to API: #{api_url}"
-
-    # Make HTTP request
-    response = HTTParty.post(
-      api_url,
-      body: payload.to_json,
-      headers: {
-        "Content-Type" => "application/json",
-        "Accept" => "application/json"
-      },
-      timeout: 30
-    )
-
-    if response.success?
-      Rails.logger.info "API response: #{response.code} - #{response.message}"
-      Rails.logger.debug "API response body: #{response.body}" if response.body.present?
-    else
-      Rails.logger.error "API request failed: #{response.code} - #{response.message}"
-      Rails.logger.error "API response body: #{response.body}" if response.body.present?
-      raise "API request failed with status #{response.code}: #{response.message}"
-    end
-
-    response
   end
 end
