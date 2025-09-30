@@ -120,6 +120,10 @@ class FileProcessingJob < ApplicationJob
   end
 
   def process_row(row_data, job_id)
+    # Normalize CSV rows to plain Hash for consistent downstream handling
+    if defined?(CSV) && row_data.is_a?(CSV::Row)
+      row_data = row_data.to_h
+    end
     # Implement your specific data processing logic here
     # This is where you would:
     # - Validate the data
