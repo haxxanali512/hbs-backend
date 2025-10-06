@@ -1,0 +1,55 @@
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Users</h1>
+    <div class="flex items-center gap-3">
+      <%= link_to "New User", new_admin_user_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md" %>
+    </div>
+  </div>
+
+  <% columns = [
+    {
+      label: 'User',
+      render: ->(u) { capture do
+        concat(content_tag(:div, class: 'flex items-center gap-3') do
+          concat content_tag(:div, (u.display_name.to_s.first.presence || u.email.to_s.first), class: 'h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold')
+          concat content_tag(:div, u.display_name, class: 'font-medium text-gray-900')
+        end)
+      end }
+    },
+    { label: 'Email', render: ->(u){ u.email } },
+    { label: 'Role',  render: ->(u){ u.role&.role_name } },
+    {
+      label: 'Status',
+      render: ->(u){
+        if u.access_locked?
+          raw '<span class="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 11V7a4 4 0 10-8 0v4m-1 0h10v10H3V11z"/></svg>Locked</span>'
+        elsif u.respond_to?(:invitation_accepted_at) && u.invitation_accepted_at.nil? && u.respond_to?(:invitation_sent_at) && u.invitation_sent_at.present?
+          raw '<span class="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>Pending acceptance</span>'
+        else
+          raw '<span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5L20 7"/></svg>Active</span>'
+        end
+      }
+    },
+    {
+      label: 'Actions', td_class: 'text-center',
+      render: ->(u){ capture do
+        concat(link_to(edit_admin_user_path(u), title: 'Edit user', class: 'inline-flex items-center text-indigo-600 hover:text-indigo-800', data: { tooltip: 'Edit user' }) do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M4 20h4l10.5-10.5a2.5 2.5 0 10-3.536-3.536L4 16v4z"/></svg><span class="sr-only">Edit</span>'
+        end)
+        concat ' '
+        concat(link_to(reset_password_admin_user_path(u), data: { turbo_method: :post }, title: 'Send password reset', class: 'inline-flex items-center text-gray-600 hover:text-gray-900', data: { tooltip: 'Reset password' }) do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="sr-only">Reset Password</span>'
+        end)
+        concat ' '
+        concat(link_to('#', data: { confirm_url: reinvite_admin_user_path(u), confirm_message: 'Re-send invitation to this user?', confirm_label: 'Reinvite' }, title: 'Re-send invitation', class: 'inline-flex items-center text-gray-600 hover:text-gray-900') do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7l-5 5 5 5"/></svg><span class="sr-only">Reinvite</span>'
+        end)
+        concat ' '
+        # Lock/Unlock moved to edit page
+      end }
+    }
+  ] %>
+
+  <%= render 'shared/table', title: 'Users', columns: columns, collection: @users %>
+</div>
+

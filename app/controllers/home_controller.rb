@@ -9,5 +9,7 @@ class HomeController < ApplicationController
 
   def dashboard
     # Dashboard is protected by authenticate_user! from ApplicationController
+    @users_count = User.count
+    @roles_count = Role.count
   end
 end

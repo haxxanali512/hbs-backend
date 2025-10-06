@@ -1,0 +1,54 @@
+<%#
+  Shared table component (TailAdmin-like)
+  Locals:
+    - columns: array of { key:, label:, class:, render: ->(row) } (required)
+      If :render is provided, it will be called with the row to render the cell.
+      Otherwise, row.public_send(key) is displayed.
+    - collection: enumerable rows (required)
+    - search_path: optional path for search form
+    - search_param: optional param name for search (default :search)
+%>
+
+<div class="bg-white shadow-sm rounded-md">
+  <% if local_assigns[:search_path].present? %>
+    <div class="flex items-center justify-end px-4 py-3 border-b border-gray-200">
+      <%= form_with url: local_assigns[:search_path], method: :get, local: true, class: "hidden md:block" do |f| %>
+        <% param_name = (local_assigns[:search_param] || :search).to_s %>
+        <div class="relative">
+          <input name="<%= param_name %>" value="<%= params[param_name] %>" placeholder="Search..." class="w-64 rounded-md border border-gray-200 pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path fill-rule="evenodd" d="M10.5 3.75a6.75 6.75 0 104.243 12.013l4.247 4.247a.75.75 0 101.06-1.06l-4.247-4.247A6.75 6.75 0 0010.5 3.75zm-5.25 6.75a5.25 5.25 0 1110.5 0 5.25 5.25 0 01-10.5 0z" clip-rule="evenodd"/></svg>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-left">
+      <thead class="bg-gray-50">
+        <tr class="text-xs uppercase text-gray-600">
+          <% columns.each do |col| %>
+            <th class="px-4 py-3 font-medium <%= col[:class] %>"><%= col[:label] %></th>
+          <% end %>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+        <% collection.each do |row| %>
+          <tr>
+            <% columns.each do |col| %>
+              <td class="px-4 py-3 <%= col[:td_class] %>">
+                <% if col[:render].respond_to?(:call) %>
+                  <%= col[:render].call(row) %>
+                <% elsif col[:key] %>
+                  <%= row.public_send(col[:key]) %>
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+

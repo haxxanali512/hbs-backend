@@ -16,12 +16,13 @@ user.password_confirmation = super_admin_password if user.encrypted_password.bla
 user.save!
 
 # Create or update a full access role and attach to the user (has_one)
-full_access_permissions = ModulePermission.full_access
+full_access_permissions = HbsCustoms::ModulePermission.full_access
 
-role = user.role || Role.find_or_initialize_by(role_name: "Super Admin")
-role.user = user
+role = Role.find_or_initialize_by(role_name: "Super Admin")
 role.access = full_access_permissions
 role.save!
+
+user.update!(role: role)
 
 puts "Super Admin: #{user.email} (password: #{super_admin_password})"
 puts "Role '#{role.role_name}' assigned with full access."

@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  devise_for :users
+  devise_for :users, controllers: { invitations: "users/invitations" }
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
@@ -27,6 +27,21 @@ Rails.application.routes.draw do
 
   # Admin namespace
   namespace :admin do
+    resources :users do
+      member do
+        post :suspend
+        post :activate
+        post :deactivate
+        post :reset_password
+        get  :reset_password
+        post :reinvite
+        patch :change_role
+      end
+      collection do
+        get :invite
+        post :send_invitation
+      end
+    end
     resources :roles do
       member do
         get :permissions

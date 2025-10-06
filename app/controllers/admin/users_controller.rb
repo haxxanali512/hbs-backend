@@ -1,55 +1,52 @@
 class Admin::UsersController < ::ApplicationController
-  before_action :set_user, only: [ :show, :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :change_role, :audit_logs, :sessions ]
+  before_action :set_user, only: [ :show, :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
 
   def index
-    @users = policy_scope(User).includes(:role, :user_status_logs)
-                              .order(created_at: :desc)
-                              .page(params[:page])
-
-    # Filtering
-    @users = @users.where(status: params[:status]) if params[:status].present?
+    @users = User.includes(:role).order(created_at: :desc)
     @users = @users.where(role_id: params[:role_id]) if params[:role_id].present?
     @users = @users.where("email ILIKE ?", "%#{params[:search]}%") if params[:search].present?
-
-    @roles = Role.active.order(:name)
-    @statuses = User.statuses.keys
+    @roles = Role.order(:role_name)
   end
 
   def show
-    @recent_logs = @user.user_status_logs.recent.limit(10)
-    @recent_sessions = @user.sessions.recent.limit(5)
+    @recent_logs = @user.respond_to?(:user_status_logs) ? @user.user_status_logs.try(:recent)&.limit(10) : []
+    @recent_sessions = @user.respond_to?(:sessions) ? @user.sessions.try(:recent)&.limit(5) : []
   end
 
   def new
     @user = User.new
-    @roles = Role.active.order(:name)
+    @roles = Role.order(:role_name)
   end
 
   def create
-    @user = User.new(user_params)
-    @user.password = SecureRandom.hex(8) # Generate random password
-    @user.skip_confirmation! if @user.respond_to?(:skip_confirmation!)
-
-    if @user.save
-      # Send invitation email
-      UserMailer.invitation_instructions(@user, @user.password).deliver_now
-
-      redirect_to admin_user_path(@user), notice: "User created successfully and invitation sent."
+    @user = User.invite!(invite_params.merge(invited_by: current_user))
+    if @user.errors.empty?
+      redirect_to admin_users_path, notice: "Invitation sent successfully."
     else
-      @roles = Role.active.order(:name)
+      @roles = Role.order(:role_name)
       render :new
     end
   end
 
   def edit
-    @roles = Role.active.order(:name)
+    @roles = Role.order(:role_name)
   end
 
   def update
+    # Apply lock/unlock toggle from edit form
+    if params.dig(:user, :locked).present?
+      should_lock = ActiveModel::Type::Boolean.new.cast(params[:user][:locked])
+      if should_lock && !@user.access_locked?
+        @user.lock_access!
+      elsif !should_lock && @user.access_locked?
+        @user.unlock_access!
+      end
+    end
+
     if @user.update(user_params)
       redirect_to admin_user_path(@user), notice: "User updated successfully."
     else
-      @roles = Role.active.order(:name)
+      @roles = Role.order(:role_name)
       render :edit
     end
   end
@@ -89,13 +86,18 @@ class Admin::UsersController < ::ApplicationController
   end
 
   def unlock
-    @user.unlock_account!
+    @user.unlock_access!
     redirect_to admin_user_path(@user), notice: "User account unlocked successfully."
   end
 
   def reset_password
     @user.send_reset_password_instructions
-    redirect_to admin_user_path(@user), notice: "Password reset instructions sent."
+    redirect_to admin_users_path, notice: "Password reset instructions sent."
+  end
+
+  def reinvite
+    @user.invite!
+    redirect_to admin_users_path, notice: "Invitation resent successfully."
   end
 
   def change_role
@@ -109,16 +111,15 @@ class Admin::UsersController < ::ApplicationController
 
   def invite
     @user = User.new
-    @roles = Role.active.order(:name)
+    @roles = Role.order(:role_name)
   end
 
   def send_invitation
     @user = User.invite!(invite_params, current_user)
-
     if @user.errors.empty?
       redirect_to admin_users_path, notice: "Invitation sent successfully."
     else
-      @roles = Role.active.order(:name)
+      @roles = Role.order(:role_name)
       render :invite
     end
   end
@@ -130,7 +131,7 @@ class Admin::UsersController < ::ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:email, :first_name, :last_name, :phone_number, :role_id, :status)
+    params.require(:user).permit(:email, :first_name, :last_name, :username, :role_id)
   end
 
   def invite_params

@@ -35,9 +35,7 @@ class AddDeviseToUsers < ActiveRecord::Migration[7.2]
       t.string   :unlock_token # Only if unlock strategy is :email or :both
       t.datetime :locked_at
 
-
-      # Uncomment below if timestamps were not included in your original model.
-      # t.timestamps null: false
+      t.timestamps
     end
 
     add_index :users, :email,                unique: true

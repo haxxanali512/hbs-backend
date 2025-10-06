@@ -12,26 +12,7 @@
   </head>
 
   <body class="bg-gray-50">
-    <header class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="h-16 flex items-center justify-between">
-          <%= link_to root_path, class: "flex items-center space-x-3" do %>
-            <%= image_tag "HBS-logo-scaled (1).png", alt: "Holistic Business Solution", class: "h-8 w-auto" %>
-            <span class="sr-only">Holistic Business Solution</span>
-          <% end %>
-          <nav class="flex items-center space-x-4">
-            <%= link_to "Home", root_path, class: "text-sm text-gray-700 hover:text-indigo-600" %>
-            <% if user_signed_in? %>
-              <%= button_to "Sign Out", destroy_user_session_path, method: :delete, form: { class: "inline" }, class: "inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
-            <% else %>
-              <%= link_to "Sign In", new_user_session_path, class: "inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-md" %>
-              <%= link_to "Sign Up", new_user_registration_path, class: "inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md" %>
-            <% end %>
-          </nav>
-        </div>
-      </div>
-    </header>
-    <main>
+    <main class="min-h-screen flex items-center justify-center py-10 px-4">
       <%= yield %>
     </main>
   </body>

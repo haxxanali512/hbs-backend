@@ -30,8 +30,17 @@
       var trigger = e.target.closest('[data-confirm-url]');
       if(trigger){
         e.preventDefault();
+        var message = trigger.getAttribute('data-confirm-message');
+        var confirmLabel = trigger.getAttribute('data-confirm-label') || 'Confirm';
         var url = trigger.getAttribute('data-confirm-url');
-        if(url){ openModal(url); }
+        if(url){
+          // update modal copy & confirm label if provided
+          var titleEl = document.querySelector('#confirmModal h3');
+          if(titleEl && message){ titleEl.textContent = message; }
+          var confirmBtn = document.getElementById('confirmModalConfirm');
+          if(confirmBtn){ confirmBtn.textContent = confirmLabel; }
+          openModal(url);
+        }
       }
     }, true);
 

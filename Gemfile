@@ -14,6 +14,7 @@ gem "puma", ">= 5.0"
 
 # Authentication
 gem "devise"
+gem "devise_invitable"
 
 # CSS Framework
 gem "tailwindcss-rails"
@@ -59,7 +60,8 @@ group :development, :test do
   gem "capistrano3-puma", require: false
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ]
-
+  gem "letter_opener_web"
+  gem "letter_opener"
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 

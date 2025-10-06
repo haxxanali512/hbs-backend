@@ -4,8 +4,7 @@
   <div class="rounded-md border border-gray-200 bg-white p-4 md:p-6">
     <div class="flex items-start justify-between gap-4">
       <div>
-        <h2 class="text-lg font-semibold text-gray-900">Welcome back, <%= current_user.display_name %>!</h2>
-        <p class="mt-1 text-sm text-gray-600">You earn $3287 today, it's higher than last month. Keep up your good work!</p>
+        <h2 class="text-lg font-semibold text-gray-900">Welcome back, Super Admin!</h2>
       </div>
       <div class="hidden sm:flex items-center gap-2">
         <a href="#" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">View More</a>
@@ -15,12 +14,12 @@
   </div>
 
   <!-- Stat Cards -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
     <div class="rounded-md border border-gray-200 bg-white p-5">
       <div class="flex items-start justify-between">
         <div>
-          <p class="text-sm text-gray-500">Customers</p>
-          <p class="mt-1 text-2xl font-semibold text-gray-900">3,782</p>
+          <p class="text-sm text-gray-500">Users</p>
+          <p class="mt-1 text-2xl font-semibold text-gray-900"><%= @users_count %></p>
         </div>
         <span class="inline-flex items-center rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-600">11.01%</span>
       </div>
@@ -28,175 +27,11 @@
     <div class="rounded-md border border-gray-200 bg-white p-5">
       <div class="flex items-start justify-between">
         <div>
-          <p class="text-sm text-gray-500">Orders</p>
-          <p class="mt-1 text-2xl font-semibold text-gray-900">5,359</p>
+          <p class="text-sm text-gray-500">Roles</p>
+          <p class="mt-1 text-2xl font-semibold text-gray-900"><%= @roles_count %></p>
         </div>
-        <span class="inline-flex items-center rounded bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600">9.05%</span>
-      </div>
-    </div>
-    <div class="rounded-md border border-gray-200 bg-white p-5">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-sm text-gray-500">Revenue</p>
-          <p class="mt-1 text-2xl font-semibold text-gray-900">$20K</p>
-        </div>
-        <span class="inline-flex items-center rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-600">Today</span>
-      </div>
-    </div>
-    <div class="rounded-md border border-gray-200 bg-white p-5">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-sm text-gray-500">Monthly Target</p>
-          <p class="mt-1 text-2xl font-semibold text-gray-900">$20K</p>
-        </div>
-        <span class="inline-flex items-center rounded bg-amber-50 px-2 py-1 text-xs font-medium text-amber-600">+10%</span>
       </div>
     </div>
   </div>
-
-  <!-- Charts Row -->
-  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-    <div class="rounded-md border border-gray-200 bg-white p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-900">Monthly Sales</h3>
-        <div class="hidden sm:flex items-center gap-2">
-          <a href="#" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">View More</a>
-          <button class="inline-flex items-center rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">Delete</button>
-        </div>
-      </div>
-      <div class="mt-4 h-56 w-full rounded bg-gray-50"></div>
-    </div>
-    <div class="rounded-md border border-gray-200 bg-white p-5">
-      <h3 class="text-sm font-semibold text-gray-900">Statistics</h3>
-      <div class="mt-4 h-56 w-full rounded bg-gray-50"></div>
-    </div>
-  </div>
-
-  <!-- Lower Row -->
-  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-    <!-- Customers Demographic -->
-    <div class="rounded-md border border-gray-200 bg-white p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-900">Customers Demographic</h3>
-        <a href="#" class="hidden sm:inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">View More</a>
-      </div>
-      <div class="mt-4 space-y-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">usa</span>
-            <div>
-              <p class="text-sm font-medium text-gray-900">USA</p>
-              <p class="text-xs text-gray-500">2,379 Customers</p>
-            </div>
-          </div>
-          <span class="text-sm font-medium text-gray-700">79%</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">fr</span>
-            <div>
-              <p class="text-sm font-medium text-gray-900">France</p>
-              <p class="text-xs text-gray-500">589 Customers</p>
-            </div>
-          </div>
-          <span class="text-sm font-medium text-gray-700">23%</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Orders Table -->
-    <div class="rounded-md border border-gray-200 bg-white p-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-900">Recent Orders</h3>
-        <div class="hidden sm:flex items-center gap-2">
-          <button class="inline-flex items-center rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">Filter</button>
-          <a href="#" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">See all</a>
-        </div>
-      </div>
-      <div class="mt-4 overflow-x-auto">
-        <table class="min-w-full text-left">
-          <thead>
-            <tr class="text-xs uppercase text-gray-500">
-              <th class="px-3 py-2 font-medium">Products</th>
-              <th class="px-3 py-2 font-medium">Category</th>
-              <th class="px-3 py-2 font-medium">Price</th>
-              <th class="px-3 py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
-            <tr>
-              <td class="px-3 py-3">
-                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded bg-gray-100"></div>
-                  <div>
-                    <div class="font-medium text-gray-900">Macbook pro 13”</div>
-                    <div class="text-xs text-gray-500">2 Variants</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-3 py-3">Laptop</td>
-              <td class="px-3 py-3">$2399.00</td>
-              <td class="px-3 py-3"><span class="inline-flex items-center rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">Delivered</span></td>
-            </tr>
-            <tr>
-              <td class="px-3 py-3">
-                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded bg-gray-100"></div>
-                  <div>
-                    <div class="font-medium text-gray-900">Apple Watch Ultra</div>
-                    <div class="text-xs text-gray-500">1 Variants</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-3 py-3">Watch</td>
-              <td class="px-3 py-3">$879.00</td>
-              <td class="px-3 py-3"><span class="inline-flex items-center rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">Pending</span></td>
-            </tr>
-            <tr>
-              <td class="px-3 py-3">
-                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded bg-gray-100"></div>
-                  <div>
-                    <div class="font-medium text-gray-900">iPhone 15 Pro Max</div>
-                    <div class="text-xs text-gray-500">2 Variants</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-3 py-3">SmartPhone</td>
-              <td class="px-3 py-3">$1869.00</td>
-              <td class="px-3 py-3"><span class="inline-flex items-center rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">Delivered</span></td>
-            </tr>
-            <tr>
-              <td class="px-3 py-3">
-                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded bg-gray-100"></div>
-                  <div>
-                    <div class="font-medium text-gray-900">iPad Pro 3rd Gen</div>
-                    <div class="text-xs text-gray-500">2 Variants</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-3 py-3">Electronics</td>
-              <td class="px-3 py-3">$1699.00</td>
-              <td class="px-3 py-3"><span class="inline-flex items-center rounded bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">Canceled</span></td>
-            </tr>
-            <tr>
-              <td class="px-3 py-3">
-                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded bg-gray-100"></div>
-                  <div>
-                    <div class="font-medium text-gray-900">Airpods Pro 2nd Gen</div>
-                    <div class="text-xs text-gray-500">1 Variants</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-3 py-3">Accessories</td>
-              <td class="px-3 py-3">$240.00</td>
-              <td class="px-3 py-3"><span class="inline-flex items-center rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">Delivered</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+  
 </div>
