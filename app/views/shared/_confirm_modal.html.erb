@@ -1,0 +1,20 @@
+<div id="confirmModal" class="hidden fixed inset-0 z-50 items-center justify-center">
+  <div class="absolute inset-0 bg-black/40"></div>
+  <div class="relative z-10 w-full max-w-sm rounded-lg bg-white shadow-lg">
+    <div class="px-5 py-4 border-b border-gray-200">
+      <h3 class="text-base font-semibold text-gray-900">Are you sure?</h3>
+    </div>
+    <div class="px-5 py-4 text-sm text-gray-700">
+      This action cannot be undone.
+    </div>
+    <div class="px-5 pb-4 flex items-center justify-end gap-3">
+      <button type="button" id="confirmModalCancel" class="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
+      <button type="button" id="confirmModalConfirm" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Delete</button>
+    </div>
+    <%= form_with url: '#', method: :delete, id: 'confirmModalForm' do %>
+    <% end %>
+  </div>
+</div>
+
+<!-- JS moved to app/assets/javascripts/confirm_modal.js to work with CSP & Turbo -->
+

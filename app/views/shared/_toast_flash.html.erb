@@ -1,0 +1,38 @@
+<div class="fixed top-4 right-4 z-50 space-y-3" aria-live="polite" aria-atomic="true">
+  <% flash.each do |type, message| %>
+    <% next if message.blank? %>
+    <% bg, border, text = case type.to_s
+      when 'notice' then ['bg-green-50', 'border-green-400', 'text-green-800']
+      when 'alert' then ['bg-red-50', 'border-red-400', 'text-red-800']
+      else ['bg-gray-50', 'border-gray-300', 'text-gray-800']
+    end %>
+    <div class="toast pointer-events-auto w-80 rounded-md border <%= border %> <%= bg %> shadow-md opacity-100 transition-opacity duration-500">
+      <div class="flex items-start gap-3 p-4">
+        <div class="shrink-0 mt-0.5">
+          <% if type.to_s == 'notice' %>
+            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <% elsif type.to_s == 'alert' %>
+            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 4.93l14.14 14.14M12 5c3.866 0 7 3.134 7 7s-3.134 7-7 7-7-3.134-7-7 3.134-7 7-7z"/></svg>
+          <% else %>
+            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
+          <% end %>
+        </div>
+        <div class="flex-1 <%= text %>"><%= message %></div>
+        <button type="button" class="text-gray-400 hover:text-gray-600" onclick="this.closest('.pointer-events-auto').remove()">&times;</button>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  // Auto-fade and dismiss toasts
+  (function(){
+    var toasts = document.querySelectorAll('.toast');
+    toasts.forEach(function(el){
+      setTimeout(function(){ el.classList.add('opacity-0'); }, 3500);
+      setTimeout(function(){ el.remove(); }, 4000);
+    });
+  })();
+</script>
+
+
