@@ -21,6 +21,7 @@ gem "tailwindcss-rails"
 
 # Asset pipeline
 gem "sprockets-rails"
+gem "aasm"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]

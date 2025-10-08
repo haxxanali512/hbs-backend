@@ -10,9 +10,90 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_06_123619) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_07_150504) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "organization_billings", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.integer "billing_status"
+    t.datetime "last_payment_date", precision: nil
+    t.datetime "next_payment_due", precision: nil
+    t.string "method_last4"
+    t.integer "provider"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_billings_on_organization_id"
+  end
+
+  create_table "organization_compliances", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.datetime "gsa_signed_at", precision: nil
+    t.string "gsa_envelope_id"
+    t.datetime "baa_signed_at", precision: nil
+    t.string "baa_envelope_id"
+    t.datetime "phi_access_locked_at", precision: nil
+    t.datetime "data_retention_expires_at", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_compliances_on_organization_id"
+  end
+
+  create_table "organization_contacts", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.text "address_line1"
+    t.text "address_line2"
+    t.string "city"
+    t.string "state"
+    t.string "zip"
+    t.string "country"
+    t.string "phone"
+    t.string "email"
+    t.string "time_zone"
+    t.integer "contact_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_contacts_on_organization_id"
+  end
+
+  create_table "organization_identifiers", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.string "tax_identification_number"
+    t.string "npi"
+    t.integer "identifiers_change_status"
+    t.string "identifiers_change_docs"
+    t.string "previous_tin"
+    t.string "previous_npi"
+    t.datetime "identifiers_change_effective_on", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_identifiers_on_organization_id"
+  end
+
+  create_table "organization_settings", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.jsonb "feature_entitlements"
+    t.string "mrn_prefix"
+    t.string "mrn_sequence"
+    t.string "mrn_format"
+    t.string "mrn_enabled"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_settings_on_organization_id"
+  end
+
+  create_table "organizations", force: :cascade do |t|
+    t.string "name"
+    t.string "subdomain"
+    t.bigint "owner_id", null: false
+    t.string "tier"
+    t.integer "activation_state"
+    t.datetime "activation_state_changed_at", precision: nil
+    t.datetime "closed_at", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_id"], name: "index_organizations_on_owner_id"
+  end
 
   create_table "roles", force: :cascade do |t|
     t.string "role_name"
@@ -63,5 +144,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_06_123619) do
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
   end
 
+  add_foreign_key "organization_billings", "organizations"
+  add_foreign_key "organization_compliances", "organizations"
+  add_foreign_key "organization_contacts", "organizations"
+  add_foreign_key "organization_identifiers", "organizations"
+  add_foreign_key "organization_settings", "organizations"
+  add_foreign_key "organizations", "users", column: "owner_id"
   add_foreign_key "users", "roles"
 end
