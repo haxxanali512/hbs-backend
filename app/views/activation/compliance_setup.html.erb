@@ -1,0 +1,118 @@
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Compliance Setup</h1>
+        <p class="mt-2 text-gray-600">Complete compliance requirements and policy confirmations</p>
+      </div>
+      <div class="text-sm text-gray-500">
+        Step 3 of 5
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-sm font-medium text-gray-700">Progress</span>
+      <span class="text-sm font-medium text-gray-700">50%</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2">
+      <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 50%"></div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <%= form_with model: [@organization, @compliance], url: activation_compliance_path, local: true, class: "space-y-6" do |f| %>
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Compliance Information</h3>
+      
+      <!-- GSA Agreement Section -->
+      <div class="mb-6">
+        <h4 class="text-sm font-medium text-gray-900 mb-3">GSA Agreement</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">GSA Signed Date</label>
+            <%= f.date_field :gsa_signed_at, 
+                class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">GSA Envelope ID</label>
+            <%= f.text_field :gsa_envelope_id, 
+                placeholder: "Enter envelope ID",
+                class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+        </div>
+      </div>
+
+      <!-- BAA Agreement Section -->
+      <div class="mb-6">
+        <h4 class="text-sm font-medium text-gray-900 mb-3">Business Associate Agreement (BAA)</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">BAA Signed Date</label>
+            <%= f.date_field :baa_signed_at, 
+                class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">BAA Envelope ID</label>
+            <%= f.text_field :baa_envelope_id, 
+                placeholder: "Enter envelope ID",
+                class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHI Access and Data Retention Section -->
+      <div class="mb-6">
+        <h4 class="text-sm font-medium text-gray-900 mb-3">Data Management</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">PHI Access Locked Date</label>
+            <%= f.date_field :phi_access_locked_at, 
+                class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Data Retention Expires</label>
+            <%= f.date_field :data_retention_expires_at, 
+                class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compliance Checklist -->
+      <div class="mb-6">
+        <h4 class="text-sm font-medium text-gray-900 mb-3">Compliance Checklist</h4>
+        <div class="space-y-3">
+          <label class="flex items-center">
+            <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+            <span class="ml-2 text-sm text-gray-700">I have read and agree to the Terms of Service</span>
+          </label>
+          <label class="flex items-center">
+            <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+            <span class="ml-2 text-sm text-gray-700">I understand the data privacy requirements</span>
+          </label>
+          <label class="flex items-center">
+            <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+            <span class="ml-2 text-sm text-gray-700">I confirm compliance with HIPAA regulations</span>
+          </label>
+          <label class="flex items-center">
+            <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+            <span class="ml-2 text-sm text-gray-700">I agree to the data retention policy</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="mt-6 flex items-center justify-between">
+        <%= link_to "Back to Billing", activation_billing_path, class: "text-sm text-gray-700 hover:text-gray-900" %>
+        
+        <div class="flex space-x-3">
+          <%= link_to "Skip for Now", activation_document_signing_path, class: "inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+          <%= f.submit "Continue to Document Signing", class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,24 +1,59 @@
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Roles</h1>
-    <%= link_to "New Role", new_admin_role_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
+    <div class="flex items-center gap-3">
+      <%= link_to "New Role", new_admin_role_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md" %>
+    </div>
   </div>
 
-  <div class="bg-white shadow overflow-hidden sm:rounded-md">
-    <ul role="list" class="divide-y divide-gray-200">
-      <% @roles.each do |role| %>
-        <li class="px-4 py-4 sm:px-6 flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-indigo-600 truncate"><%= role.role_name %></p>
-            <p class="mt-1 text-sm text-gray-500">Updated <%= time_ago_in_words(role.updated_at) %> ago</p>
-          </div>
-          <div class="flex items-center space-x-3">
-            <%= link_to "Edit", edit_admin_role_path(role), class: "text-sm text-indigo-700 hover:text-indigo-900" %>
-            <button type="button" onclick="window.HBSConfirm && window.HBSConfirm.open('<%= admin_role_path(role) %>')" class="text-sm text-red-600 hover:text-red-800 cursor-pointer">Delete</button>
-          </div>
-        </li>
-      <% end %>
-    </ul>
-  </div>
+  <% columns = [
+    {
+      label: 'Role',
+      render: ->(role) { capture do
+        concat(content_tag(:div, class: 'flex items-center gap-3') do
+          concat content_tag(:div, role.role_name.first.upcase, class: 'h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold')
+          concat content_tag(:div, role.role_name, class: 'font-medium text-gray-900')
+        end)
+      end }
+    },
+    { 
+      label: 'Scope', 
+      render: ->(role) {
+        scope_classes = role.global? ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'
+        raw "<span class=\"inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium #{scope_classes}\">#{role.scope.humanize}</span>"
+      }
+    },
+    { 
+      label: 'Organization', 
+      render: ->(role) { role.organization&.name || 'Global' }
+    },
+    { 
+      label: 'Users', 
+      render: ->(role) { role.users.count.to_s + ' users' }
+    },
+    { 
+      label: 'Created', 
+      render: ->(role) { role.created_at.strftime("%B %d, %Y") }
+    },
+    {
+      label: 'Actions', td_class: 'text-center',
+      render: ->(role) { capture do
+        concat(link_to(edit_admin_role_path(role), title: 'Edit role', class: 'inline-flex items-center text-indigo-600 hover:text-indigo-800') do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M4 20h4l10.5-10.5a2.5 2.5 0 10-3.536-3.536L4 16v4z"/></svg><span class="sr-only">Edit</span>'
+        end)
+        concat ' '
+        concat(link_to(permissions_admin_role_path(role), title: 'Manage permissions', class: 'inline-flex items-center text-gray-600 hover:text-gray-800') do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg><span class="sr-only">Permissions</span>'
+        end)
+        concat ' '
+        unless role.role_name == 'Super Admin'
+          concat(link_to('#', data: { confirm_url: admin_role_path(role), confirm_message: 'Are you sure you want to delete this role?', confirm_label: 'Delete' }, title: 'Delete role', class: 'inline-flex items-center text-red-600 hover:text-red-800') do
+            raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span class="sr-only">Delete</span>'
+          end)
+        end
+      end }
+    }
+  ] %>
+
+  <%= render 'shared/table', title: 'Roles', columns: columns, collection: @roles %>
 </div>
-

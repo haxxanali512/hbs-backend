@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 class ApplicationPolicy
-  attr_reader :user, :record
+  attr_reader :user, :record, :organization, :membership
 
-  def initialize(user, record)
-    @user = user
+  def initialize(context, record)
+    @user = context.is_a?(Hash) ? context[:user] : context
+    @organization = context[:organization] if context.is_a?(Hash)
+    @membership = context[:membership] if context.is_a?(Hash)
     @record = record
   end
 
@@ -39,13 +41,38 @@ class ApplicationPolicy
   private
 
   def accessible?(action, main_module, sub_module)
-    permissions = user.permissions_for(action, main_module, sub_module)
-    permissions.any?(true) || permissions.any?('true')
+    return true if user&.super_admin?
+
+    # Check global role permissions
+    global_permissions = user&.permissions_for(action, main_module, sub_module)
+    return true if global_permissions == true || global_permissions == "true"
+
+    # Check tenant role permissions if in organization context
+    if organization && membership&.organization_role
+      tenant_permissions = membership.organization_role.access.dig(main_module, sub_module, action)
+      return true if tenant_permissions == true || tenant_permissions == "true"
+    end
+
+    false
+  end
+
+  def current_org_member?
+    return true if user&.super_admin?
+    return false unless organization
+    user&.member_of?(organization)
+  end
+
+  def organization_admin?
+    return true if user&.super_admin?
+    return false unless organization
+    user&.organization_admin?(organization)
   end
 
   class Scope
-    def initialize(user, scope)
-      @user = user
+    def initialize(context, scope)
+      @user = context.is_a?(Hash) ? context[:user] : context
+      @organization = context[:organization] if context.is_a?(Hash)
+      @membership = context[:membership] if context.is_a?(Hash)
       @scope = scope
     end
 
@@ -55,7 +82,7 @@ class ApplicationPolicy
 
     private
 
-    attr_reader :user, :scope
+    attr_reader :user, :scope, :organization, :membership
   end
 end
 

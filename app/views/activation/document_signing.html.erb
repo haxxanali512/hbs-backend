@@ -1,0 +1,146 @@
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Document Signing</h1>
+        <p class="mt-2 text-gray-600">Sign the required agreements to complete your organization setup</p>
+      </div>
+      <div class="text-sm text-gray-500">
+        Step 4 of 5
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-sm font-medium text-gray-700">Progress</span>
+      <span class="text-sm font-medium text-gray-700">75%</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2">
+      <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 75%"></div>
+    </div>
+  </div>
+
+  <!-- Documents to Sign -->
+  <div class="space-y-6">
+    <!-- Service Agreement -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-semibold text-gray-900">Service Agreement</h3>
+          <p class="mt-1 text-sm text-gray-500">Terms of service and usage agreement</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+            Pending Signature
+          </span>
+          <button class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Preview
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+          <p>Document ID: DOC-2024-001</p>
+          <p>Created: <%= Date.current.strftime("%B %d, %Y") %></p>
+        </div>
+        <button class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">
+          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Sign Document
+        </button>
+      </div>
+    </div>
+
+    <!-- Privacy Policy -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-semibold text-gray-900">Privacy Policy Agreement</h3>
+          <p class="mt-1 text-sm text-gray-500">Data privacy and protection agreement</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+            Pending Signature
+          </span>
+          <button class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Preview
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+          <p>Document ID: DOC-2024-002</p>
+          <p>Created: <%= Date.current.strftime("%B %d, %Y") %></p>
+        </div>
+        <button class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">
+          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Sign Document
+        </button>
+      </div>
+    </div>
+
+    <!-- Data Processing Agreement -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-semibold text-gray-900">Data Processing Agreement</h3>
+          <p class="mt-1 text-sm text-gray-500">GDPR and data processing compliance</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+            Pending Signature
+          </span>
+          <button class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Preview
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-500">
+          <p>Document ID: DOC-2024-003</p>
+          <p>Created: <%= Date.current.strftime("%B %d, %Y") %></p>
+        </div>
+        <button class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">
+          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Sign Document
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Section -->
+  <div class="mt-8">
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-2">Complete Document Signing</h3>
+      <p class="text-sm text-gray-500 mb-6">Once you have signed all required documents, click below to proceed to activation.</p>
+      
+      <div class="flex items-center justify-between">
+        <%= link_to "Back to Compliance", activation_compliance_path, class: "text-sm text-gray-700 hover:text-gray-900" %>
+        
+        <%= form_with url: activation_document_signing_path, method: :post, local: true do |f| %>
+          <%= f.submit "Mark Documents as Signed", class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

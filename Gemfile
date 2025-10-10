@@ -38,6 +38,9 @@ gem "bootsnap", require: false
 gem "rack-cors"
 gem "pundit"
 
+# Payment Processing
+gem "stripe"
+
 # Background job processing
 gem "sidekiq", "~> 6.5.12"
 
@@ -69,3 +72,5 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 end
+
+gem "gocardless_pro", "~> 4.2"

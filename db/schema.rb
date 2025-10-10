@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_07_150504) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_10_093220) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -70,6 +70,19 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_07_150504) do
     t.index ["organization_id"], name: "index_organization_identifiers_on_organization_id"
   end
 
+  create_table "organization_memberships", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "organization_id", null: false
+    t.bigint "organization_role_id"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_memberships_on_organization_id"
+    t.index ["organization_role_id"], name: "index_organization_memberships_on_organization_role_id"
+    t.index ["user_id", "organization_id"], name: "index_organization_memberships_on_user_id_and_organization_id", unique: true
+    t.index ["user_id"], name: "index_organization_memberships_on_user_id"
+  end
+
   create_table "organization_settings", force: :cascade do |t|
     t.bigint "organization_id", null: false
     t.jsonb "feature_entitlements"
@@ -87,7 +100,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_07_150504) do
     t.string "subdomain"
     t.bigint "owner_id", null: false
     t.string "tier"
-    t.integer "activation_state"
+    t.integer "activation_status"
     t.datetime "activation_state_changed_at", precision: nil
     t.datetime "closed_at", precision: nil
     t.datetime "created_at", null: false
@@ -100,6 +113,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_07_150504) do
     t.jsonb "access"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "scope", default: 0
+    t.bigint "organization_id"
+    t.index ["organization_id"], name: "index_roles_on_organization_id"
+    t.index ["scope", "organization_id"], name: "index_roles_on_scope_and_organization_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -148,7 +165,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_07_150504) do
   add_foreign_key "organization_compliances", "organizations"
   add_foreign_key "organization_contacts", "organizations"
   add_foreign_key "organization_identifiers", "organizations"
+  add_foreign_key "organization_memberships", "organizations"
+  add_foreign_key "organization_memberships", "roles", column: "organization_role_id"
+  add_foreign_key "organization_memberships", "users"
   add_foreign_key "organization_settings", "organizations"
   add_foreign_key "organizations", "users", column: "owner_id"
+  add_foreign_key "roles", "organizations"
   add_foreign_key "users", "roles"
 end

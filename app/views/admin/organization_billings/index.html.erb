@@ -1,0 +1,110 @@
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Organization Billing Management</h1>
+    <div class="flex items-center gap-3">
+      <!-- Add any action buttons here if needed -->
+    </div>
+  </div>
+
+  <!-- Pending Approvals Section -->
+  <% if @pending_billings.any? %>
+    <div class="mb-8">
+      <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <div class="px-4 py-3 bg-amber-50 border-b border-amber-200">
+          <h2 class="text-sm font-medium text-amber-800">
+            Pending Approvals (<%= @pending_billings.count %>)
+          </h2>
+        </div>
+        <ul role="list" class="divide-y divide-gray-200">
+          <% @pending_billings.each do |billing| %>
+            <li class="px-4 py-4 sm:px-6 flex items-center justify-between">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-8 w-8">
+                  <div class="h-8 w-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-semibold">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm font-medium text-gray-900"><%= billing.organization.name %></p>
+                  <p class="text-sm text-amber-600">Manual Payment Request</p>
+                  <p class="text-xs text-gray-500">Submitted <%= time_ago_in_words(billing.created_at) %> ago</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-3">
+                <%= link_to "Review", admin_organization_billing_path(billing), class: "text-sm text-indigo-700 hover:text-indigo-900" %>
+                <%= link_to "Approve", approve_admin_organization_billing_path(billing), 
+                    method: :patch,
+                    class: "text-sm text-green-600 hover:text-green-800",
+                    data: { confirm: "Are you sure you want to approve this billing setup?" } %>
+                <%= link_to "Reject", reject_admin_organization_billing_path(billing), 
+                    method: :patch,
+                    class: "text-sm text-red-600 hover:text-red-800",
+                    data: { confirm: "Are you sure you want to reject this billing setup?" } %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- All Billings Section -->
+  <% columns = [
+    {
+      label: 'Organization',
+      render: ->(b) { capture do
+        concat(content_tag(:div, class: 'flex items-center gap-3') do
+          concat content_tag(:div, b.organization.name.first.upcase, class: 'h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold')
+          concat content_tag(:div) do
+            concat content_tag(:div, b.organization.name, class: 'font-medium text-gray-900')
+            concat content_tag(:div, b.organization.owner.email, class: 'text-sm text-gray-500')
+          end
+        end)
+      end }
+    },
+    { 
+      label: 'Status', 
+      render: ->(b) {
+        status_classes = case b.billing_status
+        when 'pending_approval' then 'bg-amber-50 text-amber-700'
+        when 'active' then 'bg-emerald-50 text-emerald-700'
+        when 'cancelled' then 'bg-red-50 text-red-700'
+        else 'bg-gray-50 text-gray-700'
+        end
+        raw "<span class=\"inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium #{status_classes}\">#{b.billing_status.humanize}</span>"
+      }
+    },
+    { 
+      label: 'Provider', 
+      render: ->(b) { 
+        provider_icon = case b.provider
+        when 'stripe' then '<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 5.458 1.558l.89-5.494C17.252.274 14.208 0 11.065 0 7.23 0 4.258 1.562 4.258 4.823c0 3.39 2.467 4.93 4.33 5.7 1.86.77 2.49 1.27 2.49 2.1 0 1.16-.978 1.7-2.86 1.7-2.227 0-4.515-.858-5.458-1.558L.89 18.5c.89.5 3.934 1.558 7.77 1.558 3.835 0 6.807-1.562 6.807-4.823 0-3.39-2.467-4.93-4.33-5.7z"/></svg>'
+        when 'gocardless' then '<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>'
+        when 'manual' then '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>'
+        else '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>'
+        end
+        raw "<div class=\"flex items-center gap-2\">#{provider_icon}<span>#{b.provider.humanize}</span></div>"
+      }
+    },
+    { 
+      label: 'Last Payment', 
+      render: ->(b) { b.last_payment_date&.strftime("%B %d, %Y") || "Never" }
+    },
+    { 
+      label: 'Created', 
+      render: ->(b) { b.created_at.strftime("%B %d, %Y") }
+    },
+    {
+      label: 'Actions', td_class: 'text-center',
+      render: ->(b) { capture do
+        concat(link_to(admin_organization_billing_path(b), title: 'View details', class: 'inline-flex items-center text-indigo-600 hover:text-indigo-800') do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg><span class="sr-only">View</span>'
+        end)
+      end }
+    }
+  ] %>
+
+  <%= render 'shared/table', title: 'All Billing Records', columns: columns, collection: @all_billings %>
+</div>

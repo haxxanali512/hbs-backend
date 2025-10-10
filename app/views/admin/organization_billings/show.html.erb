@@ -1,0 +1,155 @@
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Billing Review</h1>
+        <p class="mt-2 text-gray-600">Review billing setup for <%= @organization.name %></p>
+      </div>
+      <div class="flex space-x-3">
+        <%= link_to "Back to List", admin_organization_billings_path, 
+            class: "text-sm text-gray-700 hover:text-gray-900" %>
+        <% if @organization_billing.pending_approval? %>
+          <%= link_to "Approve", approve_admin_organization_billing_path(@organization_billing), 
+              method: :patch,
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md",
+              data: { confirm: "Are you sure you want to approve this billing setup?" } %>
+          <%= link_to "Reject", reject_admin_organization_billing_path(@organization_billing), 
+              method: :patch,
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md",
+              data: { confirm: "Are you sure you want to reject this billing setup?" } %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <!-- Organization Information -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Organization Information</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Organization Name</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @organization.name %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Owner Email</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @organization.owner.email %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Tier</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @organization.tier.humanize %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Activation Status</label>
+          <span class="mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            <%= case @organization.activation_status
+                when 'pending' then 'bg-gray-100 text-gray-800'
+                when 'billing_setup' then 'bg-amber-100 text-amber-800'
+                when 'compliance_setup' then 'bg-blue-100 text-blue-800'
+                when 'document_signing' then 'bg-purple-100 text-purple-800'
+                when 'activated' then 'bg-green-100 text-green-800'
+                else 'bg-gray-100 text-gray-800'
+                end %>">
+            <%= @organization.activation_status.humanize %>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Billing Information -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Billing Information</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Status</label>
+          <span class="mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            <%= case @organization_billing.billing_status
+                when 'pending_approval' then 'bg-amber-100 text-amber-800'
+                when 'active' then 'bg-green-100 text-green-800'
+                when 'cancelled' then 'bg-red-100 text-red-800'
+                else 'bg-gray-100 text-gray-800'
+                end %>">
+            <%= @organization_billing.billing_status.humanize %>
+          </span>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Provider</label>
+          <div class="mt-1 flex items-center">
+            <div class="flex-shrink-0 h-6 w-6">
+              <% case @organization_billing.provider %>
+              <% when 'stripe' %>
+                <div class="h-6 w-6 rounded bg-indigo-100 flex items-center justify-center">
+                  <svg class="h-4 w-4 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 5.458 1.558l.89-5.494C17.252.274 14.208 0 11.065 0 7.23 0 4.258 1.562 4.258 4.823c0 3.39 2.467 4.93 4.33 5.7 1.86.77 2.49 1.27 2.49 2.1 0 1.16-.978 1.7-2.86 1.7-2.227 0-4.515-.858-5.458-1.558L.89 18.5c.89.5 3.934 1.558 7.77 1.558 3.835 0 6.807-1.562 6.807-4.823 0-3.39-2.467-4.93-4.33-5.7z"/>
+                  </svg>
+                </div>
+              <% when 'gocardless' %>
+                <div class="h-6 w-6 rounded bg-blue-100 flex items-center justify-center">
+                  <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                </div>
+              <% when 'manual' %>
+                <div class="h-6 w-6 rounded bg-gray-100 flex items-center justify-center">
+                  <svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              <% else %>
+                <div class="h-6 w-6 rounded bg-gray-100 flex items-center justify-center">
+                  <svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+              <% end %>
+            </div>
+            <span class="ml-2 text-sm text-gray-900"><%= @organization_billing.provider.humanize %></span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Last Payment Date</label>
+          <p class="mt-1 text-sm text-gray-900">
+            <%= @organization_billing.last_payment_date&.strftime("%B %d, %Y at %I:%M %p") || "Never" %>
+          </p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Next Payment Due</label>
+          <p class="mt-1 text-sm text-gray-900">
+            <%= @organization_billing.next_payment_due&.strftime("%B %d, %Y at %I:%M %p") || "Not set" %>
+          </p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Method Last 4</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @organization_billing.method_last4 || "Not provided" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Created At</label>
+          <p class="mt-1 text-sm text-gray-900">
+            <%= @organization_billing.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Required -->
+    <% if @organization_billing.pending_approval? %>
+      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-8 shadow-sm">
+        <h3 class="text-base font-semibold text-amber-900 mb-4">Action Required</h3>
+        <p class="text-sm text-amber-700 mb-6">
+          This organization has requested manual payment processing. Please review the information above and either approve or reject their billing setup.
+        </p>
+        <div class="flex items-center justify-end space-x-3">
+          <%= link_to "Approve Billing Setup", approve_admin_organization_billing_path(@organization_billing), 
+              method: :patch,
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md",
+              data: { confirm: "Are you sure you want to approve this billing setup? The organization will be able to proceed to the next activation step." } %>
+          <%= link_to "Reject Billing Setup", reject_admin_organization_billing_path(@organization_billing), 
+              method: :patch,
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md",
+              data: { confirm: "Are you sure you want to reject this billing setup? The organization will need to resubmit their payment information." } %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -1,0 +1,14 @@
+development:
+  publishable_key: pk_test_your_publishable_key_here
+  secret_key: sk_test_your_secret_key_here
+  webhook_secret: whsec_your_webhook_secret_here
+
+test:
+  publishable_key: pk_test_your_publishable_key_here
+  secret_key: sk_test_your_secret_key_here
+  webhook_secret: whsec_your_webhook_secret_here
+
+production:
+  publishable_key: pk_live_your_publishable_key_here
+  secret_key: sk_live_your_secret_key_here
+  webhook_secret: whsec_your_webhook_secret_here

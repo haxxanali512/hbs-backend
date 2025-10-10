@@ -1,0 +1,114 @@
+<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900"><%= @organization.name %></h1>
+      <p class="mt-2 text-gray-600">Organization details and settings</p>
+    </div>
+    <div class="flex space-x-3">
+      <% if policy(@organization).update? %>
+        <%= link_to "Edit Organization", edit_organization_path(@organization), 
+            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md" %>
+      <% end %>
+      <% if policy(@organization).activate? && !@organization.activated? %>
+        <%= link_to "Continue Activation", activation_path, 
+            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Organization Details -->
+  <div class="space-y-6">
+    <!-- Basic Information -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Basic Information</h3>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500">Organization Name</span>
+          <span class="text-sm text-gray-900"><%= @organization.name %></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500">Subdomain</span>
+          <span class="text-sm text-gray-900"><%= @organization.subdomain %></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500">Tier</span>
+          <span class="text-sm text-gray-900"><%= @organization.tier.humanize %></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500">Owner</span>
+          <span class="text-sm text-gray-900"><%= @organization.owner.display_name %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activation Status -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Activation Status</h3>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500">Current Status</span>
+          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= @organization.activated? ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+            <%= @organization.activation_status.humanize %>
+          </span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500">Progress</span>
+          <span class="text-sm text-gray-900"><%= @organization.activation_progress_percentage %>%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: <%= @organization.activation_progress_percentage %>%"></div>
+        </div>
+        <div class="text-sm text-gray-500">
+          <p>Created: <%= @organization.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+          <% if @organization.activation_state_changed_at %>
+            <p>Last Updated: <%= @organization.activation_state_changed_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Related Information -->
+  <% if @organization.organization_billing || @organization.organization_compliance %>
+    <div class="mt-6 space-y-6">
+      <% if @organization.organization_billing %>
+        <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h3 class="text-base font-semibold text-gray-900 mb-4">Billing Information</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-500">Status</span>
+              <span class="text-sm text-gray-900"><%= @organization.organization_billing.billing_status %></span>
+            </div>
+            <% if @organization.organization_billing.provider %>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-500">Provider</span>
+                <span class="text-sm text-gray-900"><%= @organization.organization_billing.provider %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @organization.organization_compliance %>
+        <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h3 class="text-base font-semibold text-gray-900 mb-4">Compliance Information</h3>
+          <div class="space-y-4">
+            <% if @organization.organization_compliance.gsa_signed_at %>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-500">GSA Signed</span>
+                <span class="text-sm text-gray-900"><%= @organization.organization_compliance.gsa_signed_at.strftime("%B %d, %Y") %></span>
+              </div>
+            <% end %>
+            <% if @organization.organization_compliance.baa_signed_at %>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-500">BAA Signed</span>
+                <span class="text-sm text-gray-900"><%= @organization.organization_compliance.baa_signed_at.strftime("%B %d, %Y") %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -1,9 +1,12 @@
 class Admin::RolesController < ::ApplicationController
   before_action :set_role, only: %i[ show edit update destroy ]
   before_action :prevent_super_admin_modification, only: %i[ edit update destroy ]
+  before_action :authorize_role, only: %i[ show edit update destroy ]
+  after_action :verify_authorized, except: [:index]
 
   def index
-    @roles = Role.order(:role_name)
+    @roles = policy_scope(Role).order(:role_name)
+    authorize Role
   end
 
   def show
@@ -13,6 +16,7 @@ class Admin::RolesController < ::ApplicationController
   def new
     @role = Role.new(access: HbsCustoms::ModulePermission.data.deep_symbolize_keys)
     @permissions = normalize_permissions(@role.access)
+    authorize @role
   end
 
   def edit
@@ -25,6 +29,7 @@ class Admin::RolesController < ::ApplicationController
 
   def create
     @role = Role.new(role_params)
+    authorize @role
     if @role.save
       redirect_to admin_roles_path, notice: "Role created successfully."
     else
@@ -58,6 +63,10 @@ class Admin::RolesController < ::ApplicationController
 
   def set_role
     @role = Role.find(params[:id])
+  end
+
+  def authorize_role
+    authorize @role
   end
 
   def prevent_super_admin_modification

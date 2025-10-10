@@ -1,0 +1,11 @@
+development:
+  access_token: sandbox_your_access_token_here
+  webhook_secret: your_webhook_secret_here
+
+test:
+  access_token: sandbox_your_access_token_here
+  webhook_secret: your_webhook_secret_here
+
+production:
+  access_token: live_your_access_token_here
+  webhook_secret: your_live_webhook_secret_here

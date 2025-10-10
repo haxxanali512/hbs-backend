@@ -7,6 +7,9 @@ class User < ApplicationRecord
 
   # Associations
   belongs_to :role, optional: true
+  has_many :organizations, foreign_key: "owner_id", dependent: :destroy
+  has_many :organization_memberships, dependent: :destroy
+  has_many :member_organizations, through: :organization_memberships, source: :organization
 
   # Validations
   validates :username, presence: true, uniqueness: { case_sensitive: false }
@@ -28,5 +31,30 @@ class User < ApplicationRecord
     return nil unless role&.respond_to?(:access)
 
     role.access.dig(main_module, sub_module, action)
+  end
+
+  def super_admin?
+    role&.role_name == "Super Admin"
+  end
+
+  def admin?
+    super_admin? || role&.role_name&.include?("Admin")
+  end
+
+  def organization_admin?(organization)
+    return true if super_admin?
+    return false unless organization
+
+    membership = organization_memberships.active.find_by(organization: organization)
+    membership&.organization_role&.role_name&.include?("Admin")
+  end
+
+  def member_of?(organization)
+    return true if super_admin?
+    organization_memberships.active.exists?(organization: organization)
+  end
+
+  def active_organizations
+    member_organizations.where(organization_memberships: { active: true })
   end
 end

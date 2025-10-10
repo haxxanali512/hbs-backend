@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
+        color: #374151;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        color: white;
+        padding: 40px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+      .content {
+        background: white;
+        padding: 40px;
+        border: 1px solid #e5e7eb;
+        border-top: none;
+      }
+      .footer {
+        background: #f9fafb;
+        padding: 20px;
+        text-align: center;
+        border-radius: 0 0 8px 8px;
+        border: 1px solid #e5e7eb;
+        border-top: none;
+        font-size: 14px;
+        color: #6b7280;
+      }
+      .button {
+        display: inline-block;
+        background: #8b5cf6;
+        color: white;
+        padding: 14px 28px;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        margin: 20px 0;
+        font-size: 16px;
+      }
+      .step-box {
+        background: #ede9fe;
+        border-left: 4px solid #8b5cf6;
+        padding: 24px;
+        margin: 24px 0;
+        border-radius: 0 8px 8px 0;
+      }
+      .info-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 24px;
+        margin: 24px 0;
+        border-radius: 8px;
+      }
+      .documents-info {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 24px;
+        margin: 24px 0;
+        border-radius: 0 8px 8px 0;
+      }
+      .documents-info ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .documents-info li {
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>📝 Document Signing Required</h1>
+      <p>Sign the necessary agreements to continue</p>
+    </div>
+    
+    <div class="content">
+      <div class="step-box">
+        <h2>Next Step: Document Signing</h2>
+        <p>Excellent! Your compliance setup for <strong><%= @organization.name %></strong> has been completed. Now it's time to sign the necessary agreements.</p>
+      </div>
+
+      <div class="info-box">
+        <h3>Organization Progress</h3>
+        <p><strong>Organization:</strong> <%= @organization.name %></p>
+        <p><strong>Current Status:</strong> <%= @organization.activation_status.humanize %></p>
+        <p><strong>Next Step:</strong> Document Signing</p>
+      </div>
+
+      <div class="documents-info">
+        <h3>Documents to Sign</h3>
+        <p>You'll need to review and sign the following documents:</p>
+        <ul>
+          <li>Service Agreement</li>
+          <li>Terms of Service</li>
+          <li>Privacy Policy Acknowledgment</li>
+          <li>Data Processing Agreement</li>
+        </ul>
+      </div>
+
+      <p>Ready to sign your documents? Complete this final step now:</p>
+      
+      <a href="<%= activation_document_signing_url %>" class="button">Sign Documents</a>
+      
+      <p>If you have any questions about the documents or need assistance, please contact our support team.</p>
+    </div>
+    
+    <div class="footer">
+      <p>This is an automated message from HBS Data Processing System.</p>
+      <p>If you have any questions, please contact our support team.</p>
+    </div>
+  </body>
+</html>

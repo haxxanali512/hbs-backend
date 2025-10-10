@@ -21,34 +21,101 @@ Rails.application.routes.draw do
   require "sidekiq/web"
   mount Sidekiq::Web => "/sidekiq"
 
-  # Home routes
-  root "home#index"
-  get "dashboard", to: "home#dashboard"
+  # Global admin routes (no subdomain or 'admin' subdomain)
+  constraints subdomain: /^(www|admin)?$/ do
+    # Home routes
+    root "home#index", as: :global_root
+    get "dashboard", to: "home#dashboard"
 
-  # Admin namespace
-  namespace :admin do
-    resources :users do
-      member do
-        post :suspend
-        post :activate
-        post :deactivate
-        post :reset_password
-        get  :reset_password
-        post :reinvite
-        patch :change_role
+    namespace :admin do
+      get "dashboard", to: "dashboard#index"
+      resources :organizations do
+        member do
+          post :activate_tenant
+          post :suspend_tenant
+        end
       end
-      collection do
-        get :invite
-        post :send_invitation
+      resources :users, except: [ :show ] do
+        member do
+          post :suspend
+          post :activate
+          post :deactivate
+          post :reset_password
+          get  :reset_password
+          post :reinvite
+          patch :change_role
+        end
+        collection do
+          get :invite
+          post :send_invitation
+        end
+      end
+      resources :roles do
+        member do
+          get :permissions
+          patch :update_permissions
+          post :duplicate
+        end
+      end
+      resources :organization_billings do
+        member do
+          patch :approve
+          patch :reject
+        end
       end
     end
-    resources :roles do
-      member do
-        get :permissions
-        patch :update_permissions
-        post :duplicate
-      end
+  end
+
+  # Organization-specific routes (tenant subdomains)
+  constraints subdomain: /(?!www|admin).+/ do
+    root "organizations#dashboard", as: :tenant_root
+    get "dashboard", to: "organizations#dashboard"
+
+    # Tenant-scoped resources
+    namespace :tenant do
+      # resources :patients
+      # resources :claims
+      # resources :invoices
+      # resources :reports
+      resources :team_members, only: [ :index, :show, :edit, :update ]
     end
+
+    # Activation wizard (tenant context)
+    get "activation", to: "activation#index"
+    get "activation/billing", to: "activation#billing_setup"
+    patch "activation/billing", to: "activation#update_billing"
+    post "activation/manual_payment", to: "activation#manual_payment"
+    get "activation/compliance", to: "activation#compliance_setup"
+    patch "activation/compliance", to: "activation#update_compliance"
+    get "activation/documents", to: "activation#document_signing"
+    post "activation/documents", to: "activation#complete_document_signing"
+    get "activation/complete", to: "activation#complete"
+    post "activation/activate", to: "activation#activate"
+  end
+
+  # Stripe integration routes
+  namespace :stripe do
+    get :products
+    get "products/:id/prices", to: "stripe#product_prices"
+    post :create_checkout_session
+    get "checkout_session/:id", to: "stripe#checkout_session"
+    post :webhook
+  end
+
+  # GoCardless integration routes
+  namespace :gocardless do
+    get :customers
+    post :customers
+    get "customers/:id", to: "gocardless#customer"
+    get "customers/:id/payments", to: "gocardless#customer_payments"
+    post :create_redirect_flow
+    post "redirect_flow/:id/complete", to: "gocardless#complete_redirect_flow"
+    post :mandates
+    post :payments
+    post :subscriptions
+    get "subscriptions/:id", to: "gocardless#subscription"
+    delete "subscriptions/:id", to: "gocardless#cancel_subscription"
+    post :webhook
   end
 
   # Defines the root path route ("/")

@@ -1,0 +1,89 @@
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Organizations</h1>
+    <div class="flex items-center gap-3">
+      <%= link_to "New Organization", new_admin_organization_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md" %>
+    </div>
+  </div>
+
+  <% columns = [
+    {
+      label: 'Organization',
+      render: ->(org) { 
+        content_tag(:div, class: 'flex items-center gap-3') do
+          content_tag(:div, org.name.first.upcase, class: 'h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold') +
+          content_tag(:div, org.name, class: 'font-medium text-gray-900')
+        end
+      }
+    },
+    { label: 'Subdomain', render: ->(org) { org.subdomain + '.localhost:3000' } },
+    {
+      label: 'Owner',
+      render: ->(org) { 
+        content_tag(:div, class: 'flex items-center gap-2') do
+          content_tag(:div, org.owner.display_name, class: 'font-medium text-gray-900') +
+          content_tag(:div, org.owner.email, class: 'text-sm text-gray-500')
+        end
+      }
+    },
+    {
+      label: 'Tier',
+      render: ->(org) {
+        tier_classes = case org.tier
+        when 'premium' then 'bg-purple-50 text-purple-700'
+        when 'standard' then 'bg-blue-50 text-blue-700'
+        when 'basic' then 'bg-gray-50 text-gray-700'
+        else 'bg-gray-50 text-gray-700'
+        end
+        raw "<span class=\"inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium #{tier_classes}\">#{org.tier.humanize}</span>"
+      }
+    },
+    {
+      label: 'Status',
+      render: ->(org) {
+        status_classes = case org.activation_status
+        when 'activated' then 'bg-emerald-50 text-emerald-700'
+        when 'pending' then 'bg-gray-50 text-gray-700'
+        when 'billing_setup' then 'bg-amber-50 text-amber-700'
+        when 'compliance_setup' then 'bg-blue-50 text-blue-700'
+        when 'document_signing' then 'bg-purple-50 text-purple-700'
+        else 'bg-gray-50 text-gray-700'
+        end
+        raw "<span class=\"inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium #{status_classes}\">#{org.activation_status.humanize}</span>"
+      }
+    },
+    { label: 'Members', render: ->(org) { org.active_members.count.to_s + ' members' } },
+    { label: 'Created', render: ->(org) { org.created_at.strftime("%B %d, %Y") } },
+    {
+      label: 'Actions', td_class: 'text-center',
+      render: ->(org) { 
+        actions = []
+        actions << link_to(admin_organization_path(org), title: 'View details', class: 'inline-flex items-center text-indigo-600 hover:text-indigo-800') do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg><span class="sr-only">View</span>'
+        end
+        
+        actions << link_to(edit_admin_organization_path(org), title: 'Edit', class: 'inline-flex items-center text-indigo-600 hover:text-indigo-800') do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M4 20h4l10.5-10.5a2.5 2.5 0 10-3.536-3.536L4 16v4z"/></svg><span class="sr-only">Edit</span>'
+        end
+        
+        if org.activated?
+          actions << link_to(suspend_tenant_admin_organization_path(org), method: :post, title: 'Suspend', class: 'inline-flex items-center text-amber-600 hover:text-amber-800', data: { confirm: "Are you sure you want to suspend this organization?" }) do
+            raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"/></svg><span class="sr-only">Suspend</span>'
+          end
+        else
+          actions << link_to(activate_tenant_admin_organization_path(org), method: :post, title: 'Activate', class: 'inline-flex items-center text-green-600 hover:text-green-800', data: { confirm: "Are you sure you want to activate this organization?" }) do
+            raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="sr-only">Activate</span>'
+          end
+        end
+        
+        actions << link_to(admin_organization_path(org), method: :delete, title: 'Delete', class: 'inline-flex items-center text-red-600 hover:text-red-800', data: { confirm: "Are you sure you want to delete this organization? This action cannot be undone." }) do
+          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span class="sr-only">Delete</span>'
+        end
+        
+        actions.join(' ').html_safe
+      }
+    }
+  ] %>
+
+  <%= render 'shared/table', title: 'Organizations', columns: columns, collection: @organizations %>
+</div>

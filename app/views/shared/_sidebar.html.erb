@@ -1,6 +1,6 @@
 <aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col">
   <div class="h-16 flex items-center justify-center border-b border-gray-200">
-    <%= link_to root_path, class: "flex items-center space-x-3" do %>
+    <%= link_to (current_user.super_admin? && current_organization.nil? ? admin_dashboard_path : dashboard_path), class: "flex items-center space-x-3" do %>
       <%= image_tag "HBS-logo-scaled (1).png", alt: "Holistic Business Solution", class: "h-8 w-auto" %>
     <% end %>
   </div>
@@ -8,56 +8,169 @@
   <nav class="flex-1 overflow-y-auto py-4">
     <div class="px-4 text-[10px] font-semibold uppercase text-gray-400 tracking-widest mb-2">Menu</div>
     <ul class="space-y-1 px-2">
-      <li>
-        <% dashboard_active = current_page?(dashboard_path) %>
-        <%= link_to dashboard_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{dashboard_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{dashboard_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 10.5V21h15V10.5"/></svg>
-          <span>Dashboard</span>
+      
+      <% if current_user.super_admin? && current_organization.nil? %>
+        <!-- Global Admin Sidebar -->
+        <li>
+          <% dashboard_active = current_page?(admin_dashboard_path) %>
+          <%= link_to admin_dashboard_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{dashboard_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{dashboard_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 10.5V21h15V10.5"/></svg>
+            <span>Dashboard</span>
+          <% end %>
+        </li>
+        
+        <li>
+          <% orgs_active = controller_path == 'admin/organizations' %>
+          <%= link_to admin_organizations_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{orgs_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{orgs_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <span>Organizations</span>
+          <% end %>
+        </li>
+        
+        <li>
+          <% users_active = controller_path == 'admin/users' %>
+          <%= link_to admin_users_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{users_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{users_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M13 7a4 4 0 11-8 0 4 4 0 018 0zm7 13v-1a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            <span>Users</span>
+          <% end %>
+        </li>
+        
+        <li>
+          <% roles_active = controller_path == 'admin/roles' %>
+          <%= link_to admin_roles_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{roles_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{roles_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/></svg>
+            <span>Roles</span>
+          <% end %>
+        </li>
+        
+        <li>
+          <% billings_active = controller_path == 'admin/organization_billings' %>
+          <%= link_to admin_organization_billings_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{billings_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{billings_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>Billing Management</span>
+            <% pending_count = OrganizationBilling.pending_approval.count %>
+            <% if pending_count > 0 %>
+              <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800"><%= pending_count %></span>
+            <% end %>
+          <% end %>
+        </li>
+        
+      <% else %>
+        <!-- Tenant-specific Sidebar -->
+        <li>
+          <% dashboard_active = current_page?(dashboard_path) %>
+          <%= link_to dashboard_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{dashboard_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{dashboard_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 10.5V21h15V10.5"/></svg>
+            <span>Dashboard</span>
+          <% end %>
+        </li>
+        
+        <!-- Medical Billing Module -->
+        <% begin %>
+          <% if policy([:tenant, Patient]).index? %>
+            <li>
+              <% patients_active = controller_path == 'tenant/patients' %>
+              <%= link_to tenant_patients_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{patients_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{patients_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/></svg>
+                <span>Patients</span>
+              <% end %>
+            </li>
+          <% end %>
+        <% rescue %>
         <% end %>
-      </li>
-      <li>
-        <% roles_active = controller_path == 'admin/roles' %>
-        <%= link_to admin_roles_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{roles_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{roles_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/></svg>
-          <span>Roles</span>
+        
+        <% begin %>
+          <% if policy([:tenant, Claim]).index? %>
+            <li>
+              <% claims_active = controller_path == 'tenant/claims' %>
+              <%= link_to tenant_claims_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{claims_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{claims_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span>Claims</span>
+              <% end %>
+            </li>
+          <% end %>
+        <% rescue %>
         <% end %>
-      </li>
-      <li>
-        <% users_active = controller_path == 'admin/users' %>
-        <%= link_to admin_users_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{users_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{users_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M13 7a4 4 0 11-8 0 4 4 0 018 0zm7 13v-1a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-          <span>Users</span>
+        
+        <% begin %>
+          <% if policy([:tenant, Invoice]).index? %>
+            <li>
+              <% invoices_active = controller_path == 'tenant/invoices' %>
+              <%= link_to tenant_invoices_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{invoices_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{invoices_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                <span>Invoices</span>
+              <% end %>
+            </li>
+          <% end %>
+        <% rescue %>
         <% end %>
-      </li>
+        
+        <!-- Tenant Management Module -->
+        <% begin %>
+          <% if policy([:tenant, TeamMember]).index? %>
+            <li>
+              <% team_active = controller_path == 'tenant/team_members' %>
+              <%= link_to tenant_team_members_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{team_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{team_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M13 7a4 4 0 11-8 0 4 4 0 018 0zm7 13v-1a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                <span>Team</span>
+              <% end %>
+            </li>
+          <% end %>
+        <% rescue %>
+        <% end %>
+        
+        <% if current_user.organization_admin?(current_organization) %>
+          <li>
+            <% settings_active = controller_path == 'tenant/settings' %>
+            <%= link_to "#", class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{settings_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{settings_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span>Settings</span>
+            <% end %>
+          </li>
+        <% end %>
+        
+        <!-- Activation Wizard (if not activated) -->
+        <% unless current_organization&.activated? %>
+          <li>
+            <% activation_active = controller_path == 'activation' %>
+            <%= link_to activation_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{activation_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{activation_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>Complete Setup</span>
+            <% end %>
+          </li>
+        <% end %>
+      <% end %>
     </ul>
-
-    <%# <div class="mt-6 px-4 text-[10px] font-semibold uppercase text-gray-400 tracking-widest mb-2">Pages</div> %>
-    <%# <ul class="space-y-1 px-2">
-      <li>
-        <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5h18M3 12h18M3 16.5h18"/></svg>
-          <span>File Manager</span>
-        </a>
-      </li>
-      <li>
-        <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M4 12h10M4 17h7"/></svg>
-          <span>Pricing Tables</span>
-        </a>
-      </li>
-      <li>
-        <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 text-gray-500"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 4h.01"/></svg>
-          <span>FAQ</span>
-        </a>
-      </li>
-    </ul> %>
   </nav>
-
-  <div class="p-4 border-t border-gray-200">
+  
+  <!-- Footer Section -->
+  <div class="border-t border-gray-200 p-4">
+    <% if current_user.super_admin? %>
+      <!-- Organization Switcher for Super Admins -->
+      <div class="mb-4">
+        <div class="text-xs font-semibold uppercase text-gray-400 tracking-widest mb-2">Organization</div>
+        <% if current_organization %>
+          <div class="text-sm text-gray-900 font-medium mb-2"><%= current_organization.name %></div>
+          <div class="text-xs text-gray-500 mb-3"><%= current_organization.subdomain %>.localhost:3000</div>
+          <%= link_to "Switch to Global Admin", "http://admin.localhost:3000",
+              class: "text-xs text-indigo-600 hover:text-indigo-800" %>
+        <% else %>
+          <div class="text-sm text-gray-900 font-medium mb-2">Global Admin</div>
+          <div class="text-xs text-gray-500 mb-3">admin.localhost:3000</div>
+          <div class="text-xs text-gray-500">Available Organizations:</div>
+          <% Organization.limit(3).each do |org| %>
+            <div class="text-xs">
+              <%= link_to org.name, "http://#{org.subdomain}.localhost:3000",
+                  class: "text-indigo-600 hover:text-indigo-800" %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+    
+    <!-- User Info and Logout -->
     <div class="mb-3 text-xs text-gray-500">Signed in as</div>
     <div class="mb-4 text-sm font-medium text-gray-900 truncate"><%= current_user.display_name %></div>
     <%= link_to "Sign Out", destroy_user_session_path, data: { method: :delete }, rel: "nofollow", class: "block w-full text-center px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
   </div>
 </aside>
-

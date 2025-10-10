@@ -1,25 +1,26 @@
 class Admin::UsersController < ::ApplicationController
-  before_action :set_user, only: [ :show, :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
+  before_action :set_user, only: [ :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
+  before_action :authorize_user, only: [ :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
+  after_action :verify_authorized, except: [ :index ]
 
   def index
-    @users = User.includes(:role).order(created_at: :desc)
+    @users = policy_scope(User).includes(:role).order(created_at: :desc)
     @users = @users.where(role_id: params[:role_id]) if params[:role_id].present?
     @users = @users.where("email ILIKE ?", "%#{params[:search]}%") if params[:search].present?
     @roles = Role.order(:role_name)
+    authorize User
   end
 
-  def show
-    @recent_logs = @user.respond_to?(:user_status_logs) ? @user.user_status_logs.try(:recent)&.limit(10) : []
-    @recent_sessions = @user.respond_to?(:sessions) ? @user.sessions.try(:recent)&.limit(5) : []
-  end
 
   def new
     @user = User.new
     @roles = Role.order(:role_name)
+    authorize @user
   end
 
   def create
     @user = User.invite!(invite_params.merge(invited_by: current_user))
+    authorize @user
     if @user.errors.empty?
       redirect_to admin_users_path, notice: "Invitation sent successfully."
     else
@@ -44,7 +45,7 @@ class Admin::UsersController < ::ApplicationController
     end
 
     if @user.update(user_params)
-      redirect_to admin_user_path(@user), notice: "User updated successfully."
+      redirect_to admin_users_path, notice: "User updated successfully."
     else
       @roles = Role.order(:role_name)
       render :edit
@@ -64,30 +65,30 @@ class Admin::UsersController < ::ApplicationController
 
   def suspend
     if @user.super_admin?
-      redirect_to admin_user_path(@user), alert: "Cannot suspend super admin accounts."
+      redirect_to admin_users_path, alert: "Cannot suspend super admin accounts."
     else
       @user.suspend!(params[:reason], changed_by: current_user)
-      redirect_to admin_user_path(@user), notice: "User suspended successfully."
+      redirect_to admin_users_path, notice: "User suspended successfully."
     end
   end
 
   def activate
     @user.activate!(changed_by: current_user)
-    redirect_to admin_user_path(@user), notice: "User activated successfully."
+    redirect_to admin_users_path, notice: "User activated successfully."
   end
 
   def deactivate
     if @user.super_admin?
-      redirect_to admin_user_path(@user), alert: "Cannot deactivate super admin accounts."
+      redirect_to admin_users_path, alert: "Cannot deactivate super admin accounts."
     else
       @user.deactivate!(params[:reason], changed_by: current_user)
-      redirect_to admin_user_path(@user), notice: "User deactivated successfully."
+      redirect_to admin_users_path, notice: "User deactivated successfully."
     end
   end
 
   def unlock
     @user.unlock_access!
-    redirect_to admin_user_path(@user), notice: "User account unlocked successfully."
+    redirect_to admin_users_path, notice: "User account unlocked successfully."
   end
 
   def reset_password
@@ -102,10 +103,10 @@ class Admin::UsersController < ::ApplicationController
 
   def change_role
     if @user.super_admin?
-      redirect_to admin_user_path(@user), alert: "Cannot change super admin role."
+      redirect_to admin_users_path, alert: "Cannot change super admin role."
     else
       @user.update!(role_id: params[:role_id])
-      redirect_to admin_user_path(@user), notice: "User role updated successfully."
+      redirect_to admin_users_path, notice: "User role updated successfully."
     end
   end
 
@@ -136,5 +137,9 @@ class Admin::UsersController < ::ApplicationController
 
   def invite_params
     params.require(:user).permit(:email, :role_id)
+  end
+
+  def authorize_user
+    authorize @user
   end
 end
