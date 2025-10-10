@@ -42,7 +42,7 @@ gem "pundit"
 gem "stripe"
 
 # Background job processing
-gem "sidekiq", "~> 6.5.12"
+gem "sidekiq", "~> 8.0.8"
 
 # File processing
 gem "byebug"
