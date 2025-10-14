@@ -1,6 +1,5 @@
 class HomeController < ApplicationController
   skip_before_action :authenticate_user!, only: [ :index ]
-  skip_around_action :set_tenant_context
 
   def index
     if user_signed_in?

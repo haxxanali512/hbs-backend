@@ -49,28 +49,9 @@ class Users::SessionsController < Devise::SessionsController
 
   def after_sign_in_path_for(resource)
     if resource.super_admin?
-      # Super admin - redirect to global admin dashboard
       admin_dashboard_path
     else
-      # Tenant user - check if they have a subdomain
-      current_subdomain = request.subdomain
-
-      if current_subdomain.blank? || [ "www", "admin" ].include?(current_subdomain)
-        # User is on root domain - redirect to their organization's subdomain
-        user_org = resource.organization_memberships.active.first&.organization
-        if user_org
-          redirect_to tenant_root_path(user_org)
-          nil
-        else
-          # User has no organization, sign them out
-          sign_out(resource)
-          redirect_to new_user_session_path, alert: "You don't have access to any organization."
-          nil
-        end
-      else
-        # User is on a subdomain - go to tenant dashboard
-        dashboard_path
-      end
+      tenant_root_path
     end
   end
 

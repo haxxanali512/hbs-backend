@@ -1,4 +1,4 @@
-class ActivationController < ApplicationController
+class Tenant::ActivationController < Tenant::BaseController
   before_action :authenticate_user!
   before_action :set_organization
   before_action :check_activation_status
@@ -29,10 +29,6 @@ class ActivationController < ApplicationController
   def update_billing
     authorize :activation, :billing_setup?
     @billing = @organization.organization_billing || @organization.build_organization_billing
-
-    # Debug: Log the parameters being sent
-    Rails.logger.debug "Billing params: #{billing_params.inspect}"
-    Rails.logger.debug "Raw params: #{params[:organization_billing].inspect}"
 
     if @billing.update(billing_params)
       @organization.setup_billing!

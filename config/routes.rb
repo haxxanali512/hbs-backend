@@ -1,40 +1,41 @@
 Rails.application.routes.draw do
   devise_for :users, controllers: { invitations: "users/invitations" }
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  # Health check
   get "up" => "health#show", as: :rails_health_check
 
   # API routes
   namespace :api do
     namespace :v1 do
       resources :file_uploads, only: [ :create ] do
-        collection do
-          get :status
-        end
+        collection { get :status }
       end
     end
   end
 
-  # Sidekiq web interface (for monitoring jobs)
+  # Sidekiq dashboard
   require "sidekiq/web"
   mount Sidekiq::Web => "/sidekiq"
 
-  # Global admin routes (no subdomain or 'admin' subdomain)
+  # ===========================================================
+  # 🧭 ADMIN (default + admin subdomain)
+  # ===========================================================
   constraints subdomain: /^(www|admin)?$/ do
-    # Home routes
-    root "home#index", as: :global_root
-    get "dashboard", to: "home#dashboard"
+    root "admin/dashboard#index", as: :global_root
+    get "admin/dashboard", to: "admin/dashboard#index"
 
     namespace :admin do
+      root "dashboard#index", as: :root
+
       get "dashboard", to: "dashboard#index"
+
       resources :organizations do
         member do
           post :activate_tenant
           post :suspend_tenant
         end
       end
+
       resources :users, except: [ :show ] do
         member do
           post :suspend
@@ -50,6 +51,7 @@ Rails.application.routes.draw do
           post :send_invitation
         end
       end
+
       resources :roles do
         member do
           get :permissions
@@ -57,6 +59,7 @@ Rails.application.routes.draw do
           post :duplicate
         end
       end
+
       resources :organization_billings do
         member do
           patch :approve
@@ -66,34 +69,42 @@ Rails.application.routes.draw do
     end
   end
 
-  # Organization-specific routes (tenant subdomains)
-  constraints subdomain: /(?!www|admin).+/ do
-    root "organizations#dashboard", as: :tenant_root
-    get "dashboard", to: "organizations#dashboard"
+  # ===========================================================
+  # 🧩 TENANT (org subdomains)
+  # ===========================================================
+  constraints subdomain: /^(?!www|admin$).+/ do
+    root "tenant/dashboard#index", as: :tenant_root
+    get "dashboard", to: "tenant/dashboard#index"
 
-    # Tenant-scoped resources
     namespace :tenant do
+      get "dashboard", to: "dashboard#index"
+
+      # Activation wizard (moved to dashboard)
+      get "activation",                 to: "dashboard#activation"
+      get "activation/billing",         to: "dashboard#billing_setup"
+      patch "activation/billing",       to: "dashboard#update_billing"
+      post "activation/manual_payment", to: "dashboard#manual_payment"
+
+      get "activation/compliance",      to: "dashboard#compliance_setup"
+      patch "activation/compliance",    to: "dashboard#update_compliance"
+
+      get "activation/documents",       to: "dashboard#document_signing"
+      post "activation/documents",      to: "dashboard#complete_document_signing"
+
+      get "activation/complete",        to: "dashboard#activation_complete"
+      post "activation/activate",       to: "dashboard#activate"
+
+      # (optional) tenant resources like patients, claims, etc.
       # resources :patients
       # resources :claims
       # resources :invoices
-      # resources :reports
-      resources :team_members, only: [ :index, :show, :edit, :update ]
+      # resources :team_members
     end
-
-    # Activation wizard (tenant context)
-    get "activation", to: "activation#index"
-    get "activation/billing", to: "activation#billing_setup"
-    patch "activation/billing", to: "activation#update_billing"
-    post "activation/manual_payment", to: "activation#manual_payment"
-    get "activation/compliance", to: "activation#compliance_setup"
-    patch "activation/compliance", to: "activation#update_compliance"
-    get "activation/documents", to: "activation#document_signing"
-    post "activation/documents", to: "activation#complete_document_signing"
-    get "activation/complete", to: "activation#complete"
-    post "activation/activate", to: "activation#activate"
   end
 
-  # Stripe integration routes
+  # ===========================================================
+  # 💳 Stripe Integration
+  # ===========================================================
   namespace :stripe do
     get :products
     get "products/:id/prices", to: "stripe#product_prices"
@@ -102,7 +113,9 @@ Rails.application.routes.draw do
     post :webhook
   end
 
-  # GoCardless integration routes
+  # ===========================================================
+  # 💰 GoCardless Integration
+  # ===========================================================
   namespace :gocardless do
     get :customers
     post :customers
@@ -118,6 +131,6 @@ Rails.application.routes.draw do
     post :webhook
   end
 
-  # Defines the root path route ("/")
-  # root "health#show"
+  # Fallback root route (for development or when no subdomain matches)
+  root "admin/dashboard#index"
 end

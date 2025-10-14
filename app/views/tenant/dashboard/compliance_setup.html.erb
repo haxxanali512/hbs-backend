@@ -1,0 +1,122 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header without sidebar -->
+  <div class="bg-white shadow">
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold text-gray-900">Compliance Setup</h1>
+        <div class="flex items-center">
+          <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+          <span class="ml-2 text-sm font-medium text-gray-700"><%= current_user.email %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-8">
+        <div class="mb-6">
+          <h2 class="text-lg font-medium text-gray-900">Compliance Verification</h2>
+          <p class="mt-1 text-sm text-gray-500">Please provide the required compliance information to continue with the activation process.</p>
+        </div>
+
+        <%= form_with model: [@organization, @compliance], url: tenant_activation_compliance_path, method: :patch, local: true, class: "space-y-6" do |form| %>
+          <% if @compliance.errors.any? %>
+            <div class="rounded-md bg-red-50 p-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-red-800">There were errors with your submission:</h3>
+                  <div class="mt-2 text-sm text-red-700">
+                    <ul class="list-disc pl-5 space-y-1">
+                      <% @compliance.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <div class="space-y-6">
+            <!-- GSA Agreement -->
+            <div class="border border-gray-200 rounded-lg p-4">
+              <h3 class="text-sm font-medium text-gray-900 mb-4">GSA Agreement</h3>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <%= form.label :gsa_signed_at, "GSA Signed Date", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.datetime_local_field :gsa_signed_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                </div>
+                <div>
+                  <%= form.label :gsa_envelope_id, "GSA Envelope ID", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.text_field :gsa_envelope_id, placeholder: "Enter GSA envelope ID", class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                </div>
+              </div>
+            </div>
+
+            <!-- BAA Agreement -->
+            <div class="border border-gray-200 rounded-lg p-4">
+              <h3 class="text-sm font-medium text-gray-900 mb-4">Business Associate Agreement (BAA)</h3>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <%= form.label :baa_signed_at, "BAA Signed Date", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.datetime_local_field :baa_signed_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                </div>
+                <div>
+                  <%= form.label :baa_envelope_id, "BAA Envelope ID", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.text_field :baa_envelope_id, placeholder: "Enter BAA envelope ID", class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                </div>
+              </div>
+            </div>
+
+            <!-- Data Security -->
+            <div class="border border-gray-200 rounded-lg p-4">
+              <h3 class="text-sm font-medium text-gray-900 mb-4">Data Security & Retention</h3>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <%= form.label :phi_access_locked_at, "PHI Access Locked Date", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.datetime_local_field :phi_access_locked_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                </div>
+                <div>
+                  <%= form.label :data_retention_expires_at, "Data Retention Expires", class: "block text-sm font-medium text-gray-700" %>
+                  <%= form.datetime_local_field :data_retention_expires_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+            <%= link_to "Back to Dashboard", tenant_root_path, class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+            
+            <div class="flex space-x-3">
+              <%= form.submit "Save Compliance Information", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Help section -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-800">Compliance Requirements</h3>
+          <div class="mt-2 text-sm text-blue-700">
+            <p>Please ensure all required compliance documents are properly signed and dated. Contact our compliance team if you need assistance with any of these requirements.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

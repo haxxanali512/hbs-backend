@@ -1,15 +1,15 @@
 class OrganizationBillingMailer < ApplicationMailer
-  default from: 'noreply@hbsdata.com'
+  default from: "noreply@hbsdata.com"
 
   # Email sent to super admins when a manual payment request is submitted
   def manual_payment_request(organization_billing)
     @organization = organization_billing.organization
     @organization_billing = organization_billing
     @owner = @organization.owner
-    
+
     # Get all super admin emails
-    super_admin_emails = User.joins(:role).where(roles: { name: 'Super Admin' }).pluck(:email)
-    
+    super_admin_emails = User.joins(:role).where(roles: { role_name: "Super Admin" }).pluck(:email)
+
     mail(
       to: super_admin_emails,
       subject: "Manual Payment Request - #{@organization.name}",
@@ -22,11 +22,11 @@ class OrganizationBillingMailer < ApplicationMailer
     @organization = organization_billing.organization
     @organization_billing = organization_billing
     @owner = @organization.owner
-    
+
     mail(
       to: @owner.email,
       subject: "Payment Approved - #{@organization.name}",
-      reply_to: 'noreply@hbsdata.com'
+      reply_to: "noreply@hbsdata.com"
     )
   end
 
@@ -35,11 +35,11 @@ class OrganizationBillingMailer < ApplicationMailer
     @organization = organization_billing.organization
     @organization_billing = organization_billing
     @owner = @organization.owner
-    
+
     mail(
       to: @owner.email,
       subject: "Payment Rejected - #{@organization.name}",
-      reply_to: 'noreply@hbsdata.com'
+      reply_to: "noreply@hbsdata.com"
     )
   end
 
@@ -48,11 +48,11 @@ class OrganizationBillingMailer < ApplicationMailer
     @organization = organization_billing.organization
     @organization_billing = organization_billing
     @owner = @organization.owner
-    
+
     mail(
       to: @owner.email,
       subject: "Billing Setup Complete - #{@organization.name}",
-      reply_to: 'noreply@hbsdata.com'
+      reply_to: "noreply@hbsdata.com"
     )
   end
 end

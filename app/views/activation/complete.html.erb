@@ -137,11 +137,12 @@
 
   <!-- Action Buttons -->
   <div class="text-center">
+    <% byebug %>
     <% if @organization.activated? %>
-      <%= link_to "Go to Dashboard", root_path, 
+      <%= link_to "Go to Dashboard", tenant_root_path, 
           class: "inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" %>
     <% else %>
-      <%= form_with url: activation_activate_path, method: :post, local: true do |f| %>
+      <%= form_with url: tenant_activation_activate_path, method: :post, local: true do |f| %>
         <%= f.submit "Activate Organization", 
             class: "inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" %>
       <% end %>

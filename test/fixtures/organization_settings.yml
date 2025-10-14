@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  organization: one
+  feature_entitlements: 
+  mrn_prefix: MyString
+  mrn_sequence: MyString
+  mrn_format: MyString
+  mrn_enabled: MyString
+
+two:
+  organization: two
+  feature_entitlements: 
+  mrn_prefix: MyString
+  mrn_sequence: MyString
+  mrn_format: MyString
+  mrn_enabled: MyString

@@ -1,6 +1,6 @@
 <aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col">
   <div class="h-16 flex items-center justify-center border-b border-gray-200">
-    <%= link_to (current_user.super_admin? && current_organization.nil? ? admin_dashboard_path : dashboard_path), class: "flex items-center space-x-3" do %>
+    <%= link_to (current_user.super_admin? && current_organization.nil? ? admin_dashboard_path : tenant_root_path), class: "flex items-center space-x-3" do %>
       <%= image_tag "HBS-logo-scaled (1).png", alt: "Holistic Business Solution", class: "h-8 w-auto" %>
     <% end %>
   </div>
@@ -58,8 +58,8 @@
       <% else %>
         <!-- Tenant-specific Sidebar -->
         <li>
-          <% dashboard_active = current_page?(dashboard_path) %>
-          <%= link_to dashboard_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{dashboard_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+          <% dashboard_active = current_page?(tenant_root_path) %>
+          <%= link_to tenant_root_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{dashboard_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{dashboard_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 10.5V21h15V10.5"/></svg>
             <span>Dashboard</span>
           <% end %>
@@ -132,8 +132,8 @@
         <!-- Activation Wizard (if not activated) -->
         <% unless current_organization&.activated? %>
           <li>
-            <% activation_active = controller_path == 'activation' %>
-            <%= link_to activation_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{activation_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <% activation_active = controller_path == 'tenant/dashboard' && action_name == 'activation' %>
+            <%= link_to tenant_activation_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{activation_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{activation_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <span>Complete Setup</span>
             <% end %>
