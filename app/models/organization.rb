@@ -42,9 +42,11 @@ class Organization < ApplicationRecord
   has_one :organization_identifier, dependent: :destroy
   has_one :organization_setting, dependent: :destroy
 
+  after_create :invite_owner
+
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true
-  validates :tier, presence: true
+  validates :owner, presence: true
 
   def activation_progress_percentage
     case activation_status
@@ -83,6 +85,10 @@ class Organization < ApplicationRecord
 
   def add_member(user, role = nil)
     organization_memberships.create!(user: user, organization_role: role, active: true)
+  end
+
+  def invite_owner
+    owner.invite!
   end
 
   def remove_member(user)

@@ -9,13 +9,22 @@ class User < ApplicationRecord
   belongs_to :role, optional: true
   has_many :organizations, foreign_key: "owner_id", dependent: :destroy
   has_many :organization_memberships, dependent: :destroy
-  has_many :member_organizations, through: :organization_memberships, source: :organization
+  has_many :member_organizations, through: :organization_memberships, source: :organization, dependent: :destroy
+
+  # after_create :send_invitation
 
   # Validations
   validates :username, presence: true, uniqueness: { case_sensitive: false }
   validates :first_name, presence: true
   validates :last_name, presence: true
 
+  enum :status, {
+    pending: 0,
+    active: 1,
+    inactive: 2
+  }
+
+  accepts_nested_attributes_for :organizations
 
 
   # Instance methods

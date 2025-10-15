@@ -148,6 +148,89 @@ class Tenant::DashboardController < Tenant::BaseController
     }, status: :unprocessable_entity
   end
 
+  def stripe_card
+    # Show the Stripe card collection page
+    @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+  end
+
+  def save_stripe_card
+    @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+
+    # This will be handled by AJAX from the frontend
+    render json: { success: true }
+  end
+
+  def send_gsa_agreement
+    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
+
+    docusign_service = DocusignService.new
+    result = docusign_service.send_gsa_agreement(@current_organization, current_user)
+    byebug
+    if result[:success]
+      @compliance.update!(
+        gsa_envelope_id: result[:envelope_id],
+        gsa_signed_at: nil # Will be updated via webhook when signed
+      )
+
+      render json: {
+        success: true,
+        message: "GSA Agreement sent for signature",
+        envelope_id: result[:envelope_id]
+      }
+    else
+      render json: {
+        success: false,
+        error: result[:error]
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def send_baa_agreement
+    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
+
+    docusign_service = DocusignService.new
+    result = docusign_service.send_baa_agreement(@current_organization, current_user)
+
+    if result[:success]
+      @compliance.update!(
+        baa_envelope_id: result[:envelope_id],
+        baa_signed_at: nil # Will be updated via webhook when signed
+      )
+
+      render json: {
+        success: true,
+        message: "BAA Agreement sent for signature",
+        envelope_id: result[:envelope_id]
+      }
+    else
+      render json: {
+        success: false,
+        error: result[:error]
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def check_docusign_status
+    @compliance = @current_organization.organization_compliance
+
+    return render json: { success: false, error: "No compliance record found" } unless @compliance
+
+    docusign_service = DocusignService.new
+    results = {}
+
+    if @compliance.gsa_envelope_id.present?
+      gsa_result = docusign_service.get_envelope_status(@compliance.gsa_envelope_id)
+      results[:gsa] = gsa_result
+    end
+
+    if @compliance.baa_envelope_id.present?
+      baa_result = docusign_service.get_envelope_status(@compliance.baa_envelope_id)
+      results[:baa] = baa_result
+    end
+
+    render json: { success: true, results: results }
+  end
+
   private
 
   def check_activation_status

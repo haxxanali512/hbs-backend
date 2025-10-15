@@ -38,6 +38,9 @@ gem "bootsnap", require: false
 gem "rack-cors"
 gem "pundit"
 
+# For Esign
+gem "docusign_esign", "~> 5.4"
+gem "jwt"
 # Payment Processing
 gem "stripe"
 
@@ -48,6 +51,7 @@ gem "sidekiq", "~> 6.5.12"
 gem "byebug"
 gem "roo"
 gem "csv"  # For CSV file processing
+gem "rubyzip"
 
 # Redis for Sidekiq
 gem "redis", "~> 4.8"

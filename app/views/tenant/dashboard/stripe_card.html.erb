@@ -1,0 +1,240 @@
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow">
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <%= link_to tenant_activation_billing_path, class: "mr-4 text-gray-400 hover:text-gray-600" do %>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          <% end %>
+          <h1 class="text-2xl font-semibold text-gray-900">Add Payment Card</h1>
+        </div>
+        <div class="flex items-center">
+          <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+          <span class="ml-2 text-sm font-medium text-gray-700"><%= current_user.email %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="text-center mb-8">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 mb-4">
+          <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-6 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Add Your Payment Card</h2>
+        <p class="text-gray-600">We'll securely save your card for monthly billing. Your payment information is encrypted and processed by Stripe.</p>
+      </div>
+
+      <!-- Card form -->
+      <form id="card-form">
+        <div class="space-y-6">
+          <!-- Card element container -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Card Details</label>
+            <div id="card-element" class="border border-gray-300 rounded-md p-4 bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+              <!-- Stripe Elements will create the input fields here -->
+            </div>
+            <div id="card-errors" class="text-sm text-red-600 mt-2 hidden"></div>
+          </div>
+
+          <!-- Billing details -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Cardholder Name</label>
+              <input type="text" id="cardholder-name" value="<%= [current_user.first_name, current_user.last_name].compact.join(" ") %>" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <input type="email" id="cardholder-email" value="<%= current_user.email %>" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit button -->
+        <div class="mt-8">
+          <button type="submit" id="submit-button" class="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="button-text">Add Card</span>
+            <span id="button-spinner" class="hidden">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Security notice -->
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-blue-700">
+              <strong>Secure Payment:</strong> Your card details are encrypted and processed securely by Stripe. We never store your full card information.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Stripe
+  const publishableKey = '<%= Rails.configuration.stripe[:publishable_key] %>';
+  console.log('Publishable key in card page:', publishableKey);
+  
+  if (!publishableKey || publishableKey === '' || publishableKey === 'null') {
+    console.error('Stripe publishable key not configured');
+    document.getElementById('card-errors').textContent = 'Stripe not configured. Please contact support.';
+    document.getElementById('card-errors').classList.remove('hidden');
+    return;
+  }
+  
+  const stripe = Stripe(publishableKey);
+  const elements = stripe.elements({
+    appearance: {
+      theme: 'stripe',
+      variables: {
+        colorPrimary: '#4f46e5',
+        colorBackground: '#ffffff',
+        colorText: '#1f2937',
+        colorDanger: '#ef4444',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        spacingUnit: '4px',
+        borderRadius: '6px',
+      }
+    }
+  });
+
+  const cardElement = elements.create('card', {
+    style: {
+      base: {
+        fontSize: '16px',
+        color: '#1f2937',
+        '::placeholder': {
+          color: '#9ca3af',
+        },
+      },
+    },
+  });
+
+  cardElement.mount('#card-element');
+
+  // Handle real-time validation errors from the card Element
+  cardElement.on('change', function(event) {
+    const displayError = document.getElementById('card-errors');
+    if (event.error) {
+      displayError.textContent = event.error.message;
+      displayError.classList.remove('hidden');
+    } else {
+      displayError.classList.add('hidden');
+    }
+  });
+
+  // Handle form submission
+  const form = document.getElementById('card-form');
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    setLoading(true);
+    hideError();
+
+    try {
+      // Create setup intent
+      const response = await fetch('/stripe/setup_intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        }
+      });
+
+      const { client_secret } = await response.json();
+
+      // Confirm card setup
+      const { error, setupIntent } = await stripe.confirmCardSetup(client_secret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: document.getElementById('cardholder-name').value,
+            email: document.getElementById('cardholder-email').value
+          }
+        }
+      });
+
+      if (error) {
+        showError(error.message);
+      } else {
+        // Save the payment method
+        const saveResponse = await fetch('/stripe/confirm_card', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify({ payment_method_id: setupIntent.payment_method })
+        });
+
+        const saveResult = await saveResponse.json();
+        
+        if (saveResult.success) {
+          // Redirect back to billing setup with success
+          window.location.href = '<%= tenant_activation_billing_path %>?card_added=true';
+        } else {
+          showError(saveResult.error || 'Failed to save card');
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  function setLoading(loading) {
+    const button = document.getElementById('submit-button');
+    const buttonText = document.getElementById('button-text');
+    const buttonSpinner = document.getElementById('button-spinner');
+    
+    if (loading) {
+      button.disabled = true;
+      buttonText.classList.add('hidden');
+      buttonSpinner.classList.remove('hidden');
+    } else {
+      button.disabled = false;
+      buttonText.classList.remove('hidden');
+      buttonSpinner.classList.add('hidden');
+    }
+  }
+
+  function showError(message) {
+    const errorElement = document.getElementById('card-errors');
+    errorElement.textContent = message;
+    errorElement.classList.remove('hidden');
+  }
+
+  function hideError() {
+    const errorElement = document.getElementById('card-errors');
+    errorElement.classList.add('hidden');
+  }
+});
+</script>

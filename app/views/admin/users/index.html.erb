@@ -23,10 +23,12 @@
       render: ->(u){
         if u.access_locked?
           raw '<span class="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 11V7a4 4 0 10-8 0v4m-1 0h10v10H3V11z"/></svg>Locked</span>'
-        elsif u.respond_to?(:invitation_accepted_at) && u.invitation_accepted_at.nil? && u.respond_to?(:invitation_sent_at) && u.invitation_sent_at.present?
+        elsif u.status == "pending"
           raw '<span class="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>Pending acceptance</span>'
-        else
+        elsif u.status == "active"
           raw '<span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5L20 7"/></svg>Active</span>'
+        else
+          raw '<span class="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>Inactive</span>'
         end
       }
     },

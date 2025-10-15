@@ -19,11 +19,30 @@
       <%= form_with url: send_invitation_admin_users_path, scope: :user, method: :post, local: true do |f| %>
         <div class="-mx-2.5 flex flex-wrap gap-y-5">
           <div class="w-full px-2.5 xl:w-1/2">
-            <%= f.email_field :email, required: true, autocomplete: "email", placeholder: "Email address", class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
+            <%= f.email_field :first_name, placeholder: "First Name", required: true, autocomplete: "first_name", class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
+          </div>
+          <div class="w-full px-2.5 xl:w-1/2">
+            <%= f.email_field :last_name, placeholder: "Last Name", required: true, autocomplete: "last_name", class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
+          </div>
+          <div class="w-full px-2.5 xl:w-1/2">
+            <%= f.email_field :username, placeholder: "Username", required: true, autocomplete: "username", class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
+          </div>
+          <div class="w-full px-2.5 xl:w-1/2">
+            <%= f.email_field :email, placeholder: "Email address", required: true, autocomplete: "email", class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
           </div>
           <div class="w-full px-2.5 xl:w-1/2">
             <%= f.collection_select :role_id, @roles, :id, :role_name, { prompt: "Select Role" }, class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
           </div>
+          <%= f.fields_for :organization do |of| %>
+            <div class="w-full px-2.5 xl:w-1/2">
+              <%= of.text_field :name, required: true, placeholder: "Enter Organization Name",
+                class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
+            </div>
+            <div class="w-full px-2.5 xl:w-1/2">
+              <%= of.text_field :subdomain, required: true, placeholder: "Enter Organization Subdomain",
+                class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
+            </div>
+          <% end %>
           <div class="w-full px-2.5">
             <%= f.submit "Send Invitation", class: "w-full rounded-lg bg-indigo-600 p-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700" %>
           </div>

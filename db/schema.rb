@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_10_093220) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_15_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -23,7 +23,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_10_093220) do
     t.integer "provider"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "stripe_customer_id"
+    t.string "stripe_subscription_id"
+    t.string "stripe_session_id"
+    t.string "stripe_payment_method_id"
+    t.string "card_brand"
+    t.integer "card_exp_month"
+    t.integer "card_exp_year"
     t.index ["organization_id"], name: "index_organization_billings_on_organization_id"
+    t.index ["stripe_customer_id"], name: "index_organization_billings_on_stripe_customer_id"
+    t.index ["stripe_subscription_id"], name: "index_organization_billings_on_stripe_subscription_id"
   end
 
   create_table "organization_compliances", force: :cascade do |t|
@@ -151,6 +160,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_10_093220) do
     t.string "invited_by_type"
     t.bigint "invited_by_id"
     t.integer "invitations_count", default: 0
+    t.integer "status"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["invitation_token"], name: "index_users_on_invitation_token", unique: true

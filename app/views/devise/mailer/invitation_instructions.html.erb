@@ -1,0 +1,54 @@
+<%# Devise Invitable custom invitation email including basic organization info %>
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 28px 32px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="margin: 0; font-size: 20px;">You've been invited to HBS Data Management</h1>
+  </div>
+
+  <div style="background: white; padding: 28px 32px; border: 1px solid #e5e7eb; border-top: none;">
+    <p style="margin: 0 0 16px;">Hello <strong><%= @resource.email %></strong>,</p>
+    <p style="margin: 0 0 16px;">You have been invited to create your account. Click the button below to accept your invitation and set your password.</p>
+
+    <%# Show organization information if present %>
+    <% invited_org = Organization.find_by(owner_id: @resource.id) %>
+    <% if invited_org.present? %>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 0 0 8px; font-weight: 600;">Organization</p>
+        <p style="margin: 0;">Name: <strong><%= invited_org.name %></strong></p>
+        <p style="margin: 4px 0 0;">Subdomain: <strong><%= invited_org.subdomain %></strong></p>
+      </div>
+    <% end %>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <%# Build tenant subdomain host for the accept link if org exists %>
+      <% accept_url = nil %>
+      <% if invited_org.present? %>
+        <% base_host = Rails.application.config.action_mailer.default_url_options[:host] %>
+        <% base_port = Rails.application.config.action_mailer.default_url_options[:port] %>
+        <% tenant_host = "#{invited_org.subdomain}.#{base_host}" %>
+        <% url_opts = { host: tenant_host } %>
+        <% url_opts[:port] = base_port if base_port.present? %>
+        <% accept_url = accept_user_invitation_url(url_opts.merge(invitation_token: @token)) %>
+      <% else %>
+        <% accept_url = accept_user_invitation_url(invitation_token: @token) %>
+      <% end %>
+      <a href="<%= accept_url %>" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept Invitation</a>
+    </div>
+
+    <% if invited_org.present? %>
+      <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">After activation, you'll complete your organization's remaining setup steps from the tenant dashboard.</p>
+      <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">Tenant URL: <strong><%= invited_org.subdomain %>.localhost:3000</strong> (development)</p>
+    <% end %>
+
+    <% if @resource.invitation_due_at %>
+      <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">This invitation will expire on <%= l(@resource.invitation_due_at, format: :'time.devise.mailer.invitation_instructions.accept_until_format') %>.</p>
+    <% end %>
+
+    <p style="margin: 0; font-size: 14px; color: #6b7280;">If you didn't expect this invitation, you can ignore this email.</p>
+  </div>
+
+  <div style="background: #f9fafb; padding: 16px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none; font-size: 13px; color: #6b7280;">
+    <p style="margin: 0;">HBS Data Management</p>
+  </div>
+</div>
+
+

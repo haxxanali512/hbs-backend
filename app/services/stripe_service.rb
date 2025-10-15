@@ -6,7 +6,7 @@ class StripeService
   attribute :environment, :string, default: "test"
 
   def initialize(api_key: nil, environment: "test")
-    @api_key = api_key || Rails.application.credentials.dig(:stripe, environment.to_sym, :secret_key)
+    @api_key = api_key || Rails.application.credentials.stripe[:secret_key]
     @environment = environment
     super()
   end
@@ -37,6 +37,70 @@ class StripeService
         error: e.message,
         products: []
       }
+    end
+  end
+
+  # Ensure a Stripe Customer exists for the given email; create if missing
+  def find_or_create_customer(email:, name: nil, metadata: {})
+    configure_stripe
+
+    begin
+      existing = Stripe::Customer.list(email: email, limit: 1)
+      customer = existing.data.first
+      unless customer
+        customer = Stripe::Customer.create(
+          email: email,
+          name: name,
+          metadata: metadata
+        )
+      end
+
+      { success: true, customer: customer }
+    rescue Stripe::StripeError => e
+      { success: false, error: e.message, customer: nil }
+    end
+  end
+
+  # Create a SetupIntent to collect and save a payment method for off-session use
+  def create_setup_intent(customer_id)
+    configure_stripe
+
+    begin
+      si = Stripe::SetupIntent.create(
+        customer: customer_id,
+        usage: "off_session",
+        payment_method_types: [ "card" ]
+      )
+      { success: true, setup_intent: si, client_secret: si.client_secret }
+    rescue Stripe::StripeError => e
+      { success: false, error: e.message, setup_intent: nil, client_secret: nil }
+    end
+  end
+
+  # Retrieve a payment method (e.g., to read brand/last4)
+  def retrieve_payment_method(payment_method_id)
+    configure_stripe
+
+    begin
+      pm = Stripe::PaymentMethod.retrieve(payment_method_id)
+      { success: true, payment_method: pm }
+    rescue Stripe::StripeError => e
+      { success: false, error: e.message, payment_method: nil }
+    end
+  end
+
+  # Set default payment method on customer (for invoices/off-session charges)
+  def set_default_payment_method(customer_id, payment_method_id)
+    configure_stripe
+
+    begin
+      customer = Stripe::Customer.update(
+        customer_id,
+        invoice_settings: { default_payment_method: payment_method_id }
+      )
+      { success: true, customer: customer }
+    rescue Stripe::StripeError => e
+      { success: false, error: e.message, customer: nil }
     end
   end
 

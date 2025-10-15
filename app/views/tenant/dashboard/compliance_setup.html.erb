@@ -47,45 +47,90 @@
           <div class="space-y-6">
             <!-- GSA Agreement -->
             <div class="border border-gray-200 rounded-lg p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-4">GSA Agreement</h3>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <%= form.label :gsa_signed_at, "GSA Signed Date", class: "block text-sm font-medium text-gray-700" %>
-                  <%= form.datetime_local_field :gsa_signed_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                  </div>
+                  <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">GSA Agreement</h3>
+                    <p class="text-sm text-gray-500">Government Services Administration agreement</p>
+                  </div>
                 </div>
-                <div>
-                  <%= form.label :gsa_envelope_id, "GSA Envelope ID", class: "block text-sm font-medium text-gray-700" %>
-                  <%= form.text_field :gsa_envelope_id, placeholder: "Enter GSA envelope ID", class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                <div class="flex items-center space-x-4">
+                  <div id="gsa-status" class="text-sm">
+                    <span id="gsa-status-text" class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Not Started</span>
+                  </div>
+                  <button type="button" id="send-gsa-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    <span id="gsa-button-text">Send for Signature</span>
+                    <span id="gsa-button-spinner" class="hidden">
+                      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending...
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
 
             <!-- BAA Agreement -->
             <div class="border border-gray-200 rounded-lg p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-4">Business Associate Agreement (BAA)</h3>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <%= form.label :baa_signed_at, "BAA Signed Date", class: "block text-sm font-medium text-gray-700" %>
-                  <%= form.datetime_local_field :baa_signed_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </div>
+                  <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">Business Associate Agreement (BAA)</h3>
+                    <p class="text-sm text-gray-500">HIPAA compliance and data protection agreement</p>
+                  </div>
                 </div>
-                <div>
-                  <%= form.label :baa_envelope_id, "BAA Envelope ID", class: "block text-sm font-medium text-gray-700" %>
-                  <%= form.text_field :baa_envelope_id, placeholder: "Enter BAA envelope ID", class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                <div class="flex items-center space-x-4">
+                  <div id="baa-status" class="text-sm">
+                    <span id="baa-status-text" class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Not Started</span>
+                  </div>
+                  <button type="button" id="send-baa-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    <span id="baa-button-text">Send for Signature</span>
+                    <span id="baa-button-spinner" class="hidden">
+                      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending...
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
 
             <!-- Data Security -->
             <div class="border border-gray-200 rounded-lg p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-4">Data Security & Retention</h3>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <%= form.label :phi_access_locked_at, "PHI Access Locked Date", class: "block text-sm font-medium text-gray-700" %>
-                  <%= form.datetime_local_field :phi_access_locked_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                  </div>
+                  <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">Data Security & Retention</h3>
+                    <p class="text-sm text-gray-500">Automatically configured based on compliance settings</p>
+                  </div>
                 </div>
-                <div>
-                  <%= form.label :data_retention_expires_at, "Data Retention Expires", class: "block text-sm font-medium text-gray-700" %>
-                  <%= form.datetime_local_field :data_retention_expires_at, class: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                <div class="text-sm">
+                  <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Auto-configured</span>
                 </div>
               </div>
             </div>
@@ -120,3 +165,154 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // DocuSign integration
+  const sendGsaBtn = document.getElementById('send-gsa-btn');
+  const sendBaaBtn = document.getElementById('send-baa-btn');
+  
+  // Load existing status on page load
+  loadDocuSignStatus();
+  
+  // Set up GSA button
+  if (sendGsaBtn) {
+    sendGsaBtn.addEventListener('click', function() {
+      sendDocument('gsa', this);
+    });
+  }
+  
+  // Set up BAA button
+  if (sendBaaBtn) {
+    sendBaaBtn.addEventListener('click', function() {
+      sendDocument('baa', this);
+    });
+  }
+  
+  function sendDocument(type, button) {
+    const buttonText = button.querySelector(`#${type}-button-text`);
+    const buttonSpinner = button.querySelector(`#${type}-button-spinner`);
+    const statusText = document.getElementById(`${type}-status-text`);
+    
+    // Set loading state
+    button.disabled = true;
+    buttonText.classList.add('hidden');
+    buttonSpinner.classList.remove('hidden');
+    statusText.textContent = 'Sending...';
+    statusText.className = 'px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+    
+    const endpoint = type === 'gsa' ? '/tenant/activation/send_gsa_agreement' : '/tenant/activation/send_baa_agreement';
+    
+    fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        statusText.textContent = 'Sent for Signature';
+        statusText.className = 'px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+        
+        // Update the envelope ID field
+        const envelopeField = document.querySelector(`input[name*="${type}_envelope_id"]`);
+        if (envelopeField) {
+          envelopeField.value = data.envelope_id;
+        }
+        
+        // Update button
+        buttonText.textContent = 'Resend';
+        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        button.classList.add('bg-gray-600', 'hover:bg-gray-700');
+        
+        alert(data.message);
+      } else {
+        statusText.textContent = 'Error';
+        statusText.className = 'px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800';
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      statusText.textContent = 'Error';
+      statusText.className = 'px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800';
+      alert('An error occurred. Please try again.');
+    })
+    .finally(() => {
+      button.disabled = false;
+      buttonText.classList.remove('hidden');
+      buttonSpinner.classList.add('hidden');
+    });
+  }
+  
+  function loadDocuSignStatus() {
+    fetch('/tenant/activation/docusign_status', {
+      method: 'GET',
+      headers: {
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.results) {
+        // Update GSA status
+        if (data.results.gsa) {
+          updateDocumentStatus('gsa', data.results.gsa);
+        }
+        
+        // Update BAA status
+        if (data.results.baa) {
+          updateDocumentStatus('baa', data.results.baa);
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error loading DocuSign status:', error);
+    });
+  }
+  
+  function updateDocumentStatus(type, result) {
+    const statusText = document.getElementById(`${type}-status-text`);
+    const button = document.getElementById(`send-${type}-btn`);
+    const buttonText = button.querySelector(`#${type}-button-text`);
+    
+    if (result.success) {
+      const status = result.status;
+      const envelopeId = result.envelope_id;
+      
+      // Update status display
+      if (status === 'completed') {
+        statusText.textContent = 'Completed';
+        statusText.className = 'px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800';
+        buttonText.textContent = 'Completed';
+        button.disabled = true;
+        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        button.classList.add('bg-green-600', 'hover:bg-green-700');
+      } else if (status === 'sent') {
+        statusText.textContent = 'Sent for Signature';
+        statusText.className = 'px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+        buttonText.textContent = 'Resend';
+        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        button.classList.add('bg-gray-600', 'hover:bg-gray-700');
+      } else if (status === 'delivered') {
+        statusText.textContent = 'Delivered';
+        statusText.className = 'px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+        buttonText.textContent = 'Resend';
+        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        button.classList.add('bg-gray-600', 'hover:bg-gray-700');
+      }
+      
+      // Update envelope ID field
+      const envelopeField = document.querySelector(`input[name*="${type}_envelope_id"]`);
+      if (envelopeField) {
+        envelopeField.value = envelopeId;
+      }
+    }
+  }
+  
+  // Poll for status updates every 30 seconds
+  setInterval(loadDocuSignStatus, 30000);
+});
+</script>

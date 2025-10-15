@@ -84,6 +84,13 @@ Rails.application.routes.draw do
       get "activation/billing",         to: "dashboard#billing_setup"
       patch "activation/billing",       to: "dashboard#update_billing"
       post "activation/manual_payment", to: "dashboard#manual_payment"
+      get "activation/stripe_card",     to: "dashboard#stripe_card"
+      post "activation/stripe_card",    to: "dashboard#save_stripe_card"
+
+      # DocuSign endpoints
+      post "activation/send_gsa_agreement", to: "dashboard#send_gsa_agreement"
+      post "activation/send_baa_agreement", to: "dashboard#send_baa_agreement"
+      get "activation/docusign_status",     to: "dashboard#check_docusign_status"
 
       get "activation/compliance",      to: "dashboard#compliance_setup"
       patch "activation/compliance",    to: "dashboard#update_compliance"
@@ -105,12 +112,14 @@ Rails.application.routes.draw do
   # ===========================================================
   # 💳 Stripe Integration
   # ===========================================================
-  namespace :stripe do
-    get :products
-    get "products/:id/prices", to: "stripe#product_prices"
-    post :create_checkout_session
-    get "checkout_session/:id", to: "stripe#checkout_session"
-    post :webhook
+  scope path: "/stripe" do
+    get ":products", to: "stripe#products", as: :stripe_products, constraints: { products: /products/ }
+    get "products/:id/prices", to: "stripe#product_prices", as: :stripe_product_prices
+    post "create_checkout_session", to: "stripe#create_checkout_session", as: :stripe_create_checkout_session
+    get "checkout_session/:id", to: "stripe#checkout_session", as: :stripe_checkout_session
+    post "setup_intent", to: "stripe#setup_intent", as: :stripe_setup_intent
+    post "confirm_card", to: "stripe#confirm_card", as: :stripe_confirm_card
+    post "webhook", to: "stripe#webhook", as: :stripe_webhook
   end
 
   # ===========================================================
@@ -130,7 +139,4 @@ Rails.application.routes.draw do
     delete "subscriptions/:id", to: "gocardless#cancel_subscription"
     post :webhook
   end
-
-  # Fallback root route (for development or when no subdomain matches)
-  root "admin/dashboard#index"
 end

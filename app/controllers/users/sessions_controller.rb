@@ -24,7 +24,6 @@ class Users::SessionsController < Devise::SessionsController
     # Get organization from current subdomain
     current_subdomain = request.subdomain
     return if current_subdomain.blank? || [ "www", "admin" ].include?(current_subdomain)
-    byebug
     org_from_subdomain = Organization.find_by(subdomain: current_subdomain)
 
     if org_from_subdomain.nil?

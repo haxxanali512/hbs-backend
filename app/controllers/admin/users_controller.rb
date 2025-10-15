@@ -19,15 +19,40 @@ class Admin::UsersController < ::ApplicationController
   end
 
   def create
-    @user = User.invite!(invite_params.merge(invited_by: current_user))
+      random_password = SecureRandom.uuid
+
+      @user = User.new(
+        invite_params.except(:organizations_attributes).merge(
+          password: random_password,
+          password_confirmation: random_password,
+          invited_by: current_user,
+          status: "pending"
+        )
+      )
+
     authorize @user
-    if @user.errors.empty?
-      redirect_to admin_users_path, notice: "Invitation sent successfully."
-    else
-      @roles = Role.order(:role_name)
-      render :new
+
+    if invite_params[:organizations_attributes].present?
+      ActiveRecord::Base.transaction do
+        if @user.save
+          @organization = Organization.create!(
+            name: invite_params[:organizations_attributes]["name"],
+            subdomain: invite_params[:organizations_attributes]["subdomain"],
+            owner: @user
+          )
+          @organization.memberships.create!(user: @user, organization_role: @user.role)
+          redirect_to admin_users_path, notice: "Invitation sent successfully." and return
+        else
+          raise ActiveRecord::Rollback
+        end
+      end
     end
+
+    @roles = Role.order(:role_name)
+    flash.now[:alert] = @user.errors.full_messages.to_sentence if @user.errors.any?
+    render :new
   end
+
 
   def edit
     @roles = Role.order(:role_name)
@@ -136,7 +161,7 @@ class Admin::UsersController < ::ApplicationController
   end
 
   def invite_params
-    params.require(:user).permit(:email, :role_id)
+    params.require(:user).permit(:email, :role_id, :first_name, :last_name, :username, organizations_attributes: [ :name, :subdomain ])
   end
 
   def authorize_user

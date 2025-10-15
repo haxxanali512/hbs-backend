@@ -50,7 +50,7 @@
                 ['Stripe', 'stripe'],
                 ['GoCardless', 'gocardless'],
                 ['Manual Payment', 'manual']
-              ], @billing.provider), { prompt: 'Select a payment provider' }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+              ], @billing.provider), { prompt: 'Select a payment provider' }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500", id: "billing_provider_select" } %>
             </div>
 
             <div>
@@ -81,6 +81,77 @@
           </div>
         </div>
       <% end %>
+
+      <!-- Stripe Card Setup Section (shown when provider == 'stripe') -->
+      <div id="stripe-card-section" class="mt-8 hidden">
+        <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+          <div class="text-center mb-8">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 mb-4">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-6 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Add Your Payment Card</h3>
+            <p class="text-gray-600">We'll securely save your card for monthly billing. Your payment information is encrypted and processed by Stripe.</p>
+          </div>
+
+          <!-- Card form -->
+          <form id="card-form">
+            <div class="space-y-6">
+              <!-- Card element container -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Card Details</label>
+                <div id="card-element" class="border border-gray-300 rounded-md p-4 bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+                  <!-- Stripe Elements will create the input fields here -->
+                </div>
+                <div id="card-errors" class="text-sm text-red-600 mt-2 hidden"></div>
+              </div>
+
+              <!-- Billing details -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Cardholder Name</label>
+                  <input type="text" id="cardholder-name" value="<%= [current_user.first_name, current_user.last_name].compact.join(" ") %>" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <input type="email" id="cardholder-email" value="<%= current_user.email %>" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit button -->
+            <div class="mt-8">
+              <button type="submit" id="submit-button" class="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span id="button-text">Add Card</span>
+                <span id="button-spinner" class="hidden">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Security notice -->
+          <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                  <strong>Secure Payment:</strong> Your card details are encrypted and processed securely by Stripe. We never store your full card information.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -110,6 +181,251 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  const providerSelect = document.getElementById('billing_provider_select');
+  const stripeCardSection = document.getElementById('stripe-card-section');
+  const cardErrors = document.getElementById('card-errors');
+  const cardSuccess = document.getElementById('card-success');
+  const saveCardBtn = document.getElementById('save-card-btn');
+
+  function renderProducts(products) {
+    productsGrid.innerHTML = '';
+    if (!products || products.length === 0) {
+      productsEmpty.classList.remove('hidden');
+      return;
+    }
+    productsEmpty.classList.add('hidden');
+
+    products.forEach(function(product) {
+      const card = document.createElement('div');
+      card.className = 'border rounded-lg p-4 bg-white shadow-sm flex flex-col';
+
+      const title = document.createElement('h4');
+      title.className = 'font-semibold text-gray-900';
+      title.textContent = product.name;
+      card.appendChild(title);
+
+      if (product.description) {
+        const desc = document.createElement('p');
+        desc.className = 'text-sm text-gray-600 mt-1';
+        desc.textContent = product.description;
+        card.appendChild(desc);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'mt-4';
+      const viewPricesBtn = document.createElement('button');
+      viewPricesBtn.type = 'button';
+      viewPricesBtn.className = 'inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50';
+      viewPricesBtn.textContent = 'View Prices';
+      viewPricesBtn.addEventListener('click', function() {
+        fetch(`/stripe/products/${product.id}/prices`)
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (!data.success) { throw new Error(data.error || 'Failed to load prices'); }
+            const pricesList = document.createElement('ul');
+            pricesList.className = 'mt-2 space-y-1 text-sm text-gray-700';
+            data.prices.forEach(function(price) {
+              const li = document.createElement('li');
+              const amount = (price.amount / 100.0).toFixed(2);
+              const recurring = price.recurring ? ` / ${price.recurring.interval}` : '';
+              li.textContent = `${price.currency.toUpperCase()} ${amount}${recurring}`;
+              pricesList.appendChild(li);
+            });
+            // Replace any existing list
+            const existing = card.querySelector('ul');
+            if (existing) { existing.remove(); }
+            card.appendChild(pricesList);
+          })
+          .catch(function(err) {
+            productsError.textContent = err.message;
+            productsError.classList.remove('hidden');
+          });
+      });
+      actions.appendChild(viewPricesBtn);
+      card.appendChild(actions);
+
+      productsGrid.appendChild(card);
+    });
+  }
+
+  // Initialize Stripe Elements
+  let stripe, elements, cardElement;
+  
+  function initStripe() {
+    if (stripe) return;
+    
+    // Check if Stripe is loaded
+    if (typeof Stripe === 'undefined') {
+      console.error('Stripe.js not loaded');
+      showError('Stripe.js not loaded. Please refresh the page.');
+      return;
+    }
+    
+    const publishableKey = '<%= Rails.configuration.stripe[:publishable_key] %>';
+    console.log('Publishable key in billing setup:', publishableKey);
+    if (!publishableKey || publishableKey === '' || publishableKey === 'null') {
+      console.error('Stripe publishable key not configured:', publishableKey);
+      showError('Stripe not configured. Please contact support.');
+      return;
+    }
+    
+    try {
+      stripe = Stripe(publishableKey);
+      elements = stripe.elements({
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary: '#4f46e5',
+            colorBackground: '#ffffff',
+            colorText: '#1f2937',
+            colorDanger: '#ef4444',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            spacingUnit: '4px',
+            borderRadius: '6px',
+          }
+        }
+      });
+      
+      cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#1f2937',
+            '::placeholder': {
+              color: '#9ca3af',
+            },
+          },
+        },
+      });
+      
+      cardElement.mount('#card-element');
+      
+      // Listen for real-time validation errors from the card Element
+      cardElement.on('change', function(event) {
+        if (event.error) {
+          showError(event.error.message);
+        } else {
+          hideError();
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error initializing Stripe:', error);
+      showError('Failed to initialize payment form. Please refresh the page.');
+    }
+  }
+  
+  function handleStripeSelection() {
+    stripeCardSection.classList.remove('hidden');
+    // Small delay to ensure Stripe.js is loaded
+    setTimeout(initStripe, 100);
+  }
+  
+  function showError(message) {
+    const errorElement = document.getElementById('card-errors');
+    errorElement.textContent = message;
+    errorElement.classList.remove('hidden');
+  }
+
+  function hideError() {
+    const errorElement = document.getElementById('card-errors');
+    errorElement.classList.add('hidden');
+  }
+
+  function setLoading(loading) {
+    const button = document.getElementById('submit-button');
+    const buttonText = document.getElementById('button-text');
+    const buttonSpinner = document.getElementById('button-spinner');
+    
+    if (loading) {
+      button.disabled = true;
+      buttonText.classList.add('hidden');
+      buttonSpinner.classList.remove('hidden');
+    } else {
+      button.disabled = false;
+      buttonText.classList.remove('hidden');
+      buttonSpinner.classList.add('hidden');
+    }
+  }
+
+  function handleProviderUI(value) {
+    if (value === 'stripe') {
+      handleStripeSelection();
+    } else {
+      stripeCardSection.classList.add('hidden');
+    }
+  }
+
+  if (providerSelect) {
+    handleProviderUI(providerSelect.value);
+    providerSelect.addEventListener('change', function(e) {
+      handleProviderUI(e.target.value);
+    });
+  }
+
+  // Handle card form submission
+  const cardForm = document.getElementById('card-form');
+  if (cardForm) {
+    cardForm.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      
+      setLoading(true);
+      hideError();
+
+      try {
+        // Create setup intent
+        const response = await fetch('/stripe/setup_intent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          }
+        });
+
+        const { client_secret } = await response.json();
+
+        // Confirm card setup
+        const { error, setupIntent } = await stripe.confirmCardSetup(client_secret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: document.getElementById('cardholder-name').value,
+              email: document.getElementById('cardholder-email').value
+            }
+          }
+        });
+
+        if (error) {
+          showError(error.message);
+        } else {
+          // Save the payment method
+          const saveResponse = await fetch('/stripe/confirm_card', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ payment_method_id: setupIntent.payment_method })
+          });
+
+          const saveResult = await saveResponse.json();
+          
+          if (saveResult.success) {
+            // Show success and redirect to next step
+            alert('Card saved successfully!');
+            window.location.href = '<%= tenant_activation_compliance_path %>';
+          } else {
+            showError(saveResult.error || 'Failed to save card');
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showError('An error occurred. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    });
+  }
   const manualPaymentBtn = document.getElementById('manual-payment-btn');
   const modal = document.getElementById('manual-payment-modal');
   const confirmBtn = document.getElementById('confirm-manual-payment');

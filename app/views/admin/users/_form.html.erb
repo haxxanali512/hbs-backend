@@ -4,23 +4,45 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">First Name</label>
-        <%= f.text_field :first_name, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+        <%= f.text_field :first_name, placeholder: "Client's First Name", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">Last Name</label>
-        <%= f.text_field :last_name, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+        <%= f.text_field :last_name, placeholder: "Client's Last Name", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">Username</label>
-        <%= f.text_field :username, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+        <%= f.text_field :username, placeholder: "Client's Username", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">Email</label>
-        <%= f.email_field :email, autocomplete: "email", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+        <%= f.email_field :email, placeholder: "Client's Email", autocomplete: "email", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
       </div>
       <div class="md:col-span-2">
         <label class="block text-sm font-medium text-gray-700">Role</label>
         <%= f.collection_select :role_id, @roles, :id, :role_name, { prompt: "Select role" }, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+      </div>
+      <div class="md:col-span-2">
+        <div class="mt-4 rounded-xl border border-gray-200 p-4">
+          <h4 class="text-sm font-medium text-gray-800 mb-3">Organization (basic)</h4>
+          <%= f.fields_for :organizations_attributes, Organization.new do |of| %>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Organization Name</label>
+                <%= of.text_field :name, placeholder: "Client's Organization Name", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Subdomain</label>
+                <div class="mt-2 flex rounded-md shadow-sm">
+                  <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">https://</span>
+                  <%= of.text_field :subdomain, placeholder: "client's-organization", class: "flex-1 rounded-none border border-gray-200 bg-white px-4 h-11 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500" %>
+                  <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">.yourdomain.com</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Must be unique. Used for tenant subdomain.</p>
+              </div>
+            </div>
+          <% end %>
+        </div>
       </div>
       <% if @user.persisted? %>
         <div>
@@ -38,4 +60,3 @@
     </div>
   </div>
 <% end %>
-
