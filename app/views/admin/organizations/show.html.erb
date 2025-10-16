@@ -34,7 +34,7 @@
                 when 'basic' then 'bg-gray-50 text-gray-700'
                 else 'bg-gray-50 text-gray-700'
                 end %>">
-            <%= @organization.tier.humanize %>
+            <%= @organization.tier&.humanize %>
           </span>
         </div>
         <div>

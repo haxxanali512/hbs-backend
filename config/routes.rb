@@ -18,7 +18,7 @@ Rails.application.routes.draw do
   mount Sidekiq::Web => "/sidekiq"
 
   # ===========================================================
-  # 🧭 ADMIN (default + admin subdomain)
+  # ADMIN Routes
   # ===========================================================
   constraints subdomain: /^(www|admin)?$/ do
     root "admin/dashboard#index", as: :global_root
@@ -88,8 +88,7 @@ Rails.application.routes.draw do
       post "activation/stripe_card",    to: "dashboard#save_stripe_card"
 
       # DocuSign endpoints
-      post "activation/send_gsa_agreement", to: "dashboard#send_gsa_agreement"
-      post "activation/send_baa_agreement", to: "dashboard#send_baa_agreement"
+      post "activation/send_agreement", to: "dashboard#send_agreement"
       get "activation/docusign_status",     to: "dashboard#check_docusign_status"
 
       get "activation/compliance",      to: "dashboard#compliance_setup"
@@ -125,18 +124,9 @@ Rails.application.routes.draw do
   # ===========================================================
   # 💰 GoCardless Integration
   # ===========================================================
-  namespace :gocardless do
-    get :customers
-    post :customers
-    get "customers/:id", to: "gocardless#customer"
-    get "customers/:id/payments", to: "gocardless#customer_payments"
-    post :create_redirect_flow
-    post "redirect_flow/:id/complete", to: "gocardless#complete_redirect_flow"
-    post :mandates
-    post :payments
-    post :subscriptions
-    get "subscriptions/:id", to: "gocardless#subscription"
-    delete "subscriptions/:id", to: "gocardless#cancel_subscription"
-    post :webhook
+  scope path: "/gocardless" do
+    post "create_redirect_flow", to: "gocardless#create_redirect_flow"
+    get "redirect_flow/complete", to: "gocardless#complete_redirect_flow"
+    post "webhook", to: "gocardless#webhook"
   end
 end

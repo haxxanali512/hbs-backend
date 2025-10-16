@@ -38,7 +38,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Tier</label>
-          <p class="mt-1 text-sm text-gray-900"><%= @organization.tier.humanize %></p>
+          <p class="mt-1 text-sm text-gray-900"><%= @organization.tier&.humanize %></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Activation Status</label>

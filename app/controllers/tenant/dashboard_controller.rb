@@ -64,6 +64,18 @@ class Tenant::DashboardController < Tenant::BaseController
     if @billing.update(billing_attributes)
       @current_organization.setup_billing!
 
+      # Charge onboarding fee for active payment methods
+      if @billing.active?
+        onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
+
+        if onboarding_result[:success]
+          Rails.logger.info "Onboarding fee charged successfully for organization #{@current_organization.id}"
+        else
+          Rails.logger.error "Failed to charge onboarding fee for organization #{@current_organization.id}: #{onboarding_result[:error]}"
+          # Don't fail the billing setup if onboarding fee fails - just log it
+        end
+      end
+
       # Send email notification for non-manual payment methods
       unless @billing.manual?
         OrganizationBillingMailer.billing_setup_completed(@billing).deliver_now
@@ -86,12 +98,29 @@ class Tenant::DashboardController < Tenant::BaseController
     @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
 
     if @compliance.update(compliance_params)
-      @current_organization.setup_compliance!
+      # Only transition if not already activated
+      unless @current_organization.activated?
+        @current_organization.setup_compliance!
+      end
 
-      # Send email for next step (document signing)
-      OrganizationMailer.document_signing_required(@current_organization).deliver_now
+      # Check if documents are already signed (from DocuSign webhook or status check)x
+      if @compliance.gsa_signed_at.present? && @compliance.baa_signed_at.present?
+        # Documents are signed, activate the organization (if not already activated)
+        unless @current_organization.activated?
+          @current_organization.sign_documents!
+          @current_organization.activate!
 
-      redirect_to tenant_activation_documents_path, notice: "Compliance verified ✅"
+          # Send activation email
+          OrganizationMailer.organization_activated(@current_organization).deliver_now
+        end
+
+        redirect_to tenant_activation_complete_path, notice: "Organization activated ✅"
+      else
+        # Send email for next step (document signing)
+        OrganizationMailer.document_signing_required(@current_organization).deliver_now
+
+        redirect_to tenant_activation_documents_path, notice: "Compliance verified ✅"
+      end
     else
       render :compliance_setup
     end
@@ -104,10 +133,13 @@ class Tenant::DashboardController < Tenant::BaseController
   def complete_document_signing
     # In a real implementation, this would integrate with DocuSign or similar
     # For now, we'll simulate document signing completion
-    @current_organization.sign_documents!
+    unless @current_organization.activated?
+      @current_organization.sign_documents!
+      @current_organization.activate!
 
-    # Send email for next step (activation complete)
-    OrganizationMailer.organization_activated(@current_organization).deliver_now
+      # Send email for next step (activation complete)
+      OrganizationMailer.organization_activated(@current_organization).deliver_now
+    end
 
     redirect_to tenant_activation_complete_path, notice: "Documents signed ✅"
   end
@@ -122,7 +154,7 @@ class Tenant::DashboardController < Tenant::BaseController
     # Send final activation completed email
     OrganizationMailer.activation_completed(@current_organization).deliver_now
 
-    redirect_to tenant_root_path, notice: "🎉 Your organization is now active!"
+    redirect_to tenant_dashboard_path, notice: "🎉 Your organization is now active!"
   end
 
   def manual_payment
@@ -160,46 +192,23 @@ class Tenant::DashboardController < Tenant::BaseController
     render json: { success: true }
   end
 
-  def send_gsa_agreement
+  def send_agreement
     @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
 
     docusign_service = DocusignService.new
-    result = docusign_service.send_gsa_agreement(@current_organization, current_user)
-    byebug
+    result = docusign_service.send_agreement(@current_organization, current_user)
+
     if result[:success]
       @compliance.update!(
         gsa_envelope_id: result[:envelope_id],
-        gsa_signed_at: nil # Will be updated via webhook when signed
-      )
-
-      render json: {
-        success: true,
-        message: "GSA Agreement sent for signature",
-        envelope_id: result[:envelope_id]
-      }
-    else
-      render json: {
-        success: false,
-        error: result[:error]
-      }, status: :unprocessable_entity
-    end
-  end
-
-  def send_baa_agreement
-    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
-
-    docusign_service = DocusignService.new
-    result = docusign_service.send_baa_agreement(@current_organization, current_user)
-
-    if result[:success]
-      @compliance.update!(
         baa_envelope_id: result[:envelope_id],
-        baa_signed_at: nil # Will be updated via webhook when signed
+        gsa_signed_at: nil, # Will be updated via webhook when signed
+        baa_signed_at: nil  # Will be updated via webhook when signed
       )
 
       render json: {
         success: true,
-        message: "BAA Agreement sent for signature",
+        message: "GSA and BAA Agreement sent for signature",
         envelope_id: result[:envelope_id]
       }
     else
@@ -215,17 +224,43 @@ class Tenant::DashboardController < Tenant::BaseController
 
     return render json: { success: false, error: "No compliance record found" } unless @compliance
 
+    # If already signed, return cached status
+    if @compliance.gsa_signed_at.present? && @compliance.baa_signed_at.present?
+      Rails.logger.info "Agreement already signed, returning cached status"
+      return render json: {
+        success: true,
+        results: {
+          gsa: { success: true, status: "completed", envelope_id: @compliance.gsa_envelope_id },
+          baa: { success: true, status: "completed", envelope_id: @compliance.baa_envelope_id }
+        }
+      }
+    end
+
     docusign_service = DocusignService.new
     results = {}
 
-    if @compliance.gsa_envelope_id.present?
-      gsa_result = docusign_service.get_envelope_status(@compliance.gsa_envelope_id)
-      results[:gsa] = gsa_result
-    end
+    # Since we now use the same envelope for both GSA and BAA, check either envelope ID
+    envelope_id = @compliance.gsa_envelope_id.present? ? @compliance.gsa_envelope_id : @compliance.baa_envelope_id
 
-    if @compliance.baa_envelope_id.present?
-      baa_result = docusign_service.get_envelope_status(@compliance.baa_envelope_id)
-      results[:baa] = baa_result
+    if envelope_id.present?
+      Rails.logger.info "Checking DocuSign status for envelope: #{envelope_id}"
+      envelope_result = docusign_service.get_envelope_status(envelope_id)
+      Rails.logger.info "DocuSign status response: #{envelope_result.inspect}"
+
+      # If completed, update the database
+      if envelope_result[:success] && envelope_result[:status] == "completed"
+        Rails.logger.info "Agreement completed, updating database"
+        @compliance.update!(
+          gsa_signed_at: Time.current,
+          baa_signed_at: Time.current
+        )
+      end
+
+      # Return the same result for both GSA and BAA since they use the same envelope
+      results[:gsa] = envelope_result
+      results[:baa] = envelope_result
+    else
+      Rails.logger.info "No envelope ID found for organization #{@current_organization.id}"
     end
 
     render json: { success: true, results: results }
@@ -269,7 +304,7 @@ class Tenant::DashboardController < Tenant::BaseController
   end
 
   def billing_params
-    params.require(:organization_billing).permit(:last_payment_date, :next_payment_due, :method_last4, :provider)
+    params.require(:organization_billing).permit(:last_payment_date, :next_payment_due, :method_last4, :provider, :gocardless_customer_id, :gocardless_mandate_id)
   end
 
   def compliance_params

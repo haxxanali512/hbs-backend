@@ -1,13 +1,13 @@
-class GoCardlessService
+class GocardlessService
   include ActiveModel::Model
   include ActiveModel::Attributes
 
   attribute :access_token, :string
   attribute :environment, :string, default: "sandbox"
 
-  def initialize(access_token: nil, environment: "sandbox")
-    @access_token = access_token || Rails.application.credentials.dig(:gocardless, environment.to_sym, :access_token)
-    @environment = environment
+  def initialize(access_token: nil, environment: nil)
+    @access_token = access_token || Rails.application.credentials.gocardless[:access_token]
+    @environment = environment || Rails.application.credentials.gocardless[:environment]
     super()
   end
 
@@ -255,26 +255,48 @@ class GoCardlessService
   # Create a redirect flow for customer authorization
   def create_redirect_flow(params)
     begin
+      Rails.logger.info "GoCardlessService: Creating redirect flow with params: #{params.inspect}"
       client = create_client
-      redirect_flow = client.redirect_flows.create(
-        params: {
-          description: params[:description] || "Organization billing setup",
-          session_token: params[:session_token],
-          success_redirect_url: params[:success_redirect_url],
-          prefilled_customer: {
-            given_name: params[:given_name],
-            family_name: params[:family_name],
-            email: params[:email]
-          },
-          metadata: params[:metadata] || {}
-        }
-      )
+
+      # Build prefilled customer hash
+      prefilled_customer = {}
+      prefilled_customer[:given_name] = params[:given_name] if params[:given_name].present?
+      prefilled_customer[:family_name] = params[:family_name] if params[:family_name].present?
+      prefilled_customer[:email] = params[:email] if params[:email].present?
+      prefilled_customer[:address_line1] = params[:address_line1] if params[:address_line1].present?
+      prefilled_customer[:city] = params[:city] if params[:city].present?
+      prefilled_customer[:postal_code] = params[:postal_code] if params[:postal_code].present?
+      prefilled_customer[:country_code] = params[:country_code] if params[:country_code].present?
+
+      Rails.logger.info "GoCardlessService: Prefilled customer: #{prefilled_customer.inspect}"
+
+      redirect_flow_params = {
+        description: params[:description] || "Organization billing setup",
+        session_token: params[:session_token],
+        success_redirect_url: params[:success_redirect_url],
+        prefilled_customer: prefilled_customer,
+        metadata: params[:metadata] || {}
+      }
+
+      Rails.logger.info "GoCardlessService: Redirect flow params: #{redirect_flow_params.inspect}"
+
+      redirect_flow = client.redirect_flows.create(params: redirect_flow_params)
 
       {
         success: true,
         redirect_flow: format_redirect_flow(redirect_flow)
       }
     rescue GoCardlessPro::GoCardlessError => e
+      Rails.logger.error "GoCardlessService: GoCardless error: #{e.message}"
+      Rails.logger.error "GoCardlessService: Error details: #{e.inspect}"
+      {
+        success: false,
+        error: e.message,
+        redirect_flow: nil
+      }
+    rescue => e
+      Rails.logger.error "GoCardlessService: Unexpected error: #{e.message}"
+      Rails.logger.error "GoCardlessService: Error details: #{e.inspect}"
       {
         success: false,
         error: e.message,
@@ -284,19 +306,40 @@ class GoCardlessService
   end
 
   # Complete a redirect flow
-  def complete_redirect_flow(redirect_flow_id)
+  def complete_redirect_flow(redirect_flow_id, session_token: nil)
     begin
+      Rails.logger.info "GoCardlessService: Completing redirect flow #{redirect_flow_id}"
       client = create_client
+
+      # Build completion params
+      completion_params = {}
+      completion_params[:session_token] = session_token if session_token.present?
+
+      Rails.logger.info "GoCardlessService: Completion params: #{completion_params.inspect}"
+
       redirect_flow = client.redirect_flows.complete(
         redirect_flow_id,
-        params: {}
+        params: completion_params
       )
+
+      Rails.logger.info "GoCardlessService: Redirect flow completed successfully"
+      Rails.logger.info "GoCardlessService: Redirect flow data: #{redirect_flow.inspect}"
 
       {
         success: true,
         redirect_flow: format_redirect_flow(redirect_flow)
       }
     rescue GoCardlessPro::GoCardlessError => e
+      Rails.logger.error "GoCardlessService: GoCardless error completing redirect flow: #{e.message}"
+      Rails.logger.error "GoCardlessService: Error details: #{e.inspect}"
+      {
+        success: false,
+        error: e.message,
+        redirect_flow: nil
+      }
+    rescue => e
+      Rails.logger.error "GoCardlessService: Unexpected error completing redirect flow: #{e.message}"
+      Rails.logger.error "GoCardlessService: Error details: #{e.inspect}"
       {
         success: false,
         error: e.message,
@@ -404,7 +447,8 @@ class GoCardlessService
       redirect_url: redirect_flow.redirect_url,
       session_token: redirect_flow.session_token,
       created_at: redirect_flow.created_at,
-      metadata: redirect_flow.metadata
+      metadata: redirect_flow.metadata,
+      links: redirect_flow.links
     }
   end
 end

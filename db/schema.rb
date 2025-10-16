@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_15_120000) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_16_093619) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -30,6 +30,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_15_120000) do
     t.string "card_brand"
     t.integer "card_exp_month"
     t.integer "card_exp_year"
+    t.string "gocardless_customer_id"
+    t.string "gocardless_mandate_id"
     t.index ["organization_id"], name: "index_organization_billings_on_organization_id"
     t.index ["stripe_customer_id"], name: "index_organization_billings_on_stripe_customer_id"
     t.index ["stripe_subscription_id"], name: "index_organization_billings_on_stripe_subscription_id"

@@ -91,7 +91,7 @@
       <div class="info-box">
         <h3>Organization Details</h3>
         <p><strong>Name:</strong> <%= @organization.name %></p>
-        <p><strong>Tier:</strong> <%= @organization.tier.humanize %></p>
+        <p><strong>Tier:</strong> <%= @organization.tier&.humanize %></p>
         <p><strong>Status:</strong> <%= @organization.activation_status.humanize %></p>
         <p><strong>Activated:</strong> <%= @organization.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
       </div>
@@ -109,7 +109,7 @@
 
       <p>Ready to get started? Access your organization dashboard:</p>
       
-      <a href="<%= tenant_root_path %>" class="button">Go to Organization Dashboard</a>
+      <a href="<%= tenant_dashboard_path %>" class="button">Go to Organization Dashboard</a>
       
       <p>Thank you for choosing HBS Data Processing! If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
     </div>

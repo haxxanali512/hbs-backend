@@ -9,8 +9,8 @@ class DocusignService
     configure_authentication
   end
 
-  # Send GSA Agreement for signature
-  def send_gsa_agreement(organization, user, envelope_id = nil)
+  # Send GSA and BAA Agreement for signature (combined document)
+  def send_agreement(organization, user, envelope_id = nil)
     # Prepare recipients: organization owner and Steven (DocuSign account owner)
     owner_email = if organization.respond_to?(:owner) && organization.owner&.email.present?
       organization.owner.email
@@ -27,42 +27,19 @@ class DocusignService
     end
 
     recipients = [
-      { email: owner_email, name: owner_name, role_name: "Signer", recipient_id: "1", routing_order: "1" },
-      { email: "haxxanali512@gmail.com", name: "Test Signer", role_name: "Signer", recipient_id: "2", routing_order: "1" }
+      { email: "haxxanali512@gmail.com", name: owner_name, role_name: "Signer", recipient_id: "1", routing_order: "1" },
+      { email: "steven@holisticbusinesssolutions.com", name: "Steven Meddaugh", role_name: "Signer", recipient_id: "2", routing_order: "1" }
     ]
 
-    # Render DOCX with placeholders and attach as document (DocuSign converts to PDF)
-    rendered_base64 = render_gsa_docx_base64(organization: organization, user: user)
+    rendered_base64 = render_agreement_html_base64(organization: organization, user: user)
 
     envelope_definition = create_envelope_definition(
-      subject: "GSA Agreement - #{organization.name}",
+      subject: "GSA and BAA Agreement - #{organization.name}",
       recipients: recipients,
       documents: [ {
         document_base64: rendered_base64,
-        name: "GSA Agreement",
-        file_extension: "docx",
-        document_id: "1"
-      } ],
-      envelope_id: envelope_id
-    )
-
-    send_envelope(envelope_definition)
-  end
-
-  # Send BAA Agreement for signature
-  def send_baa_agreement(organization, user, envelope_id = nil)
-    envelope_definition = create_envelope_definition(
-      subject: "Business Associate Agreement - #{organization.name}",
-      recipients: [ {
-        email: user.email,
-        name: user.display_name,
-        role_name: "Signer",
-        recipient_id: "1"
-      } ],
-      documents: [ {
-        document_base64: get_baa_document_base64,
-        name: "Business Associate Agreement",
-        file_extension: "pdf",
+        name: "GSA and BAA Agreement",
+        file_extension: "html",
         document_id: "1"
       } ],
       envelope_id: envelope_id
@@ -74,11 +51,34 @@ class DocusignService
   # Get envelope status
   def get_envelope_status(envelope_id)
     begin
+      Rails.logger.info "DocuSign: Getting envelope status for #{envelope_id}"
       envelope_api = DocuSign_eSign::EnvelopesApi.new(@api_client)
       envelope = envelope_api.get_envelope(
         resolved_account_id,
         envelope_id
       )
+
+      Rails.logger.info "DocuSign: Envelope status = #{envelope.status}, changed at = #{envelope.status_changed_date_time}"
+
+      # Get recipient status to see if all signers have completed
+      recipients = envelope_api.list_recipients(resolved_account_id, envelope_id)
+      Rails.logger.info "DocuSign: Recipients count = #{recipients.signers&.count || 0}"
+
+      if recipients.signers
+        recipients.signers.each_with_index do |signer, index|
+          Rails.logger.info "DocuSign: Signer #{index + 1} - Status: #{signer.status}, Name: #{signer.name}, Email: #{signer.email}"
+        end
+
+        # Check if all signers have completed (including autoresponded for second signer)
+        all_completed = recipients.signers.all? { |signer| [ "completed", "autoresponded" ].include?(signer.status) }
+        Rails.logger.info "DocuSign: All signers completed = #{all_completed}"
+
+        # If all signers completed but envelope status is still 'sent', use 'completed'
+        if all_completed && envelope.status == "sent"
+          Rails.logger.info "DocuSign: Overriding status from 'sent' to 'completed' because all signers completed"
+          envelope.status = "completed"
+        end
+      end
 
       {
         success: true,
@@ -266,16 +266,39 @@ class DocusignService
   def create_signing_tabs
     tabs = DocuSign_eSign::Tabs.new
 
-    # Add signature tab
-    sign_here = DocuSign_eSign::SignHere.new
-    sign_here.document_id = "1"
-    sign_here.page_number = "1"
-    sign_here.recipient_id = "1"
-    sign_here.tab_label = "SignHereTab"
-    sign_here.x_position = "100"
-    sign_here.y_position = "100"
+    # Add signature tabs for client (recipient_id = "1")
+    # GSA signature at the end of the main agreement
+    gsa_signature = DocuSign_eSign::SignHere.new
+    gsa_signature.document_id = "1"
+    gsa_signature.recipient_id = "1"
+    gsa_signature.tab_label = "GSA_Client_Signature"
+    gsa_signature.anchor_string = "client_signature_anchor"
+    gsa_signature.anchor_x_offset = "0"
+    gsa_signature.anchor_y_offset = "0"
+    gsa_signature.anchor_units = "pixels"
 
-    tabs.sign_here_tabs = [ sign_here ]
+    # BAA signature at the end of the BAA section
+    baa_signature = DocuSign_eSign::SignHere.new
+    baa_signature.document_id = "1"
+    baa_signature.recipient_id = "1"
+    baa_signature.tab_label = "BAA_Client_Signature"
+    baa_signature.anchor_string = "baa_client_signature_anchor"
+    baa_signature.anchor_x_offset = "0"
+    baa_signature.anchor_y_offset = "0"
+    baa_signature.anchor_units = "pixels"
+
+    # Date tabs for BAA
+    baa_date = DocuSign_eSign::DateSigned.new
+    baa_date.document_id = "1"
+    baa_date.recipient_id = "1"
+    baa_date.tab_label = "BAA_Client_Date"
+    baa_date.anchor_string = "baa_client_date_anchor"
+    baa_date.anchor_x_offset = "0"
+    baa_date.anchor_y_offset = "0"
+    baa_date.anchor_units = "pixels"
+
+    tabs.sign_here_tabs = [ gsa_signature, baa_signature ]
+    tabs.date_signed_tabs = [ baa_date ]
     tabs
   end
 
@@ -365,6 +388,41 @@ class DocusignService
     end
     buffer.rewind
     Base64.strict_encode64(buffer.read)
+  end
+
+  # Render ERB template (HTML) and return Base64 (DocuSign will convert HTML → PDF)
+  def render_agreement_html_base64(organization:, user:)
+    template_path = Rails.root.join("app", "documents", "gsa_and_baa.pdf.erb")
+    raise "Agreement HTML template not found at #{template_path}" unless File.exist?(template_path)
+
+    # Compute dynamic fields
+    owner_email = if organization.respond_to?(:owner) && organization.owner&.email.present?
+      organization.owner.email
+    elsif organization.respond_to?(:owner_email) && organization.owner_email.present?
+      organization.owner_email
+    else
+      user.email
+    end
+
+    owner_name = if organization.respond_to?(:owner) && organization.owner.present?
+      [ organization.owner.try(:first_name), organization.owner.try(:last_name) ].compact.join(" ")
+        .presence || organization.owner.try(:name) || user.display_name
+    else
+      user.display_name
+    end
+
+    current_date = Time.current.strftime("%B %d, %Y")
+
+    # Bind locals into ERB
+    template = File.read(template_path)
+    html = ERB.new(template).result_with_hash(
+      organization: organization,
+      owner_email: owner_email,
+      owner_name: owner_name,
+      current_date: current_date
+    )
+
+    Base64.strict_encode64(html)
   end
 
   def get_baa_document_base64

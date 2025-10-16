@@ -79,6 +79,10 @@ class Organization < ApplicationRecord
     end
   end
 
+  def activated?
+    activation_status == "activated"
+  end
+
   def active_members
     members.where(organization_memberships: { active: true })
   end
