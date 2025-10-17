@@ -13,6 +13,7 @@ class User < ApplicationRecord
 
   # after_create :send_invitation
 
+
   # Validations
   validates :username, presence: true, uniqueness: { case_sensitive: false }
   validates :first_name, presence: true

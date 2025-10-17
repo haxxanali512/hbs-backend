@@ -7,7 +7,8 @@ class ModulePermission
           invitations: crud_actions,
           users: crud_actions,
           roles: crud_actions,
-          dashboard: crud_actions
+          dashboard: crud_actions,
+          invoices: crud_actions
         },
         organization_management_module: {
           organizations: crud_actions,
@@ -26,6 +27,12 @@ class ModulePermission
           team_members: crud_actions,
           departments: crud_actions,
           settings: { view: false, update: false }
+        },
+        tenant_dashboard_module: {
+          dashboard: crud_actions,
+          # patients: crud_actions,
+          # claims: crud_actions,
+          invoices: crud_actions
         }
       }
     end

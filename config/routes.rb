@@ -66,6 +66,14 @@ Rails.application.routes.draw do
           patch :reject
         end
       end
+
+      resources :invoices do
+        member do
+          post :issue
+          post :void
+          post :apply_payment
+        end
+      end
     end
   end
 
@@ -80,30 +88,36 @@ Rails.application.routes.draw do
       get "dashboard", to: "dashboard#index"
 
       # Activation wizard (moved to dashboard)
-      get "activation",                 to: "dashboard#activation"
-      get "activation/billing",         to: "dashboard#billing_setup"
-      patch "activation/billing",       to: "dashboard#update_billing"
-      post "activation/manual_payment", to: "dashboard#manual_payment"
-      get "activation/stripe_card",     to: "dashboard#stripe_card"
-      post "activation/stripe_card",    to: "dashboard#save_stripe_card"
+      get "activation",                 to: "activation#index"
+      get "activation/billing",         to: "activation#billing_setup"
+      patch "activation/billing",       to: "activation#update_billing"
+      post "activation/manual_payment", to: "activation#manual_payment"
+      get "activation/stripe_card",     to: "activation#stripe_card"
+      post "activation/stripe_card",    to: "activation#save_stripe_card"
 
       # DocuSign endpoints
-      post "activation/send_agreement", to: "dashboard#send_agreement"
-      get "activation/docusign_status",     to: "dashboard#check_docusign_status"
+      post "activation/send_agreement", to: "activation#send_agreement"
+      get "activation/docusign_status",     to: "activation#check_docusign_status"
 
-      get "activation/compliance",      to: "dashboard#compliance_setup"
-      patch "activation/compliance",    to: "dashboard#update_compliance"
+      get "activation/compliance",      to: "activation#compliance_setup"
+      patch "activation/compliance",    to: "activation#update_compliance"
 
-      get "activation/documents",       to: "dashboard#document_signing"
-      post "activation/documents",      to: "dashboard#complete_document_signing"
+      get "activation/documents",       to: "activation#document_signing"
+      post "activation/documents",      to: "activation#complete_document_signing"
 
-      get "activation/complete",        to: "dashboard#activation_complete"
-      post "activation/activate",       to: "dashboard#activate"
+      get "activation/complete",        to: "activation#activation_complete"
+      post "activation/activate",       to: "activation#activate"
+
+      # Invoice management
+      resources :invoices, only: [ :index, :show ] do
+        member do
+          get :pay
+        end
+      end
 
       # (optional) tenant resources like patients, claims, etc.
       # resources :patients
       # resources :claims
-      # resources :invoices
       # resources :team_members
     end
   end

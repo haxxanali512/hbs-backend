@@ -43,3 +43,6 @@ public/*
 !/app/assets/builds/.keep
 
 /config/credentials/development.key
+
+# DocuSign private key
+/config/docusign_private_key.pem

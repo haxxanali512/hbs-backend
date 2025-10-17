@@ -16,6 +16,11 @@ class OrganizationBilling < ApplicationRecord
     bank_transfer: 4
   }
 
+  # validates :last_payment_date, presence: true
+  # validates :next_payment_due, presence: true
+  # validates :method_last4, presence: true
+  # validates :provider, presence: true
+
   scope :pending_approval, -> { where(billing_status: :pending_approval) }
   scope :manual_provider, -> { where(provider: :manual) }
 end

@@ -9,42 +9,11 @@ class Tenant::ActivationController < Tenant::BaseController
     # Overview page - show progress and next steps
     @steps = [
       { name: "Organization Created", completed: true, current: false },
-      { name: "Billing Setup", completed: @organization.billing_setup? || @organization.compliance_setup? || @organization.document_signing? || @organization.activated?, current: @organization.pending? },
-      { name: "Compliance Setup", completed: @organization.compliance_setup? || @organization.document_signing? || @organization.activated?, current: @organization.billing_setup? },
-      { name: "Document Signing", completed: @organization.document_signing? || @organization.activated?, current: @organization.compliance_setup? },
+      { name: "Compliance Setup", completed: @current_organization.compliance_setup? || @current_organization.document_signing? || @current_organization.activated?, current: @current_organization.pending? },
+      { name: "Billing Setup", completed: @organization.billing_setup? || @organization.document_signing? || @organization.activated?, current: @organization.compliance_setup? },
+      { name: "Document Signing", completed: @organization.document_signing? || @organization.activated?, current: @organization.billing_setup? },
       { name: "Activation Complete", completed: @organization.activated?, current: @organization.document_signing? }
     ]
-  end
-
-  def billing_setup
-    authorize :activation, :billing_setup?
-    @billing = @organization.organization_billing || @organization.build_organization_billing
-
-    # Send email when billing setup step is first reached
-    if @organization.pending?
-      OrganizationMailer.billing_setup_required(@organization).deliver_now
-    end
-  end
-
-  def update_billing
-    authorize :activation, :billing_setup?
-    @billing = @organization.organization_billing || @organization.build_organization_billing
-
-    if @billing.update(billing_params)
-      @organization.setup_billing!
-
-      # Send email notification for non-manual payment methods
-      unless @billing.manual?
-        OrganizationBillingMailer.billing_setup_completed(@billing).deliver_now
-      end
-
-      # Send email for next step (compliance setup)
-      OrganizationMailer.compliance_setup_required(@organization).deliver_now
-
-      redirect_to activation_compliance_path, notice: "Billing setup complete ✅"
-    else
-      render :billing_setup
-    end
   end
 
   def compliance_setup
@@ -52,17 +21,85 @@ class Tenant::ActivationController < Tenant::BaseController
     @compliance = @organization.organization_compliance || @organization.build_organization_compliance
   end
 
-  def update_compliance
+  def billing_setup
+    authorize :activation, :billing_setup?
+    @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+
+    # Send email when billing setup step is first reached
+    if @current_organization.pending?
+      OrganizationMailer.billing_setup_required(@current_organization).deliver_now
+    end
+  end
+
+  def update_billing
+    authorize :activation, :update_billing?
+    @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+
+    # Debug: Log the parameters being sent
+    Rails.logger.debug "Billing params: #{billing_params.inspect}"
+    Rails.logger.debug "Raw params: #{params[:organization_billing].inspect}"
+
+    # Set billing status based on provider - users cannot manually set this
+    billing_attributes = billing_params.to_h
+    case billing_attributes[:provider]
+    when "stripe", "gocardless"
+      # For payment providers, set as active (will be updated by webhook events)
+      billing_attributes[:billing_status] = "active"
+    when "manual"
+      # For manual payments, set as pending approval (requires admin review)
+      billing_attributes[:billing_status] = "pending_approval"
+    end
+
+    if @billing.update(billing_attributes)
+      @current_organization.sign_documents!
+
+      # Charge onboarding fee for active payment methods
+      if @billing.active?
+        onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
+
+        if onboarding_result[:success]
+          Rails.logger.info "Onboarding fee charged successfully for organization #{@current_organization.id}"
+        else
+          Rails.logger.error "Failed to charge onboarding fee for organization #{@current_organization.id}: #{onboarding_result[:error]}"
+          # Don't fail the billing setup if onboarding fee fails - just log it
+        end
+      end
+
+      # Send email notification for non-manual payment methods
+      unless @billing.manual?
+        OrganizationBillingMailer.billing_setup_completed(@billing).deliver_now
+      end
+
+      # Send email for next step (compliance setup)
+      OrganizationMailer.compliance_setup_required(@current_organization).deliver_now
+
+      redirect_to tenant_activation_compliance_path, notice: "Billing setup complete ✅"
+    else
+      render :billing_setup
+    end
+  end
+
+  def compliance_setup
     authorize :activation, :compliance_setup?
-    @compliance = @organization.organization_compliance || @organization.build_organization_compliance
+    # Send email for next step (compliance verification)
+    OrganizationMailer.compliance_verification_required(@current_organization).deliver_now
+    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
+  end
 
+  def update_compliance
+    authorize :activation, :update_compliance?
+    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
     if @compliance.update(compliance_params)
-      @organization.setup_compliance!
-
-      # Send email for next step (document signing)
-      OrganizationMailer.document_signing_required(@organization).deliver_now
-
-      redirect_to activation_document_signing_path, notice: "Compliance verified ✅"
+      if @compliance.gsa_signed_at.present? && @compliance.baa_signed_at.present?
+        unless @current_organization.activated?
+          @current_organization.setup_billing!
+        end
+        OrganizationMailer.billing_setup_required(@current_organization).deliver_now
+        redirect_to tenant_activation_billing_path, notice: "Compliance verified! You can now proceed to billing setup."
+      else
+        OrganizationMailer.compliance_verification_required(@current_organization).deliver_now
+        redirect_to tenant_activation_compliance_path, notice: "Compliance verification required. Please verify your compliance information."
+      end
     else
       render :compliance_setup
     end
@@ -75,19 +112,20 @@ class Tenant::ActivationController < Tenant::BaseController
 
   def complete_document_signing
     authorize :activation, :document_signing?
-    # In a real implementation, this would integrate with DocuSign or similar
-    # For now, we'll simulate document signing completion
-    @organization.sign_documents!
+    @compliance = @organization.organization_compliance || @organization.build_organization_compliance
 
-    # Send email for next step (activation complete)
-    OrganizationMailer.organization_activated(@organization).deliver_now
+    # Update compliance with terms acceptance
+    if @compliance.update(compliance_params)
+      @organization.activate!
 
-    redirect_to activation_complete_path, notice: "Documents signed ✅"
-  end
+      # Send email for next step (activation complete)
+      OrganizationMailer.organization_activated(@organization).deliver_now
 
-  def complete
-    authorize :activation, :complete?
-    # Show success page
+      redirect_to tenant_activation_billing_path, notice: "Documents signed ✅"
+    else
+      @compliance = @organization.organization_compliance || @organization.build_organization_compliance
+      render :document_signing
+    end
   end
 
   def activate
@@ -100,6 +138,135 @@ class Tenant::ActivationController < Tenant::BaseController
     redirect_to root_path, notice: "🎉 Your organization is now active!"
   end
 
+  def activation_complete
+    authorize :activation, :activation_complete?
+    @organization = @current_organization
+  end
+
+  def save_stripe_card
+    authorize :activation, :save_stripe_card?
+    @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+
+    # This will be handled by AJAX from the frontend
+    render json: { success: true }
+  end
+
+  def activate
+    authorize :activation, :activate?
+    @current_organization.activate
+
+    # Send final activation completed email
+    OrganizationMailer.activation_completed(@current_organization).deliver_now
+
+    redirect_to tenant_dashboard_path, notice: "🎉 Your organization is now active!"
+  end
+
+  def manual_payment
+    authorize :activation, :manual_payment?
+    # Create or update organization billing with manual status
+    billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+    billing.update!(
+      billing_status: "pending_approval",
+      provider: "manual"
+    )
+
+    # Send notification to super admins
+    OrganizationBillingMailer.manual_payment_request(billing).deliver_now
+
+    render json: {
+      success: true,
+      message: "Manual payment request submitted successfully. A super admin will review and approve your billing setup."
+    }
+  rescue => e
+    Rails.logger.error "Manual payment submission failed: #{e.message}"
+    render json: {
+      success: false,
+      error: "Failed to submit manual payment request. Please try again."
+    }, status: :unprocessable_entity
+  end
+
+  def stripe_card
+    authorize :activation, :stripe_card?
+    # Show the Stripe card collection page
+    @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+  end
+
+  def send_agreement
+    authorize :activation, :send_agreement?
+    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
+
+    docusign_service = DocusignService.new
+    result = docusign_service.send_agreement(@current_organization, current_user)
+
+    if result[:success]
+      @compliance.update!(
+        gsa_envelope_id: result[:envelope_id],
+        baa_envelope_id: result[:envelope_id],
+        gsa_signed_at: nil, # Will be updated via webhook when signed
+        baa_signed_at: nil  # Will be updated via webhook when signed
+      )
+
+      render json: {
+        success: true,
+        message: "GSA and BAA Agreement sent for signature",
+        envelope_id: result[:envelope_id]
+      }
+    else
+      render json: {
+        success: false,
+        error: result[:error]
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def check_docusign_status
+    authorize :activation, :check_docusign_status?
+    @compliance = @current_organization.organization_compliance
+
+    return render json: { success: false, error: "No compliance record found" } unless @compliance
+
+    # If already signed, return cached status
+    if @compliance.gsa_signed_at.present? && @compliance.baa_signed_at.present?
+      Rails.logger.info "Agreement already signed, returning cached status"
+      return render json: {
+        success: true,
+        results: {
+          gsa: { success: true, status: "completed", envelope_id: @compliance.gsa_envelope_id },
+          baa: { success: true, status: "completed", envelope_id: @compliance.baa_envelope_id }
+        }
+      }
+    end
+
+    docusign_service = DocusignService.new
+    results = {}
+
+    # Since we now use the same envelope for both GSA and BAA, check either envelope ID
+    envelope_id = @compliance.gsa_envelope_id.present? ? @compliance.gsa_envelope_id : @compliance.baa_envelope_id
+
+    if envelope_id.present?
+      Rails.logger.info "Checking DocuSign status for envelope: #{envelope_id}"
+      envelope_result = docusign_service.get_envelope_status(envelope_id)
+      Rails.logger.info "DocuSign status response: #{envelope_result.inspect}"
+
+      # If completed, update the database
+      if envelope_result[:success] && envelope_result[:status] == "completed"
+        Rails.logger.info "Agreement completed, updating database"
+        @compliance.update!(
+          gsa_signed_at: Time.current,
+          baa_signed_at: Time.current
+        )
+      end
+
+      # Return the same result for both GSA and BAA since they use the same envelope
+      results[:gsa] = envelope_result
+      results[:baa] = envelope_result
+    else
+      Rails.logger.info "No envelope ID found for organization #{@current_organization.id}"
+    end
+
+    render json: { success: true, results: results }
+  end
+
   private
 
   def set_organization
@@ -110,27 +277,15 @@ class Tenant::ActivationController < Tenant::BaseController
   end
 
   def check_activation_status
-    # Redirect to appropriate step based on current state
     case @organization.activation_status
     when "pending"
-      redirect_to activation_billing_path unless action_name == "index" || action_name == "billing_setup" || action_name == "update_billing"
+      redirect_to tenant_activation_compliance_path unless action_name == "index" || action_name == "compliance_setup" || action_name == "update_compliance" || action_name == "send_agreement" || action_name == "check_docusign_status"
     when "billing_setup"
-      # Check if billing is approved before allowing compliance setup
-      if @organization.organization_billing&.pending_approval?
-        flash[:alert] = "Your billing setup is pending approval. Please wait for a super admin to review your request."
-        redirect_to activation_billing_path unless action_name == "billing_setup" || action_name == "update_billing" || action_name == "manual_payment"
-      elsif @organization.organization_billing&.cancelled?
-        flash[:alert] = "Your billing setup was rejected. Please resubmit your payment information."
-        redirect_to activation_billing_path unless action_name == "billing_setup" || action_name == "update_billing" || action_name == "manual_payment"
-      else
-        redirect_to activation_compliance_path unless action_name == "compliance_setup" || action_name == "update_compliance"
-      end
-    when "compliance_setup"
-      redirect_to activation_document_signing_path unless action_name == "document_signing" || action_name == "complete_document_signing"
+      redirect_to tenant_activation_billing_path unless action_name == "update_billing" || action_name == "billing_setup"
     when "document_signing"
-      redirect_to activation_complete_path unless action_name == "complete" || action_name == "activate"
+      redirect_to tenant_activation_documents_path unless action_name == "complete_document_signing" || action_name == "document_signing"
     when "activated"
-      redirect_to root_path unless action_name == "complete"
+      redirect_to tenant_dashboard_path unless action_name == "activate" || action_name == "send_agreement"
     end
   end
 
@@ -162,6 +317,28 @@ class Tenant::ActivationController < Tenant::BaseController
   end
 
   def compliance_params
-    params.require(:organization_compliance).permit(:gsa_signed_at, :gsa_envelope_id, :baa_signed_at, :baa_envelope_id, :phi_access_locked_at, :data_retention_expires_at)
+    params.require(:organization_compliance).permit(:gsa_signed_at, :gsa_envelope_id, :baa_signed_at, :baa_envelope_id, :phi_access_locked_at, :data_retention_expires_at, :terms_of_use, :privacy_policy_accepted)
   end
+
+  def billing_params
+    params.require(:organization_billing).permit(:last_payment_date, :next_payment_due, :method_last4, :provider, :gocardless_customer_id, :gocardless_mandate_id)
+  end
+
+  def compliance_params
+    params.require(:organization_compliance).permit(:gsa_signed_at, :gsa_envelope_id, :baa_signed_at, :baa_envelope_id, :phi_access_locked_at, :data_retention_expires_at, :terms_of_use, :privacy_policy_accepted)
+  end
+end
+
+
+
+
+def activation
+  # Overview page - show progress and next steps
+  @steps = [
+    { name: "Organization Created", completed: true, current: false },
+    { name: "Compliance Setup", completed: @current_organization.compliance_setup? || @current_organization.document_signing? || @current_organization.activated?, current: @current_organization.pending? },
+    { name: "Billing Setup", completed: @current_organization.billing_setup? || @current_organization.document_signing? || @current_organization.activated?, current: @current_organization.compliance_setup? },
+    { name: "Document Signing", completed: @current_organization.document_signing? || @current_organization.activated?, current: @current_organization.billing_setup? },
+    { name: "Activation Complete", completed: @current_organization.activated?, current: @current_organization.document_signing? }
+  ]
 end

@@ -3,33 +3,33 @@ class Organization < ApplicationRecord
 
   enum :activation_status, {
     pending: 0,
-    billing_setup: 1,
-    compliance_setup: 2,
+    compliance_setup: 1,
+    billing_setup: 2,
     document_signing: 3,
     activated: 4
   }
 
   aasm column: "activation_status", enum: true do
     state :pending, initial: true
-    state :billing_setup
     state :compliance_setup
+    state :billing_setup
     state :document_signing
     state :activated
 
-    event :setup_billing do
-      transitions from: :pending, to: :billing_setup
+    event :setup_compliance do
+      transitions from: :pending, to: :compliance_setup
     end
 
-    event :setup_compliance do
-      transitions from: :billing_setup, to: :compliance_setup
+    event :setup_billing do
+      transitions from: :compliance_setup, to: :billing_setup
     end
 
     event :sign_documents do
-      transitions from: :compliance_setup, to: :document_signing
+      transitions from: [ :billing_setup ], to: :document_signing
     end
 
     event :activate do
-      transitions from: :document_signing, to: :activated
+      transitions from: [ :document_signing ], to: :activated
     end
   end
 
@@ -41,6 +41,8 @@ class Organization < ApplicationRecord
   has_one :organization_contact, dependent: :destroy
   has_one :organization_identifier, dependent: :destroy
   has_one :organization_setting, dependent: :destroy
+  has_many :invoices, dependent: :restrict_with_error
+  has_many :payments, dependent: :restrict_with_error
 
   after_create :invite_owner
 
@@ -51,8 +53,8 @@ class Organization < ApplicationRecord
   def activation_progress_percentage
     case activation_status
     when "pending" then 0
-    when "billing_setup" then 25
-    when "compliance_setup" then 50
+    when "compliance_setup" then 25
+    when "billing_setup" then 50
     when "document_signing" then 75
     when "activated" then 100
     else 0
@@ -62,8 +64,8 @@ class Organization < ApplicationRecord
   def next_activation_step
     case activation_status
     when "pending" then "billing_setup"
-    when "billing_setup" then "compliance_setup"
-    when "compliance_setup" then "document_signing"
+    when "compliance_setup" then "billing_setup"
+    when "billing_setup" then "document_signing"
     when "document_signing" then "activated"
     else nil
     end
@@ -72,8 +74,8 @@ class Organization < ApplicationRecord
   def can_proceed_to_step?(step)
     case step
     when "billing_setup" then pending?
-    when "compliance_setup" then billing_setup?
-    when "document_signing" then compliance_setup?
+    when "compliance_setup" then compliance_setup?
+    when "document_signing" then billing_setup?
     when "activated" then document_signing?
     else false
     end

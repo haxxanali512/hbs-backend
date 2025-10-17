@@ -1,0 +1,158 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Invoices</h1>
+          <p class="mt-2 text-gray-600">Manage all organization invoices</p>
+        </div>
+        <%= link_to "New Invoice", new_admin_invoice_path, 
+            class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <%= form_with url: admin_invoices_path, method: :get, local: true, class: "grid grid-cols-1 md:grid-cols-4 gap-4" do |f| %>
+        <div>
+          <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :organization_id, 
+              options_from_collection_for_select(@organizations, :id, :name, params[:organization_id]),
+              { include_blank: "All Organizations" },
+              { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+        </div>
+        
+        <div>
+          <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :status, 
+              options_for_select([
+                ["All Statuses", ""],
+                ["Draft", "draft"],
+                ["Issued", "issued"],
+                ["Partially Paid", "partially_paid"],
+                ["Paid", "paid"],
+                ["Voided", "voided"]
+              ], params[:status]),
+              {},
+              { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+        </div>
+        
+        <div>
+          <%= f.label :service_month, "Service Month", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.text_field :service_month, 
+              value: params[:service_month],
+              placeholder: "YYYY-MM",
+              class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        </div>
+        
+        <div class="flex items-end">
+          <%= f.submit "Filter", class: "w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @invoices.each do |invoice| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">
+                    <%= link_to invoice.invoice_number || "Draft", admin_invoice_path(invoice), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <%= invoice.created_at.strftime("%b %d, %Y") %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900"><%= invoice.organization.name %></div>
+                  <div class="text-sm text-gray-500"><%= invoice.organization.subdomain %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    <%= invoice.invoice_type.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <% status_colors = {
+                    "draft" => "bg-gray-100 text-gray-800",
+                    "issued" => "bg-yellow-100 text-yellow-800",
+                    "partially_paid" => "bg-blue-100 text-blue-800",
+                    "paid" => "bg-green-100 text-green-800",
+                    "voided" => "bg-red-100 text-red-800"
+                  } %>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[invoice.status] %>">
+                    <%= invoice.status.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div class="font-medium">$<%= number_with_precision(invoice.total, precision: 2) %></div>
+                  <% if invoice.amount_due > 0 %>
+                    <div class="text-red-600">Due: $<%= number_with_precision(invoice.amount_due, precision: 2) %></div>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= invoice.due_date&.strftime("%b %d, %Y") || "—" %>
+                  <% if invoice.past_due? %>
+                    <div class="text-red-600 text-xs">Past Due</div>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex space-x-2">
+                    <%= link_to "View", admin_invoice_path(invoice), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                    
+                    <% if invoice.draft? %>
+                      <%= link_to "Edit", edit_admin_invoice_path(invoice), 
+                          class: "text-indigo-600 hover:text-indigo-800" %>
+                      <%= link_to "Issue", issue_admin_invoice_path(invoice), 
+                          method: :post,
+                          class: "text-green-600 hover:text-green-800",
+                          data: { confirm: "Are you sure you want to issue this invoice?" } %>
+                    <% end %>
+                    
+                    <% if invoice.issued? || invoice.partially_paid? %>
+                      <%= link_to "Void", void_admin_invoice_path(invoice), 
+                          method: :post,
+                          class: "text-red-600 hover:text-red-800",
+                          data: { confirm: "Are you sure you want to void this invoice?" } %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+      <% if @invoices.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No invoices found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new invoice</div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Pagination -->
+    <% if respond_to?(:paginate) && @invoices.respond_to?(:current_page) %>
+      <div class="mt-6">
+        <%= paginate @invoices %>
+      </div>
+    <% end %>
+  </div>
+</div>

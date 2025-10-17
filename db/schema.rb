@@ -10,9 +10,65 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_16_093619) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_17_121351) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "invoice_line_items", force: :cascade do |t|
+    t.uuid "invoice_id", null: false
+    t.string "description", null: false
+    t.decimal "quantity", precision: 10, scale: 2
+    t.decimal "unit_price", precision: 10, scale: 2
+    t.decimal "percent_applied", precision: 5, scale: 2
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.jsonb "calc_ref"
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id"], name: "index_invoice_line_items_on_invoice_id"
+    t.index ["position"], name: "index_invoice_line_items_on_position"
+  end
+
+  create_table "invoices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "invoice_number", null: false
+    t.bigint "organization_id", null: false
+    t.integer "invoice_type", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.date "issue_date"
+    t.date "due_date"
+    t.date "service_period_start"
+    t.date "service_period_end"
+    t.string "service_month"
+    t.string "currency", default: "USD", null: false
+    t.decimal "subtotal", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total", precision: 10, scale: 2, default: "0.0"
+    t.decimal "amount_paid", precision: 10, scale: 2, default: "0.0"
+    t.decimal "amount_credited", precision: 10, scale: 2, default: "0.0"
+    t.decimal "amount_due", precision: 10, scale: 2, default: "0.0"
+    t.decimal "percent_of_revenue_snapshot", precision: 5, scale: 2
+    t.decimal "collected_revenue_amount", precision: 10, scale: 2
+    t.integer "deductible_applied_claims_count"
+    t.decimal "deductible_fee_snapshot", precision: 10, scale: 2, default: "10.0"
+    t.decimal "adjustments_total", precision: 10, scale: 2, default: "0.0"
+    t.datetime "latest_payment_at"
+    t.integer "exception_type"
+    t.text "exception_reason"
+    t.date "exception_through"
+    t.bigint "exception_set_by_user_id"
+    t.datetime "exception_set_at"
+    t.text "notes_internal"
+    t.text "notes_client"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["due_date"], name: "index_invoices_on_due_date"
+    t.index ["exception_set_by_user_id"], name: "index_invoices_on_exception_set_by_user_id"
+    t.index ["invoice_number"], name: "index_invoices_on_invoice_number", unique: true
+    t.index ["invoice_type"], name: "index_invoices_on_invoice_type"
+    t.index ["organization_id", "service_month"], name: "index_invoices_on_organization_id_and_service_month"
+    t.index ["organization_id"], name: "index_invoices_on_organization_id"
+    t.index ["service_month"], name: "index_invoices_on_service_month"
+    t.index ["status"], name: "index_invoices_on_status"
+  end
 
   create_table "organization_billings", force: :cascade do |t|
     t.bigint "organization_id", null: false
@@ -47,6 +103,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_16_093619) do
     t.datetime "data_retention_expires_at", precision: nil
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "privacy_policy_accepted", default: false
+    t.boolean "terms_of_use", default: false
     t.index ["organization_id"], name: "index_organization_compliances_on_organization_id"
   end
 
@@ -119,6 +177,47 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_16_093619) do
     t.index ["owner_id"], name: "index_organizations_on_owner_id"
   end
 
+  create_table "payments", force: :cascade do |t|
+    t.uuid "invoice_id", null: false
+    t.bigint "organization_id", null: false
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.integer "payment_method", default: 0, null: false
+    t.string "payment_provider_id"
+    t.jsonb "payment_provider_response"
+    t.integer "payment_status", default: 0, null: false
+    t.datetime "paid_at"
+    t.bigint "processed_by_user_id"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id", "payment_status"], name: "index_payments_on_invoice_id_and_payment_status"
+    t.index ["invoice_id"], name: "index_payments_on_invoice_id"
+    t.index ["organization_id", "paid_at"], name: "index_payments_on_organization_id_and_paid_at"
+    t.index ["organization_id"], name: "index_payments_on_organization_id"
+    t.index ["paid_at"], name: "index_payments_on_paid_at"
+    t.index ["payment_provider_id"], name: "index_payments_on_payment_provider_id"
+    t.index ["payment_status"], name: "index_payments_on_payment_status"
+    t.index ["processed_by_user_id"], name: "index_payments_on_processed_by_user_id"
+  end
+
+  create_table "remit_captures", force: :cascade do |t|
+    t.string "capturable_type", null: false
+    t.bigint "capturable_id", null: false
+    t.integer "capture_type", default: 0, null: false
+    t.string "capture_ref"
+    t.string "label"
+    t.date "service_period_start"
+    t.date "service_period_end"
+    t.string "file_path"
+    t.integer "file_size"
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["capturable_type", "capturable_id"], name: "index_remit_captures_on_capturable"
+    t.index ["capturable_type", "capturable_id"], name: "index_remit_captures_on_capturable_type_and_capturable_id"
+    t.index ["service_period_start", "service_period_end"], name: "idx_on_service_period_start_service_period_end_a4be37828a"
+  end
+
   create_table "roles", force: :cascade do |t|
     t.string "role_name"
     t.jsonb "access"
@@ -173,6 +272,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_16_093619) do
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
   end
 
+  add_foreign_key "invoice_line_items", "invoices"
+  add_foreign_key "invoices", "organizations"
+  add_foreign_key "invoices", "users", column: "exception_set_by_user_id"
   add_foreign_key "organization_billings", "organizations"
   add_foreign_key "organization_compliances", "organizations"
   add_foreign_key "organization_contacts", "organizations"
@@ -182,6 +284,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_16_093619) do
   add_foreign_key "organization_memberships", "users"
   add_foreign_key "organization_settings", "organizations"
   add_foreign_key "organizations", "users", column: "owner_id"
+  add_foreign_key "payments", "invoices"
+  add_foreign_key "payments", "organizations"
+  add_foreign_key "payments", "users", column: "processed_by_user_id"
   add_foreign_key "roles", "organizations"
   add_foreign_key "users", "roles"
 end

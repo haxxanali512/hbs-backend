@@ -82,24 +82,19 @@
       <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
         <h3 class="text-xl font-bold text-gray-900 mb-6">Current Step</h3>
         <% if @current_organization.pending? %>
-          <!-- Billing Setup Step -->
-          <div class="text-center py-12">
-            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 mb-6">
-              <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+          <!-- Compliance Setup Step -->
+          <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+              <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-3">Billing Setup Required</h3>
-            <p class="text-lg text-gray-600 mb-8">
-              Please set up your billing information to continue with the organization activation process.
+            <h3 class="mt-4 text-lg font-medium text-gray-900">Compliance Setup Complete</h3>
+            <p class="mt-2 text-sm text-gray-500">
+              Great! Your compliance information has been set up. Now let's move on to billing verification.
             </p>
             <div class="mt-6">
-              <%= link_to tenant_activation_billing_path, class: "group inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all duration-300 transform hover:scale-105" do %>
-                <svg class="w-5 h-5 mr-3 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                </svg>
-                Set Up Billing
-              <% end %>
+              <%= link_to "Continue to Compliance Siging Page", tenant_activation_compliance_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
             </div>
           </div>
         <% elsif @current_organization.billing_setup? %>
@@ -112,26 +107,10 @@
             </div>
             <h3 class="mt-4 text-lg font-medium text-gray-900">Billing Setup Complete</h3>
             <p class="mt-2 text-sm text-gray-500">
-              Great! Your billing information has been set up. Now let's move on to compliance verification.
+              Great! Your billing information has been set up. Now let's move on to document signing.
             </p>
             <div class="mt-6">
-              <%= link_to "Continue to Compliance", tenant_activation_compliance_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
-            </div>
-          </div>
-        <% elsif @current_organization.compliance_setup? %>
-          <!-- Document Signing Step -->
-          <div class="text-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <h3 class="mt-4 text-lg font-medium text-gray-900">Compliance Verified</h3>
-            <p class="mt-2 text-sm text-gray-500">
-              Excellent! Your compliance information has been verified. Now let's complete the document signing process.
-            </p>
-            <div class="mt-6">
-              <%= link_to "Sign Documents", tenant_activation_documents_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+              <%= link_to "Continue to Compliance", tenant_activation_billing_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
             </div>
           </div>
         <% elsif @current_organization.document_signing? %>

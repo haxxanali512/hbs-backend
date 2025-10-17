@@ -40,7 +40,7 @@ class Admin::UsersController < ::ApplicationController
             subdomain: invite_params[:organizations_attributes]["subdomain"],
             owner: @user
           )
-          @organization.memberships.create!(user: @user, organization_role: @user.role)
+          @organization.add_member(@user, nil)
           redirect_to admin_users_path, notice: "Invitation sent successfully." and return
         else
           raise ActiveRecord::Rollback

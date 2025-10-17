@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+<div class="w-full py-8 px-4 sm:px-6 lg:px-8">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Organization Billing Management</h1>
     <div class="flex items-center gap-3">
@@ -26,7 +26,7 @@
                     </svg>
                   </div>
                 </div>
-                <div class="ml-3">
+              <div class="ml-3">
                   <p class="text-sm font-medium text-gray-900"><%= billing.organization.name %></p>
                   <p class="text-sm text-amber-600">Manual Payment Request</p>
                   <p class="text-xs text-gray-500">Submitted <%= time_ago_in_words(billing.created_at) %> ago</p>
@@ -54,15 +54,15 @@
   <% columns = [
     {
       label: 'Organization',
-      render: ->(b) { capture do
-        concat(content_tag(:div, class: 'flex items-center gap-3') do
-          concat content_tag(:div, b.organization.name.first.upcase, class: 'h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold')
-          concat content_tag(:div) do
-            concat content_tag(:div, b.organization.name, class: 'font-medium text-gray-900')
-            concat content_tag(:div, b.organization.owner.email, class: 'text-sm text-gray-500')
+      render: ->(b) { 
+        content_tag(:div, class: 'flex items-center gap-3') do
+          content_tag(:div, b.organization.name.first.upcase, class: 'h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold') +
+          content_tag(:div) do
+            content_tag(:div, b.organization.name, class: 'font-medium text-gray-900') +
+            content_tag(:div, b.organization.owner.email, class: 'text-sm text-gray-500')
           end
-        end)
-      end }
+        end
+      }
     },
     { 
       label: 'Status', 

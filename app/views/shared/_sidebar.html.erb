@@ -93,7 +93,7 @@
         <% end %>
         
         <% begin %>
-          <% if policy([:tenant, Invoice]).index? %>
+          <%# <% if policy([:tenant, Invoice]).index? %> %>
             <li>
               <% invoices_active = controller_path == 'tenant/invoices' %>
               <%= link_to tenant_invoices_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{invoices_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
@@ -101,7 +101,7 @@
                 <span>Invoices</span>
               <% end %>
             </li>
-          <% end %>
+          <%# <% end %> %>
         <% rescue %>
         <% end %>
         
