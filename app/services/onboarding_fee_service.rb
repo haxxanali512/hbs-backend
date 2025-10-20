@@ -96,19 +96,39 @@ class OnboardingFeeService
 
       gocardless_service = GocardlessService.new
 
-      # Convert cents to pence (GoCardless uses pence for GBP)
       amount_pence = ONBOARDING_FEE_AMOUNT
+
+      # Check the mandate to determine the correct currency
+      mandate_result = gocardless_service.fetch_mandate(@billing.gocardless_mandate_id)
+
+      if mandate_result[:success]
+        mandate = mandate_result[:mandate]
+        # Determine currency based on mandate scheme
+        currency = case mandate[:scheme]
+        when "ach"
+          "USD"
+        when "bacs", "sepa_core", "sepa_b2b"
+          "GBP"
+        else
+          "GBP" # Default fallback
+        end
+
+        Rails.logger.info "Using currency #{currency} for mandate scheme #{mandate[:scheme]}"
+      else
+        Rails.logger.warn "Could not fetch mandate details, defaulting to GBP"
+        currency = "GBP"
+      end
 
       params = {
         amount: amount_pence,
-        currency: "GBP", # GoCardless primarily supports GBP
+        currency: currency,
         mandate_id: @billing.gocardless_mandate_id,
-        description: "HBS Onboarding Fee - #{@organization.name}",
         metadata: {
           organization_id: @organization.id.to_s,
           invoice_id: invoice.id,
           fee_type: "onboarding",
-          billing_period: "one_time"
+          billing_period: "one_time",
+          description: "HBS Onboarding Fee - #{@organization.name}"
         }
       }
 

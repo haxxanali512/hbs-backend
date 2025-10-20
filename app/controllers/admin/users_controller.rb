@@ -1,21 +1,17 @@
 class Admin::UsersController < ::ApplicationController
   before_action :set_user, only: [ :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
-  before_action :authorize_user, only: [ :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
-  after_action :verify_authorized, except: [ :index ]
 
   def index
-    @users = policy_scope(User).includes(:role).order(created_at: :desc)
+    @users = User.includes(:role).order(created_at: :desc)
     @users = @users.where(role_id: params[:role_id]) if params[:role_id].present?
     @users = @users.where("email ILIKE ?", "%#{params[:search]}%") if params[:search].present?
     @roles = Role.order(:role_name)
-    authorize User
   end
 
 
   def new
     @user = User.new
     @roles = Role.order(:role_name)
-    authorize @user
   end
 
   def create
@@ -30,27 +26,23 @@ class Admin::UsersController < ::ApplicationController
         )
       )
 
-    authorize @user
-
-    if invite_params[:organizations_attributes].present?
-      ActiveRecord::Base.transaction do
-        if @user.save
-          @organization = Organization.create!(
+      @organization = Organization.new(
             name: invite_params[:organizations_attributes]["name"],
             subdomain: invite_params[:organizations_attributes]["subdomain"],
             owner: @user
           )
-          @organization.add_member(@user, nil)
-          redirect_to admin_users_path, notice: "Invitation sent successfully." and return
-        else
-          raise ActiveRecord::Rollback
-        end
+
+
+    if invite_params[:organizations_attributes].present?
+      if @user.save && @organization.save
+        @organization.add_member(@user, nil)
+        redirect_to admin_users_path, notice: "Invitation sent successfully." and return
+      else
+        flash[:alert] = @user.errors.full_messages.to_sentence
+        @roles = Role.order(:role_name)
+        render :new
       end
     end
-
-    @roles = Role.order(:role_name)
-    flash.now[:alert] = @user.errors.full_messages.to_sentence if @user.errors.any?
-    render :new
   end
 
 

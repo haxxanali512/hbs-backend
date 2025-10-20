@@ -1,4 +1,6 @@
 class OrganizationCompliance < ApplicationRecord
+  audited
+
   belongs_to :organization
 
   # Validation for document signing

@@ -1,13 +1,13 @@
 class Tenant::InvoicesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_current_organization
-  before_action :set_invoice, only: [ :show, :pay ]
+  before_action :set_invoice, only: [ :show, :pay, :download_pdf ]
 
   def index
     @invoices = @current_organization.invoices
                                    .includes(:payments)
                                    .order(created_at: :desc)
-                                   .page(params[:page])
+    #  .page(params[:page])
 
     # Apply filters
     @invoices = @invoices.where(status: params[:status]) if params[:status].present?
@@ -28,6 +28,14 @@ class Tenant::InvoicesController < ApplicationController
     else
       redirect_to tenant_invoice_path(@invoice), alert: "No payment method configured. Please contact support."
     end
+  end
+
+  def download_pdf
+    pdf_binary = Admin::Concerns::GenerateInvoice.instance_method(:generate_invoice_pdf).bind(self).call(@invoice)
+    send_data pdf_binary,
+              filename: "invoice-#{@invoice.id}.pdf",
+              type: "application/pdf",
+              disposition: "attachment"
   end
 
   private

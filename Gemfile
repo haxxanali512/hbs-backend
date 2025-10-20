@@ -18,7 +18,7 @@ gem "devise_invitable"
 
 # CSS Framework
 gem "tailwindcss-rails"
-
+gem "audited"
 # Asset pipeline
 gem "sprockets-rails"
 gem "aasm"
@@ -53,13 +53,19 @@ gem "roo"
 gem "csv"  # For CSV file processing
 gem "rubyzip"
 
+gem "rubocop", require: false
 # Redis for Sidekiq
 gem "redis", "~> 4.8"
 
 # HTTP client for API requests
 gem "httparty"
 
+# PDF generation
+gem "pdfkit", "~> 0.8.7"
+gem "wkhtmltopdf-binary"
+
 group :development, :test do
+  gem "error_highlight", ">= 0.4.0"
   gem "capistrano", require: false
   gem "capistrano-rails", require: false
   gem "capistrano-bundler", require: false

@@ -7,19 +7,12 @@ super_admin_password = "Password!123"
 
 puts "Seeding Multi-tenant Medical Billing System..."
 
+byebug
 # Create Super Admin Role (Global)
 super_admin_role = Role.find_or_initialize_by(role_name: "Super Admin")
 super_admin_role.scope = :global
-super_admin_role.organization_id = nil
-super_admin_role.access = HbsCustoms::ModulePermission.full_access
+super_admin_role.access = HbsCustoms::ModulePermission.admin_access
 super_admin_role.save!
-
-# Create Global User Manager Role
-global_user_manager_role = Role.find_or_initialize_by(role_name: "Global User Manager")
-global_user_manager_role.scope = :global
-global_user_manager_role.organization_id = nil
-global_user_manager_role.access = HbsCustoms::ModulePermission.global_admin_access
-global_user_manager_role.save!
 
 # Create Super Admin User
 super_admin_user = User.find_or_initialize_by(email: super_admin_email)
@@ -40,23 +33,10 @@ test_org.activation_status ||= :activated
 test_org.save!
 
 # Create Tenant Roles for Test Organization
-tenant_admin_role = Role.find_or_initialize_by(role_name: "Organization Admin", organization: test_org)
+tenant_admin_role = Role.find_or_initialize_by(role_name: "Organization Admin")
 tenant_admin_role.scope = :tenant
-tenant_admin_role.organization = test_org
 tenant_admin_role.access = HbsCustoms::ModulePermission.tenant_admin_access
 tenant_admin_role.save!
-
-billing_manager_role = Role.find_or_initialize_by(role_name: "Billing Manager", organization: test_org)
-billing_manager_role.scope = :tenant
-billing_manager_role.organization = test_org
-billing_manager_role.access = HbsCustoms::ModulePermission.billing_manager_access
-billing_manager_role.save!
-
-clinical_staff_role = Role.find_or_initialize_by(role_name: "Clinical Staff", organization: test_org)
-clinical_staff_role.scope = :tenant
-clinical_staff_role.organization = test_org
-clinical_staff_role.access = HbsCustoms::ModulePermission.clinical_staff_access
-clinical_staff_role.save!
 
 # Create Organization Memberships
 # Super admin as organization admin
@@ -64,40 +44,6 @@ super_admin_membership = OrganizationMembership.find_or_initialize_by(user: supe
 super_admin_membership.organization_role = tenant_admin_role
 super_admin_membership.active = true
 super_admin_membership.save!
-
-# Create additional test users for the organization
-test_users = [
-  {
-    email: "billing@test-org.com",
-    username: "billing_manager",
-    first_name: "Billing",
-    last_name: "Manager",
-    role: billing_manager_role
-  },
-  {
-    email: "clinical@test-org.com",
-    username: "clinical_staff",
-    first_name: "Clinical",
-    last_name: "Staff",
-    role: clinical_staff_role
-  }
-]
-
-test_users.each do |user_data|
-  user = User.find_or_initialize_by(email: user_data[:email])
-  user.username ||= user_data[:username]
-  user.first_name ||= user_data[:first_name]
-  user.last_name ||= user_data[:last_name]
-  user.password = "Password!123" if user.encrypted_password.blank?
-  user.password_confirmation = "Password!123" if user.encrypted_password.blank?
-  user.save!
-
-  # Create membership
-  membership = OrganizationMembership.find_or_initialize_by(user: user, organization: test_org)
-  membership.organization_role = user_data[:role]
-  membership.active = true
-  membership.save!
-end
 
 # Create another organization for testing multi-tenancy
 demo_org = Organization.find_or_initialize_by(subdomain: "demo-clinic")
@@ -108,9 +54,8 @@ demo_org.activation_status ||= :billing_setup
 demo_org.save!
 
 # Create tenant roles for demo organization
-demo_admin_role = Role.find_or_initialize_by(role_name: "Organization Admin", organization: demo_org)
+demo_admin_role = Role.find_or_initialize_by(role_name: "Organization Admin")
 demo_admin_role.scope = :tenant
-demo_admin_role.organization = demo_org
 demo_admin_role.access = HbsCustoms::ModulePermission.tenant_admin_access
 demo_admin_role.save!
 

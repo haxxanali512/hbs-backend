@@ -72,6 +72,7 @@ Rails.application.routes.draw do
           post :issue
           post :void
           post :apply_payment
+          get  :download_pdf
         end
       end
     end
@@ -108,12 +109,33 @@ Rails.application.routes.draw do
       get "activation/complete",        to: "activation#activation_complete"
       post "activation/activate",       to: "activation#activate"
 
-      # Invoice management
-      resources :invoices, only: [ :index, :show ] do
-        member do
-          get :pay
-        end
+      scope path: "/stripe" do
+        get ":products", to: "stripe#products", as: :stripe_products, constraints: { products: /products/ }
+        get "products/:id/prices", to: "stripe#product_prices", as: :stripe_product_prices
+        post "create_checkout_session", to: "stripe#create_checkout_session", as: :stripe_create_checkout_session
+        get "checkout_session/:id", to: "stripe#checkout_session", as: :stripe_checkout_session
+        post "setup_intent", to: "stripe#setup_intent", as: :stripe_setup_intent
+        post "confirm_card", to: "stripe#confirm_card", as: :stripe_confirm_card
+        post "webhook", to: "stripe#webhook", as: :stripe_webhook
       end
+
+        scope path: "/gocardless" do
+          post "create_redirect_flow", to: "gocardless#create_redirect_flow"
+          get "redirect_flow/complete", to: "gocardless#complete_redirect_flow"
+          post "webhook", to: "gocardless#webhook"
+        end
+        resources :invoices, only: [ :index, :show ] do
+          member do
+            get :pay
+            get :download_pdf
+          end
+        end
+
+        resources :providers
+      end
+
+
+      # Invoice management
 
       # (optional) tenant resources like patients, claims, etc.
       # resources :patients
@@ -121,26 +143,3 @@ Rails.application.routes.draw do
       # resources :team_members
     end
   end
-
-  # ===========================================================
-  # 💳 Stripe Integration
-  # ===========================================================
-  scope path: "/stripe" do
-    get ":products", to: "stripe#products", as: :stripe_products, constraints: { products: /products/ }
-    get "products/:id/prices", to: "stripe#product_prices", as: :stripe_product_prices
-    post "create_checkout_session", to: "stripe#create_checkout_session", as: :stripe_create_checkout_session
-    get "checkout_session/:id", to: "stripe#checkout_session", as: :stripe_checkout_session
-    post "setup_intent", to: "stripe#setup_intent", as: :stripe_setup_intent
-    post "confirm_card", to: "stripe#confirm_card", as: :stripe_confirm_card
-    post "webhook", to: "stripe#webhook", as: :stripe_webhook
-  end
-
-  # ===========================================================
-  # 💰 GoCardless Integration
-  # ===========================================================
-  scope path: "/gocardless" do
-    post "create_redirect_flow", to: "gocardless#create_redirect_flow"
-    get "redirect_flow/complete", to: "gocardless#complete_redirect_flow"
-    post "webhook", to: "gocardless#webhook"
-  end
-end

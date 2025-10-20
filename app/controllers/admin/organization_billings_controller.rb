@@ -1,6 +1,4 @@
-class Admin::OrganizationBillingsController < ApplicationController
-  before_action :authenticate_user!
-  before_action :authorize_admin
+class Admin::OrganizationBillingsController < Admin::BaseController
   before_action :set_organization_billing, only: [ :show, :approve, :reject ]
 
   def index
@@ -19,7 +17,7 @@ class Admin::OrganizationBillingsController < ApplicationController
     )
 
     # Update organization activation status to proceed to next step
-    @organization_billing.organization.setup_compliance! if @organization_billing.organization.activation_status == "billing_setup"
+    @organization_billing.organization.billing_setup_complete! if @organization_billing.organization.activation_status == "billing_setup"
 
     # Send approval email to organization owner
     OrganizationBillingMailer.manual_payment_approved(@organization_billing).deliver_now
@@ -44,12 +42,5 @@ class Admin::OrganizationBillingsController < ApplicationController
 
   def set_organization_billing
     @organization_billing = OrganizationBilling.find(params[:id])
-  end
-
-  def authorize_admin
-    unless current_user.super_admin?
-      flash[:alert] = "You don't have permission to access this page."
-      redirect_to root_path
-    end
   end
 end

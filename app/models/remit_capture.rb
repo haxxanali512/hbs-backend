@@ -1,4 +1,6 @@
 class RemitCapture < ApplicationRecord
+  audited
+
   belongs_to :capturable, polymorphic: true
 
   enum :capture_type, {

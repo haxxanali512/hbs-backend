@@ -24,10 +24,6 @@
       }
     },
     { 
-      label: 'Organization', 
-      render: ->(role) { role.organization&.name || 'Global' }
-    },
-    { 
       label: 'Users', 
       render: ->(role) { role.users.count.to_s + ' users' }
     },

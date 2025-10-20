@@ -1,0 +1,156 @@
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <%= form_with model: @invoice, url: form_url, local: true, class: "space-y-6" do |f| %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :organization_id,
+            options_from_collection_for_select(@organizations, :id, :name, @invoice.organization_id),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+
+      <div>
+        <%= f.label :invoice_type, "Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :invoice_type,
+            options_for_select([
+              ["Monthly", "monthly"],
+              ["Onboarding", "onboarding"],
+              ["Adjustment", "adjustment"]
+            ], @invoice.invoice_type),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+
+      <div>
+        <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :status,
+            options_for_select([
+              ["Draft", "draft"],
+              ["Issued", "issued"],
+              ["Partially Paid", "partially_paid"],
+              ["Paid", "paid"],
+              ["Voided", "voided"]
+            ], @invoice.status),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+
+      <div>
+        <%= f.label :currency, "Currency", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :currency, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :issue_date, "Issue Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :issue_date, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :due_date, "Due Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :due_date, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :service_period_start, "Service Start", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :service_period_start, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :service_period_end, "Service End", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :service_period_end, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :service_month, "Service Month (YYYY-MM)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :service_month, placeholder: "YYYY-MM", class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :subtotal, "Subtotal", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :subtotal, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :total, "Total", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :total, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :amount_paid, "Amount Paid", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :amount_paid, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :amount_credited, "Amount Credited", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :amount_credited, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :percent_of_revenue_snapshot, "% of Revenue Snapshot", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :percent_of_revenue_snapshot, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :collected_revenue_amount, "Collected Revenue Amount", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :collected_revenue_amount, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :deductible_applied_claims_count, "Deductible Applied Claims", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :deductible_applied_claims_count, step: 1, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :deductible_fee_snapshot, "Deductible Fee Snapshot", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :deductible_fee_snapshot, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div class="md:col-span-2">
+        <%= f.label :adjustments_total, "Adjustments Total", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :adjustments_total, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :exception_type, "Exception Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :exception_type, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :exception_reason, "Exception Reason", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :exception_reason, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :exception_through, "Exception Through", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :exception_through, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :exception_set_at, "Exception Set At", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.datetime_field :exception_set_at, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :exception_set_by_user_id, "Exception Set By (User ID)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.number_field :exception_set_by_user_id, step: 1, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div class="md:col-span-2">
+        <%= f.label :notes_internal, "Internal Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_area :notes_internal, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div class="md:col-span-2">
+        <%= f.label :notes_client, "Client Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_area :notes_client, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+
+    <div class="flex justify-end space-x-3">
+      <%= link_to "Cancel", cancel_url, class: "bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md" %>
+      <%= f.submit submit_label, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md" %>
+    </div>
+  <% end %>
+</div>
+
+

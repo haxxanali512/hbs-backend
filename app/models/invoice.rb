@@ -1,4 +1,6 @@
 class Invoice < ApplicationRecord
+  audited
+
   belongs_to :organization
   belongs_to :exception_set_by_user, class_name: "User", optional: true
   has_many :invoice_line_items, dependent: :destroy

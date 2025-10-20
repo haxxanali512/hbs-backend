@@ -1,12 +1,15 @@
 class Admin::InvoicesController < ApplicationController
+  include Admin::Concerns::GenerateInvoice
+  include CrudActions
+
   before_action :authenticate_user!
   before_action :ensure_admin!
-  before_action :set_invoice, only: [ :show, :edit, :update, :issue, :void, :apply_payment ]
+  before_action :set_invoice, only: [ :show, :edit, :update, :issue, :void, :apply_payment, :download_pdf ]
 
   def index
     @invoices = Invoice.includes(:organization, :payments)
                       .order(created_at: :desc)
-                      .page(params[:page])
+    # .page(params[:page])
 
     # Apply filters
     @invoices = @invoices.by_organization(params[:organization_id]) if params[:organization_id].present?
@@ -98,6 +101,15 @@ class Admin::InvoicesController < ApplicationController
     rescue => e
       redirect_to admin_invoice_path(@invoice), alert: "Error applying payment: #{e.message}"
     end
+  end
+
+  def download_pdf
+    pdf_binary = generate_invoice_pdf(@invoice)
+
+    send_data pdf_binary,
+              filename: "invoice-#{@invoice.id}.pdf",
+              type: "application/pdf",
+              disposition: "attachment"
   end
 
   private

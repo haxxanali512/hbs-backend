@@ -10,9 +10,31 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_17_121351) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "audits", force: :cascade do |t|
+    t.integer "auditable_id"
+    t.string "auditable_type"
+    t.integer "associated_id"
+    t.string "associated_type"
+    t.integer "user_id"
+    t.string "user_type"
+    t.string "username"
+    t.string "action"
+    t.text "audited_changes"
+    t.integer "version", default: 0
+    t.string "comment"
+    t.string "remote_address"
+    t.string "request_uuid"
+    t.datetime "created_at"
+    t.index ["associated_type", "associated_id"], name: "associated_index"
+    t.index ["auditable_type", "auditable_id", "version"], name: "auditable_index"
+    t.index ["created_at"], name: "index_audits_on_created_at"
+    t.index ["request_uuid"], name: "index_audits_on_request_uuid"
+    t.index ["user_id", "user_type"], name: "user_index"
+  end
 
   create_table "invoice_line_items", force: :cascade do |t|
     t.uuid "invoice_id", null: false
@@ -125,6 +147,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_17_121351) do
     t.index ["organization_id"], name: "index_organization_contacts_on_organization_id"
   end
 
+  create_table "organization_fee_schedules", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "provider_id", null: false
+    t.string "name"
+    t.integer "currency"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_fee_schedules_on_organization_id"
+    t.index ["provider_id"], name: "index_organization_fee_schedules_on_provider_id"
+  end
+
   create_table "organization_identifiers", force: :cascade do |t|
     t.bigint "organization_id", null: false
     t.string "tax_identification_number"
@@ -200,6 +234,52 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_17_121351) do
     t.index ["processed_by_user_id"], name: "index_payments_on_processed_by_user_id"
   end
 
+  create_table "procedure_codes", force: :cascade do |t|
+    t.string "code"
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "procedure_codes_specialties", force: :cascade do |t|
+    t.bigint "specialty_id", null: false
+    t.bigint "procedure_code_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["procedure_code_id"], name: "index_procedure_codes_specialties_on_procedure_code_id"
+    t.index ["specialty_id"], name: "index_procedure_codes_specialties_on_specialty_id"
+  end
+
+  create_table "provider_assignments", force: :cascade do |t|
+    t.bigint "provider_id", null: false
+    t.bigint "organization_id", null: false
+    t.integer "role"
+    t.boolean "active"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_provider_assignments_on_organization_id"
+    t.index ["provider_id"], name: "index_provider_assignments_on_provider_id"
+  end
+
+  create_table "providers", force: :cascade do |t|
+    t.string "first_name", limit: 100, null: false
+    t.string "last_name", limit: 100, null: false
+    t.string "npi", limit: 10
+    t.string "license_number"
+    t.string "license_state", limit: 2
+    t.uuid "specialty_id", null: false
+    t.uuid "user_id"
+    t.string "status", default: "draft", null: false
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "organization_id", null: false
+    t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
+    t.index ["organization_id"], name: "index_providers_on_organization_id"
+    t.index ["specialty_id"], name: "index_providers_on_specialty_id"
+    t.index ["user_id"], name: "index_providers_on_user_id"
+  end
+
   create_table "remit_captures", force: :cascade do |t|
     t.string "capturable_type", null: false
     t.bigint "capturable_id", null: false
@@ -224,9 +304,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_17_121351) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "scope", default: 0
-    t.bigint "organization_id"
-    t.index ["organization_id"], name: "index_roles_on_organization_id"
-    t.index ["scope", "organization_id"], name: "index_roles_on_scope_and_organization_id"
+  end
+
+  create_table "specialties", force: :cascade do |t|
+    t.string "name"
+    t.text "description"
+    t.integer "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "users", force: :cascade do |t|
@@ -278,6 +363,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_17_121351) do
   add_foreign_key "organization_billings", "organizations"
   add_foreign_key "organization_compliances", "organizations"
   add_foreign_key "organization_contacts", "organizations"
+  add_foreign_key "organization_fee_schedules", "organizations"
+  add_foreign_key "organization_fee_schedules", "providers"
   add_foreign_key "organization_identifiers", "organizations"
   add_foreign_key "organization_memberships", "organizations"
   add_foreign_key "organization_memberships", "roles", column: "organization_role_id"
@@ -287,6 +374,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_17_121351) do
   add_foreign_key "payments", "invoices"
   add_foreign_key "payments", "organizations"
   add_foreign_key "payments", "users", column: "processed_by_user_id"
-  add_foreign_key "roles", "organizations"
+  add_foreign_key "procedure_codes_specialties", "procedure_codes"
+  add_foreign_key "procedure_codes_specialties", "specialties"
+  add_foreign_key "provider_assignments", "organizations"
+  add_foreign_key "provider_assignments", "providers"
+  add_foreign_key "providers", "organizations"
   add_foreign_key "users", "roles"
 end

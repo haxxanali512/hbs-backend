@@ -4,15 +4,13 @@ class Tenant::BaseController < ApplicationController
   private
 
   def ensure_tenant_access
-    unless current_user&.super_admin? || current_org_member?
+    unless current_org_member?
       reset_session
       redirect_to new_user_session_path, alert: "Access denied. Organization membership required."
     end
   end
 
   def current_org_member?
-    return true if current_user&.super_admin?
-    return false unless current_organization
     current_user&.member_of?(current_organization)
   end
 

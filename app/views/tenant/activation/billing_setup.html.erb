@@ -72,27 +72,27 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Payment Provider</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Provider</label>
                 <%= form.select :provider, options_for_select([
                   ['Stripe', 'stripe'],
                   ['GoCardless', 'gocardless'],
                   ['Manual Payment', 'manual']
-                ], @billing.provider), { prompt: 'Select a payment provider' }, { class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", id: "billing_provider_select" } %>
+                ], @billing.provider), { prompt: 'Select a payment provider' }, { class: "mt-1 block w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200", id: "billing_provider_select" } %>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method (Last 4 digits)</label>
-                <%= form.text_field :method_last4, placeholder: "1234", class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method (Last 4 digits)</label>
+                <%= form.text_field :method_last4, placeholder: "1234", class: "mt-1 block w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200" %>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Last Payment Date</label>
-                <%= form.date_field :last_payment_date, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Last Payment Date</label>
+                <%= form.date_field :last_payment_date, class: "mt-1 block w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200" %>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Next Payment Due</label>
-                <%= form.date_field :next_payment_due, class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Next Payment Due</label>
+                <%= form.date_field :next_payment_due, class: "mt-1 block w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200" %>
               </div>
             </div>
           </div>
@@ -595,11 +595,33 @@
         modalContent.classList.add('scale-100', 'opacity-100');
       }, 10);
       
-      // Hide the form if GoCardless is already set up
+      // Ensure form is visible and properly populated
       const gocardlessForm = document.getElementById('gocardless-form');
       const isAlreadySetup = gocardlessModal.querySelector('.bg-blue-50');
-      if (isAlreadySetup && gocardlessForm) {
-        gocardlessForm.style.display = 'none';
+      
+      if (gocardlessForm) {
+        if (isAlreadySetup) {
+          // Hide form if already set up
+          gocardlessForm.style.display = 'none';
+        } else {
+          // Show form and ensure it's properly populated
+          gocardlessForm.style.display = 'block';
+          
+          // Re-populate form fields with user data if they're empty
+          const givenName = document.getElementById('gc-given-name');
+          const familyName = document.getElementById('gc-family-name');
+          const email = document.getElementById('gc-email');
+          
+          if (givenName && !givenName.value) {
+            givenName.value = '<%= current_user.first_name %>';
+          }
+          if (familyName && !familyName.value) {
+            familyName.value = '<%= current_user.last_name %>';
+          }
+          if (email && !email.value) {
+            email.value = '<%= current_user.email %>';
+          }
+        }
       }
     }
 
@@ -665,10 +687,20 @@
       // Hide modal after animation completes
       setTimeout(() => {
         gocardlessModal.classList.add('hidden');
-        // Reset form if needed
+        // Reset form and ensure it's visible for next time
         const gocardlessForm = document.getElementById('gocardless-form');
         if (gocardlessForm) {
           gocardlessForm.reset();
+          gocardlessForm.style.display = 'block'; // Ensure form is visible for next time
+          
+          // Re-populate with user data after reset
+          const givenName = document.getElementById('gc-given-name');
+          const familyName = document.getElementById('gc-family-name');
+          const email = document.getElementById('gc-email');
+          
+          if (givenName) givenName.value = '<%= current_user.first_name %>';
+          if (familyName) familyName.value = '<%= current_user.last_name %>';
+          if (email) email.value = '<%= current_user.email %>';
         }
         // Clear any errors
         const gcErrorDiv = document.getElementById('gc-errors');
@@ -707,7 +739,7 @@
         try {
           console.log('Creating setup intent...');
           // Create setup intent
-          const response = await fetch('/stripe/setup_intent', {
+          const response = await fetch('/tenant/stripe/setup_intent', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -743,7 +775,7 @@
             console.log('Setup intent succeeded:', setupIntent);
             // Save the payment method
             console.log('Saving payment method...');
-            const saveResponse = await fetch('/stripe/confirm_card', {
+            const saveResponse = await fetch('/tenant/stripe/confirm_card', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -757,10 +789,13 @@
             console.log('Save card result:', saveResult);
             
             if (saveResult.success) {
-              // Close modal and show success
-              closeStripeModalHandler();
+              // Show success message
               alert('Card saved successfully!');
-              window.location.href = '<%= tenant_activation_compliance_path %>';
+              // Close modal and redirect after animation completes
+              closeStripeModalHandler();
+              setTimeout(() => {
+                window.location.href = '<%= tenant_activation_compliance_path %>';
+              }, 350); // Wait for modal close animation to complete
             } else {
               showError(saveResult.error || 'Failed to save card');
             }
@@ -805,7 +840,7 @@
           };
           
           // Create redirect flow
-          const response = await fetch('/gocardless/create_redirect_flow', {
+          const response = await fetch('/tenant/gocardless/create_redirect_flow', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

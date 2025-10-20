@@ -1,76 +1,63 @@
-class ActivationPolicy < ApplicationPolicy
-  def index?
-    return false unless current_org_member?
-    accessible?("index", "organization_management_module", "activation")
-  end
+module Tenant
+  class ActivationPolicy < ApplicationPolicy
+    def index?
+      accessible?("tenant", "activation", "index")
+    end
 
-  def billing_setup?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "billing")
-  end
+    def billing_setup?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def compliance_setup?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "compliance")
-  end
+    def compliance_setup?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def document_signing?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "activation")
-  end
+    def document_signing?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def complete?
-    return false unless current_org_member?
-    accessible?("show", "organization_management_module", "activation")
-  end
+    def complete?
+      accessible?("tenant", "activation", "complete")
+    end
 
-  def activate?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "activation")
-  end
+    def activate?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def update_billing?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "billing")
-  end
+    def update_billing?
+      accessible?("tenant", "activation", "update")
+    end
 
-  def update_compliance?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "compliance")
-  end
+    def update_compliance?
+      accessible?("tenant", "activation", "update")
+    end
 
-  def complete_document_signing?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "activation")
-  end
+    def complete_document_signing?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def activation_complete?
-    return false unless current_org_member?
-    accessible?("show", "organization_management_module", "activation")
-  end
+    def activation_complete?
+      accessible?("tenant", "activation", "show")
+    end
 
-  def save_stripe_card?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "billing")
-  end
+    def save_stripe_card?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def manual_payment?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "billing")
-  end
+    def manual_payment?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def stripe_card?
-    return false unless current_org_member?
-    accessible?("show", "organization_management_module", "billing")
-  end
+    def stripe_card?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def send_agreement?
-    return false unless current_org_member?
-    accessible?("update", "organization_management_module", "compliance")
-  end
+    def send_agreement?
+      accessible?("tenant", "activation", "create")
+    end
 
-  def check_docusign_status?
-    return false unless current_org_member?
-    accessible?("show", "organization_management_module", "compliance")
+    def check_docusign_status?
+      accessible?("tenant", "activation", "show")
+    end
   end
 end

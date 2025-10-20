@@ -1,4 +1,6 @@
 class Organization < ApplicationRecord
+  audited
+
   include AASM
 
   enum :activation_status, {
@@ -16,20 +18,20 @@ class Organization < ApplicationRecord
     state :document_signing
     state :activated
 
-    event :setup_compliance do
+    event :compliance_setup_complete! do
       transitions from: :pending, to: :compliance_setup
     end
 
-    event :setup_billing do
+    event :billing_setup_complete! do
       transitions from: :compliance_setup, to: :billing_setup
     end
 
-    event :sign_documents do
-      transitions from: [ :billing_setup ], to: :document_signing
+    event :document_signing_complete! do
+      transitions from: :billing_setup, to: :document_signing
     end
 
     event :activate do
-      transitions from: [ :document_signing ], to: :activated
+      transitions from: :document_signing, to: :activated
     end
   end
 
@@ -43,7 +45,7 @@ class Organization < ApplicationRecord
   has_one :organization_setting, dependent: :destroy
   has_many :invoices, dependent: :restrict_with_error
   has_many :payments, dependent: :restrict_with_error
-
+  has_many :providers, dependent: :destroy
   after_create :invite_owner
 
   validates :name, presence: true

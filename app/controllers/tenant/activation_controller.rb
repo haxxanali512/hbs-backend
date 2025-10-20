@@ -4,14 +4,7 @@ class Tenant::ActivationController < Tenant::BaseController
   before_action :check_activation_status
 
   def index
-    @organization.setup_compliance! if @organization.pending?
-    @steps = [
-      { name: "Organization Created", completed: true, current: false },
-      { name: "Compliance Setup", completed: @current_organization.compliance_setup? || @current_organization.document_signing? || @current_organization.activated?, current: @current_organization.pending? },
-      { name: "Billing Setup", completed: @organization.billing_setup? || @organization.document_signing? || @organization.activated?, current: @organization.compliance_setup? },
-      { name: "Document Signing", completed: @organization.document_signing? || @organization.activated?, current: @organization.billing_setup? },
-      { name: "Activation Complete", completed: @organization.activated?, current: @organization.document_signing? }
-    ]
+    @steps = build_activation_steps(@current_organization)
   end
   def billing_setup
     @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
@@ -29,12 +22,13 @@ class Tenant::ActivationController < Tenant::BaseController
     end
 
     if @billing.update(billing_attributes)
-      @current_organization.sign_documents!
+      # @current_organization.setup_billing!
 
       if @billing.active?
         onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
 
         if onboarding_result[:success]
+          @current_organization.billing_setup_complete!
           Rails.logger.info "Onboarding fee charged successfully for organization #{@current_organization.id}"
         else
           Rails.logger.error "Failed to charge onboarding fee for organization #{@current_organization.id}: #{onboarding_result[:error]}"
@@ -46,7 +40,7 @@ class Tenant::ActivationController < Tenant::BaseController
         OrganizationBillingMailer.billing_setup_completed(@billing).deliver_now
       end
 
-      redirect_to tenant_activation_compliance_path, notice: "Billing setup complete ✅"
+      redirect_to tenant_activation_documents_path, notice: "Billing setup complete ✅"
     else
       render :billing_setup
     end
@@ -61,9 +55,7 @@ class Tenant::ActivationController < Tenant::BaseController
     @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
     if @compliance.update(compliance_params)
       if @compliance.gsa_signed_at.present? && @compliance.baa_signed_at.present?
-        unless @current_organization.activated?
-          @current_organization.setup_billing!
-        end
+        @current_organization.compliance_setup_complete!
         redirect_to tenant_activation_billing_path, notice: "Compliance verified! You can now proceed to billing setup."
       else
         redirect_to tenant_activation_compliance_path, notice: "Compliance verification required. Please verify your compliance information."
@@ -81,9 +73,8 @@ class Tenant::ActivationController < Tenant::BaseController
   def complete_document_signing
     @compliance = @organization.organization_compliance || @organization.build_organization_compliance
 
-    # Update compliance with terms acceptance
-    if @compliance.update(compliance_params)
-      @organization.activate!
+    if @compliance.update(terms_of_use: true, privacy_policy_accepted: true)
+      @organization.documents_signing_complete!
 
       redirect_to tenant_activation_billing_path, notice: "Documents signed ✅"
     else
@@ -95,7 +86,6 @@ class Tenant::ActivationController < Tenant::BaseController
   def activate
     @organization.activate!
 
-    # Send final activation completed email
     OrganizationMailer.activation_completed(@organization).deliver_now
 
     redirect_to root_path, notice: "🎉 Your organization is now active!"
@@ -136,7 +126,6 @@ class Tenant::ActivationController < Tenant::BaseController
   end
 
   def stripe_card
-    # Show the Stripe card collection page
     @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
   end
 
@@ -216,6 +205,38 @@ class Tenant::ActivationController < Tenant::BaseController
 
   private
 
+  def build_activation_steps(organization)
+    status_value = organization.activation_status_before_type_cast
+
+    steps_definitions = [
+      { name: "Organization Created", key: :pending },
+      { name: "Compliance Setup", key: :compliance_setup },
+      { name: "Billing Setup", key: :billing_setup },
+      { name: "Document Signing", key: :document_signing },
+      { name: "Activation Complete", key: :activated }
+    ]
+
+    steps_definitions.map.with_index do |step, _index|
+      step_index = Organization.activation_statuses[step[:key]]
+
+      # First step ("Organization Created") is always completed once the org exists
+      if step[:key] == :pending
+        completed = true
+        current   = status_value == Organization.activation_statuses[:compliance_setup] ||
+                    (status_value.zero? && organization.persisted?)
+      else
+        completed = step_index < status_value
+        current   = step_index == status_value
+      end
+
+      {
+        name: step[:name],
+        completed: completed,
+        current: current
+      }
+    end
+  end
+
   def set_organization
     @organization = current_user.organizations.first
     redirect_to root_path, alert: "No organization found" unless @organization
@@ -238,14 +259,6 @@ class Tenant::ActivationController < Tenant::BaseController
 
   def billing_params
     params.require(:organization_billing).permit(:billing_status, :last_payment_date, :next_payment_due, :method_last4, :provider)
-  end
-
-  def compliance_params
-    params.require(:organization_compliance).permit(:gsa_signed_at, :gsa_envelope_id, :baa_signed_at, :baa_envelope_id, :phi_access_locked_at, :data_retention_expires_at, :terms_of_use, :privacy_policy_accepted)
-  end
-
-  def billing_params
-    params.require(:organization_billing).permit(:last_payment_date, :next_payment_due, :method_last4, :provider, :gocardless_customer_id, :gocardless_mandate_id)
   end
 
   def compliance_params

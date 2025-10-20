@@ -15,6 +15,9 @@
             <%= link_to "Pay Invoice", pay_tenant_invoice_path(@invoice), 
                 class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
           <% end %>
+
+          <%= link_to "Download PDF", download_pdf_tenant_invoice_path(@invoice),
+              class: "bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors" %>
         </div>
       </div>
     </div>

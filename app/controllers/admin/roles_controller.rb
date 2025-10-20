@@ -1,12 +1,10 @@
-class Admin::RolesController < ::ApplicationController
+class Admin::RolesController < Admin::BaseController
   before_action :set_role, only: %i[ show edit update destroy ]
   before_action :prevent_super_admin_modification, only: %i[ edit update destroy ]
-  before_action :authorize_role, only: %i[ show edit update destroy ]
-  after_action :verify_authorized, except: [:index]
+  after_action :verify_authorized, except: [ :index ]
 
   def index
-    @roles = policy_scope(Role).order(:role_name)
-    authorize Role
+    @roles = Role.order(:role_name)
   end
 
   def show
@@ -16,20 +14,14 @@ class Admin::RolesController < ::ApplicationController
   def new
     @role = Role.new(access: HbsCustoms::ModulePermission.data.deep_symbolize_keys)
     @permissions = normalize_permissions(@role.access)
-    authorize @role
   end
 
   def edit
-    # Ensure all modules appear, even if missing in stored JSON
-    merged = HbsCustoms::ModulePermission.data
-      .deep_merge((@role.access || {}).deep_symbolize_keys)
-      .deep_symbolize_keys
-    @permissions = normalize_permissions(merged)
+    @permissions = normalize_permissions(@role.access)
   end
 
   def create
     @role = Role.new(role_params)
-    authorize @role
     if @role.save
       redirect_to admin_roles_path, notice: "Role created successfully."
     else
@@ -43,10 +35,7 @@ class Admin::RolesController < ::ApplicationController
     if @role.update(role_params)
       redirect_to admin_roles_path, notice: "Role updated successfully."
     else
-      merged = HbsCustoms::ModulePermission.data
-        .deep_merge((@role.access || {}).deep_symbolize_keys)
-        .deep_symbolize_keys
-      @permissions = normalize_permissions(merged)
+      @permissions = normalize_permissions(@role.access)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -63,10 +52,6 @@ class Admin::RolesController < ::ApplicationController
 
   def set_role
     @role = Role.find(params[:id])
-  end
-
-  def authorize_role
-    authorize @role
   end
 
   def prevent_super_admin_modification

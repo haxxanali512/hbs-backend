@@ -1,4 +1,6 @@
 class OrganizationMembership < ApplicationRecord
+  audited
+
   belongs_to :user
   belongs_to :organization
   belongs_to :organization_role, class_name: "Role", optional: true

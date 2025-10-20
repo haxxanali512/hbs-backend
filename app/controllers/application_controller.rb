@@ -1,12 +1,19 @@
 class ApplicationController < ActionController::Base
   include Pundit::Authorization
+
+  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
   around_action :set_tenant_context, unless: :devise_controller?
-
+  before_action :has_access?, unless: :devise_controller?
   helper_method :current_organization
 
   protected
+
+  def user_not_authorized
+    flash[:alert] = "You are not authorized to perform this action."
+    redirect_to request.referer || root_path
+  end
 
   def configure_permitted_parameters
     devise_parameter_sanitizer.permit(:sign_up, keys: [ :username, :first_name, :last_name ])
@@ -18,6 +25,12 @@ class ApplicationController < ActionController::Base
       organization: current_organization,
       membership: current_user&.organization_memberships&.active&.find_by(organization: current_organization)
     }
+  end
+
+  def has_access?
+    return if [ "sessions", "passwords", "health", "invitations", "stripe", "gocardless" ].include?(controller_name)
+
+    authorize current_user, policy_class: "#{controller_path.classify}Policy".constantize
   end
 
   def find_org_by_subdomain

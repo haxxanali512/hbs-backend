@@ -1,0 +1,79 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900"><%= [@provider.first_name, @provider.last_name].compact.join(" ") %></h1>
+          <p class="mt-2 text-gray-600">Provider Details</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Back to Providers", tenant_providers_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <%= link_to "Edit", edit_tenant_provider_path(@provider), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Info</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-500">First Name</label>
+              <p class="text-sm text-gray-900"><%= @provider.first_name %></p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">Last Name</label>
+              <p class="text-sm text-gray-900"><%= @provider.last_name %></p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">Email</label>
+              <p class="text-sm text-gray-900"><%= @provider.email.presence || "—" %></p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">Phone</label>
+              <p class="text-sm text-gray-900"><%= @provider.phone.presence || "—" %></p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">Specialty ID</label>
+              <p class="text-sm text-gray-900"><%= @provider.specialty_id %></p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">Status</label>
+              <% status_colors = { "draft" => "bg-gray-100 text-gray-800", "active" => "bg-green-100 text-green-800", "inactive" => "bg-yellow-100 text-yellow-800" } %>
+              <p class="text-sm">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[@provider.status] %>">
+                  <%= @provider.status.humanize %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <% if @provider.address.present? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Address</h2>
+            <div class="text-sm text-gray-900">
+              <%= simple_format(@provider.address) %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">System</h2>
+          <div class="space-y-2 text-sm text-gray-900">
+            <div class="flex justify-between"><span class="text-gray-600">Provider ID</span><span><%= @provider.id %></span></div>
+            <div class="flex justify-between"><span class="text-gray-600">User ID</span><span><%= @provider.user_id %></span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Organization ID</span><span><%= @provider.organization_id %></span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Created</span><span><%= @provider.created_at.strftime('%b %d, %Y %I:%M %p') %></span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Updated</span><span><%= @provider.updated_at.strftime('%b %d, %Y %I:%M %p') %></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+

@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     try {
       // Create setup intent
-      const response = await fetch('/stripe/setup_intent', {
+      const response = await fetch('/tenant/stripe/setup_intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showError(error.message);
       } else {
         // Save the payment method
-        const saveResponse = await fetch('/stripe/confirm_card', {
+        const saveResponse = await fetch('/tenant/stripe/confirm_card', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

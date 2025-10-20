@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+  audited
   # Include default devise modules. Others available are:
   # :confirmable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable, :registerable,
@@ -33,14 +34,16 @@ class User < ApplicationRecord
     "#{first_name} #{last_name}".strip
   end
 
+  def dashboard_type
+    role.scope == "global" ? "hbs_dashboard" : "tenant_dashboard"
+  end
+
   def display_name
     full_name.presence || username || email
   end
 
-  def permissions_for(action, main_module, sub_module)
-    return nil unless role&.respond_to?(:access)
-
-    role.access.dig(main_module, sub_module, action)
+  def permissions_for(type, controller, action)
+    role.access.dig(type, controller, action)
   end
 
   def super_admin?

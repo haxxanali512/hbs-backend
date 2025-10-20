@@ -1,0 +1,60 @@
+<%# Shared Provider form %>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <% if @provider.errors.any? %>
+    <div class="mb-6 bg-red-50 border border-red-200 text-red-800 rounded-md p-4">
+      <div class="font-semibold mb-2"><%= pluralize(@provider.errors.count, "error") %> prohibited this provider from being saved:</div>
+      <ul class="list-disc ml-6 text-sm">
+        <% @provider.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= form_with(model: @provider, url: (@provider.new_record? ? tenant_providers_path : tenant_provider_path(@provider)), local: true, class: "space-y-6") do |f| %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :first_name, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :first_name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <div>
+        <%= f.label :last_name, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :last_name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :email, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.email_field :email, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <div>
+        <%= f.label :phone, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.telephone_field :phone, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+
+    <div>
+      <%= f.label :address, class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :address, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :specialty_id, "Specialty ID", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :specialty_id, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <div>
+        <%= f.label :status, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :status, options_for_select([["Draft", "draft"], ["Active", "active"], ["Inactive", "inactive"]], @provider.status), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <%= f.submit (@provider.new_record? ? "Create Provider" : "Update Provider"), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+      <%= link_to "Cancel", (@provider.new_record? ? tenant_providers_path : tenant_provider_path(@provider)), class: "text-gray-600 hover:text-gray-800" %>
+    </div>
+  <% end %>
+</div>
+
+

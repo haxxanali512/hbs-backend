@@ -1,7 +1,5 @@
 class Admin::DashboardController < Admin::BaseController
   def index
-    authorize :admin_dashboard, :index?
-
     @organizations_count = Organization.count
     @active_organizations = Organization.where(activation_status: :activated).count
     @total_users = User.count

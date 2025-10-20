@@ -79,6 +79,9 @@ GEM
     airbrussh (1.5.3)
       sshkit (>= 1.6.1, != 1.7.0)
     ast (2.4.3)
+    audited (5.8.0)
+      activerecord (>= 5.2, < 8.2)
+      activesupport (>= 5.2, < 8.2)
     base64 (0.3.0)
     bcrypt (3.1.20)
     benchmark (0.4.1)
@@ -135,6 +138,7 @@ GEM
     drb (2.2.3)
     erb (4.0.4)
       cgi (>= 0.3.3)
+    error_highlight (0.7.0)
     erubi (1.13.1)
     ethon (0.15.0)
       ffi (>= 1.15.0)
@@ -222,6 +226,7 @@ GEM
     parser (3.3.9.0)
       ast (~> 2.4.1)
       racc
+    pdfkit (0.8.7.3)
     pg (1.6.2-arm64-darwin)
     pg (1.6.2-x86_64-darwin)
     pg (1.6.2-x86_64-linux)
@@ -372,6 +377,7 @@ GEM
       base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
+    wkhtmltopdf-binary (0.12.6.10)
     zeitwerk (2.6.18)
 
 PLATFORMS
@@ -381,6 +387,7 @@ PLATFORMS
 
 DEPENDENCIES
   aasm
+  audited
   bootsnap
   brakeman
   byebug
@@ -394,11 +401,13 @@ DEPENDENCIES
   devise
   devise_invitable
   docusign_esign (~> 5.4)
+  error_highlight (>= 0.4.0)
   gocardless_pro (~> 4.2)
   httparty
   jwt
   letter_opener
   letter_opener_web
+  pdfkit (~> 0.8.7)
   pg (~> 1.1)
   puma (>= 5.0)
   pundit
@@ -406,6 +415,7 @@ DEPENDENCIES
   rails (~> 7.2.2, >= 7.2.2.1)
   redis (~> 4.8)
   roo
+  rubocop
   rubocop-rails-omakase
   rubyzip
   rvm1-capistrano3
@@ -414,6 +424,7 @@ DEPENDENCIES
   stripe
   tailwindcss-rails
   tzinfo-data
+  wkhtmltopdf-binary
 
 BUNDLED WITH
    2.6.3

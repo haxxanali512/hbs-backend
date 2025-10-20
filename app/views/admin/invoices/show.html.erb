@@ -20,6 +20,9 @@
                 data: { confirm: "Are you sure you want to issue this invoice?" } %>
           <% end %>
           
+          <%= link_to "Download PDF", download_pdf_admin_invoice_path(@invoice),
+              class: "bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors" %>
+
           <% if @invoice.issued? || @invoice.partially_paid? %>
             <%= link_to "Void Invoice", void_admin_invoice_path(@invoice), 
                 method: :post,

@@ -1,5 +1,4 @@
-class StripeController < ApplicationController
-  before_action :authenticate_user!
+class Tenant::StripeController < Tenant::BaseController
   before_action :set_stripe_service
 
   # GET /stripe/products
