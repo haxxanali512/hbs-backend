@@ -2,9 +2,13 @@ class Admin::UsersController < ::ApplicationController
   before_action :set_user, only: [ :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
 
   def index
-    @users = User.includes(:role).order(created_at: :desc)
+    @users = User.kept.includes(:role).order(created_at: :desc)
     @users = @users.where(role_id: params[:role_id]) if params[:role_id].present?
-    @users = @users.where("email ILIKE ?", "%#{params[:search]}%") if params[:search].present?
+    if params[:search].present?
+      search_term = "%#{params[:search]}%"
+      @users = @users.where("email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?", search_term, search_term, search_term)
+    end
+    @pagy, @users = pagy(@users, items: 20)
     @roles = Role.order(:role_name)
   end
 
@@ -75,7 +79,7 @@ class Admin::UsersController < ::ApplicationController
     elsif @user.super_admin?
       redirect_to admin_users_path, alert: "Cannot delete super admin accounts."
     else
-      @user.soft_delete!
+      @user.discard
       redirect_to admin_users_path, notice: "User deleted successfully."
     end
   end

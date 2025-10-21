@@ -1,6 +1,5 @@
 class Admin::InvoicesController < ApplicationController
   include Admin::Concerns::GenerateInvoice
-  include CrudActions
 
   before_action :authenticate_user!
   before_action :ensure_admin!
@@ -9,7 +8,6 @@ class Admin::InvoicesController < ApplicationController
   def index
     @invoices = Invoice.includes(:organization, :payments)
                       .order(created_at: :desc)
-    # .page(params[:page])
 
     # Apply filters
     @invoices = @invoices.by_organization(params[:organization_id]) if params[:organization_id].present?
@@ -17,6 +15,7 @@ class Admin::InvoicesController < ApplicationController
     @invoices = @invoices.past_due if params[:past_due] == "true"
     @invoices = @invoices.by_service_month(params[:service_month]) if params[:service_month].present?
 
+    @pagy, @invoices = pagy(@invoices, items: 20)
     @organizations = Organization.order(:name)
   end
 

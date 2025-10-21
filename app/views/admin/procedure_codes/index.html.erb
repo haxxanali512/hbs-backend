@@ -1,0 +1,131 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Procedure Codes</h1>
+          <p class="mt-2 text-gray-600">Manage the procedure code catalog</p>
+        </div>
+        <%= link_to "New Procedure Code", new_admin_procedure_code_path, 
+            class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <% 
+      @search_placeholder = "Code, description..."
+      @status_options = [["All Statuses", ""], ["Active", "active"], ["Retired", "retired"]]
+      @organization_options = [] # Not applicable for procedure codes
+      @service_month_options = [] # Not applicable for procedure codes
+      @show_past_due = false
+      @code_type_options = ProcedureCode.code_types.map { |k, v| [k.humanize, v] }
+    %>
+    <%= render "shared/filters" %>
+
+    <!-- Procedure Codes Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialties</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @procedure_codes.each do |procedure_code| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">
+                    <%= link_to procedure_code.code, admin_procedure_code_path(procedure_code), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <%= procedure_code.created_at.strftime("%b %d, %Y") %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-900">
+                  <div class="max-w-xs truncate" title="<%= procedure_code.description %>">
+                    <%= procedure_code.description %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= procedure_code.code_type_badge_color %>">
+                    <%= procedure_code.code_type.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= procedure_code.status_badge_color %>">
+                    <%= procedure_code.status.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div class="flex flex-wrap gap-1">
+                    <% procedure_code.specialties.limit(3).each do |specialty| %>
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <%= specialty.name %>
+                      </span>
+                    <% end %>
+                    <% if procedure_code.specialties.count > 3 %>
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+                        +<%= procedure_code.specialties.count - 3 %> more
+                      </span>
+                    <% end %>
+                    <% if procedure_code.specialties.empty? %>
+                      <span class="text-gray-400 text-xs">No specialties</span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex space-x-2">
+                    <%= link_to "View", admin_procedure_code_path(procedure_code), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                    
+                    <%= link_to "Edit", edit_admin_procedure_code_path(procedure_code), 
+                        class: "text-green-600 hover:text-green-800" %>
+                    
+                    <% if procedure_code.can_be_retired? %>
+                      <%= link_to "Retire", toggle_status_admin_procedure_code_path(procedure_code), 
+                          method: :post,
+                          class: "text-orange-600 hover:text-orange-800",
+                          data: { confirm: "Are you sure you want to retire this procedure code?" } %>
+                    <% elsif procedure_code.can_be_activated? %>
+                      <%= link_to "Activate", toggle_status_admin_procedure_code_path(procedure_code), 
+                          method: :post,
+                          class: "text-green-600 hover:text-green-800",
+                          data: { confirm: "Are you sure you want to activate this procedure code?" } %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+      <% if @procedure_codes.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No procedure codes found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new procedure code</div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Pagination -->
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

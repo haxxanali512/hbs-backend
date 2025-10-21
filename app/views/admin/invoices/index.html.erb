@@ -13,44 +13,14 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-      <%= form_with url: admin_invoices_path, method: :get, local: true, class: "grid grid-cols-1 md:grid-cols-4 gap-4" do |f| %>
-        <div>
-          <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= f.select :organization_id, 
-              options_from_collection_for_select(@organizations, :id, :name, params[:organization_id]),
-              { include_blank: "All Organizations" },
-              { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-        </div>
-        
-        <div>
-          <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= f.select :status, 
-              options_for_select([
-                ["All Statuses", ""],
-                ["Draft", "draft"],
-                ["Issued", "issued"],
-                ["Partially Paid", "partially_paid"],
-                ["Paid", "paid"],
-                ["Voided", "voided"]
-              ], params[:status]),
-              {},
-              { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-        </div>
-        
-        <div>
-          <%= f.label :service_month, "Service Month", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= f.text_field :service_month, 
-              value: params[:service_month],
-              placeholder: "YYYY-MM",
-              class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        </div>
-        
-        <div class="flex items-end">
-          <%= f.submit "Filter", class: "w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
-        </div>
-      <% end %>
-    </div>
+    <% 
+      @search_placeholder = "Invoice number, organization..."
+      @status_options = [["draft", "draft"], ["issued", "issued"], ["partially_paid", "partially_paid"], ["paid", "paid"], ["voided", "voided"]]
+      @organization_options = @organizations
+      @service_month_options = [] # Add service month options if needed
+      @show_past_due = true
+    %>
+    <%= render "shared/filters" %>
 
     <!-- Invoices Table -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -149,9 +119,14 @@
     </div>
 
     <!-- Pagination -->
-    <% if respond_to?(:paginate) && @invoices.respond_to?(:current_page) %>
-      <div class="mt-6">
-        <%= paginate @invoices %>
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
       </div>
     <% end %>
   </div>

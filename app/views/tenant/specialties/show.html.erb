@@ -1,0 +1,118 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900"><%= @specialty.name %></h1>
+          <p class="mt-2 text-gray-600">Specialty Details</p>
+        </div>
+        <div>
+          <%= link_to "Back to Specialties", tenant_specialties_path,
+              class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Main Content -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Basic Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Description</h2>
+          <p class="text-gray-700"><%= @specialty.description %></p>
+        </div>
+
+        <!-- Allowed CPT Codes -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Allowed CPT Codes</h2>
+          
+          <% if @specialty.procedure_codes.any? %>
+            <div class="space-y-3">
+              <% @specialty.procedure_codes.each do |code| %>
+                <div class="flex justify-between items-start py-3 px-4 bg-gray-50 rounded-md">
+                  <div class="flex-1">
+                    <div class="font-mono text-sm font-medium text-gray-900"><%= code.code %></div>
+                    <div class="text-sm text-gray-600 mt-1"><%= code.description %></div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="text-center py-8 text-gray-500">
+              <p>No CPT codes assigned to this specialty</p>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Organization Providers -->
+        <% if @providers.any? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Our Providers</h2>
+            <div class="space-y-3">
+              <% @providers.each do |provider| %>
+                <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-md">
+                  <div>
+                    <div class="font-medium text-gray-900"><%= provider.full_name %></div>
+                    <div class="text-sm text-gray-600"><%= provider.email %></div>
+                  </div>
+                  <div>
+                    <% status_colors = {
+                      "draft" => "bg-gray-100 text-gray-800",
+                      "pending" => "bg-yellow-100 text-yellow-800",
+                      "approved" => "bg-green-100 text-green-800",
+                      "rejected" => "bg-red-100 text-red-800",
+                      "suspended" => "bg-orange-100 text-orange-800"
+                    } %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[provider.status] %>">
+                      <%= provider.status.humanize %>
+                    </span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Statistics -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h2>
+          <div class="space-y-3">
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Total Providers</span>
+              <span class="text-sm font-medium text-gray-900"><%= @specialty.provider_count %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Our Providers</span>
+              <span class="text-sm font-medium text-gray-900"><%= @providers.count %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">CPT Codes</span>
+              <span class="text-sm font-medium text-gray-900"><%= @specialty.procedure_code_count %></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Important Notice -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-blue-800">Important Notice</h3>
+              <div class="mt-2 text-sm text-blue-700">
+                <p>Only procedures listed in the allowed CPT codes can be billed under this specialty. Attempting to use unauthorized codes will result in billing errors.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

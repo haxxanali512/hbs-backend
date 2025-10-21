@@ -1,5 +1,6 @@
 class Role < ApplicationRecord
   audited
+  include Discard::Model
 
   has_many :users
   has_many :organization_memberships, foreign_key: "organization_role_id"

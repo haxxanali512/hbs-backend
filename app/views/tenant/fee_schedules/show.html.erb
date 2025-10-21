@@ -1,0 +1,215 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <%= link_to tenant_fee_schedules_path, class: "text-gray-400 hover:text-gray-600 mr-4" do %>
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            <% end %>
+            <div>
+              <h1 class="text-3xl font-bold text-gray-900"><%= @fee_schedule.name %></h1>
+              <p class="mt-2 text-gray-600">
+                <% if @fee_schedule.provider_specific? %>
+                  <%= @fee_schedule.provider.full_name %>
+                <% else %>
+                  Organization-wide
+                <% end %>
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex space-x-3">
+            <%= link_to "Back to Fee Schedules", tenant_fee_schedules_path,
+                class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+            
+            <%= link_to "Manage Items", tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
+                class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+            
+            <% if @fee_schedule.can_be_edited? %>
+              <%= link_to "Edit", edit_tenant_fee_schedule_path(@fee_schedule),
+                  class: "bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+            <% end %>
+            
+            <% if @fee_schedule.can_be_locked? %>
+              <%= link_to "Lock", lock_tenant_fee_schedule_path(@fee_schedule),
+                  method: :post,
+                  class: "bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                  data: { confirm: "Are you sure you want to lock this fee schedule?" } %>
+            <% elsif @fee_schedule.can_be_unlocked? %>
+              <%= link_to "Unlock", unlock_tenant_fee_schedule_path(@fee_schedule),
+                  method: :post,
+                  class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                  data: { confirm: "Are you sure you want to unlock this fee schedule?" } %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule Details -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Schedule Info -->
+        <div class="lg:col-span-2">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Schedule Details</h3>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Name</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= @fee_schedule.name %></dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Currency</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= @fee_schedule.currency.humanize %></dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Type</dt>
+                <dd class="mt-1">
+                  <% if @fee_schedule.provider_specific? %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Provider-specific
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Organization-wide
+                    </span>
+                  <% end %>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="mt-1">
+                  <% if @fee_schedule.locked? %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Locked
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Unlocked
+                    </span>
+                  <% end %>
+                </dd>
+              </div>
+              <div class="sm:col-span-2">
+                <dt class="text-sm font-medium text-gray-500">Notes</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  <%= @fee_schedule.notes.present? ? @fee_schedule.notes : "No notes" %>
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <!-- Pricing Summary -->
+        <div>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h3>
+            <dl class="space-y-3">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Total Items</dt>
+                <dd class="mt-1 text-2xl font-semibold text-gray-900">
+                  <%= @fee_schedule.organization_fee_schedule_items.count %>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Active Items</dt>
+                <dd class="mt-1 text-xl font-semibold text-green-600">
+                  <%= @fee_schedule.active_items.count %>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Locked Items</dt>
+                <dd class="mt-1 text-xl font-semibold text-red-600">
+                  <%= @fee_schedule.locked_items.count %>
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Items -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Fee Schedule Items</h3>
+            <%= link_to "Manage All Items", tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
+                class: "text-blue-600 hover:text-blue-800 font-medium" %>
+          </div>
+        </div>
+        
+        <% if @items.any? %>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedure Code</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pricing Rule</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <% @items.limit(10).each do |item| %>
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <%= item.procedure_code.code %>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                      <%= item.procedure_code.description %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      $<%= number_with_precision(item.unit_price, precision: 2) %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <%= item.pricing_rule.humanize %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex flex-col space-y-1">
+                        <% if item.active? %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                          </span>
+                        <% else %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Inactive
+                          </span>
+                        <% end %>
+                        <% if item.locked? %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Locked
+                          </span>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          
+          <% if @items.count > 10 %>
+            <div class="px-6 py-3 bg-gray-50 text-center">
+              <span class="text-sm text-gray-500">
+                Showing 10 of <%= @items.count %> items. 
+                <%= link_to "View all items", tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
+                    class: "text-blue-600 hover:text-blue-800" %>
+              </span>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center py-12">
+            <div class="text-gray-500 text-lg">No items in this fee schedule</div>
+            <div class="text-gray-400 text-sm mt-2">
+              <%= link_to "Add your first item", new_tenant_fee_schedule_fee_schedule_item_path(@fee_schedule),
+                  class: "text-blue-600 hover:text-blue-800" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

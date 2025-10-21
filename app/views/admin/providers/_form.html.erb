@@ -1,0 +1,198 @@
+<%# Admin Provider form %>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <% if @provider.errors.any? %>
+    <div class="mb-6 bg-red-50 border border-red-200 text-red-800 rounded-md p-4">
+      <div class="font-semibold mb-2"><%= pluralize(@provider.errors.count, "error") %> prohibited this provider from being saved:</div>
+      <ul class="list-disc ml-6 text-sm">
+        <% @provider.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= form_with(model: @provider, url: (@provider.new_record? ? admin_providers_path : admin_provider_path(@provider)), local: true, class: "space-y-6", multipart: true) do |f| %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :first_name, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :first_name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <div>
+        <%= f.label :last_name, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :last_name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :npi, "NPI (National Provider Identifier)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :npi, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "10-digit NPI number" %>
+        <p class="mt-1 text-sm text-gray-500">Optional: 10-digit National Provider Identifier</p>
+      </div>
+      <div>
+        <%= f.label :license_number, "License Number", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :license_number, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :license_state, "License State", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :license_state, 
+            options_for_select([
+              ["Select State", ""],
+              ["AL", "AL"], ["AK", "AK"], ["AZ", "AZ"], ["AR", "AR"], ["CA", "CA"],
+              ["CO", "CO"], ["CT", "CT"], ["DE", "DE"], ["FL", "FL"], ["GA", "GA"],
+              ["HI", "HI"], ["ID", "ID"], ["IL", "IL"], ["IN", "IN"], ["IA", "IA"],
+              ["KS", "KS"], ["KY", "KY"], ["LA", "LA"], ["ME", "ME"], ["MD", "MD"],
+              ["MA", "MA"], ["MI", "MI"], ["MN", "MN"], ["MS", "MS"], ["MO", "MO"],
+              ["MT", "MT"], ["NE", "NE"], ["NV", "NV"], ["NH", "NH"], ["NJ", "NJ"],
+              ["NM", "NM"], ["NY", "NY"], ["NC", "NC"], ["ND", "ND"], ["OH", "OH"],
+              ["OK", "OK"], ["OR", "OR"], ["PA", "PA"], ["RI", "RI"], ["SC", "SC"],
+              ["SD", "SD"], ["TN", "TN"], ["TX", "TX"], ["UT", "UT"], ["VT", "VT"],
+              ["VA", "VA"], ["WA", "WA"], ["WV", "WV"], ["WI", "WI"], ["WY", "WY"]
+            ], @provider.license_state),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+      <div>
+        <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :specialty_id, 
+            options_from_collection_for_select(@specialties, :id, :name, @provider.specialty_id),
+            { prompt: "Select Specialty" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :user_id, "Associated User", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :user_id, 
+            options_from_collection_for_select(@users, :id, :email, @provider.user_id),
+            { prompt: "Select User (Optional)" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+        <p class="mt-1 text-sm text-gray-500">Optional: Link to an existing user account</p>
+      </div>
+      <div>
+        <%= f.label :status, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :status, 
+            options_for_select([
+              ["Draft", "draft"], 
+              ["Pending", "pending"], 
+              ["Approved", "approved"], 
+              ["Rejected", "rejected"], 
+              ["Suspended", "suspended"]
+            ], @provider.status), 
+            {}, 
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+    </div>
+
+    <!-- Organization Assignments -->
+    <div>
+      <h3 class="text-lg font-medium text-gray-900 mb-4">Organization Assignments</h3>
+      <div id="provider-assignments">
+        <%= f.fields_for :provider_assignments do |assignment_f| %>
+          <div class="provider-assignment border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <%= assignment_f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
+                <%= assignment_f.select :organization_id, 
+                    options_from_collection_for_select(@organizations, :id, :name, assignment_f.object&.organization_id),
+                    { prompt: "Select Organization" },
+                    { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+              </div>
+              <div class="flex items-end">
+                <label class="flex items-center">
+                  <%= assignment_f.check_box :active, class: "mr-2" %>
+                  <span class="text-sm font-medium text-gray-700">Active</span>
+                </label>
+                <%= assignment_f.hidden_field :role, value: assignment_f.object&.role || "primary" %>
+                <%= assignment_f.check_box :_destroy, class: "hidden" %>
+                <button type="button" class="ml-auto text-red-600 hover:text-red-800" onclick="removeAssignment(this)">
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <button type="button" onclick="addAssignment()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors">
+        + Add Organization Assignment
+      </button>
+    </div>
+
+    <!-- Document Uploads -->
+    <div>
+      <h3 class="text-lg font-medium text-gray-900 mb-4">Document Attachments</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">License Document</label>
+          <input type="file" name="provider[license_document]" accept=".pdf,.jpg,.jpeg,.png" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="mt-1 text-sm text-gray-500">Upload license scan (PDF, JPG, PNG)</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">W-9 Form</label>
+          <input type="file" name="provider[w9_document]" accept=".pdf,.jpg,.jpeg,.png" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="mt-1 text-sm text-gray-500">Upload W-9 form (PDF, JPG, PNG)</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Other Documents</label>
+          <input type="file" name="provider[other_documents][]" accept=".pdf,.jpg,.jpeg,.png" multiple class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="mt-1 text-sm text-gray-500">Upload additional documents (PDF, JPG, PNG)</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <%= f.submit (@provider.new_record? ? "Create Provider" : "Update Provider"), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+      <%= link_to "Cancel", (@provider.new_record? ? admin_providers_path : admin_provider_path(@provider)), class: "text-gray-600 hover:text-gray-800" %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  let assignmentIndex = <%= @provider.provider_assignments.length %>;
+
+  function addAssignment() {
+    const container = document.getElementById('provider-assignments');
+    const template = `
+      <div class="provider-assignment border border-gray-200 rounded-lg p-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Organization</label>
+            <select name="provider[provider_assignments_attributes][${assignmentIndex}][organization_id]" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Select Organization</option>
+              <% @organizations.each do |org| %>
+                <option value="<%= org.id %>"><%= org.name %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <label class="flex items-center">
+              <input type="checkbox" name="provider[provider_assignments_attributes][${assignmentIndex}][active]" value="1" class="mr-2" checked>
+              <span class="text-sm font-medium text-gray-700">Active</span>
+            </label>
+            <input type="hidden" name="provider[provider_assignments_attributes][${assignmentIndex}][role]" value="primary">
+            <button type="button" class="ml-auto text-red-600 hover:text-red-800" onclick="removeAssignment(this)">
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', template);
+    assignmentIndex++;
+  }
+
+  function removeAssignment(button) {
+    const assignment = button.closest('.provider-assignment');
+    const destroyInput = assignment.querySelector('input[name*="[_destroy]"]');
+    if (destroyInput) {
+      destroyInput.checked = true;
+      assignment.style.display = 'none';
+    } else {
+      assignment.remove();
+    }
+  }
+</script>

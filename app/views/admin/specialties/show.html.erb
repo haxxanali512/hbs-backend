@@ -1,0 +1,157 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900"><%= @specialty.name %></h1>
+          <p class="mt-2 text-gray-600">Specialty Details</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Back to Specialties", admin_specialties_path,
+              class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          
+          <% if @specialty.can_be_edited? %>
+            <%= link_to "Edit", edit_admin_specialty_path(@specialty),
+                class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <% end %>
+          
+          <% if @specialty.can_be_retired? %>
+            <%= link_to "Retire", retire_admin_specialty_path(@specialty),
+                method: :post,
+                class: "bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { confirm: "Are you sure you want to retire this specialty?" } %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Main Content -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Basic Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-500">Name</label>
+              <p class="text-sm text-gray-900"><%= @specialty.name %></p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-500">Status</label>
+              <p class="text-sm">
+                <% status_colors = {
+                  "active" => "bg-green-100 text-green-800",
+                  "retired" => "bg-gray-100 text-gray-800"
+                } %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[@specialty.status] %>">
+                  <%= @specialty.status.humanize %>
+                </span>
+              </p>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-sm font-medium text-gray-500">Description</label>
+              <p class="text-sm text-gray-900"><%= @specialty.description %></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Allowed CPT Codes -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Allowed CPT Codes</h2>
+            <% if @specialty.can_be_edited? %>
+              <%= link_to "Manage Codes", edit_admin_specialty_path(@specialty, tab: 'codes'),
+                  class: "text-blue-600 hover:text-blue-800 text-sm font-medium" %>
+            <% end %>
+          </div>
+          
+          <% if @specialty.procedure_codes.any? %>
+            <div class="space-y-2">
+              <% @specialty.procedure_codes.each do |code| %>
+                <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-md">
+                  <div>
+                    <span class="font-mono text-sm font-medium text-gray-900"><%= code.code %></span>
+                    <span class="text-sm text-gray-600 ml-2"><%= code.description %></span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="text-center py-8 text-gray-500">
+              <p>No CPT codes assigned to this specialty</p>
+              <% if @specialty.can_be_edited? %>
+                <p class="text-sm mt-1">
+                  <%= link_to "Add CPT codes", edit_admin_specialty_path(@specialty, tab: 'codes'),
+                      class: "text-blue-600 hover:text-blue-800" %>
+                </p>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Statistics -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h2>
+          <div class="space-y-3">
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Total Providers</span>
+              <span class="text-sm font-medium text-gray-900">
+                <%= link_to @specialty.provider_count, list_providers_admin_specialty_path(@specialty),
+                    class: "text-blue-600 hover:text-blue-800" %>
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">CPT Codes</span>
+              <span class="text-sm font-medium text-gray-900"><%= @specialty.procedure_code_count %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Created</span>
+              <span class="text-sm font-medium text-gray-900"><%= @specialty.created_at.strftime('%b %d, %Y') %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Last Updated</span>
+              <span class="text-sm font-medium text-gray-900"><%= @specialty.updated_at.strftime('%b %d, %Y') %></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Impact Analysis -->
+        <% if @specialty.provider_count > 0 %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Impact Analysis</h2>
+            <p class="text-sm text-gray-600 mb-3">
+              This specialty is currently assigned to <%= @specialty.provider_count %> provider(s).
+            </p>
+            <%= link_to "View Providers", list_providers_admin_specialty_path(@specialty),
+                class: "text-blue-600 hover:text-blue-800 text-sm font-medium" %>
+          </div>
+        <% end %>
+
+        <!-- Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+          <div class="space-y-2">
+            <%= link_to "View Providers", list_providers_admin_specialty_path(@specialty),
+                class: "block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            
+            <% if @specialty.can_be_edited? %>
+              <%= link_to "Edit Specialty", edit_admin_specialty_path(@specialty),
+                  class: "block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            <% end %>
+            
+            <% if @specialty.can_be_retired? %>
+              <%= link_to "Retire Specialty", retire_admin_specialty_path(@specialty),
+                  method: :post,
+                  class: "block w-full text-center bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-md transition-colors",
+                  data: { confirm: "Are you sure you want to retire this specialty?" } %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

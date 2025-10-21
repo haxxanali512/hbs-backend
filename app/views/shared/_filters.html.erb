@@ -1,0 +1,77 @@
+<%# Reusable filters partial for index pages %>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <%= form_with url: request.path, method: :get, local: true, class: "flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4" do |f| %>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+    <!-- Search field -->
+    <% if @search_placeholder.present? %>
+      <div>
+        <%= f.label :search, "Search", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :search, value: params[:search], placeholder: @search_placeholder, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Status filter -->
+    <% if @status_options.present? %>
+      <div>
+        <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :status, options_for_select([["All Statuses", ""]] + @status_options.map { |s| s.is_a?(Array) ? s : [s.humanize, s] }, params[:status]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Organization filter -->
+    <% if @organization_options.present? %>
+      <div>
+        <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :organization_id, options_for_select([["All Organizations", ""]] + @organization_options.map { |o| o.is_a?(Array) ? o : [o.name, o.id] }, params[:organization_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Role filter -->
+    <% if @role_options.present? %>
+      <div>
+        <%= f.label :role_id, "Role", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :role_id, options_for_select([["All Roles", ""]] + @role_options.map { |r| r.is_a?(Array) ? r : [r.role_name, r.id] }, params[:role_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Provider filter -->
+    <% if @provider_options.present? %>
+      <div>
+        <%= f.label :provider, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :provider, options_for_select([["All Providers", ""]] + @provider_options.map { |p| p.is_a?(Array) ? p : [p.humanize, p] }, params[:provider]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Service month filter -->
+    <% if @service_month_options.present? %>
+      <div>
+        <%= f.label :service_month, "Service Month", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :service_month, options_for_select([["All Months", ""]] + @service_month_options.map { |m| [m, m] }, params[:service_month]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Specialty filter -->
+    <% if @specialty_options.present? %>
+      <div>
+        <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :specialty_id, options_for_select([["All Specialties", ""]] + @specialty_options.map { |s| s.is_a?(Array) ? s : [s.name, s.id] }, params[:specialty_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Past due filter -->
+    <% if @show_past_due %>
+      <div>
+        <%= f.label :past_due, "Past Due", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :past_due, options_for_select([["All Invoices", ""], ["Past Due Only", "true"]], params[:past_due]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex items-end space-x-2">
+      <%= f.submit "Filter", class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+      <%= link_to "Clear", request.path, class: "text-gray-600 hover:text-gray-800 py-2 px-4" %>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,58 @@
+<%# Procedure Code form %>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <% if @procedure_code.errors.any? %>
+    <div class="mb-6 bg-red-50 border border-red-200 text-red-800 rounded-md p-4">
+      <div class="font-semibold mb-2"><%= pluralize(@procedure_code.errors.count, "error") %> prohibited this procedure code from being saved:</div>
+      <ul class="list-disc ml-6 text-sm">
+        <% @procedure_code.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= form_with(model: @procedure_code, url: (@procedure_code.persisted? ? admin_procedure_code_path(@procedure_code) : admin_procedure_codes_path), local: true, class: "space-y-6") do |f| %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :code, class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :code, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., 99213" %>
+        <p class="mt-1 text-sm text-gray-500">Unique procedure code identifier</p>
+      </div>
+      <div>
+        <%= f.label :code_type, "Code Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :code_type, 
+            options_for_select([
+              ["CPT", "cpt"],
+              ["HCPCS", "hcpcs"],
+              ["ICD-10", "icd10"],
+              ["Custom", "custom"]
+            ], @procedure_code.code_type),
+            { prompt: "Select Code Type" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+    </div>
+
+    <div>
+      <%= f.label :description, class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :description, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Detailed description of the procedure" %>
+      <p class="mt-1 text-sm text-gray-500">Provide a clear, detailed description of what this procedure code represents</p>
+    </div>
+
+    <div>
+      <%= f.label :status, class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :status, 
+          options_for_select([
+            ["Active", "active"],
+            ["Retired", "retired"]
+          ], @procedure_code.status),
+          {},
+          { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      <p class="mt-1 text-sm text-gray-500">Active codes can be used in encounters and claims</p>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <%= f.submit (@procedure_code.new_record? ? "Create Procedure Code" : "Update Procedure Code"), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+      <%= link_to "Cancel", (@procedure_code.new_record? ? admin_procedure_codes_path : admin_procedure_code_path(@procedure_code)), class: "text-gray-600 hover:text-gray-800" %>
+    </div>
+  <% end %>
+</div>

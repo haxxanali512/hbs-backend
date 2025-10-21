@@ -12,14 +12,22 @@
       </div>
     </div>
 
+    <!-- Filters -->
+    <% 
+      @search_placeholder = "Name, email..."
+      @status_options = [["Draft", "draft"], ["Pending", "pending"], ["Approved", "approved"], ["Rejected", "rejected"], ["Suspended", "suspended"]]
+      @specialty_options = @specialties
+    %>
+    <%= render "shared/filters" %>
+
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NPI</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialty</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -31,14 +39,36 @@
               <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">
-                    <%= link_to [provider.first_name, provider.last_name].compact.join(" "), tenant_provider_path(provider), class: "text-blue-600 hover:text-blue-800" %>
+                    <%= link_to provider.full_name, tenant_provider_path(provider), class: "text-blue-600 hover:text-blue-800" %>
                   </div>
+                  <% if provider.user.present? %>
+                    <div class="text-sm text-gray-500"><%= provider.user.email %></div>
+                  <% end %>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= provider.email.presence || "—" %></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= provider.phone.presence || "—" %></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= provider.specialty_id.presence || "—" %></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= provider.npi.presence || "—" %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <% if provider.license_number.present? %>
+                    <div><%= provider.license_number %></div>
+                    <% if provider.license_state.present? %>
+                      <div class="text-gray-500"><%= provider.license_state %></div>
+                    <% end %>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= provider.specialty&.name || "—" %>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <% status_colors = { "draft" => "bg-gray-100 text-gray-800", "active" => "bg-green-100 text-green-800", "inactive" => "bg-yellow-100 text-yellow-800" } %>
+                  <% status_colors = { 
+                    "draft" => "bg-gray-100 text-gray-800", 
+                    "pending" => "bg-yellow-100 text-yellow-800", 
+                    "approved" => "bg-green-100 text-green-800", 
+                    "rejected" => "bg-red-100 text-red-800", 
+                    "suspended" => "bg-orange-100 text-orange-800" 
+                  } %>
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[provider.status] %>">
                     <%= provider.status.humanize %>
                   </span>
@@ -64,6 +94,18 @@
         </div>
       <% end %>
     </div>
+
+    <!-- Pagination -->
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
   </div>
 </div>
 

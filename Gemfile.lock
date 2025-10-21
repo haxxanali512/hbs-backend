@@ -130,6 +130,8 @@ GEM
     devise_invitable (2.0.11)
       actionmailer (>= 5.0)
       devise (>= 4.6)
+    discard (1.4.0)
+      activerecord (>= 4.2, < 9.0)
     docusign_esign (5.4.0)
       addressable (~> 2.7, >= 2.7.0)
       json (~> 2.1, >= 2.1.0)
@@ -222,6 +224,7 @@ GEM
       racc (~> 1.4)
     orm_adapter (0.5.0)
     ostruct (0.6.3)
+    pagy (9.4.0)
     parallel (1.27.0)
     parser (3.3.9.0)
       ast (~> 2.4.1)
@@ -400,6 +403,7 @@ DEPENDENCIES
   debug
   devise
   devise_invitable
+  discard
   docusign_esign (~> 5.4)
   error_highlight (>= 0.4.0)
   gocardless_pro (~> 4.2)
@@ -407,6 +411,7 @@ DEPENDENCIES
   jwt
   letter_opener
   letter_opener_web
+  pagy
   pdfkit (~> 0.8.7)
   pg (~> 1.1)
   puma (>= 5.0)

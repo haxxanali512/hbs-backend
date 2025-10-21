@@ -6,6 +6,13 @@
     </div>
   </div>
 
+  <!-- Filters -->
+  <% 
+    @search_placeholder = "Organization name..."
+    @status_options = Organization.activation_statuses.keys
+  %>
+  <%= render "shared/filters" %>
+
   <% columns = [
     {
       label: 'Organization',
@@ -86,4 +93,16 @@
   ] %>
 
   <%= render 'shared/table', title: 'Organizations', columns: columns, collection: @organizations %>
+
+  <!-- Pagination -->
+  <% if @pagy %>
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        <%= pagination_info(@pagy) %>
+      </div>
+      <div>
+        <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+      </div>
+    </div>
+  <% end %>
 </div>

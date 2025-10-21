@@ -1,0 +1,142 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Fee Schedules</h1>
+          <p class="mt-2 text-gray-600">Manage organization fee schedules and pricing</p>
+        </div>
+        <%= link_to "New Fee Schedule", new_admin_fee_schedule_path, 
+            class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <% 
+      @search_placeholder = "Schedule name, organization..."
+      @status_options = [["All Schedules", ""], ["Org-wide", "org_wide"], ["Provider-specific", "provider_specific"]]
+      @organization_options = @organizations
+      @service_month_options = [] # Not applicable for fee schedules
+      @show_past_due = false
+      @currency_options = OrganizationFeeSchedule.currencies.map { |k, v| [k.humanize, v] }
+      @locked_options = [["All", ""], ["Locked", "true"], ["Unlocked", "false"]]
+    %>
+    <%= render "shared/filters" %>
+
+    <!-- Fee Schedules Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @fee_schedules.each do |fee_schedule| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">
+                    <%= link_to fee_schedule.name, admin_fee_schedule_path(fee_schedule), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <%= fee_schedule.created_at.strftime("%b %d, %Y") %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900"><%= fee_schedule.organization.name %></div>
+                  <div class="text-sm text-gray-500"><%= fee_schedule.organization.subdomain %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <% if fee_schedule.provider_specific? %>
+                    <div class="text-sm text-gray-900"><%= fee_schedule.provider.full_name %></div>
+                    <div class="text-sm text-gray-500"><%= fee_schedule.provider.email %></div>
+                  <% else %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Organization-wide
+                    </span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= fee_schedule.currency.humanize %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div class="font-medium"><%= fee_schedule.organization_fee_schedule_items.count %></div>
+                  <div class="text-gray-500">
+                    <%= fee_schedule.active_items.count %> active
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex flex-col space-y-1">
+                    <% if fee_schedule.locked? %>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        Locked
+                      </span>
+                    <% else %>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Unlocked
+                      </span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex space-x-2">
+                    <%= link_to "View", admin_fee_schedule_path(fee_schedule), 
+                        class: "text-blue-600 hover:text-blue-800" %>
+                    
+                    <%= link_to "Items", admin_fee_schedule_fee_schedule_items_path(fee_schedule), 
+                        class: "text-indigo-600 hover:text-indigo-800" %>
+                    
+                    <% if fee_schedule.can_be_edited? %>
+                      <%= link_to "Edit", edit_admin_fee_schedule_path(fee_schedule), 
+                          class: "text-green-600 hover:text-green-800" %>
+                    <% end %>
+                    
+                    <% if fee_schedule.can_be_locked? %>
+                      <%= link_to "Lock", lock_admin_fee_schedule_path(fee_schedule), 
+                          method: :post,
+                          class: "text-orange-600 hover:text-orange-800",
+                          data: { confirm: "Are you sure you want to lock this fee schedule?" } %>
+                    <% elsif fee_schedule.can_be_unlocked? %>
+                      <%= link_to "Unlock", unlock_admin_fee_schedule_path(fee_schedule), 
+                          method: :post,
+                          class: "text-green-600 hover:text-green-800",
+                          data: { confirm: "Are you sure you want to unlock this fee schedule?" } %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+      <% if @fee_schedules.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No fee schedules found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new fee schedule</div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Pagination -->
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

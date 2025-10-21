@@ -2,7 +2,10 @@ class Admin::OrganizationsController < Admin::BaseController
   before_action :set_organization, only: [ :show, :edit, :update, :destroy, :activate_tenant, :suspend_tenant ]
 
   def index
-    @organizations = Organization.all
+    @organizations = Organization.kept.includes(:owner).order(created_at: :desc)
+    @organizations = @organizations.where("name ILIKE ?", "%#{params[:search]}%") if params[:search].present?
+    @organizations = @organizations.where(activation_status: params[:status]) if params[:status].present?
+    @pagy, @organizations = pagy(@organizations, items: 20)
   end
 
   def show; end
@@ -41,7 +44,7 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def destroy
-    @organization.destroy
+    @organization.discard
     redirect_to admin_organizations_path, notice: "Organization was successfully deleted."
   end
 

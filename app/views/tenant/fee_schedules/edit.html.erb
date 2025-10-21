@@ -1,0 +1,23 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex items-center">
+          <%= link_to tenant_fee_schedule_path(@fee_schedule), class: "text-gray-400 hover:text-gray-600 mr-4" do %>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          <% end %>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Edit Fee Schedule</h1>
+            <p class="mt-2 text-gray-600">Update fee schedule details</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <%= render "form" %>
+    </div>
+  </div>
+</div>

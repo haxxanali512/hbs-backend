@@ -1,9 +1,16 @@
 class Admin::OrganizationBillingsController < Admin::BaseController
+  include Pagy::Frontend
+
   before_action :set_organization_billing, only: [ :show, :approve, :reject ]
 
   def index
-    @pending_billings = OrganizationBilling.pending_approval.includes(:organization)
     @all_billings = OrganizationBilling.includes(:organization).order(created_at: :desc)
+    @all_billings = @all_billings.where(billing_status: params[:status]) if params[:status].present?
+    @all_billings = @all_billings.where(provider: params[:provider]) if params[:provider].present?
+    @all_billings = @all_billings.joins(:organization).where("organizations.name ILIKE ?", "%#{params[:search]}%") if params[:search].present?
+
+    @pagy, @all_billings = pagy(@all_billings, items: 20)
+    @pending_billings = OrganizationBilling.pending_approval.includes(:organization)
   end
 
   def show

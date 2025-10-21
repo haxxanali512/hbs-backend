@@ -25,28 +25,66 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <%= f.label :email, class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.email_field :email, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :npi, "NPI (National Provider Identifier)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :npi, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "10-digit NPI number" %>
+        <p class="mt-1 text-sm text-gray-500">Optional: 10-digit National Provider Identifier</p>
       </div>
       <div>
-        <%= f.label :phone, class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.telephone_field :phone, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :license_number, "License Number", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :license_number, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
-    </div>
-
-    <div>
-      <%= f.label :address, class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_area :address, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <%= f.label :specialty_id, "Specialty ID", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.text_field :specialty_id, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :license_state, "License State", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :license_state, 
+            options_for_select([
+              ["Select State", ""],
+              ["AL", "AL"], ["AK", "AK"], ["AZ", "AZ"], ["AR", "AR"], ["CA", "CA"],
+              ["CO", "CO"], ["CT", "CT"], ["DE", "DE"], ["FL", "FL"], ["GA", "GA"],
+              ["HI", "HI"], ["ID", "ID"], ["IL", "IL"], ["IN", "IN"], ["IA", "IA"],
+              ["KS", "KS"], ["KY", "KY"], ["LA", "LA"], ["ME", "ME"], ["MD", "MD"],
+              ["MA", "MA"], ["MI", "MI"], ["MN", "MN"], ["MS", "MS"], ["MO", "MO"],
+              ["MT", "MT"], ["NE", "NE"], ["NV", "NV"], ["NH", "NH"], ["NJ", "NJ"],
+              ["NM", "NM"], ["NY", "NY"], ["NC", "NC"], ["ND", "ND"], ["OH", "OH"],
+              ["OK", "OK"], ["OR", "OR"], ["PA", "PA"], ["RI", "RI"], ["SC", "SC"],
+              ["SD", "SD"], ["TN", "TN"], ["TX", "TX"], ["UT", "UT"], ["VT", "VT"],
+              ["VA", "VA"], ["WA", "WA"], ["WV", "WV"], ["WI", "WI"], ["WY", "WY"]
+            ], @provider.license_state),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+      <div>
+        <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :specialty_id, 
+            options_from_collection_for_select(@specialties, :id, :name, @provider.specialty_id),
+            { prompt: "Select Specialty" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <%= f.label :user_id, "Associated User", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :user_id, 
+            options_from_collection_for_select(@users, :id, :email, @provider.user_id),
+            { prompt: "Select User (Optional)" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+        <p class="mt-1 text-sm text-gray-500">Optional: Link to an existing user account</p>
       </div>
       <div>
         <%= f.label :status, class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :status, options_for_select([["Draft", "draft"], ["Active", "active"], ["Inactive", "inactive"]], @provider.status), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.select :status, 
+            options_for_select([
+              ["Draft", "draft"], 
+              ["Pending", "pending"], 
+              ["Approved", "approved"], 
+              ["Rejected", "rejected"], 
+              ["Suspended", "suspended"]
+            ], @provider.status), 
+            {}, 
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
       </div>
     </div>
 

@@ -1,10 +1,9 @@
 class Admin::RolesController < Admin::BaseController
   before_action :set_role, only: %i[ show edit update destroy ]
   before_action :prevent_super_admin_modification, only: %i[ edit update destroy ]
-  after_action :verify_authorized, except: [ :index ]
 
   def index
-    @roles = Role.order(:role_name)
+    @roles = Role.kept.order(:role_name)
   end
 
   def show
@@ -41,7 +40,7 @@ class Admin::RolesController < Admin::BaseController
   end
 
   def destroy
-    if @role.destroy
+    if @role.discard
       redirect_to admin_roles_path, notice: "Role deleted.", status: :see_other
     else
       redirect_to admin_roles_path, alert: "Role deletion failed."

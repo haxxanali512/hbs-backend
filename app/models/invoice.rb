@@ -6,6 +6,7 @@ class Invoice < ApplicationRecord
   has_many :invoice_line_items, dependent: :destroy
   has_many :payments, dependent: :restrict_with_error
   has_one :remit_capture, as: :capturable, dependent: :destroy
+  has_many :documents, as: :documentable, dependent: :destroy
 
   enum :invoice_type, {
     onboarding_fee: 0,

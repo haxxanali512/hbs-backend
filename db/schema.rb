@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_21_144436) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -34,6 +34,81 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.index ["created_at"], name: "index_audits_on_created_at"
     t.index ["request_uuid"], name: "index_audits_on_request_uuid"
     t.index ["user_id", "user_type"], name: "user_index"
+  end
+
+  create_table "diagnosis_codes", force: :cascade do |t|
+    t.string "code"
+    t.text "description"
+    t.integer "status"
+    t.datetime "effective_from"
+    t.datetime "effective_to"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "document_attachments", force: :cascade do |t|
+    t.bigint "document_id", null: false
+    t.string "file_name", null: false
+    t.string "file_type"
+    t.integer "file_size"
+    t.string "file_path", null: false
+    t.string "file_hash"
+    t.boolean "is_primary", default: false
+    t.bigint "uploaded_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["document_id"], name: "index_document_attachments_on_document_id"
+    t.index ["file_hash"], name: "index_document_attachments_on_file_hash"
+    t.index ["is_primary"], name: "index_document_attachments_on_is_primary"
+    t.index ["uploaded_by_id"], name: "index_document_attachments_on_uploaded_by_id"
+  end
+
+  create_table "documents", force: :cascade do |t|
+    t.string "documentable_type", null: false
+    t.bigint "documentable_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.string "status", default: "draft"
+    t.string "document_type"
+    t.date "document_date"
+    t.bigint "created_by_id", null: false
+    t.bigint "organization_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_documents_on_created_by_id"
+    t.index ["document_type"], name: "index_documents_on_document_type"
+    t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
+    t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable_type_and_documentable_id"
+    t.index ["organization_id"], name: "index_documents_on_organization_id"
+    t.index ["status"], name: "index_documents_on_status"
+  end
+
+  create_table "encounter_diagnosis_codes", force: :cascade do |t|
+    t.bigint "diagnosis_code_id", null: false
+    t.bigint "encounter_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["diagnosis_code_id"], name: "index_encounter_diagnosis_codes_on_diagnosis_code_id"
+    t.index ["encounter_id"], name: "index_encounter_diagnosis_codes_on_encounter_id"
+  end
+
+  create_table "encounters", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "provider_id", null: false
+    t.date "date_of_service"
+    t.bigint "specialty_id", null: false
+    t.integer "billing_channel"
+    t.text "notes"
+    t.jsonb "coverage_snapshot"
+    t.jsonb "pricing_snapshot"
+    t.integer "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_encounters_on_organization_id"
+    t.index ["patient_id"], name: "index_encounters_on_patient_id"
+    t.index ["provider_id"], name: "index_encounters_on_provider_id"
+    t.index ["specialty_id"], name: "index_encounters_on_specialty_id"
   end
 
   create_table "invoice_line_items", force: :cascade do |t|
@@ -147,6 +222,22 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.index ["organization_id"], name: "index_organization_contacts_on_organization_id"
   end
 
+  create_table "organization_fee_schedule_items", force: :cascade do |t|
+    t.bigint "organization_fee_schedule_id", null: false
+    t.bigint "procedure_code_id", null: false
+    t.decimal "unit_price", precision: 10, scale: 2, null: false
+    t.string "pricing_rule", null: false
+    t.boolean "active", default: true, null: false
+    t.boolean "locked", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_organization_fee_schedule_items_on_active"
+    t.index ["locked"], name: "index_organization_fee_schedule_items_on_locked"
+    t.index ["organization_fee_schedule_id", "procedure_code_id"], name: "index_fee_schedule_items_on_schedule_and_procedure", unique: true
+    t.index ["organization_fee_schedule_id"], name: "idx_on_organization_fee_schedule_id_8245e30deb"
+    t.index ["procedure_code_id"], name: "index_organization_fee_schedule_items_on_procedure_code_id"
+  end
+
   create_table "organization_fee_schedules", force: :cascade do |t|
     t.bigint "organization_id", null: false
     t.bigint "provider_id", null: false
@@ -155,6 +246,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "discarded_at", precision: nil
     t.index ["organization_id"], name: "index_organization_fee_schedules_on_organization_id"
     t.index ["provider_id"], name: "index_organization_fee_schedules_on_provider_id"
   end
@@ -208,7 +300,33 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.datetime "closed_at", precision: nil
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "discarded_at"
+    t.index ["discarded_at"], name: "index_organizations_on_discarded_at"
     t.index ["owner_id"], name: "index_organizations_on_owner_id"
+  end
+
+  create_table "patients", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.string "first_name"
+    t.string "last_name"
+    t.datetime "dob"
+    t.string "sex_at_birth"
+    t.text "address_line_1"
+    t.text "address_line_2"
+    t.string "city"
+    t.string "state"
+    t.string "postal"
+    t.string "country"
+    t.string "phone_number"
+    t.string "email"
+    t.string "mrn"
+    t.string "external_id"
+    t.integer "status"
+    t.datetime "deceased_at", precision: nil
+    t.text "notes_nonphi"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_patients_on_organization_id"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -239,6 +357,13 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "code_type", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "discarded_at"
+    t.index ["code", "code_type"], name: "index_procedure_codes_on_code_and_code_type", unique: true
+    t.index ["code_type"], name: "index_procedure_codes_on_code_type"
+    t.index ["discarded_at"], name: "index_procedure_codes_on_discarded_at"
+    t.index ["status"], name: "index_procedure_codes_on_status"
   end
 
   create_table "procedure_codes_specialties", force: :cascade do |t|
@@ -273,9 +398,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.jsonb "metadata", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "organization_id", null: false
+    t.datetime "discarded_at"
+    t.index ["discarded_at"], name: "index_providers_on_discarded_at"
     t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
-    t.index ["organization_id"], name: "index_providers_on_organization_id"
     t.index ["specialty_id"], name: "index_providers_on_specialty_id"
     t.index ["user_id"], name: "index_providers_on_user_id"
   end
@@ -304,6 +429,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "scope", default: 0
+    t.datetime "discarded_at"
+    t.index ["discarded_at"], name: "index_roles_on_discarded_at"
   end
 
   create_table "specialties", force: :cascade do |t|
@@ -312,6 +439,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.integer "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "discarded_at"
+    t.index ["discarded_at"], name: "index_specialties_on_discarded_at"
   end
 
   create_table "users", force: :cascade do |t|
@@ -347,7 +476,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.bigint "invited_by_id"
     t.integer "invitations_count", default: 0
     t.integer "status"
+    t.datetime "discarded_at"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
+    t.index ["discarded_at"], name: "index_users_on_discarded_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["invitation_token"], name: "index_users_on_invitation_token", unique: true
     t.index ["invited_by_id"], name: "index_users_on_invited_by_id"
@@ -357,12 +488,24 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
   end
 
+  add_foreign_key "document_attachments", "documents"
+  add_foreign_key "document_attachments", "users", column: "uploaded_by_id"
+  add_foreign_key "documents", "organizations"
+  add_foreign_key "documents", "users", column: "created_by_id"
+  add_foreign_key "encounter_diagnosis_codes", "diagnosis_codes"
+  add_foreign_key "encounter_diagnosis_codes", "encounters"
+  add_foreign_key "encounters", "organizations"
+  add_foreign_key "encounters", "patients"
+  add_foreign_key "encounters", "providers"
+  add_foreign_key "encounters", "specialties"
   add_foreign_key "invoice_line_items", "invoices"
   add_foreign_key "invoices", "organizations"
   add_foreign_key "invoices", "users", column: "exception_set_by_user_id"
   add_foreign_key "organization_billings", "organizations"
   add_foreign_key "organization_compliances", "organizations"
   add_foreign_key "organization_contacts", "organizations"
+  add_foreign_key "organization_fee_schedule_items", "organization_fee_schedules"
+  add_foreign_key "organization_fee_schedule_items", "procedure_codes"
   add_foreign_key "organization_fee_schedules", "organizations"
   add_foreign_key "organization_fee_schedules", "providers"
   add_foreign_key "organization_identifiers", "organizations"
@@ -371,6 +514,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
   add_foreign_key "organization_memberships", "users"
   add_foreign_key "organization_settings", "organizations"
   add_foreign_key "organizations", "users", column: "owner_id"
+  add_foreign_key "patients", "organizations"
   add_foreign_key "payments", "invoices"
   add_foreign_key "payments", "organizations"
   add_foreign_key "payments", "users", column: "processed_by_user_id"
@@ -378,6 +522,5 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_20_171717) do
   add_foreign_key "procedure_codes_specialties", "specialties"
   add_foreign_key "provider_assignments", "organizations"
   add_foreign_key "provider_assignments", "providers"
-  add_foreign_key "providers", "organizations"
   add_foreign_key "users", "roles"
 end

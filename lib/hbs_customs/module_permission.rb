@@ -36,6 +36,54 @@ module HbsCustoms
               edit: false,
               update: false,
               create: false
+            },
+            specialties: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            diagnoses_codes: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            encounters: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            fee_schedules: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            fee_schedule_items: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            procedure_codes: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
             }
           },
           admin: {
@@ -75,6 +123,78 @@ module HbsCustoms
               destroy: false
             },
             invoices: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            providers: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            specialties: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            diagnoses_codes: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            encounters: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            documents: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            payments: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            fee_schedules: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            fee_schedule_items: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false
+            },
+            procedure_codes: {
               index: false,
               show: false,
               edit: false,

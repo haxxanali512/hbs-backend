@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   audited
+  include Discard::Model
   # Include default devise modules. Others available are:
   # :confirmable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable, :registerable,

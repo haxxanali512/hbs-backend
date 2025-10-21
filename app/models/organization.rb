@@ -1,5 +1,6 @@
 class Organization < ApplicationRecord
   audited
+  include Discard::Model
 
   include AASM
 
@@ -45,7 +46,10 @@ class Organization < ApplicationRecord
   has_one :organization_setting, dependent: :destroy
   has_many :invoices, dependent: :restrict_with_error
   has_many :payments, dependent: :restrict_with_error
-  has_many :providers, dependent: :destroy
+  has_many :provider_assignments, dependent: :destroy
+  has_many :providers, through: :provider_assignments
+  has_many :documents, as: :documentable, dependent: :destroy
+  has_many :organization_fee_schedules, dependent: :destroy
   after_create :invite_owner
 
   validates :name, presence: true

@@ -6,6 +6,14 @@
     </div>
   </div>
 
+  <!-- Filters -->
+  <% 
+    @search_placeholder = "Organization name..."
+    @status_options = OrganizationBilling.billing_statuses.keys
+    @provider_options = OrganizationBilling.providers.keys
+  %>
+  <%= render "shared/filters" %>
+
   <!-- Pending Approvals Section -->
   <% if @pending_billings.any? %>
     <div class="mb-8">
@@ -107,4 +115,16 @@
   ] %>
 
   <%= render 'shared/table', title: 'All Billing Records', columns: columns, collection: @all_billings %>
+
+  <!-- Pagination -->
+  <% if @pagy %>
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        <%= pagination_info(@pagy) %>
+      </div>
+      <div>
+        <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+      </div>
+    </div>
+  <% end %>
 </div>

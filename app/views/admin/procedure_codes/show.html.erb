@@ -1,0 +1,188 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900"><%= @procedure_code.code %></h1>
+          <p class="mt-2 text-gray-600"><%= @procedure_code.description %></p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Edit", edit_admin_procedure_code_path(@procedure_code), 
+              class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          
+          <% if @procedure_code.can_be_retired? %>
+            <%= link_to "Retire", toggle_status_admin_procedure_code_path(@procedure_code), 
+                method: :post,
+                class: "bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { confirm: "Are you sure you want to retire this procedure code?" } %>
+          <% elsif @procedure_code.can_be_activated? %>
+            <%= link_to "Activate", toggle_status_admin_procedure_code_path(@procedure_code), 
+                method: :post,
+                class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { confirm: "Are you sure you want to activate this procedure code?" } %>
+          <% end %>
+          
+          <%= link_to "Back to List", admin_procedure_codes_path, 
+              class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Main Details -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Basic Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <dl class="grid grid-cols-1 gap-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Code</dt>
+              <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @procedure_code.code %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Description</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @procedure_code.description %></dd>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Type</dt>
+                <dd class="mt-1">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @procedure_code.code_type_badge_color %>">
+                    <%= @procedure_code.code_type.humanize %>
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="mt-1">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @procedure_code.status_badge_color %>">
+                    <%= @procedure_code.status.humanize %>
+                  </span>
+                </dd>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Created</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= @procedure_code.created_at.strftime("%B %d, %Y at %I:%M %p") %></dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= @procedure_code.updated_at.strftime("%B %d, %Y at %I:%M %p") %></dd>
+              </div>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Associated Specialties -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Associated Specialties</h2>
+          <% if @specialties.any? %>
+            <div class="flex flex-wrap gap-2">
+              <% @specialties.each do |specialty| %>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                  <%= specialty.name %>
+                </span>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-gray-500 text-sm">No specialties associated with this procedure code.</p>
+          <% end %>
+        </div>
+
+        <!-- Fee Schedule Items -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Fee Schedule Items</h2>
+          <% if @fee_schedule_items.any? %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @fee_schedule_items.each do |item| %>
+                    <tr>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <%= item.organization_fee_schedule.organization.name %>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <%= item.organization_fee_schedule.provider&.full_name || "Organization-wide" %>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        $<%= sprintf("%.2f", item.unit_price) %> / <%= item.pricing_rule.humanize %>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= item.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                          <%= item.active? ? 'Active' : 'Inactive' %>
+                        </span>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-gray-500 text-sm">No fee schedule items found for this procedure code.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div class="space-y-3">
+            <%= link_to "Edit Details", edit_admin_procedure_code_path(@procedure_code), 
+                class: "w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center block" %>
+            
+            <% if @procedure_code.can_be_retired? %>
+              <%= link_to "Retire Code", toggle_status_admin_procedure_code_path(@procedure_code), 
+                  method: :post,
+                  class: "w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center block",
+                  data: { confirm: "Are you sure you want to retire this procedure code?" } %>
+            <% elsif @procedure_code.can_be_activated? %>
+              <%= link_to "Activate Code", toggle_status_admin_procedure_code_path(@procedure_code), 
+                  method: :post,
+                  class: "w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center block",
+                  data: { confirm: "Are you sure you want to activate this procedure code?" } %>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Status Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Status Information</h3>
+          <div class="space-y-3">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Current Status</dt>
+              <dd class="mt-1">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @procedure_code.status_badge_color %>">
+                  <%= @procedure_code.status.humanize %>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Can be retired?</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= @procedure_code.can_be_retired? ? "Yes" : "No" %>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Referenced by claims?</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= @procedure_code.referenced_by_claims? ? "Yes" : "No" %>
+              </dd>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

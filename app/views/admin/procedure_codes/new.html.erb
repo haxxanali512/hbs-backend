@@ -1,0 +1,16 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">New Procedure Code</h1>
+          <p class="mt-2 text-gray-600">Add a new procedure code to the catalog</p>
+        </div>
+        <%= link_to "Back to List", admin_procedure_codes_path, 
+            class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+    <%= render "form" %>
+  </div>
+</div>

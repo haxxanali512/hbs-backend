@@ -1,0 +1,190 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Provider Management</h1>
+          <p class="mt-2 text-gray-600">Manage all providers across organizations</p>
+        </div>
+        <div>
+          <%= link_to "New Provider", new_admin_provider_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <% 
+      @search_placeholder = "Name, email, organization..."
+      @status_options = @statuses
+      @organization_options = @organizations
+    %>
+    <%= render "shared/filters" %>
+
+    <!-- Bulk Actions -->
+    <% if @providers.any? %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <%= form_with url: bulk_approve_admin_providers_path, method: :post, local: true, class: "flex items-center space-x-4" do |f| %>
+          <div class="flex items-center">
+            <input type="checkbox" id="select-all" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            <label for="select-all" class="ml-2 text-sm text-gray-700">Select All</label>
+          </div>
+          <div class="flex space-x-2">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+              Approve Selected
+            </button>
+            <%= link_to "Reject Selected", "#", onclick: "document.getElementById('bulk-reject-form').submit(); return false;", class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+          </div>
+        <% end %>
+        
+        <%= form_with url: bulk_reject_admin_providers_path, method: :post, local: true, id: "bulk-reject-form", class: "hidden" do |f| %>
+          <!-- Selected provider IDs will be added by JavaScript -->
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Providers Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialty</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% if @providers.any? %>
+              <% @providers.each do |provider| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <input type="checkbox" name="provider_ids[]" value="<%= provider.id %>" class="provider-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10">
+                        <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span class="text-sm font-medium text-gray-700">
+                            <%= provider.first_name.first %><%= provider.last_name.first %>
+                          </span>
+                        </div>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">
+                          <%= link_to provider.full_name, admin_provider_path(provider), class: "text-blue-600 hover:text-blue-800" %>
+                        </div>
+                        <div class="text-sm text-gray-500"><%= provider.email %></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= provider.organization.name %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= provider.specialty_id %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= provider.status_badge_color %>">
+                      <%= provider.status.humanize %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= provider.created_at.strftime("%b %d, %Y") %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex space-x-2">
+                      <%= link_to "View", admin_provider_path(provider), class: "text-blue-600 hover:text-blue-800" %>
+                      <%= link_to "Edit", edit_admin_provider_path(provider), class: "text-gray-600 hover:text-gray-800" %>
+                      
+                      <% if provider.can_be_approved? %>
+                        <%= link_to "Approve", approve_admin_provider_path(provider), method: :post, 
+                            class: "text-green-600 hover:text-green-800", 
+                            data: { confirm: "Are you sure you want to approve this provider?" } %>
+                      <% end %>
+                      
+                      <% if provider.can_be_rejected? %>
+                        <%= link_to "Reject", reject_admin_provider_path(provider), method: :post, 
+                            class: "text-red-600 hover:text-red-800", 
+                            data: { confirm: "Are you sure you want to reject this provider?" } %>
+                      <% end %>
+                      
+                      <% if provider.can_be_suspended? %>
+                        <%= link_to "Suspend", suspend_admin_provider_path(provider), method: :post, 
+                            class: "text-orange-600 hover:text-orange-800", 
+                            data: { confirm: "Are you sure you want to suspend this provider?" } %>
+                      <% end %>
+                      
+                      <% if provider.can_be_reactivated? %>
+                        <%= link_to "Reactivate", reactivate_admin_provider_path(provider), method: :post, 
+                            class: "text-green-600 hover:text-green-800", 
+                            data: { confirm: "Are you sure you want to reactivate this provider?" } %>
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                  No providers found
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <% if @pagy %>
+        <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+              <%= pagination_info(@pagy) %>
+            </div>
+            <div>
+              <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Select all functionality
+  document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.provider-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = this.checked;
+    });
+  });
+
+  // Update bulk form with selected IDs
+  document.querySelectorAll('form[action*="bulk"]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      const selectedCheckboxes = document.querySelectorAll('.provider-checkbox:checked');
+      if (selectedCheckboxes.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one provider.');
+        return;
+      }
+      
+      // Add selected IDs to the form
+      selectedCheckboxes.forEach(checkbox => {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'provider_ids[]';
+        hiddenInput.value = checkbox.value;
+        this.appendChild(hiddenInput);
+      });
+    });
+  });
+</script>

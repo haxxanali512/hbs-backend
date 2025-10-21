@@ -75,6 +75,50 @@ Rails.application.routes.draw do
           get  :download_pdf
         end
       end
+
+      resources :providers do
+        member do
+          post :approve
+          post :reject
+          post :suspend
+          post :reactivate
+          post :resubmit
+        end
+        collection do
+          post :bulk_approve
+          post :bulk_reject
+        end
+      end
+
+      resources :specialties do
+        member do
+          post :retire
+          get :impact_analysis
+          get :list_providers
+          patch :update_allowed_codes
+        end
+      end
+
+      resources :fee_schedules do
+        member do
+          post :lock
+          post :unlock
+        end
+        resources :fee_schedule_items do
+          member do
+            post :activate
+            post :deactivate
+            post :lock
+            post :unlock
+          end
+        end
+      end
+
+      resources :procedure_codes do
+        member do
+          post :toggle_status
+        end
+      end
     end
   end
 
@@ -132,6 +176,22 @@ Rails.application.routes.draw do
         end
 
         resources :providers
+        resources :specialties, only: [ :index, :show ]
+
+        resources :fee_schedules do
+          member do
+            post :lock
+            post :unlock
+          end
+          resources :fee_schedule_items do
+            member do
+              post :activate
+              post :deactivate
+            end
+          end
+        end
+
+        resources :procedure_codes, only: [ :index, :show ]
       end
 
 
