@@ -19,6 +19,22 @@ module ApplicationHelper
     content_tag :span, status.humanize, class: "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium #{badge_classes}"
   end
 
+  # Helper method for audit action badge colors
+  def audit_action_badge_color(action)
+    case action.to_s
+    when "create"
+      "bg-green-100 text-green-800"
+    when "update"
+      "bg-blue-100 text-blue-800"
+    when "destroy"
+      "bg-red-100 text-red-800"
+    when "destroy_soft"
+      "bg-orange-100 text-orange-800"
+    else
+      "bg-gray-100 text-gray-800"
+    end
+  end
+
   # Helper method to format currency
   def format_currency(amount)
     number_to_currency(amount, precision: 2)

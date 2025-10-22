@@ -1,0 +1,192 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900"><%= @organization_location.name %></h1>
+          <p class="mt-2 text-gray-600">Organization Location Details</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Back to Locations", admin_organization_locations_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <%= link_to "Edit", edit_admin_organization_location_path(@organization_location), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Actions -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <span class="text-sm font-medium text-gray-700">Current Status:</span>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <%= @organization_location.status_badge_color %>">
+            <%= @organization_location.status.humanize %>
+          </span>
+        </div>
+
+        <div class="flex space-x-2">
+          <% if @organization_location.can_be_activated? %>
+            <%= link_to "Activate", activate_admin_organization_location_path(@organization_location), method: :post,
+                class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { confirm: "Are you sure you want to activate this location?" } %>
+          <% end %>
+
+          <% if @organization_location.can_be_inactivated? %>
+            <%= link_to "Inactivate", inactivate_admin_organization_location_path(@organization_location), method: :post,
+                class: "bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { confirm: "Are you sure you want to inactivate this location?" } %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Location Information -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Location Information</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Name</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @organization_location.name %></p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Organization</label>
+              <p class="mt-1 text-sm text-gray-900">
+                <%= link_to @organization_location.organization.name, admin_organization_path(@organization_location.organization), class: "text-blue-600 hover:text-blue-800" %>
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Place of Service Code</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @organization_location.place_of_service_code %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Location Type</label>
+              <p class="mt-1 text-sm text-gray-900">
+                <% if @organization_location.is_virtual? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                    Virtual
+                  </span>
+                <% else %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                    Physical
+                  </span>
+                <% end %>
+              </p>
+            </div>
+
+            <% if @organization_location.address_line_1.present? %>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Address</label>
+                <p class="mt-1 text-sm text-gray-900">
+                  <%= @organization_location.address_line_1 %><br>
+                  <% if @organization_location.address_line_2.present? %>
+                    <%= @organization_location.address_line_2 %><br>
+                  <% end %>
+                  <% if @organization_location.city.present? %>
+                    <%= @organization_location.city %>, <%= @organization_location.state %> <%= @organization_location.postal_code %>
+                  <% end %>
+                </p>
+              </div>
+            <% end %>
+
+            <% if @organization_location.phone_number.present? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Phone</label>
+                <p class="mt-1 text-sm text-gray-900"><%= @organization_location.phone_number %></p>
+              </div>
+            <% end %>
+
+            <% if @organization_location.billing_npi.present? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Billing NPI</label>
+                <p class="mt-1 text-sm text-gray-900"><%= @organization_location.billing_npi %></p>
+              </div>
+            <% end %>
+
+            <% if @organization_location.notes_internal.present? %>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Notes</label>
+                <p class="mt-1 text-sm text-gray-900"><%= @organization_location.notes_internal %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Encounters Summary -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Encounters Summary</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-600"><%#= @organization_location.encounters.count %></div>
+              <div class="text-sm text-gray-500">Total Encounters</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-green-600">
+                <%#= @organization_location.encounters.joins(:claims).where(claims: { status: ['draft', 'submitted', 'pending'] }).count %>
+              </div>
+              <div class="text-sm text-gray-500">Open Claims</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-gray-600">
+                <%#= @organization_location.encounters.joins(:claims).where(claims: { status: ['paid', 'denied', 'cancelled'] }).count %>
+              </div>
+              <div class="text-sm text-gray-500">Closed Claims</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Status Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Status Information</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Current Status</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @organization_location.status_badge_color %>">
+                <%= @organization_location.status.humanize %>
+              </span>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Created</label>
+              <p class="text-sm text-gray-900"><%= @organization_location.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Updated</label>
+              <p class="text-sm text-gray-900"><%= @organization_location.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+          <div class="space-y-3">
+            <% if @organization_location.encounters.recent.limit(5).any? %>
+              <% @organization_location.encounters.recent.limit(5).each do |encounter| %>
+                <div class="flex items-center space-x-3">
+                  <div class="flex-shrink-0">
+                    <div class="h-2 w-2 bg-blue-400 rounded-full"></div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm text-gray-900">New encounter created</p>
+                    <p class="text-xs text-gray-500"><%= encounter.created_at.strftime("%b %d, %Y") %></p>
+                  </div>
+                </div>
+              <% end %>
+            <% else %>
+              <p class="text-sm text-gray-500">No recent activity</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

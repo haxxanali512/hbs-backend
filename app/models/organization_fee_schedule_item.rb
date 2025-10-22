@@ -1,6 +1,7 @@
 class OrganizationFeeScheduleItem < ApplicationRecord
-  audited
+  audited except: [ :unit_price ]
   include Discard::Model
+
 
   belongs_to :organization_fee_schedule
   belongs_to :procedure_code
@@ -63,6 +64,7 @@ class OrganizationFeeScheduleItem < ApplicationRecord
 
   def unique_active_item_per_schedule_and_procedure
     return unless active?
+    byebug
 
     existing = OrganizationFeeScheduleItem.where(
       organization_fee_schedule: organization_fee_schedule,

@@ -1,6 +1,11 @@
 <%# Reusable filters partial for index pages %>
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
   <%= form_with url: request.path, method: :get, local: true, class: "flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4" do |f| %>
+    <!-- Hidden fields for model_audits -->
+    <% if @auditable_type.present? && @auditable_id.present? %>
+      <%= f.hidden_field :auditable_type, value: @auditable_type %>
+      <%= f.hidden_field :auditable_id, value: @auditable_id %>
+    <% end %>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
     <!-- Search field -->
     <% if @search_placeholder.present? %>
@@ -13,16 +18,16 @@
     <!-- Status filter -->
     <% if @status_options.present? %>
       <div>
-        <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :status, options_for_select([["All Statuses", ""]] + @status_options.map { |s| s.is_a?(Array) ? s : [s.humanize, s] }, params[:status]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :action_type, "Action", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :action_type, options_for_select([["All Actions", ""]] + @status_options.map { |s| s.is_a?(Array) ? s : [s.humanize, s] }, params[:action_type]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
     <% end %>
 
     <!-- Organization filter -->
     <% if @organization_options.present? %>
       <div>
-        <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :organization_id, options_for_select([["All Organizations", ""]] + @organization_options.map { |o| o.is_a?(Array) ? o : [o.name, o.id] }, params[:organization_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :user_id, "User", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :user_id, options_for_select([["All Users", ""]] + @organization_options.map { |o| o.is_a?(Array) ? o : [o.email, o.id] }, params[:user_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
     <% end %>
 
@@ -63,6 +68,26 @@
       <div>
         <%= f.label :past_due, "Past Due", class: "block text-sm font-medium text-gray-700 mb-1" %>
         <%= f.select :past_due, options_for_select([["All Invoices", ""], ["Past Due Only", "true"]], params[:past_due]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Extra select filter (for auditable_type) -->
+    <% if @extra_select.present? %>
+      <div>
+        <%= f.label :auditable_type, "Model Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :auditable_type, options_for_select([["All Models", ""]] + @extra_select.map { |t| [t, t] }, params[:auditable_type]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Date range filters -->
+    <% if @show_date_range %>
+      <div>
+        <%= f.label :date_from, "From Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :date_from, value: params[:date_from], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <div>
+        <%= f.label :date_to, "To Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :date_to, value: params[:date_to], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
     <% end %>
 

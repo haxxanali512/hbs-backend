@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_21_144436) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -247,6 +247,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_21_144436) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "discarded_at", precision: nil
+    t.boolean "locked", default: false, null: false
     t.index ["organization_id"], name: "index_organization_fee_schedules_on_organization_id"
     t.index ["provider_id"], name: "index_organization_fee_schedules_on_provider_id"
   end
@@ -263,6 +264,30 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_21_144436) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["organization_id"], name: "index_organization_identifiers_on_organization_id"
+  end
+
+  create_table "organization_locations", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.string "name"
+    t.integer "status"
+    t.string "place_of_service_code"
+    t.boolean "is_virtual"
+    t.text "address_line_1"
+    t.text "address_line_2"
+    t.string "city"
+    t.string "state"
+    t.string "postal_code"
+    t.string "country"
+    t.string "phone_number"
+    t.string "billing_npi"
+    t.string "taxonomy_code"
+    t.string "hours"
+    t.text "notes_internal"
+    t.datetime "discarded_at", precision: nil
+    t.boolean "locked"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_organization_locations_on_organization_id"
   end
 
   create_table "organization_memberships", force: :cascade do |t|
@@ -392,16 +417,15 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_21_144436) do
     t.string "npi", limit: 10
     t.string "license_number"
     t.string "license_state", limit: 2
-    t.uuid "specialty_id", null: false
     t.uuid "user_id"
     t.string "status", default: "draft", null: false
     t.jsonb "metadata", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "discarded_at"
+    t.bigint "specialty_id"
     t.index ["discarded_at"], name: "index_providers_on_discarded_at"
     t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
-    t.index ["specialty_id"], name: "index_providers_on_specialty_id"
     t.index ["user_id"], name: "index_providers_on_user_id"
   end
 
@@ -509,6 +533,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_21_144436) do
   add_foreign_key "organization_fee_schedules", "organizations"
   add_foreign_key "organization_fee_schedules", "providers"
   add_foreign_key "organization_identifiers", "organizations"
+  add_foreign_key "organization_locations", "organizations"
   add_foreign_key "organization_memberships", "organizations"
   add_foreign_key "organization_memberships", "roles", column: "organization_role_id"
   add_foreign_key "organization_memberships", "users"
@@ -522,5 +547,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_21_144436) do
   add_foreign_key "procedure_codes_specialties", "specialties"
   add_foreign_key "provider_assignments", "organizations"
   add_foreign_key "provider_assignments", "providers"
+  add_foreign_key "providers", "specialties"
   add_foreign_key "users", "roles"
 end

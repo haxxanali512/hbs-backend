@@ -36,16 +36,16 @@ class SpecialtyService
         },
         impact: {
           total_providers: providers.count,
-          organizations_affected: providers.joins(:organization).distinct.count(:organization_id),
+          organizations_affected: providers.joins(:organizations).distinct.count(:organization_id),
           providers: providers.map do |provider|
             {
               id: provider.id,
               name: provider.full_name,
-              email: provider.email,
+              email: provider.npi.presence || "No NPI",
               organization: {
-                id: provider.organization.id,
-                name: provider.organization.name,
-                subdomain: provider.organization.subdomain
+                id: provider.organizations.first&.id,
+                name: provider.organizations.first&.name || "No Organization",
+                subdomain: provider.organizations.first&.subdomain
               },
               status: provider.status
             }

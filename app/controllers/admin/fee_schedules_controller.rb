@@ -14,7 +14,7 @@ class Admin::FeeSchedulesController < Admin::BaseController
 
     @pagy, @fee_schedules = pagy(@fee_schedules, items: 20)
     @organizations = Organization.kept.order(:name)
-    @providers = Provider.kept.includes(:organization).order(:first_name, :last_name)
+    @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
   end
 
   def show
@@ -27,7 +27,7 @@ class Admin::FeeSchedulesController < Admin::BaseController
   def new
     @fee_schedule = OrganizationFeeSchedule.new
     @organizations = Organization.kept.order(:name)
-    @providers = Provider.kept.includes(:organization).order(:first_name, :last_name)
+    @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
   end
 
   def create
@@ -37,14 +37,14 @@ class Admin::FeeSchedulesController < Admin::BaseController
       redirect_to admin_fee_schedule_path(@fee_schedule), notice: "Fee schedule created successfully."
     else
       @organizations = Organization.kept.order(:name)
-      @providers = Provider.kept.includes(:organization).order(:first_name, :last_name)
+      @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     @organizations = Organization.kept.order(:name)
-    @providers = @fee_schedule.organization.providers.kept.order(:first_name, :last_name)
+    @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
   end
 
   def update

@@ -1,0 +1,170 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Audit Details</h1>
+          <p class="mt-2 text-gray-600">Detailed view of audit record</p>
+        </div>
+        <div>
+          <%= link_to "Back to Audits", admin_audits_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Audit Information -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Audit Information</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Timestamp</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @audit.created_at.strftime("%B %d, %Y at %I:%M:%S %p") %></p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Action</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= audit_action_badge_color(@audit.action) %>">
+                <%= @audit.action&.humanize || "Unknown" %>
+              </span>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Model Type</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @audit.auditable_type&.demodulize || "Unknown" %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Record ID</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @audit.auditable_id %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">IP Address</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @audit.remote_address || "N/A" %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">User Agent</label>
+              <p class="mt-1 text-sm text-gray-900 max-w-xs truncate"><%= @audit.request_uuid || "N/A" %></p>
+            </div>
+
+            <% if @audit.comment.present? %>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Comment</label>
+                <p class="mt-1 text-sm text-gray-900"><%= @audit.comment %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Changes -->
+        <% if @audit.audited_changes.present? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Changes Made</h2>
+            <div class="space-y-4">
+              <% @audit.audited_changes.each do |field, changes| %>
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-gray-900 mb-2"><%= field.humanize %></h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Before</label>
+                      <p class="mt-1 text-sm text-gray-900 bg-red-50 p-2 rounded">
+                        <%= changes[0].present? ? changes[0] : "<em>Empty</em>".html_safe %>
+                      </p>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider">After</label>
+                      <p class="mt-1 text-sm text-gray-900 bg-green-50 p-2 rounded">
+                        <%= changes[1].present? ? changes[1] : "<em>Empty</em>".html_safe %>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- User Information -->
+        <% if @user %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">User Information</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <p class="text-sm text-gray-900"><%= @user.email %></p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Role</label>
+                <p class="text-sm text-gray-900"><%= @user.role&.name || "No Role" %></p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Last Sign In</label>
+                <p class="text-sm text-gray-900">
+                  <%= @user.last_sign_in_at ? @user.last_sign_in_at.strftime("%B %d, %Y at %I:%M %p") : "Never" %>
+                </p>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Related Record -->
+        <% if @auditable %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Related Record</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Type</label>
+                <p class="text-sm text-gray-900"><%= @auditable.class.name.demodulize %></p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700">ID</label>
+                <p class="text-sm text-gray-900"><%= @auditable.id %></p>
+              </div>
+              
+              <% if @auditable.respond_to?(:name) %>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Name</label>
+                  <p class="text-sm text-gray-900"><%= @auditable.name %></p>
+                </div>
+              <% end %>
+              
+              <% if @auditable.respond_to?(:email) %>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Email</label>
+                  <p class="text-sm text-gray-900"><%= @auditable.email %></p>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div class="space-y-2">
+            <% if @audit.auditable_type.present? && @audit.auditable_id.present? %>
+              <%= link_to "View All Audits for This Record", 
+                  model_audits_admin_audits_path(auditable_type: @audit.auditable_type, auditable_id: @audit.auditable_id),
+                  class: "block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            <% end %>
+            
+            <% if @user %>
+              <%= link_to "View User Profile", admin_user_path(@user), 
+                  class: "block w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

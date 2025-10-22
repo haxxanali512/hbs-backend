@@ -4,7 +4,6 @@ class Provider < ApplicationRecord
 
   include AASM
 
-  has_one :user
   belongs_to :specialty
   has_many :provider_assignments, dependent: :destroy
   has_many :organizations, through: :provider_assignments
@@ -92,7 +91,6 @@ class Provider < ApplicationRecord
 
   # Scopes
   scope :by_status, ->(status) { where(status: status) }
-  scope :by_organization, ->(org) { where(organization: org) }
   scope :by_specialty, ->(specialty_id) { where(specialty_id: specialty_id) }
   scope :recent, -> { order(created_at: :desc) }
   scope :pending_approval, -> { where(status: "pending") }
@@ -101,8 +99,6 @@ class Provider < ApplicationRecord
 
   # Callbacks
   before_validation :normalize_npi
-  after_create :log_creation
-  after_update :log_status_change, if: :saved_change_to_status?
 
   # Instance methods
   def full_name
@@ -114,7 +110,11 @@ class Provider < ApplicationRecord
   end
 
   def display_name_with_org
-    "#{full_name} (#{organization.name})"
+    if organizations.any?
+      "#{full_name} (#{organizations.first.name})"
+    else
+      full_name
+    end
   end
 
   def can_be_edited?

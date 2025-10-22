@@ -36,6 +36,19 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :organization_locations, only: [ :index, :show, :edit, :update ] do
+        member do
+          post :activate
+          post :inactivate
+        end
+      end
+
+      resources :audits, only: [ :index, :show ] do
+        collection do
+          get :model_audits
+        end
+      end
+
       resources :users, except: [ :show ] do
         member do
           post :suspend
@@ -177,6 +190,13 @@ Rails.application.routes.draw do
 
         resources :providers
         resources :specialties, only: [ :index, :show ]
+        resources :organization_locations do
+          member do
+            post :activate
+            post :inactivate
+            post :reactivate
+          end
+        end
 
         resources :fee_schedules do
           member do

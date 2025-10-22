@@ -84,6 +84,17 @@ module HbsCustoms
               create: false,
               update: false,
               destroy: false
+            },
+            organization_locations: {
+              index: false,
+              show: false,
+              edit: false,
+              create: false,
+              update: false,
+              destroy: false,
+              activate: false,
+              inactivate: false,
+              reactivate: false
             }
           },
           admin: {
@@ -201,6 +212,19 @@ module HbsCustoms
               create: false,
               update: false,
               destroy: false
+            },
+            organization_locations: {
+              index: false,
+              show: false,
+              edit: false,
+              update: false,
+              activate: false,
+              inactivate: false
+            },
+            audits: {
+              index: false,
+              show: false,
+              model_audits: false
             }
           }
         }

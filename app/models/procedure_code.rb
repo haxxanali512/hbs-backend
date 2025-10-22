@@ -52,12 +52,8 @@ class ProcedureCode < ApplicationRecord
     end
   end
 
-  def status_badge_color
-    case status
-    when "active" then "bg-green-100 text-green-800"
-    when "retired" then "bg-red-100 text-red-800"
-    else "bg-gray-100 text-gray-800"
-    end
+  def code_with_description
+    "#{code} - #{description}"
   end
 
   def code_type_badge_color

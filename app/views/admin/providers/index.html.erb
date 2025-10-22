@@ -15,7 +15,7 @@
 
     <!-- Filters -->
     <% 
-      @search_placeholder = "Name, email, organization..."
+      @search_placeholder = "Name, NPI, organization..."
       @status_options = @statuses
       @organization_options = @organizations
     %>
@@ -80,15 +80,28 @@
                         <div class="text-sm font-medium text-gray-900">
                           <%= link_to provider.full_name, admin_provider_path(provider), class: "text-blue-600 hover:text-blue-800" %>
                         </div>
-                        <div class="text-sm text-gray-500"><%= provider.email %></div>
+                        <div class="text-sm text-gray-500">
+                          <% if provider.npi.present? %>
+                            NPI: <%= provider.npi %>
+                          <% else %>
+                            No NPI
+                          <% end %>
+                        </div>
                       </div>
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <%= provider.organization.name %>
+                    <% if provider.organizations.any? %>
+                      <%= provider.organizations.first.name %>
+                      <% if provider.organizations.count > 1 %>
+                        <span class="text-xs text-gray-500">(+<%= provider.organizations.count - 1 %> more)</span>
+                      <% end %>
+                    <% else %>
+                      No organizations
+                    <% end %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <%= provider.specialty_id %>
+                    <%= provider.specialty.name %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= provider.status_badge_color %>">

@@ -1,0 +1,120 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">System Audits</h1>
+          <p class="mt-2 text-gray-600">View all audit logs across the system</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <%= render 'shared/filters' %>
+
+    <!-- Audits Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comment</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% if @audits.any? %>
+              <% @audits.each do |audit| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= audit.created_at.strftime("%b %d, %Y at %I:%M %p") %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-8 w-8">
+                        <div class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                          <span class="text-xs font-medium text-gray-600">
+                            <%= audit.auditable_type&.demodulize&.first || "?" %>
+                          </span>
+                        </div>
+                      </div>
+                      <div class="ml-3">
+                        <div class="text-sm font-medium text-gray-900">
+                          <%= audit.auditable_type&.demodulize || "Unknown" %>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                          ID: <%= audit.auditable_id %>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= audit_action_badge_color(audit.action) %>">
+                      <%= audit.action&.humanize || "Unknown" %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <% if audit.user %>
+                      <div class="flex items-center">
+                        <div class="flex-shrink-0 h-8 w-8">
+                          <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span class="text-xs font-medium text-blue-600">
+                              <%= audit.user.email.first.upcase %>
+                            </span>
+                          </div>
+                        </div>
+                        <div class="ml-3">
+                          <div class="text-sm font-medium text-gray-900">
+                            <%= audit.user.email %>
+                          </div>
+                          <div class="text-sm text-gray-500">
+                            <%= audit.user.role&.role_name || "No Role" %>
+                          </div>
+                        </div>
+                      </div>
+                    <% else %>
+                      <span class="text-sm text-gray-500">System</span>
+                    <% end %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= audit.remote_address || "N/A" %>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                    <%= audit.comment || "No comment" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <%= link_to "View", admin_audit_path(audit), class: "text-blue-600 hover:text-blue-800 mr-2" %>
+                    <% if audit.auditable_type.present? && audit.auditable_id.present? %>
+                      <%= link_to "Model Audits", model_audits_admin_audits_path(auditable_type: audit.auditable_type, auditable_id: audit.auditable_id), 
+                          class: "text-indigo-600 hover:text-indigo-800" %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No audits found.</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-gray-700">
+        Showing <%= @pagy.from %> to <%= @pagy.to %> of <%= @pagy.count %> results
+      </div>
+      <div>
+        <%== pagy_nav(@pagy) %>
+      </div>
+    </div>
+  </div>
+</div>

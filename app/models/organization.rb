@@ -50,6 +50,7 @@ class Organization < ApplicationRecord
   has_many :providers, through: :provider_assignments
   has_many :documents, as: :documentable, dependent: :destroy
   has_many :organization_fee_schedules, dependent: :destroy
+  has_many :organization_locations, dependent: :destroy
   after_create :invite_owner
 
   validates :name, presence: true

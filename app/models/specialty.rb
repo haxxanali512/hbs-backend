@@ -56,12 +56,12 @@ class Specialty < ApplicationRecord
   def impact_analysis
     {
       total_providers: provider_count,
-      providers: providers.includes(:organization).map do |provider|
+      providers: providers.includes(:organizations).map do |provider|
         {
           id: provider.id,
           name: provider.full_name,
-          organization: provider.organization.name,
-          organization_id: provider.organization.id
+          organization: provider.organizations.first&.name || "No Organization",
+          organization_id: provider.organizations.first&.id
         }
       end
     }

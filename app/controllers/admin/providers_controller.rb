@@ -2,18 +2,18 @@ class Admin::ProvidersController < Admin::BaseController
   before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reject, :suspend, :reactivate, :resubmit ]
 
   def index
-    @providers = Provider.kept.includes(:organization, :user).recent
+    @providers = Provider.kept.includes(:organizations, :specialty).recent
 
     # Filtering
     @providers = @providers.by_status(params[:status]) if params[:status].present?
-    @providers = @providers.by_organization(Organization.find(params[:organization_id])) if params[:organization_id].present?
+    @providers = @providers.joins(:organizations).where(organizations: { id: params[:organization_id] }) if params[:organization_id].present?
     @providers = @providers.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
 
     # Search
     if params[:search].present?
       search_term = "%#{params[:search]}%"
-      @providers = @providers.where(
-        "first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ? OR organizations.name ILIKE ?",
+      @providers = @providers.joins(:organizations).where(
+        "providers.first_name ILIKE ? OR providers.last_name ILIKE ? OR providers.npi ILIKE ? OR organizations.name ILIKE ?",
         search_term, search_term, search_term, search_term
       )
     end
@@ -28,7 +28,6 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def show
-    authorize @provider
     @documents = @provider.documents.includes(:document_attachments).recent
   end
 
@@ -37,11 +36,9 @@ class Admin::ProvidersController < Admin::BaseController
     @provider.provider_assignments.build
     @organizations = Organization.kept.order(:name)
     @specialties = Specialty.kept.order(:name)
-    @users = User.kept.order(:first_name, :last_name)
   end
 
   def create
-    byebug
     @provider = Provider.new(provider_params)
 
     if @provider.save
@@ -49,7 +46,6 @@ class Admin::ProvidersController < Admin::BaseController
     else
       @organizations = Organization.kept.order(:name)
       @specialties = Specialty.kept.order(:name)
-      @users = User.kept.order(:first_name, :last_name)
       render :new
     end
   end
@@ -57,7 +53,6 @@ class Admin::ProvidersController < Admin::BaseController
   def edit
     @organizations = Organization.kept.order(:name)
     @specialties = Specialty.kept.order(:name)
-    @users = User.kept.order(:first_name, :last_name)
   end
 
   def update
@@ -66,7 +61,6 @@ class Admin::ProvidersController < Admin::BaseController
     else
       @organizations = Organization.kept.order(:name)
       @specialties = Specialty.kept.order(:name)
-      @users = User.kept.order(:first_name, :last_name)
       render :edit
     end
   end
@@ -166,7 +160,7 @@ class Admin::ProvidersController < Admin::BaseController
   def provider_params
     params.require(:provider).permit(
       :first_name, :last_name, :npi, :license_number, :license_state,
-      :specialty_id, :status, :user_id, :metadata,
+      :specialty_id, :status, :metadata,
       provider_assignments_attributes: [ :id, :organization_id, :role, :active, :_destroy ]
     )
   end
