@@ -1,0 +1,163 @@
+<%= form_with(model: @patient, url: (@patient.new_record? ? tenant_patients_path : tenant_patient_path(@patient)), method: (@patient.new_record? ? :post : :patch), local: true, class: "space-y-6") do |f| %>
+  <% if @patient.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(@patient.errors.count, "error") %> prohibited this patient from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% @patient.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Personal Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Personal Information</h3>
+      
+      <div>
+        <%= f.label :first_name, "First Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :first_name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true, disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :last_name, "Last Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :last_name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true, disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :dob, "Date of Birth", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :dob, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :sex_at_birth, "Sex at Birth", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :sex_at_birth, 
+            options_for_select([
+              ["Male", "M"],
+              ["Female", "F"],
+              ["Other", "O"]
+            ], @patient.sex_at_birth),
+            { prompt: "Select" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? } %>
+      </div>
+    </div>
+
+    <!-- Contact Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Contact Information</h3>
+      
+      <div>
+        <%= f.label :email, "Email", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.email_field :email, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :phone_number, "Phone", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.telephone_field :phone_number, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "+1234567890", disabled: !@patient.can_edit_demographics? %>
+        <p class="mt-1 text-sm text-gray-500">E.164 format (e.g., +1234567890)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Address -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Address</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="md:col-span-2">
+        <%= f.label :address_line_1, "Address Line 1", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :address_line_1, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true, disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div class="md:col-span-2">
+        <%= f.label :address_line_2, "Address Line 2", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :address_line_2, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :city, "City", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :city, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :state, "State", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :state, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :postal, "Postal Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :postal, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? %>
+      </div>
+
+      <div>
+        <%= f.label :country, "Country", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :country, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", value: @patient.country || "US", disabled: !@patient.can_edit_demographics? %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medical Record Information -->
+  <% organization = defined?(@current_organization) ? @current_organization : @patient.organization %>
+  <% if organization&.organization_setting&.mrn_enabled? %>
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Medical Record Information</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <%= f.label :mrn, "MRN", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.text_field :mrn, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", readonly: @patient.persisted?, disabled: !@patient.can_edit_demographics? %>
+          <p class="mt-1 text-sm text-gray-500">Medical Record Number (immutable once saved)</p>
+        </div>
+
+        <div>
+          <%= f.label :external_id, "External ID", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.text_field :external_id, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: !@patient.can_edit_demographics? %>
+          <p class="mt-1 text-sm text-gray-500">Internal reference only</p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Status and Notes -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Status and Notes</h3>
+    
+    <div>
+      <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :status, 
+          options_for_select([
+            ["Active", "active"],
+            ["Inactive", "inactive"],
+            ["Deceased", "deceased"]
+          ], @patient.status || "active"),
+          {},
+          { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+    </div>
+
+    <div>
+      <%= f.label :notes_nonphi, "Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :notes_nonphi, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <%= link_to "Cancel", (@patient.new_record? ? tenant_patients_path : tenant_patient_path(@patient)), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <%= f.submit (@patient.new_record? ? "Create Patient" : "Update Patient"), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
+  </div>
+<% end %>
+

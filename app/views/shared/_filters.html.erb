@@ -23,11 +23,19 @@
       </div>
     <% end %>
 
+    <!-- User filter -->
+    <% if @user_options.present? %>
+      <div>
+        <%= f.label :user_id, "User", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :user_id, options_for_select([["All Users", ""]] + @user_options.map { |o| o.is_a?(Array) ? o : [o.email, o.id] }, params[:user_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
     <!-- Organization filter -->
     <% if @organization_options.present? %>
       <div>
-        <%= f.label :user_id, "User", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :user_id, options_for_select([["All Users", ""]] + @organization_options.map { |o| o.is_a?(Array) ? o : [o.email, o.id] }, params[:user_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :organization_id, options_for_select([["All Organizations", ""]] + @organization_options.map { |o| o.is_a?(Array) ? o : [o.name, o.id] }, params[:organization_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
     <% end %>
 
@@ -40,12 +48,7 @@
     <% end %>
 
     <!-- Provider filter -->
-    <% if @provider_options.present? %>
-      <div>
-        <%= f.label :provider, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :provider, options_for_select([["All Providers", ""]] + @provider_options.map { |p| p.is_a?(Array) ? p : [p.humanize, p] }, params[:provider]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
-    <% end %>
+   
 
     <!-- Service month filter -->
     <% if @service_month_options.present? %>
@@ -76,6 +79,53 @@
       <div>
         <%= f.label :auditable_type, "Model Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
         <%= f.select :auditable_type, options_for_select([["All Models", ""]] + @extra_select.map { |t| [t, t] }, params[:auditable_type]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Time filter -->
+    <% if @show_time_filter %>
+      <div>
+        <%= f.label :time_filter, "Time Period", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :time_filter, options_for_select([
+          ["All Appointments", ""],
+          ["Upcoming", "upcoming"],
+          ["Past", "past"],
+          ["Today", "today"],
+          ["This Week", "this_week"],
+          ["This Month", "this_month"]
+        ], params[:time_filter]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Patient filter -->
+    <% if @patient_options.present? %>
+      <div>
+        <%= f.label :patient_id, "Patient", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :patient_id, options_for_select([["All Patients", ""]] + @patient_options.map { |p| p.is_a?(Array) ? p : [p.full_name, p.id] }, params[:patient_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Location filter -->
+    <% if @location_options.present? %>
+      <div>
+        <%= f.label :location_id, "Location", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :location_id, options_for_select([["All Locations", ""]] + @location_options.map { |l| l.is_a?(Array) ? l : [l.name, l.id] }, params[:location_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Billing channel filter -->
+    <% if @billing_channel_options.present? %>
+      <div>
+        <%= f.label :billing_channel, "Billing Channel", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :billing_channel, options_for_select([["All Channels", ""]] + @billing_channel_options.map { |b| [b.humanize, b] }, params[:billing_channel]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Cascaded filter -->
+    <% if @cascaded_options.present? %>
+      <div>
+        <%= f.label :cascaded_filter, "Cascaded", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :cascaded_filter, options_for_select([["All", ""], ["Not Cascaded", "not_cascaded"], ["Cascaded", "cascaded"]], params[:cascaded_filter]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
     <% end %>
 

@@ -1,0 +1,19 @@
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Diagnosis Code: <%= @diagnosis_code.code %></h1>
+  <div>
+    <%= button_to "Request Review", request_tenant_diagnosis_code_path(@diagnosis_code), method: :post, class: "bg-blue-600 text-white px-4 py-2 rounded" %>
+  </div>
+</div>
+
+<div class="bg-white shadow rounded-md p-6 space-y-4">
+  <div>
+    <div class="text-sm text-gray-500">Code</div>
+    <div class="text-lg font-medium"><%= @diagnosis_code.code %></div>
+  </div>
+  <div>
+    <div class="text-sm text-gray-500">Description</div>
+    <div><%= @diagnosis_code.description %></div>
+  </div>
+</div>
+
+

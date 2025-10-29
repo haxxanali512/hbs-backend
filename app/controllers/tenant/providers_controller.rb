@@ -18,15 +18,17 @@ class Tenant::ProvidersController < Tenant::BaseController
   def show; end
 
   def new
-    @provider = @current_organization.providers.new
+    @provider = Provider.new
     @specialties = Specialty.active.order(:name)
     @users = @current_organization.members.order(:first_name, :last_name)
   end
 
   def create
-    @provider = @current_organization.providers.new(provider_params)
+    @provider = Provider.new(provider_params)
+    @provider.assign_to_organization_id = @current_organization.id
+
     if @provider.save
-      redirect_to tenant_provider_path(@provider), notice: "Provider created successfully."
+      redirect_to tenant_providers_path, notice: "Provider created successfully."
     else
       @specialties = Specialty.active.order(:name)
       @users = @current_organization.members.order(:first_name, :last_name)
@@ -40,8 +42,9 @@ class Tenant::ProvidersController < Tenant::BaseController
   end
 
   def update
-    if @provider.update(provider_params)
-      redirect_to tenant_provider_path(@provider), notice: "Provider updated successfully."
+    # Don't update associations, only the provider attributes
+    if @provider.update(provider_params.except(:organization_ids))
+      redirect_to tenant_providers_path, notice: "Provider updated successfully."
     else
       @specialties = Specialty.active.order(:name)
       @users = @current_organization.members.order(:first_name, :last_name)
@@ -64,6 +67,6 @@ class Tenant::ProvidersController < Tenant::BaseController
   end
 
   def provider_params
-    params.require(:provider).permit(:first_name, :last_name, :npi, :license_number, :license_state, :specialty_id, :status, :metadata)
+    params.require(:provider).permit(:first_name, :last_name, :npi, :license_number, :license_state, :specialty_id, :user_id, :status, :metadata)
   end
 end

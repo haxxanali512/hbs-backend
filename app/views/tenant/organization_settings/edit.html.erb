@@ -1,0 +1,100 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Edit Organization Settings</h1>
+          <p class="mt-2 text-gray-600">Update your organization's configuration</p>
+        </div>
+        <div>
+          <%= link_to "Back to Settings", tenant_organization_setting_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <%= form_with(model: @organization_setting, url: tenant_organization_setting_path(@organization_setting), method: :patch, local: true, class: "space-y-6") do |f| %>
+        <% if @organization_setting.errors.any? %>
+          <div class="bg-red-50 border border-red-200 rounded-md p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">
+                  <%= pluralize(@organization_setting.errors.count, "error") %> prohibited this from being saved:
+                </h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <ul class="list-disc pl-5 space-y-1">
+                    <% @organization_setting.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- MRN Settings -->
+        <div class="space-y-6">
+          <h3 class="text-lg font-medium text-gray-900">Medical Record Number (MRN) Settings</h3>
+          
+          <div class="flex items-center">
+            <%= f.check_box :mrn_enabled, { checked: (@organization_setting.mrn_enabled == "true"), id: "mrn_enabled_checkbox" }, "true", "false" %>
+            <%= f.label :mrn_enabled, "Enable MRN for this organization", class: "ml-2 text-sm text-gray-900 cursor-pointer", for: "mrn_enabled_checkbox" %>
+          </div>
+
+          <div id="mrn-settings" class="space-y-4 mt-4" style="display: <%= (@organization_setting.mrn_enabled == "true") ? 'block' : 'none' %>;">
+            <div>
+              <%= f.label :mrn_prefix, "MRN Prefix", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= f.text_field :mrn_prefix, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., ORG-" %>
+              <p class="mt-1 text-sm text-gray-500">Optional prefix for MRNs</p>
+            </div>
+
+            <div>
+              <%= f.label :mrn_sequence, "Starting Sequence", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= f.text_field :mrn_sequence, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., 00001" %>
+              <p class="mt-1 text-sm text-gray-500">Starting number for MRN sequence</p>
+            </div>
+
+            <div>
+              <%= f.label :mrn_format, "MRN Format", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= f.text_field :mrn_format, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., {prefix}{sequence}" %>
+              <p class="mt-1 text-sm text-gray-500">Format for generating MRNs</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <%= link_to "Cancel", tenant_organization_setting_path, class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+          <%= f.submit "Update Settings", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const mrnCheckbox = document.getElementById('mrn_enabled_checkbox');
+    const mrnSettings = document.getElementById('mrn-settings');
+    
+    if (mrnCheckbox && mrnSettings) {
+      // Handle checkbox change
+      mrnCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          mrnSettings.style.display = 'block';
+        } else {
+          mrnSettings.style.display = 'none';
+        }
+      });
+    }
+  });
+</script>
+

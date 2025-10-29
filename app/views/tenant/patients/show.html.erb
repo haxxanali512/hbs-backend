@@ -1,0 +1,179 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900"><%= @patient.full_name %></h1>
+          <p class="mt-2 text-gray-600">Patient Details</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Back to Patients", tenant_patients_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <%= link_to "Edit", edit_tenant_patient_path(@patient), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" if @patient.can_edit_demographics? %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Actions -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <span class="text-sm font-medium text-gray-700">Current Status:</span>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <%= @patient.status_badge_color %>">
+            <%= @patient.status.humanize %>
+          </span>
+        </div>
+
+        <div class="flex space-x-2">
+          <% if @patient.inactive? %>
+            <%= link_to "Activate", activate_tenant_patient_path(@patient), method: :post,
+                class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+            <%= link_to "Reactivate", reactivate_tenant_patient_path(@patient), method: :post,
+                class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <% end %>
+          
+          <% if @patient.active? %>
+            <%= link_to "Inactivate", inactivate_tenant_patient_path(@patient), method: :post,
+                class: "bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { confirm: "Are you sure? Future appointments and encounters must be cancelled first." } %>
+          <% end %>
+          
+          <% unless @patient.is_deceased? %>
+            <%= link_to "Mark Deceased", mark_deceased_tenant_patient_path(@patient), method: :post,
+                class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { confirm: "This action is irreversible. Continue?" } %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Patient Information -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Personal Information</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">First Name</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.first_name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Name</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.last_name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.formatted_dob || "Not provided" %></p>
+              <% if @patient.age.present? %>
+                <p class="text-sm text-gray-500">Age: <%= @patient.age %> years</p>
+              <% end %>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Sex at Birth</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.sex_at_birth || "Not provided" %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">MRN</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.mrn || "-" %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">External ID</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.external_id || "-" %></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Contact Information</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Email</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.email || "Not provided" %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Phone</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @patient.phone_number || "Not provided" %></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Address</h2>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Address</label>
+            <p class="mt-1 text-sm text-gray-900">
+              <%= @patient.full_address || "Not provided" %>
+            </p>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <% if @patient.notes_nonphi.present? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Notes</h2>
+            <p class="text-sm text-gray-900 whitespace-pre-wrap"><%= @patient.notes_nonphi %></p>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div class="space-y-2">
+            <%= link_to "New Appointment", new_tenant_appointment_path(patient_id: @patient.id), class: "block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            <%= link_to "New Encounter", new_tenant_encounter_path(patient_id: @patient.id), class: "block w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Information</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Created</label>
+              <p class="text-sm text-gray-900"><%= @patient.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Updated</label>
+              <p class="text-sm text-gray-900"><%= @patient.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+            
+            <% if @patient.is_deceased? && @patient.deceased_at.present? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Deceased</label>
+                <p class="text-sm text-gray-900"><%= @patient.deceased_at.strftime("%B %d, %Y") %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Activity Summary -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Activity Summary</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Appointments</span>
+              <span class="text-sm font-semibold text-gray-900"><%= @patient.appointments.count %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Encounters</span>
+              <span class="text-sm font-semibold text-gray-900"><%= @patient.encounters.count %></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

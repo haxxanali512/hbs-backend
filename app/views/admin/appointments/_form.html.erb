@@ -1,0 +1,101 @@
+<%= form_with(model: @appointment, url: admin_appointment_path(@appointment), method: :patch, local: true, class: "space-y-6") do |f| %>
+  <% if @appointment.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(@appointment.errors.count, "error") %> prohibited this appointment from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% @appointment.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Appointment Details -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Appointment Details</h3>
+      
+      <div>
+        <%= f.label :appointment_type, "Appointment Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :appointment_type, 
+            options_for_select([
+              ["Consultation", "consultation"],
+              ["Follow-up", "follow_up"],
+              ["Initial Evaluation", "initial_evaluation"],
+              ["Treatment", "treatment"],
+              ["Procedure", "procedure"],
+              ["Other", "other"]
+            ], @appointment.appointment_type),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+
+      <div>
+        <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :status, 
+            options_for_select([
+              ["Scheduled", "scheduled"],
+              ["Confirmed", "confirmed"],
+              ["In Progress", "in_progress"],
+              ["Completed", "completed"],
+              ["Cancelled", "cancelled"],
+              ["No Show", "no_show"]
+            ], @appointment.status),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+
+      <div>
+        <%= f.label :scheduled_start_at, "Scheduled Start Time", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.datetime_local_field :scheduled_start_at, 
+            class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+            value: @appointment.scheduled_start_at&.strftime("%Y-%m-%dT%H:%M"),
+            required: true %>
+      </div>
+
+      <div>
+        <%= f.label :scheduled_end_at, "Scheduled End Time", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.datetime_local_field :scheduled_end_at, 
+            class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+            value: @appointment.scheduled_end_at&.strftime("%Y-%m-%dT%H:%M"),
+            required: true %>
+      </div>
+
+    </div>
+
+    <!-- Additional Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Additional Information</h3>
+      
+      <div>
+        <%= f.label :reason_for_visit, "Reason for Visit", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_area :reason_for_visit, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <%= f.label :notes, "Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_area :notes, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <%= link_to "Cancel", admin_appointment_path(@appointment), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <%= f.submit "Update Appointment", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
+  </div>
+<% end %>
+

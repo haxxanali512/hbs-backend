@@ -1,0 +1,126 @@
+<%= form_with(model: @encounter, url: (@encounter.new_record? ? tenant_encounters_path : tenant_encounter_path(@encounter)), method: (@encounter.new_record? ? :post : :patch), local: true, class: "space-y-6") do |f| %>
+  <% if @encounter.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(@encounter.errors.count, "error") %> prohibited this encounter from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% @encounter.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Core Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Core Information</h3>
+      
+      <div>
+        <%= f.label :patient_id, "Patient", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :patient_id, 
+            options_for_select(@patients.map { |p| [p.full_name, p.id] }, @encounter.patient_id),
+            { prompt: "Select Patient" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+
+      <div>
+        <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :provider_id, 
+            options_for_select(@providers.map { |p| [p.full_name, p.id] }, @encounter.provider_id),
+            { prompt: "Select Provider" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+
+      <div>
+        <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :specialty_id, 
+            options_for_select(@specialties.map { |s| [s.name, s.id] }, @encounter.specialty_id),
+            { prompt: "Select Specialty" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+
+      <div>
+        <%= f.label :date_of_service, "Date of Service", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :date_of_service, 
+            class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+            value: @encounter.date_of_service&.strftime("%Y-%m-%d"),
+            required: true %>
+      </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Additional Information</h3>
+      
+      <div>
+        <%= f.label :organization_location_id, "Location", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :organization_location_id, 
+            options_for_select(@locations.map { |l| [l.name, l.id] }, @encounter.organization_location_id),
+            { prompt: "Select Location (Optional)" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+
+      <div>
+        <%= f.label :appointment_id, "Appointment", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :appointment_id, 
+            options_for_select(@appointments.map { |a| ["#{a.patient_name} - #{a.formatted_scheduled_time}", a.id] }, @encounter.appointment_id),
+            { prompt: "Link to Appointment (Optional)" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
+
+      <div>
+        <%= f.label :billing_channel, "Billing Channel", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :billing_channel, 
+            options_for_select([
+              ["Insurance", "insurance"],
+              ["Self Pay", "self_pay"]
+            ], @encounter.billing_channel || "insurance"),
+            {},
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagnosis Codes -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Diagnosis Codes</h3>
+    
+    <div>
+      <%= f.label :diagnosis_code_ids, "Diagnosis Codes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.collection_select :diagnosis_code_ids, @diagnosis_codes, :id, :code, 
+          { selected: @encounter.diagnosis_code_ids },
+          { multiple: true, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      <p class="mt-1 text-sm text-gray-500">At least one diagnosis code is required</p>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Notes</h3>
+    
+    <div>
+      <%= f.label :notes, "Clinical Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :notes, rows: 4, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <%= link_to "Cancel", (@encounter.new_record? ? tenant_encounters_path : tenant_encounter_path(@encounter)), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <%= f.submit (@encounter.new_record? ? "Create Encounter" : "Update Encounter"), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
+  </div>
+<% end %>
+

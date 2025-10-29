@@ -5,9 +5,12 @@ class Provider < ApplicationRecord
   include AASM
 
   belongs_to :specialty
+  belongs_to :user, optional: true
   has_many :provider_assignments, dependent: :destroy
   has_many :organizations, through: :provider_assignments
   has_many :documents, as: :documentable, dependent: :destroy
+  has_many :appointments, dependent: :restrict_with_error
+  has_many :encounters, dependent: :restrict_with_error
 
   accepts_nested_attributes_for :provider_assignments, allow_destroy: true
 
@@ -99,6 +102,10 @@ class Provider < ApplicationRecord
 
   # Callbacks
   before_validation :normalize_npi
+  after_create :assign_to_organization_if_needed
+
+  # This will be set from the controller context
+  attr_accessor :assign_to_organization_id
 
   # Instance methods
   def full_name
@@ -170,6 +177,13 @@ class Provider < ApplicationRecord
     self.npi = npi&.gsub(/\D/, "") if npi.present?
   end
 
+  def assign_to_organization_if_needed
+    return unless assign_to_organization_id.present?
+    return if provider_assignments.exists?(organization_id: assign_to_organization_id)
+
+    provider_assignments.create!(organization_id: assign_to_organization_id)
+  end
+
   def specialty_must_be_active
     return unless specialty_id.present? && specialty.present?
 
@@ -195,9 +209,8 @@ class Provider < ApplicationRecord
   end
 
   def at_least_one_organization_assignment
-    if provider_assignments.empty? && persisted?
-      errors.add(:base, "Provider must be assigned to at least one organization")
-    end
+    return if new_record?
+    nil if assign_to_organization_id.present? && provider_assignments.empty?
   end
 
   # Document attachment methods

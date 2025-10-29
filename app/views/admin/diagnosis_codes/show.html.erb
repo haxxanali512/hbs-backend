@@ -1,0 +1,38 @@
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Diagnosis Code: <%= @diagnosis_code.code %></h1>
+  <div class="space-x-2">
+    <%= link_to "Edit", edit_admin_diagnosis_code_path(@diagnosis_code), class: "bg-gray-100 px-4 py-2 rounded" %>
+    <% if @diagnosis_code.active? %>
+      <%= button_to "Retire", retire_admin_diagnosis_code_path(@diagnosis_code), method: :post, class: "bg-red-600 text-white px-4 py-2 rounded" %>
+    <% else %>
+      <%= button_to "Activate", activate_admin_diagnosis_code_path(@diagnosis_code), method: :post, class: "bg-green-600 text-white px-4 py-2 rounded" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="bg-white shadow rounded-md p-6 space-y-4">
+  <div>
+    <div class="text-sm text-gray-500">Code</div>
+    <div class="text-lg font-medium"><%= @diagnosis_code.code %></div>
+  </div>
+  <div>
+    <div class="text-sm text-gray-500">Description</div>
+    <div><%= @diagnosis_code.description %></div>
+  </div>
+  <div>
+    <div class="text-sm text-gray-500">Status</div>
+    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <%= @diagnosis_code.status_badge_color %>"><%= @diagnosis_code.status.humanize %></span>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <div class="text-sm text-gray-500">Effective From</div>
+      <div><%= @diagnosis_code.effective_from&.to_date || '-' %></div>
+    </div>
+    <div>
+      <div class="text-sm text-gray-500">Effective To</div>
+      <div><%= @diagnosis_code.effective_to&.to_date || '-' %></div>
+    </div>
+  </div>
+</div>
+
+

@@ -1,0 +1,157 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Organization Settings</h1>
+          <p class="mt-2 text-gray-600">Manage your organization's configuration</p>
+        </div>
+        <div>
+          <%= link_to "Edit Settings", edit_tenant_organization_setting_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Critical Resources Warning -->
+    <% if @current_organization.activated? && @current_organization.has_missing_critical_resources? %>
+      <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h3 class="text-sm font-medium text-yellow-800">
+              Missing Critical Resources
+            </h3>
+            <div class="mt-2 text-sm text-yellow-700">
+              <p>Your organization is missing the following critical resources:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <% @current_organization.missing_critical_resources.each do |resource| %>
+                  <li><%= resource %></li>
+                <% end %>
+              </ul>
+              <p class="mt-3">Please add these resources to enable full functionality.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Settings Display -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Medical Record Number (MRN) Settings</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">MRN Enabled</label>
+          <p class="mt-1 text-sm text-gray-900">
+            <%= @organization_setting.mrn_enabled == "true" ? "Yes" : "No" %>
+          </p>
+        </div>
+
+        <% if @organization_setting.mrn_enabled == "true" %>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">MRN Prefix</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @organization_setting.mrn_prefix || "Not set" %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">MRN Sequence</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @organization_setting.mrn_sequence || "Not set" %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">MRN Format</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @organization_setting.mrn_format || "Not set" %></p>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Resource Status -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <% summary = @current_organization.resource_status_summary %>
+      
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Resource Status</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-700">Providers</span>
+            <div class="flex items-center space-x-2">
+              <% if summary[:providers][:present] %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <%= summary[:providers][:count] %> active
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Missing
+                </span>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-700">Fee Schedules</span>
+            <div class="flex items-center space-x-2">
+              <% if summary[:fee_schedules][:present] %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <%= summary[:fee_schedules][:count] %> active
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Missing
+                </span>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-700">Specialties</span>
+            <div class="flex items-center space-x-2">
+              <% if summary[:specialties][:present] %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <%= summary[:specialties][:count] %> active
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Missing
+                </span>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-700">Locations</span>
+            <div class="flex items-center space-x-2">
+              <% if summary[:locations][:present] %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <%= summary[:locations][:count] %> active
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Missing
+                </span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div class="space-y-2">
+          <%= link_to "Add Provider", new_tenant_provider_path, class: "block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" unless summary[:providers][:present] %>
+          <%= link_to "Create Fee Schedule", new_tenant_fee_schedule_path, class: "block w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors" unless summary[:fee_schedules][:present] %>
+          <%= link_to "Add Location", new_tenant_organization_location_path, class: "block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors" unless summary[:locations][:present] %>
+          <%= link_to "View Specialties", tenant_specialties_path, class: "block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

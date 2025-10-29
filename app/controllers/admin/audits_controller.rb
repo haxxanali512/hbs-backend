@@ -41,7 +41,7 @@ class Admin::AuditsController < Admin::BaseController
     # For shared filters partial
     @search_placeholder = "Comment, IP address..."
     @status_options = Audited::Audit.reorder(nil).distinct.pluck(:action).compact.sort
-    @organization_options = User.where(id: Audited::Audit.reorder(nil).distinct.pluck(:user_id).compact).order(:email)
+    @user_options = User.where(id: Audited::Audit.reorder(nil).distinct.pluck(:user_id).compact).order(:email)
     @extra_select = Audited::Audit.reorder(nil).distinct.pluck(:auditable_type).compact.sort
     @show_date_range = true
   end
@@ -87,7 +87,7 @@ class Admin::AuditsController < Admin::BaseController
     # For shared filters partial
     @search_placeholder = "Comment, IP address..."
     @status_options = @audits.reorder(nil).distinct.pluck(:action).compact.sort
-    @organization_options = User.where(id: @audits.reorder(nil).distinct.pluck(:user_id).compact).order(:email)
+    @user_options = User.where(id: @audits.reorder(nil).distinct.pluck(:user_id).compact).order(:email)
     @auditable_type = params[:auditable_type]
     @auditable_id = params[:auditable_id]
     @show_date_range = true

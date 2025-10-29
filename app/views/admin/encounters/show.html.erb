@@ -1,0 +1,124 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Encounter Details</h1>
+          <p class="mt-2 text-gray-600">View encounter information</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Back to Encounters", admin_encounters_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <%= link_to "Edit", edit_admin_encounter_path(@encounter), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Encounter Information -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Encounter Information</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Organization</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @encounter.organization.name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Patient</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @encounter.patient.first_name %> <%= @encounter.patient.last_name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Provider</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @encounter.provider.full_name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Date of Service</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @encounter.date_of_service.strftime("%B %d, %Y") %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Specialty</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @encounter.specialty.name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Billing Channel</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.insurance? ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
+                <%= @encounter.billing_channel.humanize %>
+              </span>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Status</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.status_badge_color %>">
+                <%= @encounter.status.humanize %>
+              </span>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Cascaded</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @encounter.cascaded? ? "Yes" : "No" %></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnosis Codes -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Diagnosis Codes</h2>
+          <% if @encounter.diagnosis_codes.any? %>
+            <div class="space-y-2">
+              <% @encounter.diagnosis_codes.each do |diagnosis| %>
+                <div class="flex items-center space-x-2">
+                  <span class="text-sm font-mono text-blue-600"><%= diagnosis.code %></span>
+                  <span class="text-sm text-gray-700">-</span>
+                  <span class="text-sm text-gray-700"><%= diagnosis.description %></span>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No diagnosis codes assigned</p>
+          <% end %>
+        </div>
+
+        <!-- Notes -->
+        <% if @encounter.notes.present? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Clinical Notes</h2>
+            <p class="text-sm text-gray-900 whitespace-pre-wrap"><%= @encounter.notes %></p>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Status Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Information</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Created</label>
+              <p class="text-sm text-gray-900"><%= @encounter.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Updated</label>
+              <p class="text-sm text-gray-900"><%= @encounter.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+            
+            <% if @encounter.cascaded? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Display Status</label>
+                <p class="text-sm text-gray-900"><%= @encounter.display_status_text %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -3,8 +3,8 @@ class OrganizationLocation < ApplicationRecord
   include Discard::Model
 
   belongs_to :organization
-  # has_many :encounters, foreign_key: :service_location_id, dependent: :restrict_with_error
-  has_many :claims, through: :encounters
+  has_many :encounters, dependent: :restrict_with_error
+  has_many :appointments, dependent: :restrict_with_error
 
   # Validations
   validates :name, presence: true, length: { minimum: 2, maximum: 100 }

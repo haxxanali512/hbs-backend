@@ -51,7 +51,11 @@ class Organization < ApplicationRecord
   has_many :documents, as: :documentable, dependent: :destroy
   has_many :organization_fee_schedules, dependent: :destroy
   has_many :organization_locations, dependent: :destroy
+  has_many :appointments, dependent: :destroy
+  has_many :encounters, dependent: :restrict_with_error
+  has_many :patients, dependent: :destroy
   after_create :invite_owner
+  after_create :create_default_settings
 
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true
@@ -104,8 +108,67 @@ class Organization < ApplicationRecord
     owner.invite!
   end
 
+  def create_default_settings
+    create_organization_setting unless organization_setting.present?
+  end
+
   def remove_member(user)
     membership = organization_memberships.find_by(user: user)
     membership&.deactivate!
+  end
+
+  # ===========================================================
+  # POST-ACTIVATION RESOURCE VALIDATION
+  # ===========================================================
+
+  def has_active_providers?
+    providers.active.any?
+  end
+
+  def has_fee_schedules?
+    organization_fee_schedules.kept.any?
+  end
+
+  def has_active_specialties?
+    # Check if any providers have active specialties
+    providers.joins(:specialty).where(specialties: { status: :active }).any?
+  end
+
+  def has_accepted_plans?
+    # Placeholder - will be implemented when AcceptedPlan model exists
+    # For now, return true as this is insurance-specific
+    true
+  end
+
+  def has_locations?
+    organization_locations.active.any?
+  end
+
+  def missing_critical_resources
+    missing = []
+    missing << "Providers" unless has_active_providers?
+    missing << "Fee Schedules" unless has_fee_schedules?
+    missing << "Specialties" unless has_active_specialties?
+    missing << "Locations" unless has_locations?
+    missing
+  end
+
+  def has_missing_critical_resources?
+    missing_critical_resources.any?
+  end
+
+  def critical_resources_complete?
+    !has_missing_critical_resources?
+  end
+
+  # Resource status summary
+  def resource_status_summary
+    {
+      providers: { present: has_active_providers?, count: providers.active.count },
+      fee_schedules: { present: has_fee_schedules?, count: organization_fee_schedules.kept.count },
+      specialties: { present: has_active_specialties?, count: providers.joins(:specialty).where(specialties: { status: :active }).distinct.count(:specialty_id) },
+      locations: { present: has_locations?, count: organization_locations.active.count },
+      accepted_plans: { present: has_accepted_plans?, count: 0 } # Placeholder
+    }
   end
 end

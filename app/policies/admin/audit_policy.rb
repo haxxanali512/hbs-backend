@@ -17,3 +17,4 @@ class Admin::AuditPolicy < ApplicationPolicy
     end
   end
 end
+

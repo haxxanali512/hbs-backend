@@ -5,6 +5,8 @@ class Specialty < ApplicationRecord
   has_many :procedure_codes_specialties, dependent: :destroy
   has_many :procedure_codes, through: :procedure_codes_specialties
   has_many :providers, dependent: :restrict_with_error
+  has_many :appointments, dependent: :restrict_with_error
+  has_many :encounters, dependent: :restrict_with_error
 
   enum status: { active: 0, retired: 1 }
 

@@ -1,0 +1,137 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Appointment Details</h1>
+          <p class="mt-2 text-gray-600">View appointment information</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Back to Appointments", admin_appointments_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <%= link_to "Edit", edit_admin_appointment_path(@appointment), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Appointment Information -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Appointment Information</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Organization</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.organization.name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Patient</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.patient_name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Provider</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.provider_name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Location</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.organization_location.name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Specialty</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.specialty.name %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Scheduled Start</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.scheduled_start_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Scheduled End</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.scheduled_end_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+            </div>
+
+            <% if @appointment.actual_start_at.present? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Actual Start</label>
+                <p class="mt-1 text-sm text-gray-900"><%= @appointment.actual_start_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+              </div>
+            <% end %>
+
+            <% if @appointment.actual_end_at.present? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Actual End</label>
+                <p class="mt-1 text-sm text-gray-900"><%= @appointment.actual_end_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Appointment Details -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Additional Details</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Appointment Type</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @appointment.type_badge_color %>">
+                <%= @appointment.appointment_type.humanize %>
+              </span>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Status</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @appointment.status_badge_color %>">
+                <%= @appointment.status.humanize %>
+              </span>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Duration</label>
+              <p class="mt-1 text-sm text-gray-900">
+                <%= @appointment.duration_in_minutes %> minutes
+              </p>
+            </div>
+          </div>
+
+          <% if @appointment.reason_for_visit.present? %>
+            <div class="mt-6">
+              <label class="block text-sm font-medium text-gray-700">Reason for Visit</label>
+              <p class="mt-1 text-sm text-gray-900"><%= @appointment.reason_for_visit %></p>
+            </div>
+          <% end %>
+
+          <% if @appointment.notes.present? %>
+            <div class="mt-6">
+              <label class="block text-sm font-medium text-gray-700">Notes</label>
+              <p class="mt-1 text-sm text-gray-900 whitespace-pre-wrap"><%= @appointment.notes %></p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Status Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Information</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Created</label>
+              <p class="text-sm text-gray-900"><%= @appointment.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Updated</label>
+              <p class="text-sm text-gray-900"><%= @appointment.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

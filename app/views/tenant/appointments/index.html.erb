@@ -1,0 +1,118 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Appointments</h1>
+          <p class="mt-2 text-gray-600">Manage your organization's appointments</p>
+        </div>
+        <div>
+          <%= link_to "New Appointment", new_tenant_appointment_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <%
+      @search_placeholder = "Patient name, provider name..."
+      @status_options = @statuses
+      @provider_options = @providers
+      @patient_options = @patients
+      @specialty_options = @specialties
+      @location_options = @locations
+      @show_date_range = true
+    %>
+    <%= render "shared/filters" %>
+
+    <!-- Appointments Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% if @appointments.any? %>
+              <% @appointments.each do |appointment| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                      <%= appointment.scheduled_start_at.strftime("%b %d, %Y") %>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      <%= appointment.scheduled_start_at.strftime("%l:%M %p") %> - <%= appointment.scheduled_end_at.strftime("%l:%M %p") %>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">
+                      <%= link_to appointment.patient_name, "#", class: "text-blue-600 hover:text-blue-800" %>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                      <%= appointment.provider_name %>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= appointment.type_badge_color %>">
+                      <%= appointment.appointment_type.humanize %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= appointment.status_badge_color %>">
+                      <%= appointment.status.humanize %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= appointment.organization_location.name %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex space-x-2">
+                      <%= link_to "View", tenant_appointment_path(appointment), class: "text-blue-600 hover:text-blue-800" %>
+                      <%= link_to "Edit", edit_tenant_appointment_path(appointment), class: "text-indigo-600 hover:text-indigo-800" %>
+                      
+                      <% if appointment.can_be_cancelled? %>
+                        <%= link_to "Cancel", cancel_tenant_appointment_path(appointment), method: :post,
+                            class: "text-red-600 hover:text-red-800",
+                            data: { confirm: "Are you sure you want to cancel this appointment?" } %>
+                      <% end %>
+                      
+                      <% if appointment.can_be_completed? %>
+                        <%= link_to "Complete", complete_tenant_appointment_path(appointment), method: :post,
+                            class: "text-green-600 hover:text-green-800" %>
+                      <% end %>
+                      
+                      <% if appointment.status != "no_show" && appointment.can_be_cancelled? %>
+                        <%= link_to "No Show", mark_no_show_tenant_appointment_path(appointment), method: :post,
+                            class: "text-orange-600 hover:text-orange-800",
+                            data: { confirm: "Mark this appointment as no-show?" } %>
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No appointments found.</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <%== pagy_nav(@pagy) %>
+    </div>
+  </div>
+</div>
+

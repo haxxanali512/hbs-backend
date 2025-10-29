@@ -10,9 +10,34 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_28_092501) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "appointments", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "organization_location_id", null: false
+    t.bigint "provider_id", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "specialty_id", null: false
+    t.integer "appointment_type"
+    t.integer "status"
+    t.datetime "scheduled_start_at", precision: nil
+    t.datetime "scheduled_end_at", precision: nil
+    t.datetime "actual_start_at", precision: nil
+    t.datetime "actual_end_at", precision: nil
+    t.integer "duration_minutes"
+    t.text "reason_for_visit"
+    t.text "notes"
+    t.datetime "discarded_at", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_appointments_on_organization_id"
+    t.index ["organization_location_id"], name: "index_appointments_on_organization_location_id"
+    t.index ["patient_id"], name: "index_appointments_on_patient_id"
+    t.index ["provider_id"], name: "index_appointments_on_provider_id"
+    t.index ["specialty_id"], name: "index_appointments_on_specialty_id"
+  end
 
   create_table "audits", force: :cascade do |t|
     t.integer "auditable_id"
@@ -44,6 +69,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
     t.datetime "effective_to"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_diagnosis_codes_on_code", unique: true
+    t.index ["status"], name: "index_diagnosis_codes_on_status"
   end
 
   create_table "document_attachments", force: :cascade do |t|
@@ -105,8 +132,29 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
     t.integer "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "organization_location_id"
+    t.bigint "appointment_id"
+    t.integer "display_status", default: 0
+    t.integer "billing_insurance_status", default: 0
+    t.boolean "cascaded", default: false
+    t.datetime "cascaded_at", precision: nil
+    t.bigint "claim_id"
+    t.bigint "patient_invoice_id"
+    t.bigint "eligibility_check_used_id"
+    t.datetime "confirmed_at", precision: nil
+    t.bigint "confirmed_by_id"
+    t.boolean "locked_for_correction", default: false
+    t.datetime "discarded_at", precision: nil
+    t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
+    t.index ["cascaded"], name: "index_encounters_on_cascaded"
+    t.index ["claim_id"], name: "index_encounters_on_claim_id"
+    t.index ["confirmed_by_id"], name: "index_encounters_on_confirmed_by_id"
+    t.index ["display_status"], name: "index_encounters_on_display_status"
+    t.index ["eligibility_check_used_id"], name: "index_encounters_on_eligibility_check_used_id"
     t.index ["organization_id"], name: "index_encounters_on_organization_id"
+    t.index ["organization_location_id"], name: "index_encounters_on_organization_location_id"
     t.index ["patient_id"], name: "index_encounters_on_patient_id"
+    t.index ["patient_invoice_id"], name: "index_encounters_on_patient_invoice_id"
     t.index ["provider_id"], name: "index_encounters_on_provider_id"
     t.index ["specialty_id"], name: "index_encounters_on_specialty_id"
   end
@@ -334,7 +382,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
     t.bigint "organization_id", null: false
     t.string "first_name"
     t.string "last_name"
-    t.datetime "dob"
+    t.date "dob"
     t.string "sex_at_birth"
     t.text "address_line_1"
     t.text "address_line_2"
@@ -351,6 +399,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
     t.text "notes_nonphi"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "merged_into_patient_id"
+    t.datetime "discarded_at", precision: nil
+    t.index ["merged_into_patient_id"], name: "index_patients_on_merged_into_patient_id"
     t.index ["organization_id"], name: "index_patients_on_organization_id"
   end
 
@@ -417,7 +468,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
     t.string "npi", limit: 10
     t.string "license_number"
     t.string "license_state", limit: 2
-    t.uuid "user_id"
+    t.bigint "user_id"
     t.string "status", default: "draft", null: false
     t.jsonb "metadata", default: {}
     t.datetime "created_at", null: false
@@ -512,12 +563,19 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
   end
 
+  add_foreign_key "appointments", "organization_locations"
+  add_foreign_key "appointments", "organizations"
+  add_foreign_key "appointments", "patients"
+  add_foreign_key "appointments", "providers"
+  add_foreign_key "appointments", "specialties"
   add_foreign_key "document_attachments", "documents"
   add_foreign_key "document_attachments", "users", column: "uploaded_by_id"
   add_foreign_key "documents", "organizations"
   add_foreign_key "documents", "users", column: "created_by_id"
   add_foreign_key "encounter_diagnosis_codes", "diagnosis_codes"
   add_foreign_key "encounter_diagnosis_codes", "encounters"
+  add_foreign_key "encounters", "appointments"
+  add_foreign_key "encounters", "organization_locations"
   add_foreign_key "encounters", "organizations"
   add_foreign_key "encounters", "patients"
   add_foreign_key "encounters", "providers"
@@ -540,6 +598,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
   add_foreign_key "organization_settings", "organizations"
   add_foreign_key "organizations", "users", column: "owner_id"
   add_foreign_key "patients", "organizations"
+  add_foreign_key "patients", "patients", column: "merged_into_patient_id"
   add_foreign_key "payments", "invoices"
   add_foreign_key "payments", "organizations"
   add_foreign_key "payments", "users", column: "processed_by_user_id"
@@ -548,5 +607,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_22_113512) do
   add_foreign_key "provider_assignments", "organizations"
   add_foreign_key "provider_assignments", "providers"
   add_foreign_key "providers", "specialties"
+  add_foreign_key "providers", "users"
   add_foreign_key "users", "roles"
 end

@@ -132,11 +132,37 @@ Rails.application.routes.draw do
           post :toggle_status
         end
       end
+
+      resources :diagnosis_codes do
+        member do
+          post :retire
+          post :activate
+        end
+      end
+
+      resources :appointments, only: [ :index, :show, :edit, :update, :destroy ]
+
+      resources :encounters, only: [ :index, :show, :edit, :update, :destroy ] do
+        member do
+          post :cancel
+          post :request_correction
+          post :override_validation
+        end
+      end
+
+      resources :patients, only: [ :index, :show, :edit, :update, :destroy ] do
+        member do
+          post :activate
+          post :inactivate
+          post :mark_deceased
+          post :reactivate
+        end
+      end
     end
   end
 
   # ===========================================================
-  # 🧩 TENANT (org subdomains)
+  # TENANT (org subdomains)
   # ===========================================================
   constraints subdomain: /^(?!www|admin$).+/ do
     root "tenant/dashboard#index", as: :tenant_root
@@ -212,14 +238,39 @@ Rails.application.routes.draw do
         end
 
         resources :procedure_codes, only: [ :index, :show ]
+
+        resources :diagnosis_codes, only: [ :index, :show ] do
+          member do
+            post :request
+          end
+        end
+
+        resources :appointments do
+          member do
+            post :cancel
+            post :complete
+            post :mark_no_show
+          end
+        end
+
+        resources :encounters do
+          member do
+            post :confirm_completed
+            post :cancel
+            post :request_correction
+          end
+        end
+
+        resources :patients do
+          member do
+            post :activate
+            post :inactivate
+            post :mark_deceased
+            post :reactivate
+          end
+        end
+
+        resource :organization_setting, only: [ :show, :edit, :update ]
       end
-
-
-      # Invoice management
-
-      # (optional) tenant resources like patients, claims, etc.
-      # resources :patients
-      # resources :claims
-      # resources :team_members
     end
   end
