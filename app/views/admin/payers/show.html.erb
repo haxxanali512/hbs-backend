@@ -1,0 +1,58 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-3xl font-bold text-gray-900"><%= @payer.name %></h1>
+      <div class="flex items-center gap-2">
+        <%= link_to "Back", admin_payers_path, class: "px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50" %>
+        <%= link_to "Edit", edit_admin_payer_path(@payer), class: "px-3 py-2 rounded-md text-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Details</h2>
+        <dl class="grid grid-cols-1 gap-4">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Type</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer.payer_type.humanize %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Status</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer.status.humanize %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">HBS Payer Key</dt>
+            <dd class="text-sm text-gray-900 mt-1 font-mono"><%= @payer.hbs_payer_key %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Namespace / National ID</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer.id_namespace&.humanize || '—' %> / <%= @payer.national_payer_id.presence || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">State Scope</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= (@payer.state_scope || []).join(', ').presence || 'National' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Contact URL</dt>
+            <dd class="text-sm text-blue-700 mt-1"><%= @payer.contact_url.presence || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Support Phone</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer.support_phone.presence || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Internal Notes</dt>
+            <dd class="text-sm text-gray-900 mt-1 whitespace-pre-wrap"><%= @payer.notes_internal.presence || '—' %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Routing (ClaimGen)</h2>
+        <p class="text-sm text-gray-500">Configure per-organization routes in a future step.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+

@@ -57,7 +57,7 @@ module HbsCustoms
           gocardless: { create_redirect_flow: false },
           providers: DEFAULT_CRUD.except(:destroy),
           specialties: DEFAULT_CRUD,
-          diagnoses_codes: DEFAULT_CRUD_WITH_RETIRE,
+          diagnosis_codes: DEFAULT_CRUD.merge(request: false),
           fee_schedules: DEFAULT_CRUD,
           fee_schedule_items: DEFAULT_CRUD,
           procedure_codes: DEFAULT_CRUD,
@@ -65,8 +65,10 @@ module HbsCustoms
           appointments: DEFAULT_CRUD_WITH_STATE,
           organization_settings: { show: false, edit: false, update: false },
           encounters: DEFAULT_CRUD_WITH_WORKFLOW,
-          patients: DEFAULT_CRUD
-        }
+          patients: DEFAULT_CRUD,
+          claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
+          claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false)
+        }.freeze
       end
 
       def admin_permissions
@@ -79,7 +81,7 @@ module HbsCustoms
           invoices: DEFAULT_CRUD,
           providers: DEFAULT_CRUD,
           specialties: DEFAULT_CRUD,
-          diagnoses_codes: DEFAULT_CRUD_WITH_RETIRE,
+          diagnosis_codes: DEFAULT_CRUD_WITH_RETIRE,
           documents: DEFAULT_CRUD,
           payments: DEFAULT_CRUD,
           fee_schedules: DEFAULT_CRUD,
@@ -89,8 +91,11 @@ module HbsCustoms
           appointments: DEFAULT_CRUD_WITH_STATE.except(:create, :destroy),
           audits: { index: false, show: false, model_audits: false },
           encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false),
-          patients: DEFAULT_CRUD
-        }
+          patients: DEFAULT_CRUD,
+          claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
+          claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
+          payers: DEFAULT_CRUD
+        }.freeze
       end
 
       def update_all_to_true(hash)

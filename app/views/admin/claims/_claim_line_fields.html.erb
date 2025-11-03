@@ -1,0 +1,39 @@
+<div class="border border-gray-200 rounded-lg p-4 bg-gray-50" data-nested-form-target="item">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div>
+      <%= f.label :procedure_code_id, "Procedure Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :procedure_code_id, options_from_collection_for_select(@procedure_codes, :id, lambda { |pc| "#{pc.code} - #{pc.description}" }, f.object.procedure_code_id), { prompt: "Select Procedure" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true } %>
+    </div>
+
+    <div>
+      <%= f.label :units, "Units", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.number_field :units, value: f.object.units || 1, min: 1, step: 1, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true %>
+    </div>
+
+    <div>
+      <%= f.label :amount_billed, "Amount Billed", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.number_field :amount_billed, value: f.object.amount_billed || 0, min: 0, step: 0.01, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true %>
+    </div>
+
+    <div>
+      <%= f.label :place_of_service_code, "POS Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :place_of_service_code, value: f.object.place_of_service_code || f.object.claim&.place_of_service_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "e.g., 11", required: true %>
+    </div>
+
+    <div>
+      <%= f.label :modifiers, "Modifiers (comma-separated, max 4)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :modifiers, value: f.object.modifiers&.join(","), class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "e.g., 25,59" %>
+      <p class="mt-1 text-xs text-gray-500">Enter modifiers separated by commas</p>
+    </div>
+
+    <div>
+      <%= f.label :dx_pointers_numeric, "Diagnosis Pointers (comma-separated, max 4)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :dx_pointers_numeric, value: f.object.dx_pointers_numeric&.join(","), class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "e.g., 1,2" %>
+      <p class="mt-1 text-xs text-gray-500">Must be contiguous starting at 1 (e.g., 1,2 or 1,2,3)</p>
+    </div>
+  </div>
+
+  <%= f.hidden_field :_destroy, value: false, class: "destroy-field" %>
+  <button type="button" class="remove-line-btn mt-2 text-sm text-red-600 hover:text-red-800">Remove Line</button>
+</div>
+

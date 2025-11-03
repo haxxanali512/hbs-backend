@@ -3,11 +3,6 @@ class Encounter < ApplicationRecord
   include AASM
 
   audited
-
-  # ===========================================================
-  # ASSOCIATIONS
-  # ===========================================================
-
   # Core belongs_to
   belongs_to :organization
   belongs_to :patient
@@ -17,14 +12,13 @@ class Encounter < ApplicationRecord
   belongs_to :appointment, optional: true
 
   # Billing/Cascade (mutually exclusive)
-  belongs_to :claim, optional: true, class_name: "Claim"
+  has_one :claim, foreign_key: "encounter_id", dependent: :restrict_with_error
   belongs_to :patient_invoice, optional: true
   belongs_to :eligibility_check_used, optional: true, class_name: "EligibilityCheck"
   belongs_to :confirmed_by, optional: true, class_name: "User"
 
   # has_one (mutually exclusive primary items)
-  has_one :claim, as: :claimable # Placeholder
-  has_one :patient_invoice, as: :invoiceable # Placeholder
+  # has_one :patient_invoice, as: :invoiceable # Placeholder
   has_one :primary_clinical_documentation, -> { where(is_primary: true) }, class_name: "ClinicalDocumentation"
 
   # has_many
@@ -101,7 +95,7 @@ class Encounter < ApplicationRecord
     end
 
     event :confirm_completed do
-      transitions from: [ :ready_for_review ], to: :completed_confirmed,
+      transitions from: [ :ready_for_review, :planned ], to: :completed_confirmed,
                   after: :handle_cascade_and_snapshots,
                   if: :can_be_confirmed?
     end

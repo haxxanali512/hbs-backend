@@ -1,0 +1,221 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Claim Details</h1>
+          <p class="mt-2 text-gray-600">Claim #<%= @claim.id %></p>
+        </div>
+        <div class="flex space-x-2">
+          <%= link_to "Back to Claims", admin_claims_path, class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
+          <% if (@claim.generated? || @claim.validated?) && policy(@claim).update? %>
+            <%= link_to "Edit", edit_admin_claim_path(@claim), class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="mb-6">
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <%= @claim.status_badge_color %>">
+        <%= @claim.status&.humanize || "—" %>
+      </span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left Column - Claim Header -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Claim Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Claim Information</h2>
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Organization</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.organization.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Patient</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.patient.full_name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Provider</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.provider.full_name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Specialty</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.specialty.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Date of Service</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.encounter.date_of_service.strftime("%B %d, %Y") if @claim.encounter&.date_of_service %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Place of Service</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.place_of_service_code %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">External Claim Key</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.external_claim_key || "N/A" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Generated At</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.generated_at&.strftime("%B %d, %Y %I:%M %p") || "N/A" %></dd>
+            </div>
+            <% if @claim.submitted_at %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Submitted At</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= @claim.submitted_at.strftime("%B %d, %Y %I:%M %p") %></dd>
+              </div>
+            <% end %>
+          </dl>
+        </div>
+
+        <!-- Claim Lines -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Claim Lines</h2>
+          <% if @claim.claim_lines.any? %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Procedure</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Modifiers</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">DX Pointers</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @claim.claim_lines.each do |line| %>
+                    <tr>
+                      <td class="px-4 py-3 text-sm text-gray-900">
+                        <%= line.procedure_code.code %> - <%= line.procedure_code.description %>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= line.units %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= number_to_currency(line.amount_billed) %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= line.modifiers.join(", ") || "N/A" %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= line.dx_pointers_numeric.join(", ") || "N/A" %></td>
+                      <td class="px-4 py-3 text-sm">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <%= line.status.humanize %>
+                        </span>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No claim lines yet.</p>
+          <% end %>
+        </div>
+
+        <!-- Submissions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Submissions</h2>
+          <% if @claim.claim_submissions.any? %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted At</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ACK Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ACK Code</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">External Key</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Error</th>
+                    <th class="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @claim.claim_submissions.latest_first.each do |sub| %>
+                    <tr>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= sub.submitted_at&.strftime("%b %d, %Y %I:%M %p") || "—" %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= sub.submission_method&.humanize %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= sub.status&.to_s&.humanize %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= sub.ack_status&.humanize %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= sub.ack_code || "—" %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900 font-mono"><%= sub.external_submission_key %></td>
+                      <td class="px-4 py-3 text-sm text-red-700"><%= sub.error_message || "" %></td>
+                      <td class="px-4 py-3 text-right text-sm">
+                        <% if current_user.permissions_for("admin", "claims", "submit") %>
+                          <%= button_to "Resubmit", resubmit_admin_claim_claim_submission_path(@claim, sub), method: :post, class: "inline-flex items-center px-2.5 py-1.5 rounded-md text-xs text-white bg-indigo-600 hover:bg-indigo-700" %>
+                        <% end %>
+                        <% if current_user.permissions_for("admin", "claims", "void") %>
+                          <%= button_to "Void", void_admin_claim_claim_submission_path(@claim, sub), method: :post, class: "ml-2 inline-flex items-center px-2.5 py-1.5 rounded-md text-xs text-white bg-red-600 hover:bg-red-700" %>
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No submissions yet.</p>
+          <% end %>
+          <div class="mt-4">
+            <% if current_user.permissions_for("admin", "claims", "submit") %>
+              <%= button_to "Create Submission", admin_claim_claim_submissions_path(@claim), method: :post, params: { claim_submission: { submission_method: :api } }, class: "inline-flex items-center px-3 py-2 rounded-md text-sm text-white bg-green-600 hover:bg-green-700" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column - Totals & Actions -->
+      <div class="space-y-6">
+        <!-- Totals -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Totals</h2>
+          <dl class="space-y-3">
+            <div class="flex justify-between">
+              <dt class="text-sm font-medium text-gray-500">Total Units</dt>
+              <dd class="text-sm text-gray-900"><%= @claim.total_units || 0 %></dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-sm font-medium text-gray-500">Total Billed</dt>
+              <dd class="text-sm font-semibold text-gray-900"><%= number_to_currency(@claim.total_billed || 0) %></dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Actions -->
+        <% if current_user.permissions_for("admin", "claims", "validate") && @claim.generated? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
+            <div class="space-y-2">
+              <%= button_to "Validate", validate_admin_claim_path(@claim), method: :post, class: "w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700" %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if current_user.permissions_for("admin", "claims", "submit") && (@claim.generated? || @claim.validated?) %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Submit</h2>
+            <div class="space-y-2">
+              <%= button_to "Submit Claim", submit_admin_claim_path(@claim), method: :post, class: "w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700" %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if current_user.permissions_for("admin", "claims", "void") && @claim.can_be_voided? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Void</h2>
+            <%= button_to "Void Claim", void_admin_claim_path(@claim), method: :post, data: { confirm: "Are you sure you want to void this claim?" }, class: "w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700" %>
+          </div>
+        <% end %>
+
+        <% if current_user.permissions_for("admin", "claims", "close") && @claim.can_be_closed? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Close</h2>
+            <%= button_to "Close Claim", close_admin_claim_path(@claim), method: :post, class: "w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

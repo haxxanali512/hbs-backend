@@ -89,6 +89,8 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :payers
+
       resources :providers do
         member do
           post :approve
@@ -147,6 +149,29 @@ Rails.application.routes.draw do
           post :cancel
           post :request_correction
           post :override_validation
+        end
+      end
+
+      resources :claims do
+        member do
+          post :validate
+          post :submit
+          post :post_adjudication
+          post :void
+          post :reverse
+          post :close
+        end
+        resources :claim_submissions, only: [ :index, :create ] do
+          member do
+            post :resubmit
+            post :void
+            post :replace
+          end
+        end
+        resources :claim_lines, only: [ :index, :show, :edit, :update ] do
+          member do
+            post :post_adjudication
+          end
         end
       end
 
@@ -241,7 +266,7 @@ Rails.application.routes.draw do
 
         resources :diagnosis_codes, only: [ :index, :show ] do
           member do
-            post :request
+            post :request_review
           end
         end
 
@@ -258,6 +283,7 @@ Rails.application.routes.draw do
             post :confirm_completed
             post :cancel
             post :request_correction
+            post :attach_document
           end
         end
 

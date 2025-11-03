@@ -123,7 +123,7 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payer / Method</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
@@ -133,13 +133,20 @@
                   <% @payments.each do |payment| %>
                     <tr>
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <%= payment.paid_at&.strftime("%b %d, %Y %I:%M %p") || payment.created_at.strftime("%b %d, %Y %I:%M %p") %>
+                        <%# Prefer remit payment_date, fallback to paid_at/created_at %>
+                        <%= (payment.try(:payment_date) || payment.paid_at || payment.created_at).strftime("%b %d, %Y") rescue payment.created_at.strftime("%b %d, %Y") %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <%= payment.payment_method.humanize %>
+                        <% if payment.respond_to?(:payer) && payment.payer.present? %>
+                          <div><span class="font-medium"><%= payment.payer.name %></span></div>
+                          <div class="text-xs text-gray-500"><%= payment.payer.payer_type.humanize %></div>
+                        <% else %>
+                          <%= payment.payment_method.humanize %>
+                        <% end %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        $<%= number_with_precision(payment.amount, precision: 2) %>
+                        <% amt = payment.try(:amount_total) || payment.amount %>
+                        $<%= number_with_precision(amt, precision: 2) %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap">
                         <% payment_status_colors = {
@@ -148,12 +155,17 @@
                           "failed" => "bg-red-100 text-red-800",
                           "refunded" => "bg-gray-100 text-gray-800"
                         } %>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= payment_status_colors[payment.payment_status] %>">
-                          <%= payment.payment_status.humanize %>
-                        </span>
+                        <% if payment.respond_to?(:payment_status) && payment.payment_status.present? %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= payment_status_colors[payment.payment_status] %>">
+                            <%= payment.payment_status.humanize %>
+                          </span>
+                        <% else %>
+                          <span class="text-xs text-gray-500">Remit</span>
+                        <% end %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <%= payment.payment_provider_id || "—" %>
+                        <% ref = payment.try(:remit_reference) || payment.payment_provider_id %>
+                        <%= ref.presence || "—" %>
                       </td>
                     </tr>
                   <% end %>

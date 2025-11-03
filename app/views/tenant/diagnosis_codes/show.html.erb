@@ -1,7 +1,7 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-2xl font-semibold">Diagnosis Code: <%= @diagnosis_code.code %></h1>
   <div>
-    <%= button_to "Request Review", request_tenant_diagnosis_code_path(@diagnosis_code), method: :post, class: "bg-blue-600 text-white px-4 py-2 rounded" %>
+    <%= button_to "Request Review", request_review_tenant_diagnosis_code_path(@diagnosis_code), method: :post, class: "bg-blue-600 text-white px-4 py-2 rounded" %>
   </div>
 </div>
 

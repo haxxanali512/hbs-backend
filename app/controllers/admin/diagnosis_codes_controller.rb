@@ -4,7 +4,9 @@ class Admin::DiagnosisCodesController < Admin::BaseController
   def index
     @diagnosis_codes = DiagnosisCode.order(:code)
     @diagnosis_codes = @diagnosis_codes.search(params[:search]) if params[:search].present?
-    @diagnosis_codes = @diagnosis_codes.where(status: params[:status]) if params[:status].present?
+    status_param = params[:status] || params[:action_type]
+    @diagnosis_codes = @diagnosis_codes.where(status: status_param) if status_param.present?
+    @pagy, @diagnosis_codes = pagy(@diagnosis_codes, items: 20)
   end
 
   def show; end

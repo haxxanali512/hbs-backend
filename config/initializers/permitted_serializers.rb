@@ -4,5 +4,6 @@ Rails.application.config.active_record.yaml_column_permitted_classes = [
   Date,
   Time,
   DateTime,
-  ActiveSupport::TimeWithZone
+  ActiveSupport::TimeWithZone,
+  ActiveSupport::TimeZone
 ]

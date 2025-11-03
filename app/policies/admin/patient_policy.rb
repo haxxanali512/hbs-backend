@@ -23,6 +23,14 @@ class Admin::PatientPolicy < ApplicationPolicy
     update?
   end
 
+  def mark_deceased?
+    accessible?("admin", "patients", "update")
+  end
+
+  def reactivate?
+    accessible?("admin", "patients", "update")
+  end
+
   def destroy?
     accessible?("admin", "patients", "destroy")
   end
@@ -33,4 +41,3 @@ class Admin::PatientPolicy < ApplicationPolicy
     end
   end
 end
-

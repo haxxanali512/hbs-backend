@@ -160,7 +160,37 @@
           <% end %>
         </li>
         <% end %>
-        
+
+        <% if current_user.permissions_for("admin", "payers", "index") %>
+        <li>
+          <% payers_active = controller_path == 'admin/payers' %>
+          <%= link_to admin_payers_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{payers_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{payers_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <span>Payers</span>
+          <% end %>
+        </li>
+        <% end %>
+
+        <% if current_user.permissions_for("admin", "diagnosis_codes", "index") %>
+          <li>
+            <% diagnosis_codes_active = controller_path == 'admin/diagnosis_codes' %>
+            <%= link_to admin_diagnosis_codes_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{diagnosis_codes_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{diagnosis_codes_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Diagnosis Codes</span>
+            <% end %>
+          </li>
+        <% end %>
+
+        <% if current_user.permissions_for("admin", "claims", "index") %>
+          <li>
+            <% claims_active = controller_path == 'admin/claims' %>
+            <%= link_to admin_claims_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{claims_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{claims_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Claims</span>
+            <% end %>
+          </li>
+        <% end %>
+
       <% elsif current_user.dashboard_type == "tenant_dashboard" && current_organization.present? %>
         <!-- Tenant-specific Sidebar -->
         <% if current_organization.activated? %>
@@ -275,6 +305,17 @@
             <% end %>
           </li>
         <% end %>
+
+        <% if current_user.permissions_for("tenant", "diagnosis_codes", "index") %>
+          <li>
+            <% diagnosis_codes_active = controller_path == 'tenant/diagnosis_codes' %>
+            <%= link_to tenant_diagnosis_codes_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{diagnosis_codes_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{diagnosis_codes_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Diagnosis Codes</span>
+            <% end %>
+          </li>
+        <% end %>
+
         <% if current_user.permissions_for("tenant", "organization_settings", "show") %>
             <li>
               <% settings_active = controller_path == 'tenant/organization_settings' %>

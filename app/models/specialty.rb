@@ -7,6 +7,7 @@ class Specialty < ApplicationRecord
   has_many :providers, dependent: :restrict_with_error
   has_many :appointments, dependent: :restrict_with_error
   has_many :encounters, dependent: :restrict_with_error
+  has_many :claims, dependent: :restrict_with_error
 
   enum status: { active: 0, retired: 1 }
 

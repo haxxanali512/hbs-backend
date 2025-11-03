@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_28_092501) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_03_130010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -59,6 +59,88 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_28_092501) do
     t.index ["created_at"], name: "index_audits_on_created_at"
     t.index ["request_uuid"], name: "index_audits_on_request_uuid"
     t.index ["user_id", "user_type"], name: "user_index"
+  end
+
+  create_table "claim_gen_payer_routes", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "payer_id", null: false
+    t.string "claimgen_account_key", null: false
+    t.string "external_payer_code"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id", "payer_id", "claimgen_account_key"], name: "idx_claimgen_routes_unique", unique: true
+    t.index ["organization_id"], name: "index_claim_gen_payer_routes_on_organization_id"
+    t.index ["payer_id"], name: "index_claim_gen_payer_routes_on_payer_id"
+  end
+
+  create_table "claim_lines", force: :cascade do |t|
+    t.bigint "claim_id", null: false
+    t.bigint "procedure_code_id", null: false
+    t.integer "units", default: 1, null: false
+    t.decimal "amount_billed", precision: 10, scale: 2, default: "0.0", null: false
+    t.string "modifiers", default: [], array: true
+    t.integer "dx_pointers_numeric", default: [], array: true
+    t.string "place_of_service_code", null: false
+    t.string "status", default: "generated", null: false
+    t.string "adjudication_group_codes", default: [], array: true
+    t.string "adjudication_carc_codes", default: [], array: true
+    t.string "adjudication_rarc_codes", default: [], array: true
+    t.decimal "adjudicated_amount", precision: 10, scale: 2
+    t.decimal "balance_remaining", precision: 10, scale: 2, default: "0.0"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["claim_id"], name: "index_claim_lines_on_claim_id"
+    t.index ["procedure_code_id"], name: "index_claim_lines_on_procedure_code_id"
+  end
+
+  create_table "claim_submissions", force: :cascade do |t|
+    t.bigint "claim_id", null: false
+    t.bigint "organization_id", null: false
+    t.bigint "patient_id", null: false
+    t.string "submission_method", default: "api", null: false
+    t.datetime "submitted_at", precision: nil
+    t.string "ack_status", default: "pending", null: false
+    t.datetime "ack_received_at", precision: nil
+    t.string "ack_code"
+    t.text "error_message"
+    t.string "resubmission_reason_code"
+    t.string "external_submission_key"
+    t.bigint "prior_submission_id"
+    t.integer "status", default: 0, null: false
+    t.string "edi_sha256"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["claim_id", "external_submission_key"], name: "idx_submission_external_per_claim", unique: true
+    t.index ["claim_id"], name: "index_claim_submissions_on_claim_id"
+    t.index ["organization_id"], name: "index_claim_submissions_on_organization_id"
+    t.index ["patient_id"], name: "index_claim_submissions_on_patient_id"
+    t.index ["prior_submission_id"], name: "index_claim_submissions_on_prior_submission_id"
+    t.index ["submitted_at"], name: "index_claim_submissions_on_submitted_at"
+  end
+
+  create_table "claims", force: :cascade do |t|
+    t.string "external_claim_key"
+    t.bigint "organization_id", null: false
+    t.bigint "encounter_id", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "provider_id", null: false
+    t.bigint "specialty_id", null: false
+    t.integer "status"
+    t.decimal "total_billed"
+    t.integer "total_units"
+    t.string "place_of_service_code"
+    t.datetime "generated_at", precision: nil
+    t.datetime "submitted_at", precision: nil
+    t.datetime "accepted_at", precision: nil
+    t.datetime "finalized_at", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_id"], name: "index_claims_on_encounter_id"
+    t.index ["organization_id"], name: "index_claims_on_organization_id"
+    t.index ["patient_id"], name: "index_claims_on_patient_id"
+    t.index ["provider_id"], name: "index_claims_on_provider_id"
+    t.index ["specialty_id"], name: "index_claims_on_specialty_id"
   end
 
   create_table "diagnosis_codes", force: :cascade do |t|
@@ -405,6 +487,37 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_28_092501) do
     t.index ["organization_id"], name: "index_patients_on_organization_id"
   end
 
+  create_table "payers", force: :cascade do |t|
+    t.string "name"
+    t.integer "payer_type"
+    t.integer "id_namespace"
+    t.integer "national_payer_id"
+    t.string "contact_url"
+    t.string "support_phone"
+    t.text "notes_internal"
+    t.string "state_scope", default: [], array: true
+    t.integer "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "hbs_payer_key"
+    t.text "search_tokens"
+  end
+
+  create_table "payment_applications", force: :cascade do |t|
+    t.bigint "payment_id", null: false
+    t.bigint "claim_id", null: false
+    t.bigint "claim_line_id"
+    t.decimal "amount_applied", precision: 10, scale: 2, default: "0.0", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "encounter_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["claim_id", "claim_line_id"], name: "index_payment_applications_on_claim_id_and_claim_line_id"
+    t.index ["claim_id"], name: "index_payment_applications_on_claim_id"
+    t.index ["claim_line_id"], name: "index_payment_applications_on_claim_line_id"
+    t.index ["payment_id"], name: "index_payment_applications_on_payment_id"
+  end
+
   create_table "payments", force: :cascade do |t|
     t.uuid "invoice_id", null: false
     t.bigint "organization_id", null: false
@@ -418,14 +531,22 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_28_092501) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "payer_id"
+    t.date "payment_date"
+    t.decimal "amount_total", precision: 10, scale: 2
+    t.string "remit_reference"
+    t.string "source_hash"
     t.index ["invoice_id", "payment_status"], name: "index_payments_on_invoice_id_and_payment_status"
     t.index ["invoice_id"], name: "index_payments_on_invoice_id"
     t.index ["organization_id", "paid_at"], name: "index_payments_on_organization_id_and_paid_at"
+    t.index ["organization_id", "payer_id", "remit_reference"], name: "idx_payments_org_payer_remit", unique: true
     t.index ["organization_id"], name: "index_payments_on_organization_id"
     t.index ["paid_at"], name: "index_payments_on_paid_at"
+    t.index ["payer_id"], name: "index_payments_on_payer_id"
     t.index ["payment_provider_id"], name: "index_payments_on_payment_provider_id"
     t.index ["payment_status"], name: "index_payments_on_payment_status"
     t.index ["processed_by_user_id"], name: "index_payments_on_processed_by_user_id"
+    t.index ["source_hash"], name: "index_payments_on_source_hash", unique: true
   end
 
   create_table "procedure_codes", force: :cascade do |t|
@@ -568,6 +689,19 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_28_092501) do
   add_foreign_key "appointments", "patients"
   add_foreign_key "appointments", "providers"
   add_foreign_key "appointments", "specialties"
+  add_foreign_key "claim_gen_payer_routes", "organizations"
+  add_foreign_key "claim_gen_payer_routes", "payers"
+  add_foreign_key "claim_lines", "claims"
+  add_foreign_key "claim_lines", "procedure_codes"
+  add_foreign_key "claim_submissions", "claim_submissions", column: "prior_submission_id"
+  add_foreign_key "claim_submissions", "claims"
+  add_foreign_key "claim_submissions", "organizations"
+  add_foreign_key "claim_submissions", "patients"
+  add_foreign_key "claims", "encounters"
+  add_foreign_key "claims", "organizations"
+  add_foreign_key "claims", "patients"
+  add_foreign_key "claims", "providers"
+  add_foreign_key "claims", "specialties"
   add_foreign_key "document_attachments", "documents"
   add_foreign_key "document_attachments", "users", column: "uploaded_by_id"
   add_foreign_key "documents", "organizations"
@@ -599,8 +733,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_28_092501) do
   add_foreign_key "organizations", "users", column: "owner_id"
   add_foreign_key "patients", "organizations"
   add_foreign_key "patients", "patients", column: "merged_into_patient_id"
+  add_foreign_key "payment_applications", "claim_lines"
+  add_foreign_key "payment_applications", "claims"
+  add_foreign_key "payment_applications", "payments"
   add_foreign_key "payments", "invoices"
   add_foreign_key "payments", "organizations"
+  add_foreign_key "payments", "payers"
   add_foreign_key "payments", "users", column: "processed_by_user_id"
   add_foreign_key "procedure_codes_specialties", "procedure_codes"
   add_foreign_key "procedure_codes_specialties", "specialties"

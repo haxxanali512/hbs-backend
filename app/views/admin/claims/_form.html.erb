@@ -1,0 +1,153 @@
+<%= form_with model: [:admin, claim], local: true, data: { turbo: false } do |f| %>
+  <% if claim.errors.any? %>
+    <div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+      <h3 class="text-sm font-medium text-red-800 mb-2">
+        <%= pluralize(claim.errors.count, "error") %> prohibited this claim from being saved:
+      </h3>
+      <ul class="list-disc list-inside text-sm text-red-700">
+        <% claim.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Claim Header -->
+  <div class="space-y-6">
+    <div>
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Claim Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :organization_id, options_from_collection_for_select(@organizations, :id, :name, claim.organization_id), { prompt: "Select Organization" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true } %>
+        </div>
+
+        <div>
+          <%= f.label :encounter_id, "Encounter", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :encounter_id, options_from_collection_for_select(@encounters, :id, lambda { |e| "#{e.date_of_service} - #{e.patient.full_name}" }, claim.encounter_id), { prompt: "Select Encounter" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true } %>
+        </div>
+
+        <div>
+          <%= f.label :patient_id, "Patient", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :patient_id, options_from_collection_for_select(@patients, :id, :full_name, claim.patient_id), { prompt: "Select Patient" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true } %>
+        </div>
+
+        <div>
+          <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :provider_id, options_from_collection_for_select(@providers, :id, :full_name, claim.provider_id), { prompt: "Select Provider" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true } %>
+        </div>
+
+        <div>
+          <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :specialty_id, options_from_collection_for_select(@specialties, :id, :name, claim.specialty_id), { prompt: "Select Specialty" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", required: true } %>
+        </div>
+
+        <div>
+          <%= f.label :place_of_service_code, "Place of Service Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.text_field :place_of_service_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "e.g., 11", required: true %>
+        </div>
+
+        <div>
+          <%= f.label :external_claim_key, "External Claim Key (from GEN)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.text_field :external_claim_key, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "Optional" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Claim Lines -->
+    <div>
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Claim Lines</h2>
+      <div id="claim-lines-container">
+        <div id="claim-lines-list" class="space-y-4">
+          <%= f.fields_for :claim_lines do |line_form| %>
+            <%= render "claim_line_fields", f: line_form %>
+          <% end %>
+        </div>
+
+        <button type="button" id="add-claim-line-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Add Claim Line
+        </button>
+      </div>
+    </div>
+
+    <template id="claim-line-template" style="display: none;">
+      <%= f.fields_for :claim_lines, ClaimLine.new, child_index: "NEW_RECORD" do |line_form| %>
+        <%= render "claim_line_fields", f: line_form %>
+      <% end %>
+    </template>
+
+    <!-- Actions -->
+    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+      <%= link_to "Cancel", admin_claims_path, class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
+      <%= f.submit claim.persisted? ? "Update Claim" : "Create Claim", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+    </div>
+  </div>
+<% end %>
+
+
+ <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        let claimLineIndex = <%= claim.claim_lines.length || 0 %>;
+
+        const addBtn = document.getElementById('add-claim-line-btn');
+        const container = document.getElementById('claim-lines-list');
+        const template = document.getElementById('claim-line-template');
+
+        if (addBtn && container && template) {
+          // Add new claim line
+          addBtn.addEventListener('click', function() {
+            const newLine = template.content.cloneNode(true);
+            const timestamp = Date.now();
+            
+            // Update all input/select/textarea names and ids
+            newLine.querySelectorAll('input, select, textarea, label').forEach(function(element) {
+              // Update name attribute
+              if (element.name) {
+                element.name = element.name.replace('NEW_RECORD', timestamp);
+              }
+              
+              // Update id attribute
+              if (element.id) {
+                element.id = element.id.replace('NEW_RECORD', timestamp);
+              }
+              
+              // Update for attribute (labels)
+              if (element.hasAttribute('for')) {
+                const forAttr = element.getAttribute('for');
+                element.setAttribute('for', forAttr.replace('NEW_RECORD', timestamp));
+              }
+            });
+
+            // Update Rails fields_for structure - replace NEW_RECORD in nested attributes
+            newLine.querySelectorAll('[name*="[claim_lines_attributes][NEW_RECORD]"]').forEach(function(element) {
+              element.name = element.name.replace('[claim_lines_attributes][NEW_RECORD]', `[claim_lines_attributes][${timestamp}]`);
+            });
+
+            container.appendChild(newLine);
+            claimLineIndex++;
+          });
+
+          // Handle remove button clicks (using event delegation)
+          container.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('remove-line-btn')) {
+              e.preventDefault();
+              const lineContainer = e.target.closest('.border.border-gray-200');
+              
+              if (lineContainer) {
+                const destroyInput = lineContainer.querySelector('.destroy-field');
+                
+                if (destroyInput) {
+                  destroyInput.value = '1';
+                  lineContainer.style.display = 'none';
+                } else {
+                  lineContainer.remove();
+                }
+              }
+            }
+          });
+        }
+      });
+    </script>

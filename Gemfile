@@ -66,6 +66,9 @@ gem "httparty"
 gem "pdfkit", "~> 0.8.7"
 gem "wkhtmltopdf-binary"
 
+# AWS S3 for file storage (production)
+gem "aws-sdk-s3", require: false
+
 group :development, :test do
   gem "error_highlight", ">= 0.4.0"
   gem "capistrano", require: false

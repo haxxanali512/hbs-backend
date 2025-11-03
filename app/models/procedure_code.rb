@@ -5,6 +5,7 @@ class ProcedureCode < ApplicationRecord
   has_many :procedure_codes_specialties, dependent: :destroy
   has_many :specialties, through: :procedure_codes_specialties
   has_many :organization_fee_schedule_items, dependent: :restrict_with_error
+  has_many :claim_lines, dependent: :restrict_with_error
 
   enum :code_type, {
     cpt: 0,

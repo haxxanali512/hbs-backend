@@ -1,6 +1,6 @@
 class Tenant::EncountersController < Tenant::BaseController
   before_action :set_current_organization
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :confirm_completed, :cancel, :request_correction ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :confirm_completed, :cancel, :request_correction, :attach_document ]
   before_action :load_form_options, only: [ :index, :new, :create, :edit, :update ]
 
   def index
@@ -90,12 +90,9 @@ class Tenant::EncountersController < Tenant::BaseController
 
   def confirm_completed
     @encounter.confirmed_by = current_user
-
-    if @encounter.confirm_completed!
-      redirect_to tenant_encounter_path(@encounter), notice: "Encounter confirmed and billing documents generated."
-    else
-      redirect_to tenant_encounter_path(@encounter), alert: "Cannot confirm encounter: #{@encounter.errors.full_messages.join(', ')}"
-    end
+    return unless @encounter.may_confirm_completed? || @encounter.planned?
+    @encounter.confirm_completed!
+    redirect_to tenant_encounter_path(@encounter), notice: "Encounter confirmed and billing documents generated."
   end
 
   def cancel
@@ -113,6 +110,30 @@ class Tenant::EncountersController < Tenant::BaseController
       redirect_to tenant_encounter_path(@encounter), notice: "Correction request submitted."
     else
       redirect_to tenant_encounter_path(@encounter), alert: "Cannot request correction for non-cascaded encounter."
+    end
+  end
+
+  def attach_document
+    unless @encounter.cascaded? && @encounter.claim.present? && (@encounter.claim.submitted? || @encounter.claim.accepted? || @encounter.claim.denied?)
+      return redirect_to tenant_encounter_path(@encounter), alert: "Attachments allowed only after claim submission."
+    end
+
+    result = DocumentUploadService.new(
+      documentable: @encounter,
+      uploaded_by: current_user,
+      organization: @current_organization,
+      params: {
+        file: params.dig(:document, :file),
+        title: params.dig(:document, :title),
+        document_type: params.dig(:document, :document_type),
+        description: params.dig(:document, :description)
+      }
+    ).call
+
+    if result[:success]
+      redirect_to tenant_encounter_path(@encounter), notice: "Attachment uploaded successfully."
+    else
+      redirect_to tenant_encounter_path(@encounter), alert: "Failed to upload attachment: #{result[:error]}"
     end
   end
 
