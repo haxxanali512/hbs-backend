@@ -161,6 +161,17 @@ Rails.application.routes.draw do
           post :reverse
           post :close
         end
+        resources :denials, only: [ :index, :show, :create, :update ] do
+          member do
+            post :update_status
+            post :resubmit
+            post :mark_non_correctable
+            post :override_attempt_limit
+            post :attach_doc
+            delete :remove_doc
+          end
+          resources :denial_items, only: [ :create, :update ]
+        end
         resources :claim_submissions, only: [ :index, :create ] do
           member do
             post :resubmit

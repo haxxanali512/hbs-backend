@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_03_130010) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -141,6 +141,42 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_130010) do
     t.index ["patient_id"], name: "index_claims_on_patient_id"
     t.index ["provider_id"], name: "index_claims_on_provider_id"
     t.index ["specialty_id"], name: "index_claims_on_specialty_id"
+  end
+
+  create_table "denial_items", force: :cascade do |t|
+    t.bigint "denial_id", null: false
+    t.bigint "claim_line_id", null: false
+    t.decimal "amount_denied", precision: 10, scale: 2, default: "0.0", null: false
+    t.string "carc_codes", default: [], array: true
+    t.string "rarc_codes", default: [], array: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["claim_line_id"], name: "index_denial_items_on_claim_line_id"
+    t.index ["denial_id"], name: "index_denial_items_on_denial_id"
+  end
+
+  create_table "denials", force: :cascade do |t|
+    t.bigint "claim_id", null: false
+    t.bigint "organization_id", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "encounter_id", null: false
+    t.date "denial_date", null: false
+    t.string "carc_codes", default: [], array: true
+    t.string "rarc_codes", default: [], array: true
+    t.decimal "amount_denied", precision: 10, scale: 2, default: "0.0", null: false
+    t.bigint "source_submission_id", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "attempt_count", default: 0, null: false
+    t.boolean "tier_eligible", default: true, null: false
+    t.text "notes_internal"
+    t.string "source_hash"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["claim_id", "source_submission_id"], name: "idx_denial_one_per_submission", unique: true
+    t.index ["claim_id"], name: "index_denials_on_claim_id"
+    t.index ["organization_id"], name: "index_denials_on_organization_id"
+    t.index ["source_hash"], name: "index_denials_on_source_hash", unique: true
+    t.index ["source_submission_id"], name: "index_denials_on_source_submission_id"
   end
 
   create_table "diagnosis_codes", force: :cascade do |t|
@@ -702,6 +738,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_130010) do
   add_foreign_key "claims", "patients"
   add_foreign_key "claims", "providers"
   add_foreign_key "claims", "specialties"
+  add_foreign_key "denial_items", "claim_lines"
+  add_foreign_key "denial_items", "denials"
+  add_foreign_key "denials", "claim_submissions", column: "source_submission_id"
+  add_foreign_key "denials", "claims"
+  add_foreign_key "denials", "organizations"
   add_foreign_key "document_attachments", "documents"
   add_foreign_key "document_attachments", "users", column: "uploaded_by_id"
   add_foreign_key "documents", "organizations"

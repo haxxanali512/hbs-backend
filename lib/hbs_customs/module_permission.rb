@@ -94,7 +94,10 @@ module HbsCustoms
           patients: DEFAULT_CRUD,
           claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
-          payers: DEFAULT_CRUD
+          payers: DEFAULT_CRUD,
+          denials: DEFAULT_CRUD.merge(update_status: false, resubmit: false, mark_non_correctable: false, override_attempt_limit: false, attach_doc: false, remove_doc: false),
+          denial_items: DEFAULT_CRUD.except(:destroy),
+          claim_submissions: DEFAULT_CRUD.merge(resubmit: false, void: false, replace: false)
         }.freeze
       end
 

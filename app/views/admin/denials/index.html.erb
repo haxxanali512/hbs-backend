@@ -1,0 +1,74 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Denials</h1>
+        <p class="mt-2 text-gray-600">Claim #<%= @claim.id %> - <%= @claim.patient.full_name %></p>
+      </div>
+      <div class="flex space-x-2">
+        <%= link_to "Back to Claim", admin_claim_path(@claim), class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+
+    <% if @denials.any? %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CARC</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attempts</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @denials.each do |denial| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= denial.denial_date.strftime("%b %d, %Y") %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <% status_colors = {
+                      "open" => "bg-red-100 text-red-800",
+                      "under_review" => "bg-yellow-100 text-yellow-800",
+                      "resubmitted" => "bg-blue-100 text-blue-800",
+                      "resolved" => "bg-green-100 text-green-800",
+                      "closed" => "bg-gray-100 text-gray-800"
+                    } %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[denial.status] %>">
+                      <%= denial.status.humanize %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= number_to_currency(denial.amount_denied) %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= denial.carc_codes.join(", ") %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= denial.attempt_count %>/2
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <%= link_to "View", admin_claim_denial_path(@claim, denial), class: "text-blue-600 hover:text-blue-800" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <%== pagy_nav(@pagy) %>
+      </div>
+    <% else %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <p class="text-gray-500">No denials found for this claim.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+

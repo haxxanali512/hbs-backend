@@ -1,0 +1,182 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Denial Details</h1>
+        <p class="mt-2 text-gray-600">Claim #<%= @claim.id %> - <%= @claim.patient.full_name %></p>
+      </div>
+      <div class="flex space-x-2">
+        <%= link_to "Back to Denials", admin_claim_denials_path(@claim), class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        <%= link_to "View Claim", admin_claim_path(@claim), class: "bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Denial Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Denial Information</h2>
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Status</dt>
+              <dd class="mt-1 text-sm">
+                <% status_colors = {
+                  "open" => "bg-red-100 text-red-800",
+                  "under_review" => "bg-yellow-100 text-yellow-800",
+                  "resubmitted" => "bg-blue-100 text-blue-800",
+                  "resolved" => "bg-green-100 text-green-800",
+                  "closed" => "bg-gray-100 text-gray-800"
+                } %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[@denial.status] %>">
+                  <%= @denial.status.humanize %>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Denial Date</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @denial.denial_date.strftime("%B %d, %Y") %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Amount Denied</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900"><%= number_to_currency(@denial.amount_denied) %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Attempt Count</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @denial.attempt_count %>/2</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">CARC Codes</dt>
+              <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @denial.carc_codes.join(", ") %></dd>
+            </div>
+            <% if @denial.rarc_codes.any? %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">RARC Codes</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @denial.rarc_codes.join(", ") %></dd>
+              </div>
+            <% end %>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Source Submission</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= @denial.claim_submission.external_submission_key %> (<%= @denial.claim_submission.submitted_at&.strftime("%b %d, %Y") || "—" %>)
+              </dd>
+            </div>
+            <% if @denial.notes_internal.present? %>
+              <div class="sm:col-span-2">
+                <dt class="text-sm font-medium text-gray-500">Internal Notes</dt>
+                <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap"><%= @denial.notes_internal %></dd>
+              </div>
+            <% end %>
+          </dl>
+        </div>
+
+        <!-- Denial Items -->
+        <% if @denial.denial_items.any? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Line Items</h2>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Claim Line</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CARC</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">RARC</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @denial.denial_items.each do |item| %>
+                    <tr>
+                      <td class="px-4 py-3 text-sm text-gray-900">
+                        <%= item.claim_line.procedure_code.code %> - <%= truncate(item.claim_line.procedure_code.description, length: 50) %>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= number_to_currency(item.amount_denied) %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900 font-mono"><%= item.carc_codes.join(", ") %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900 font-mono"><%= item.rarc_codes.join(", ") if item.rarc_codes.any? %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Attachments -->
+        <% if @denial.documents.any? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Attachments</h2>
+            <div class="space-y-3">
+              <% @denial.documents.each do |doc| %>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900"><%= doc.title %></p>
+                    <p class="text-xs text-gray-500"><%= doc.created_at.strftime("%b %d, %Y") %></p>
+                  </div>
+                  <% if policy(@denial).remove_doc? %>
+                    <%= button_to "Remove", remove_doc_admin_claim_denial_path(@claim, @denial), method: :delete, params: { doc_id: doc.id }, class: "text-xs text-red-600 hover:text-red-800" %>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Sidebar - Actions -->
+      <div class="space-y-6">
+        <!-- Status Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
+          <div class="space-y-2">
+            <% if current_user.permissions_for("admin", "denials", "update_status") %>
+              <%= form_with url: update_status_admin_claim_denial_path(@claim, @denial), method: :post, local: true, class: "space-y-2" do |f| %>
+                <%= f.select :status, options_for_select([
+                  ["Open", "open"],
+                  ["Under Review", "under_review"],
+                  ["Resubmitted", "resubmitted"],
+                  ["Resolved", "resolved"],
+                  ["Closed", "closed"]
+                ], @denial.status), {}, { class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm" } %>
+                <%= f.submit "Update Status", class: "w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md text-sm" %>
+              <% end %>
+            <% end %>
+
+            <% if current_user.permissions_for("admin", "denials", "resubmit") && @denial.attempt_count < 2 %>
+              <%= button_to "Resubmit Claim", resubmit_admin_claim_denial_path(@claim, @denial), method: :post, class: "w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md text-sm", data: { confirm: "Create new submission for this denial?" } %>
+            <% end %>
+
+            <% if current_user.permissions_for("admin", "denials", "mark_non_correctable") %>
+              <%= button_to "Mark Non-Correctable", mark_non_correctable_admin_claim_denial_path(@claim, @denial), method: :post, class: "w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-md text-sm" %>
+            <% end %>
+
+            <% if current_user.permissions_for("admin", "denials", "override_attempt_limit") && @denial.attempt_count >= 2 %>
+              <%= button_to "Override Attempt Limit", override_attempt_limit_admin_claim_denial_path(@claim, @denial), method: :post, class: "w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md text-sm", data: { confirm: "This will reset the attempt counter. Continue?" } %>
+            <% end %>
+
+            <% if current_user.permissions_for("admin", "denials", "attach_doc") %>
+              <%= form_with url: attach_doc_admin_claim_denial_path(@claim, @denial), method: :post, local: true, multipart: true, class: "space-y-2" do |f| %>
+                <div>
+                  <%= label_tag 'document[title]', 'Title', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                  <%= text_field_tag 'document[title]', nil, class: 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm' %>
+                </div>
+                <div>
+                  <%= label_tag 'document[document_type]', 'Document Type', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                  <%= select_tag 'document[document_type]', options_for_select([["Denial Attachment","denial_attachment"],["Supporting","supporting"],["Notes","notes"]]), include_blank: 'Select type', class: 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm' %>
+                </div>
+                <div>
+                  <%= label_tag 'document[file]', 'File', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                  <%= file_field_tag 'document[file]', required: true, class: 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm' %>
+                </div>
+                <div>
+                  <%= label_tag 'document[description]', 'Description', class: 'block text-sm font-medium text-gray-700 mb-1' %>
+                  <%= text_area_tag 'document[description]', nil, rows: 2, class: 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm' %>
+                </div>
+                <%= f.submit "Add Attachment", class: "w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md text-sm" %>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

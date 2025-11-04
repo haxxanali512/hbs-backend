@@ -5,6 +5,7 @@ class ClaimSubmission < ApplicationRecord
   belongs_to :payer, optional: true
   belongs_to :prior_submission, class_name: "ClaimSubmission", optional: true
   has_many :resubmissions, class_name: "ClaimSubmission", foreign_key: :prior_submission_id, dependent: :nullify
+  has_one :denial, foreign_key: :source_submission_id, dependent: :nullify
 
   enum :submission_method, {
     api: "api",

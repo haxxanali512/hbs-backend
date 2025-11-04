@@ -8,6 +8,7 @@ class Claim < ApplicationRecord
   has_many :claim_lines, dependent: :destroy
   has_many :claim_submissions, dependent: :destroy
   has_many :payment_applications, dependent: :restrict_with_error
+  has_many :denials, dependent: :restrict_with_error
   accepts_nested_attributes_for :claim_lines, allow_destroy: true
 
   enum status: {
