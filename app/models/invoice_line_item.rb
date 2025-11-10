@@ -1,4 +1,5 @@
 class InvoiceLineItem < ApplicationRecord
+  audited
   belongs_to :invoice
 
   # Validations

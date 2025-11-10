@@ -1,4 +1,6 @@
 class ClaimGenPayerRoute < ApplicationRecord
+  audited
+
   belongs_to :organization
   belongs_to :payer
 

@@ -1,0 +1,133 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-3xl font-bold text-gray-900">Payer Enrollment</h1>
+      <div class="flex items-center gap-2">
+        <%= link_to "Back", admin_payer_enrollments_path, class: "px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50" %>
+        <%= link_to "Edit", edit_admin_payer_enrollment_path(@payer_enrollment), class: "px-3 py-2 rounded-md text-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Details</h2>
+        <dl class="grid grid-cols-1 gap-4">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Organization</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.organization.name %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Payer</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.payer.name %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Enrollment Type</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.enrollment_type.humanize %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Status</dt>
+            <dd class="text-sm mt-1">
+              <span class="px-2 py-1 text-xs font-medium rounded-full <%= @payer_enrollment.status_badge_class %>">
+                <%= @payer_enrollment.status.humanize %>
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Provider</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.provider&.full_name || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Location</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.organization_location&.name || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">External Enrollment ID</dt>
+            <dd class="text-sm text-gray-900 mt-1 font-mono"><%= @payer_enrollment.external_enrollment_id || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Attempt Count</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.attempt_count %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Timeline</h2>
+        <dl class="grid grid-cols-1 gap-4">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Submitted At</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.submitted_at&.strftime("%m/%d/%Y %I:%M %p") || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Approved At</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.approved_at&.strftime("%m/%d/%Y %I:%M %p") || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Rejected At</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.rejected_at&.strftime("%m/%d/%Y %I:%M %p") || '—' %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Cancelled At</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.cancelled_at&.strftime("%m/%d/%Y %I:%M %p") || '—' %></dd>
+          </div>
+          <% if @payer_enrollment.cancellation_reason.present? %>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Cancellation Reason</dt>
+              <dd class="text-sm text-gray-900 mt-1 whitespace-pre-wrap"><%= @payer_enrollment.cancellation_reason %></dd>
+            </div>
+          <% end %>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Created At</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.created_at.strftime("%m/%d/%Y %I:%M %p") %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Updated At</dt>
+            <dd class="text-sm text-gray-900 mt-1"><%= @payer_enrollment.updated_at.strftime("%m/%d/%Y %I:%M %p") %></dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <% if @payer_enrollment.documents.any? %>
+      <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Supporting Documents</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <% @payer_enrollment.documents.each do |document| %>
+            <div class="border border-gray-200 rounded-md p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-900"><%= document.title %></p>
+                  <p class="text-xs text-gray-500 mt-1"><%= document.description %></p>
+                </div>
+                <div class="text-xs text-gray-500">
+                  <%= document.created_at.strftime("%m/%d/%Y") %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Actions -->
+    <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
+      <div class="flex items-center gap-3">
+        <% if @payer_enrollment.draft? && current_user.permissions_for("admin", "payer_enrollments", "update") %>
+          <%= button_to "Submit", submit_admin_payer_enrollment_path(@payer_enrollment), method: :post, class: "px-4 py-2 rounded-md text-sm text-white bg-blue-600 hover:bg-blue-700", data: { confirm: "Submit this enrollment to clearinghouse?" } %>
+        <% end %>
+        <% if @payer_enrollment.rejected? && current_user.permissions_for("admin", "payer_enrollments", "update") %>
+          <%= button_to "Resubmit", resubmit_admin_payer_enrollment_path(@payer_enrollment), method: :post, class: "px-4 py-2 rounded-md text-sm text-white bg-indigo-600 hover:bg-indigo-700", data: { confirm: "Resubmit this enrollment?" } %>
+        <% end %>
+        <% if @payer_enrollment.active? && current_user.permissions_for("admin", "payer_enrollments", "update") %>
+          <%= form_with url: cancel_admin_payer_enrollment_path(@payer_enrollment), method: :post, local: true, class: "flex items-center gap-2" do |f| %>
+            <%= f.text_field :cancellation_reason, placeholder: "Cancellation reason", class: "border border-gray-300 rounded-md px-3 py-2 text-sm" %>
+            <%= f.submit "Cancel", class: "px-4 py-2 rounded-md text-sm text-white bg-red-600 hover:bg-red-700", data: { confirm: "Cancel this enrollment?" } %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

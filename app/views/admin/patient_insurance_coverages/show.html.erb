@@ -1,0 +1,137 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Patient Insurance Coverage</h1>
+        <p class="mt-2 text-gray-600">Coverage details and management</p>
+      </div>
+      <div class="flex gap-2">
+        <%= link_to "Edit", edit_admin_patient_insurance_coverage_path(@patient_insurance_coverage), class: "bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+        <%= link_to "Back", admin_patient_insurance_coverages_path, class: "bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Main Content -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Coverage Details -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Coverage Details</h2>
+          <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Patient</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.patient.full_name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Organization</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.organization.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Insurance Plan</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.insurance_plan.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Payer</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.insurance_plan.payer.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Member ID</dt>
+              <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @patient_insurance_coverage.member_id %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Coverage Order</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.coverage_order.humanize %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Status</dt>
+              <dd class="mt-1">
+                <span class="px-2 py-1 text-xs font-medium rounded-full <%= @patient_insurance_coverage.status_badge_class %>">
+                  <%= @patient_insurance_coverage.status.humanize %>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Relationship to Subscriber</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.relationship_to_subscriber.humanize %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Effective Date</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.effective_date&.strftime("%m/%d/%Y") || "—" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Termination Date</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.termination_date&.strftime("%m/%d/%Y") || "—" %></dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Subscriber Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Subscriber Information</h2>
+          <dl class="space-y-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Subscriber Name</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.subscriber_name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Address</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                <%= @patient_insurance_coverage.subscriber_address["line1"] %><br>
+                <% if @patient_insurance_coverage.subscriber_address["line2"].present? %>
+                  <%= @patient_insurance_coverage.subscriber_address["line2"] %><br>
+                <% end %>
+                <%= @patient_insurance_coverage.subscriber_address["city"] %>, 
+                <%= @patient_insurance_coverage.subscriber_address["state"] %> 
+                <%= @patient_insurance_coverage.subscriber_address["postal"] %><br>
+                <%= @patient_insurance_coverage.subscriber_address["country"] %>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+          <div class="space-y-2">
+            <% unless @patient_insurance_coverage.active? %>
+              <%= button_to "Activate", activate_admin_patient_insurance_coverage_path(@patient_insurance_coverage), method: :post, class: "w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+            <% end %>
+            <% unless @patient_insurance_coverage.terminated? %>
+              <%= button_to "Terminate", terminate_admin_patient_insurance_coverage_path(@patient_insurance_coverage), method: :post, class: "w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+            <% end %>
+            <% if @patient_insurance_coverage.can_be_deleted? %>
+              <%= button_to "Delete", admin_patient_insurance_coverage_path(@patient_insurance_coverage), method: :delete, 
+                  data: { confirm: "Are you sure? Type DELETE to confirm.", turbo_confirm: "Are you sure? Type DELETE to confirm." }, 
+                  class: "w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+            <% else %>
+              <p class="text-xs text-gray-500">Cannot delete: Coverage is referenced by encounters/claims</p>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Related Records -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Related Records</h2>
+          <dl class="space-y-2 text-sm">
+            <div>
+              <dt class="text-gray-500">Encounters</dt>
+              <dd class="text-gray-900 font-medium"><%= @patient_insurance_coverage.encounters.count %></dd>
+            </div>
+            <div>
+              <dt class="text-gray-500">Claims</dt>
+              <dd class="text-gray-900 font-medium"><%= @patient_insurance_coverage.claims.count %></dd>
+            </div>
+            <div>
+              <dt class="text-gray-500">Eligibility Checks</dt>
+              <dd class="text-gray-900 font-medium"><%= @patient_insurance_coverage.eligibility_checks.count %></dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

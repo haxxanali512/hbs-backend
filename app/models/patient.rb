@@ -8,6 +8,7 @@ class Patient < ApplicationRecord
   has_many :appointments, dependent: :restrict_with_error
   has_many :encounters, dependent: :restrict_with_error
   has_many :claims, dependent: :restrict_with_error
+  has_many :patient_insurance_coverages, dependent: :restrict_with_error
   has_many :documents, as: :documentable, dependent: :destroy
   belongs_to :merged_into_patient, optional: true, class_name: "Patient", foreign_key: "merged_into_patient_id"
   has_many :merged_patients, class_name: "Patient", foreign_key: "merged_into_patient_id"

@@ -5,6 +5,8 @@ class Payer < ApplicationRecord
   has_many :claim_submissions, dependent: :nullify
   has_many :claims, dependent: :nullify
   has_many :payments, dependent: :nullify
+  has_many :payer_enrollments, dependent: :restrict_with_error
+  has_many :insurance_plans, dependent: :restrict_with_error
 
   enum :payer_type, {
     commercial: 0,

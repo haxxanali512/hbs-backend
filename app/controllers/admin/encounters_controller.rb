@@ -66,7 +66,12 @@ class Admin::EncountersController < Admin::BaseController
     @pagy, @encounters = pagy(@encounters, items: 20)
   end
 
-  def show; end
+  def show
+    # Mark comments as seen when viewing encounter
+    if current_user
+      EncounterCommentSeen.mark_as_seen(@encounter.id, current_user.id)
+    end
+  end
 
   def edit; end
 

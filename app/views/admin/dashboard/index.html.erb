@@ -80,6 +80,28 @@
     </div>
   </div>
 
+  <!-- Organization Activation Progress -->
+  <% pending_orgs = @recent_organizations.select { |org| !org.activated? } %>
+  <% if pending_orgs.any? %>
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Organizations Pending Activation</h2>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <% pending_orgs.first(4).each do |org| %>
+          <div>
+            <div class="mb-3 flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-semibold text-gray-900"><%= org.name %></h3>
+                <p class="text-sm text-gray-500"><%= org.owner.email %></p>
+              </div>
+              <%= link_to "View Details", admin_organization_path(org), class: "text-sm text-indigo-600 hover:text-indigo-800" %>
+            </div>
+            <%= render "shared/organization_activation_steps", organization: org %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Recent Activity -->
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     <!-- Recent Organizations -->

@@ -11,7 +11,9 @@ class Provider < ApplicationRecord
   has_many :documents, as: :documentable, dependent: :destroy
   has_many :appointments, dependent: :restrict_with_error
   has_many :encounters, dependent: :restrict_with_error
+  has_many :provider_notes, dependent: :destroy
   has_many :claims, dependent: :restrict_with_error
+  has_many :payer_enrollments, dependent: :restrict_with_error
 
   accepts_nested_attributes_for :provider_assignments, allow_destroy: true
 

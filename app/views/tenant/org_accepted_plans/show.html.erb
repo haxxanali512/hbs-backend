@@ -1,0 +1,101 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Accepted Insurance Plan</h1>
+        <p class="mt-2 text-gray-600">Plan acceptance details</p>
+      </div>
+      <div class="flex gap-2">
+        <%= link_to "Edit", edit_tenant_org_accepted_plan_path(@org_accepted_plan), class: "bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+        <%= link_to "Back", tenant_org_accepted_plans_path, class: "bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Main Content -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Plan Details -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Plan Details</h2>
+          <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Insurance Plan</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @org_accepted_plan.insurance_plan.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Payer</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @org_accepted_plan.insurance_plan.payer.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Network Type</dt>
+              <dd class="mt-1">
+                <span class="px-2 py-1 text-xs font-medium rounded-full <%= @org_accepted_plan.network_type_badge_class %>">
+                  <%= @org_accepted_plan.network_type.humanize %>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Status</dt>
+              <dd class="mt-1">
+                <span class="px-2 py-1 text-xs font-medium rounded-full <%= @org_accepted_plan.status_badge_class %>">
+                  <%= @org_accepted_plan.status.humanize %>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Enrollment Status</dt>
+              <dd class="mt-1">
+                <span class="px-2 py-1 text-xs font-medium rounded-full <%= @org_accepted_plan.enrollment_status_badge_class %>">
+                  <%= @org_accepted_plan.enrollment_status.humanize %>
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Effective Date</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @org_accepted_plan.effective_date&.strftime("%m/%d/%Y") || "—" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">End Date</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @org_accepted_plan.end_date&.strftime("%m/%d/%Y") || "—" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Added By</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @org_accepted_plan.added_by.display_name %></dd>
+            </div>
+          </dl>
+        </div>
+
+        <% if @org_accepted_plan.notes.present? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Notes</h2>
+            <p class="text-sm text-gray-900 whitespace-pre-wrap"><%= @org_accepted_plan.notes %></p>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Actions -->
+        <% unless @org_accepted_plan.locked? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+            <div class="space-y-2">
+              <% unless @org_accepted_plan.active? %>
+                <%= button_to "Activate", activate_tenant_org_accepted_plan_path(@org_accepted_plan), method: :post, class: "w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+              <% end %>
+              <% unless @org_accepted_plan.inactive? %>
+                <%= button_to "Inactivate", inactivate_tenant_org_accepted_plan_path(@org_accepted_plan), method: :post, class: "w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Status</h2>
+            <p class="text-sm text-gray-500">This plan is locked by HBS and cannot be modified.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

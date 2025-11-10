@@ -91,6 +91,12 @@
             <p class="text-sm text-gray-900 whitespace-pre-wrap"><%= @encounter.notes %></p>
           </div>
         <% end %>
+
+        <!-- Provider Notes Section -->
+        <%= render "shared/provider_notes", namespace: "admin" %>
+
+        <!-- Comments Section -->
+        <%= render "shared/encounter_comments", namespace: "admin" %>
       </div>
 
       <!-- Sidebar -->

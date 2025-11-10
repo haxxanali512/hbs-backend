@@ -30,6 +30,10 @@ class Tenant::OrganizationSettingsController < Tenant::BaseController
       :mrn_prefix,
       :mrn_sequence,
       :mrn_format,
+      :ezclaim_enabled,
+      :ezclaim_api_token,
+      :ezclaim_api_url,
+      :ezclaim_api_version,
       feature_entitlements: {}
     )
   end

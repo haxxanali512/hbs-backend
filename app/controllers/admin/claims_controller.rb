@@ -1,5 +1,5 @@
 class Admin::ClaimsController < Admin::BaseController
-  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :post_adjudication, :void, :reverse, :close ]
+  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :push_to_ezclaim, :post_adjudication, :void, :reverse, :close ]
   before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
 
   def index
@@ -131,6 +131,19 @@ class Admin::ClaimsController < Admin::BaseController
       redirect_to admin_claim_path(@claim), notice: "Claim submitted successfully."
     else
       redirect_to admin_claim_path(@claim), alert: "Claim cannot be submitted from current status."
+    end
+  end
+
+  def push_to_ezclaim
+    result = EzclaimIntegrationService.new(
+      claim: @claim,
+      organization: @claim.organization
+    ).push_claim
+
+    if result[:success]
+      redirect_to admin_claim_path(@claim), notice: "Claim pushed to EZclaim successfully. #{result[:message]}"
+    else
+      redirect_to admin_claim_path(@claim), alert: "Failed to push to EZclaim: #{result[:error]}"
     end
   end
 

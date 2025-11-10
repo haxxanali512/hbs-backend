@@ -330,6 +330,15 @@
           </div>
         <% end %>
 
+        <% if current_user.permissions_for("admin", "claims", "submit") && (@claim.validated? || @claim.submitted?) %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">EZclaim Integration</h2>
+            <div class="space-y-2">
+              <%= button_to "Push to EZclaim", push_to_ezclaim_admin_claim_path(@claim), method: :post, class: "w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700", data: { confirm: "Push this claim to EZclaim?" } %>
+            </div>
+          </div>
+        <% end %>
+
         <% if current_user.permissions_for("admin", "claims", "void") && @claim.can_be_voided? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Void</h2>

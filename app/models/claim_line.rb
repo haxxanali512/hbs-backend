@@ -1,4 +1,5 @@
 class ClaimLine < ApplicationRecord
+  audited
   belongs_to :claim
   belongs_to :procedure_code
   has_many :payment_applications, dependent: :nullify

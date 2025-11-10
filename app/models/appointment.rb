@@ -1,4 +1,5 @@
 class Appointment < ApplicationRecord
+  audited
   include Discard::Model
 
   # Associations

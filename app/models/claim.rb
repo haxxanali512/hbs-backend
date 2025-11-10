@@ -1,9 +1,11 @@
 class Claim < ApplicationRecord
+  audited
   belongs_to :organization
   belongs_to :encounter
   belongs_to :patient
   belongs_to :provider
   belongs_to :specialty
+  belongs_to :patient_insurance_coverage, optional: true
 
   has_many :claim_lines, dependent: :destroy
   has_many :claim_submissions, dependent: :destroy

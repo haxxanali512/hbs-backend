@@ -65,7 +65,11 @@ module HbsCustoms
           appointments: DEFAULT_CRUD_WITH_STATE,
           organization_settings: { show: false, edit: false, update: false },
           encounters: DEFAULT_CRUD_WITH_WORKFLOW,
+          encounter_comments: { index: false, create: false, redact: false },
+          provider_notes: DEFAULT_CRUD,
           patients: DEFAULT_CRUD,
+          org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false),
+          patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),
           claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false)
         }.freeze
@@ -91,13 +95,19 @@ module HbsCustoms
           appointments: DEFAULT_CRUD_WITH_STATE.except(:create, :destroy),
           audits: { index: false, show: false, model_audits: false },
           encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false),
+          encounter_comments: DEFAULT_CRUD.merge(redact: false),
+          provider_notes: DEFAULT_CRUD,
           patients: DEFAULT_CRUD,
+          patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),
           claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
           payers: DEFAULT_CRUD,
+          insurance_plans: DEFAULT_CRUD.merge(retire: false, restore: false),
+          org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false, lock: false, unlock: false, update_enrollment_status: false),
           denials: DEFAULT_CRUD.merge(update_status: false, resubmit: false, mark_non_correctable: false, override_attempt_limit: false, attach_doc: false, remove_doc: false),
           denial_items: DEFAULT_CRUD.except(:destroy),
-          claim_submissions: DEFAULT_CRUD.merge(resubmit: false, void: false, replace: false)
+          claim_submissions: DEFAULT_CRUD.merge(resubmit: false, void: false, replace: false),
+          payer_enrollments: DEFAULT_CRUD.merge(submit: false, cancel: false, resubmit: false)
         }.freeze
       end
 

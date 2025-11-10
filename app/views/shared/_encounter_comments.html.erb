@@ -1,0 +1,124 @@
+<%
+  # This partial can be used in both admin and tenant views
+  # Variables needed: @encounter, current_user, namespace (admin or tenant)
+  # namespace determines the routes and form action
+  namespace ||= "admin"
+  comments = @encounter.encounter_comments.includes(:author).order(created_at: :asc)
+  
+  # Filter comments based on user visibility
+  visible_comments = comments.select { |c| c.visible_to?(current_user) }
+  
+  # Check if HBS has initiated the thread
+  hbs_initiated = @encounter.encounter_comments.any? { |c| c.actor_type.to_s.in?(["hbs_admin", "hbs_user", "system"]) }
+  
+  # Check if user can create comments
+  can_create_shared = hbs_initiated && current_user.can_create_shared_comment?
+  can_create_internal = current_user.can_create_internal_comment?
+  
+  # Get unread count
+  unread_count = EncounterCommentSeen.unread_count(@encounter.id, current_user.id) if current_user
+%>
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-lg font-semibold text-gray-900">
+      Comments
+      <% if unread_count && unread_count > 0 %>
+        <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <%= unread_count %> new
+        </span>
+      <% end %>
+    </h3>
+    <% if namespace == "admin" %>
+      <div class="flex gap-2">
+        <%= link_to "All", admin_encounter_encounter_comments_path(@encounter, visibility: nil), 
+            class: "text-sm #{params[:visibility].blank? ? 'text-indigo-600 font-medium' : 'text-gray-600'}" %>
+        <%= link_to "Shared", admin_encounter_encounter_comments_path(@encounter, visibility: "shared"), 
+            class: "text-sm #{params[:visibility] == 'shared' ? 'text-indigo-600 font-medium' : 'text-gray-600'}" %>
+        <%= link_to "Internal", admin_encounter_encounter_comments_path(@encounter, visibility: "internal"), 
+            class: "text-sm #{params[:visibility] == 'internal' ? 'text-indigo-600 font-medium' : 'text-gray-600'}" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Comments List -->
+  <div class="space-y-4 mb-6 max-h-96 overflow-y-auto">
+    <% if visible_comments.any? %>
+      <% visible_comments.each do |comment| %>
+        <div class="border-l-4 <%= comment.internal_only? ? 'border-indigo-500' : 'border-gray-300' %> pl-4 py-2 <%= comment.redacted? ? 'opacity-50' : '' %>">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm font-medium text-gray-900"><%= comment.author.full_name %></span>
+                <span class="text-xs text-gray-500"><%= comment.created_at.strftime("%m/%d/%Y %I:%M %p") %></span>
+                <% if comment.internal_only? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                    Internal
+                  </span>
+                <% end %>
+                <% if comment.redacted? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                    Redacted
+                  </span>
+                <% end %>
+              </div>
+              <% if comment.redacted? %>
+                <p class="text-sm text-gray-500 italic">This comment has been redacted.</p>
+              <% else %>
+                <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= comment.body_text %></p>
+              <% end %>
+            </div>
+            <% if !comment.redacted? && current_user.can_redact_comment? && namespace == "admin" %>
+              <div class="ml-4">
+                <%= form_with url: redact_admin_encounter_encounter_comment_path(@encounter, comment), method: :post, local: true, class: "inline" do |f| %>
+                  <%= f.select :redaction_reason, options_for_select([
+                    ["Minimum Necessary Violation", "min_necessary_violation"],
+                    ["Legal Request", "legal_request"],
+                    ["Other", "other"]
+                  ]), { include_blank: "Select reason" }, { required: true, class: "text-xs border border-gray-300 rounded px-2 py-1 mr-1" } %>
+                  <%= f.submit "Redact", class: "text-xs text-red-600 hover:text-red-800 bg-transparent border-none cursor-pointer",
+                      data: { confirm: "Are you sure you want to redact this comment?" } %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <p class="text-sm text-gray-500 text-center py-4">No comments yet.</p>
+    <% end %>
+  </div>
+
+  <!-- Comment Form -->
+  <% if can_create_shared || can_create_internal %>
+    <div class="border-t border-gray-200 pt-4">
+      <h4 class="text-sm font-medium text-gray-900 mb-2">Add Comment</h4>
+      <%= form_with url: namespace == "admin" ? admin_encounter_encounter_comments_path(@encounter) : tenant_encounter_encounter_comments_path(@encounter), method: :post, local: true, class: "space-y-3" do |f| %>
+        <div>
+          <%= text_area_tag "encounter_comment[body_text]", nil, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", 
+              placeholder: "Enter your comment (1-2000 characters)", maxlength: 2000, required: true %>
+          <p class="mt-1 text-xs text-gray-500">Maximum 25 comments per encounter. Current: <%= @encounter.encounter_comments.count %>/25</p>
+        </div>
+        <% if can_create_internal %>
+          <div>
+            <%= label_tag "encounter_comment[visibility]", "Visibility", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= select_tag "encounter_comment[visibility]", 
+                options_for_select([
+                  ["Shared with Client", "shared_with_client"],
+                  ["Internal Only", "internal_only"]
+                ], "shared_with_client"),
+                { class: "w-full border border-gray-300 rounded-md px-3 py-2" } %>
+          </div>
+        <% end %>
+        <div class="flex justify-end">
+          <%= submit_tag "Post Comment", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+        </div>
+      <% end %>
+    </div>
+  <% elsif !hbs_initiated %>
+    <div class="border-t border-gray-200 pt-4">
+      <p class="text-sm text-gray-500 text-center py-2">HBS must start this thread before comments can be added.</p>
+    </div>
+  <% end %>
+</div>
+

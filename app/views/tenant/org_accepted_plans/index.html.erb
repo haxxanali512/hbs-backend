@@ -1,0 +1,74 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Accepted Insurance Plans</h1>
+        <p class="mt-2 text-gray-600">Manage your organization's accepted insurance plans</p>
+      </div>
+      <%= link_to "New Accepted Plan", new_tenant_org_accepted_plan_path, class: "bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+    </div>
+
+    <!-- Filters -->
+    <%= render "shared/filters" %>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Insurance Plan</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payer</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Enrollment Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Effective Date</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @org_accepted_plans.each do |plan| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm text-gray-900"><%= plan.insurance_plan.name %></td>
+                <td class="px-6 py-4 text-sm text-gray-900"><%= plan.insurance_plan.payer.name %></td>
+                <td class="px-6 py-4 text-sm">
+                  <span class="px-2 py-1 text-xs font-medium rounded-full <%= plan.network_type_badge_class %>">
+                    <%= plan.network_type.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm">
+                  <span class="px-2 py-1 text-xs font-medium rounded-full <%= plan.status_badge_class %>">
+                    <%= plan.status.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm">
+                  <span class="px-2 py-1 text-xs font-medium rounded-full <%= plan.enrollment_status_badge_class %>">
+                    <%= plan.enrollment_status.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-900">
+                  <%= plan.effective_date&.strftime("%m/%d/%Y") || "—" %>
+                </td>
+                <td class="px-6 py-4 text-right text-sm">
+                  <%= link_to "View", tenant_org_accepted_plan_path(plan), class: "text-blue-600 hover:text-blue-800" %>
+                  <%= link_to "Edit", edit_tenant_org_accepted_plan_path(plan), class: "ml-3 text-indigo-600 hover:text-indigo-800" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%== pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+

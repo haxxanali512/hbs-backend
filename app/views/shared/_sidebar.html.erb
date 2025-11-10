@@ -141,6 +141,16 @@
         </li>
         <% end %>
 
+        <% if current_user.permissions_for("admin", "patient_insurance_coverages", "index") %>
+        <li>
+          <% coverages_active = controller_path == 'admin/patient_insurance_coverages' %>
+          <%= link_to admin_patient_insurance_coverages_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{coverages_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{coverages_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Insurance Coverages</span>
+          <% end %>
+        </li>
+        <% end %>
+
         <% if current_user.permissions_for("admin", "appointments", "index") %>
         <li>
           <% appointments_active = controller_path == 'admin/appointments' %>
@@ -167,6 +177,26 @@
           <%= link_to admin_payers_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{payers_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{payers_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
             <span>Payers</span>
+          <% end %>
+        </li>
+        <% end %>
+
+        <% if current_user.permissions_for("admin", "insurance_plans", "index") %>
+        <li>
+          <% insurance_plans_active = controller_path == 'admin/insurance_plans' %>
+          <%= link_to admin_insurance_plans_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{insurance_plans_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{insurance_plans_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Insurance Plans</span>
+          <% end %>
+        </li>
+        <% end %>
+
+        <% if current_user.permissions_for("admin", "org_accepted_plans", "index") %>
+        <li>
+          <% org_accepted_plans_active = controller_path == 'admin/org_accepted_plans' %>
+          <%= link_to admin_org_accepted_plans_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{org_accepted_plans_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{org_accepted_plans_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Accepted Plans</span>
           <% end %>
         </li>
         <% end %>
@@ -278,10 +308,30 @@
 
         <% if current_user.permissions_for("tenant", "patients", "index") %>
           <li>
-            <% appointments_active = controller_path == 'tenant/appointments' %>
+            <% patients_active = controller_path == 'tenant/patients' %>
             <%= link_to tenant_patients_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{patients_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{patients_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               <span>Patients</span>
+            <% end %>
+          </li>
+        <% end %>
+
+        <% if current_user.permissions_for("tenant", "org_accepted_plans", "index") %>
+          <li>
+            <% org_accepted_plans_active = controller_path == 'tenant/org_accepted_plans' %>
+            <%= link_to tenant_org_accepted_plans_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{org_accepted_plans_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{org_accepted_plans_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Accepted Plans</span>
+            <% end %>
+          </li>
+        <% end %>
+
+        <% if current_user.permissions_for("tenant", "patient_insurance_coverages", "index") %>
+          <li>
+            <% coverages_active = controller_path == 'tenant/patient_insurance_coverages' %>
+            <%= link_to tenant_patient_insurance_coverages_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{coverages_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{coverages_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Insurance Coverages</span>
             <% end %>
           </li>
         <% end %>

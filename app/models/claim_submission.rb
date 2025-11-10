@@ -1,8 +1,10 @@
 class ClaimSubmission < ApplicationRecord
+  audited
   belongs_to :claim
   belongs_to :organization, optional: true
   belongs_to :patient, optional: true
   belongs_to :payer, optional: true
+  belongs_to :insurance_plan, optional: true
   belongs_to :prior_submission, class_name: "ClaimSubmission", optional: true
   has_many :resubmissions, class_name: "ClaimSubmission", foreign_key: :prior_submission_id, dependent: :nullify
   has_one :denial, foreign_key: :source_submission_id, dependent: :nullify
@@ -60,6 +62,8 @@ class ClaimSubmission < ApplicationRecord
     self.organization_id ||= claim.organization_id
     self.patient_id ||= claim.patient_id
     # payer_id is not present on Claim yet; will be set by caller if available
+    # plan_id will be denormalized from claim's coverage when patient_insurance_coverage is implemented
+    # For now, it can be set by the caller if available
   end
 
   def set_default_statuses

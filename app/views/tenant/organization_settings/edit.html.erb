@@ -70,6 +70,36 @@
           </div>
         </div>
 
+        <!-- EZclaim Integration Settings -->
+        <div class="space-y-6 pt-6 border-t border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">EZclaim Integration</h3>
+          
+          <div class="flex items-center">
+            <%= f.check_box :ezclaim_enabled, { checked: @organization_setting.ezclaim_enabled, id: "ezclaim_enabled_checkbox" } %>
+            <%= f.label :ezclaim_enabled, "Enable EZclaim integration for this organization", class: "ml-2 text-sm text-gray-900 cursor-pointer", for: "ezclaim_enabled_checkbox" %>
+          </div>
+
+          <div id="ezclaim-settings" class="space-y-4 mt-4" style="display: <%= @organization_setting.ezclaim_enabled? ? 'block' : 'none' %>;">
+            <div>
+              <%= f.label :ezclaim_api_token, "EZclaim API Token", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= f.password_field :ezclaim_api_token, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter your EZclaim API token" %>
+              <p class="mt-1 text-sm text-gray-500">Your EZclaim API authentication token</p>
+            </div>
+
+            <div>
+              <%= f.label :ezclaim_api_url, "EZclaim API URL", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= f.text_field :ezclaim_api_url, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "https://ezclaimapiprod.azurewebsites.net/api/v2" %>
+              <p class="mt-1 text-sm text-gray-500">Base URL for EZclaim API endpoint</p>
+            </div>
+
+            <div>
+              <%= f.label :ezclaim_api_version, "API Version", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= f.text_field :ezclaim_api_version, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "3.0.0" %>
+              <p class="mt-1 text-sm text-gray-500">EZclaim API version (default: 3.0.0)</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Form Actions -->
         <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
           <%= link_to "Cancel", tenant_organization_setting_path, class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
@@ -92,6 +122,20 @@
           mrnSettings.style.display = 'block';
         } else {
           mrnSettings.style.display = 'none';
+        }
+      });
+    }
+
+    const ezclaimCheckbox = document.getElementById('ezclaim_enabled_checkbox');
+    const ezclaimSettings = document.getElementById('ezclaim-settings');
+    
+    if (ezclaimCheckbox && ezclaimSettings) {
+      // Handle checkbox change
+      ezclaimCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          ezclaimSettings.style.display = 'block';
+        } else {
+          ezclaimSettings.style.display = 'none';
         }
       });
     }

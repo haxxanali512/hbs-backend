@@ -45,4 +45,12 @@ class OrganizationSetting < ApplicationRecord
 
     [ mrn_sequence.to_i, existing_max + 1 ].max
   end
+
+  def ezclaim_enabled?
+    ezclaim_enabled == true
+  end
+
+  def ezclaim_configured?
+    ezclaim_enabled? && ezclaim_api_token.present?
+  end
 end

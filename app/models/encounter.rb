@@ -14,6 +14,7 @@ class Encounter < ApplicationRecord
   # Billing/Cascade (mutually exclusive)
   has_one :claim, foreign_key: "encounter_id", dependent: :restrict_with_error
   belongs_to :patient_invoice, optional: true
+  belongs_to :patient_insurance_coverage, optional: true
   belongs_to :eligibility_check_used, optional: true, class_name: "EligibilityCheck"
   belongs_to :confirmed_by, optional: true, class_name: "User"
 
@@ -26,7 +27,9 @@ class Encounter < ApplicationRecord
   has_many :diagnosis_codes, through: :encounter_diagnosis_codes
   # has_many :encounter_procedure_items, dependent: :destroy
   # has_many :clinical_documentations, as: :documentable, dependent: :restrict_with_error
-  # has_many :encounter_comments, dependent: :destroy
+  has_many :encounter_comments, dependent: :destroy
+  has_many :encounter_comment_seens, dependent: :destroy
+  has_many :provider_notes, dependent: :destroy
   # has_many :encounter_tasks, dependent: :destroy
   has_many :documents, as: :documentable, dependent: :destroy
 

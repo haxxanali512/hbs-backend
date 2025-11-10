@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_10_091218) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -111,8 +111,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.string "edi_sha256"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "insurance_plan_id"
     t.index ["claim_id", "external_submission_key"], name: "idx_submission_external_per_claim", unique: true
     t.index ["claim_id"], name: "index_claim_submissions_on_claim_id"
+    t.index ["insurance_plan_id"], name: "index_claim_submissions_on_insurance_plan_id"
     t.index ["organization_id"], name: "index_claim_submissions_on_organization_id"
     t.index ["patient_id"], name: "index_claim_submissions_on_patient_id"
     t.index ["prior_submission_id"], name: "index_claim_submissions_on_prior_submission_id"
@@ -136,9 +138,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.datetime "finalized_at", precision: nil
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "patient_insurance_coverage_id"
     t.index ["encounter_id"], name: "index_claims_on_encounter_id"
     t.index ["organization_id"], name: "index_claims_on_organization_id"
     t.index ["patient_id"], name: "index_claims_on_patient_id"
+    t.index ["patient_insurance_coverage_id"], name: "index_claims_on_patient_insurance_coverage_id"
     t.index ["provider_id"], name: "index_claims_on_provider_id"
     t.index ["specialty_id"], name: "index_claims_on_specialty_id"
   end
@@ -228,6 +232,39 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.index ["status"], name: "index_documents_on_status"
   end
 
+  create_table "encounter_comment_seens", force: :cascade do |t|
+    t.bigint "encounter_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "last_seen_at", precision: nil, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_id", "user_id"], name: "index_encounter_comment_seens_on_encounter_id_and_user_id", unique: true
+    t.index ["encounter_id"], name: "index_encounter_comment_seens_on_encounter_id"
+    t.index ["user_id"], name: "index_encounter_comment_seens_on_user_id"
+  end
+
+  create_table "encounter_comments", force: :cascade do |t|
+    t.bigint "encounter_id", null: false
+    t.bigint "organization_id", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "provider_id"
+    t.integer "author_user_id", null: false
+    t.integer "actor_type", null: false
+    t.integer "visibility", default: 0, null: false
+    t.text "body_text", null: false
+    t.boolean "redacted", default: false, null: false
+    t.integer "redaction_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_user_id"], name: "index_encounter_comments_on_author_user_id"
+    t.index ["encounter_id", "created_at"], name: "index_encounter_comments_on_encounter_id_and_created_at"
+    t.index ["encounter_id"], name: "index_encounter_comments_on_encounter_id"
+    t.index ["organization_id", "visibility"], name: "index_encounter_comments_on_organization_id_and_visibility"
+    t.index ["organization_id"], name: "index_encounter_comments_on_organization_id"
+    t.index ["patient_id"], name: "index_encounter_comments_on_patient_id"
+    t.index ["provider_id"], name: "index_encounter_comments_on_provider_id"
+  end
+
   create_table "encounter_diagnosis_codes", force: :cascade do |t|
     t.bigint "diagnosis_code_id", null: false
     t.bigint "encounter_id", null: false
@@ -263,6 +300,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.bigint "confirmed_by_id"
     t.boolean "locked_for_correction", default: false
     t.datetime "discarded_at", precision: nil
+    t.bigint "patient_insurance_coverage_id"
     t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
     t.index ["cascaded"], name: "index_encounters_on_cascaded"
     t.index ["claim_id"], name: "index_encounters_on_claim_id"
@@ -272,9 +310,30 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.index ["organization_id"], name: "index_encounters_on_organization_id"
     t.index ["organization_location_id"], name: "index_encounters_on_organization_location_id"
     t.index ["patient_id"], name: "index_encounters_on_patient_id"
+    t.index ["patient_insurance_coverage_id"], name: "index_encounters_on_patient_insurance_coverage_id"
     t.index ["patient_invoice_id"], name: "index_encounters_on_patient_invoice_id"
     t.index ["provider_id"], name: "index_encounters_on_provider_id"
     t.index ["specialty_id"], name: "index_encounters_on_specialty_id"
+  end
+
+  create_table "insurance_plans", force: :cascade do |t|
+    t.bigint "payer_id", null: false
+    t.string "name", limit: 200, null: false
+    t.integer "plan_type", null: false
+    t.string "plan_code", limit: 100, null: false
+    t.string "group_number_format"
+    t.string "member_id_format"
+    t.string "state_scope", default: [], array: true
+    t.string "contact_url"
+    t.text "notes_internal"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["payer_id", "plan_code"], name: "idx_insurance_plans_payer_plan_code", unique: true
+    t.index ["payer_id"], name: "index_insurance_plans_on_payer_id"
+    t.index ["plan_type"], name: "index_insurance_plans_on_plan_type"
+    t.index ["state_scope"], name: "index_insurance_plans_on_state_scope", using: :gin
+    t.index ["status"], name: "index_insurance_plans_on_status"
   end
 
   create_table "invoice_line_items", force: :cascade do |t|
@@ -331,6 +390,28 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.index ["organization_id"], name: "index_invoices_on_organization_id"
     t.index ["service_month"], name: "index_invoices_on_service_month"
     t.index ["status"], name: "index_invoices_on_status"
+  end
+
+  create_table "org_accepted_plans", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "insurance_plan_id", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "network_type", null: false
+    t.integer "enrollment_status", default: 0, null: false
+    t.date "effective_date", null: false
+    t.date "end_date"
+    t.bigint "added_by_id", null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["added_by_id"], name: "index_org_accepted_plans_on_added_by_id"
+    t.index ["enrollment_status"], name: "index_org_accepted_plans_on_enrollment_status"
+    t.index ["insurance_plan_id"], name: "index_org_accepted_plans_on_insurance_plan_id"
+    t.index ["network_type"], name: "index_org_accepted_plans_on_network_type"
+    t.index ["organization_id", "insurance_plan_id"], name: "idx_org_accepted_plan_unique", unique: true
+    t.index ["organization_id", "status"], name: "index_org_accepted_plans_on_organization_id_and_status"
+    t.index ["organization_id"], name: "index_org_accepted_plans_on_organization_id"
+    t.index ["status"], name: "index_org_accepted_plans_on_status"
   end
 
   create_table "organization_billings", force: :cascade do |t|
@@ -478,6 +559,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.string "mrn_enabled"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "ezclaim_api_token"
+    t.string "ezclaim_api_url", default: "https://ezclaimapiprod.azurewebsites.net/api/v2"
+    t.string "ezclaim_api_version", default: "3.0.0"
+    t.boolean "ezclaim_enabled", default: false
     t.index ["organization_id"], name: "index_organization_settings_on_organization_id"
   end
 
@@ -494,6 +579,30 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.datetime "discarded_at"
     t.index ["discarded_at"], name: "index_organizations_on_discarded_at"
     t.index ["owner_id"], name: "index_organizations_on_owner_id"
+  end
+
+  create_table "patient_insurance_coverages", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "insurance_plan_id", null: false
+    t.string "member_id", limit: 30, null: false
+    t.string "subscriber_name", limit: 200, null: false
+    t.jsonb "subscriber_address", default: {}, null: false
+    t.integer "relationship_to_subscriber", null: false
+    t.integer "coverage_order", default: 0, null: false
+    t.date "effective_date"
+    t.date "termination_date"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["coverage_order"], name: "index_patient_insurance_coverages_on_coverage_order"
+    t.index ["insurance_plan_id"], name: "index_patient_insurance_coverages_on_insurance_plan_id"
+    t.index ["organization_id", "patient_id"], name: "idx_on_organization_id_patient_id_e712d5a003"
+    t.index ["organization_id"], name: "index_patient_insurance_coverages_on_organization_id"
+    t.index ["patient_id", "insurance_plan_id", "member_id"], name: "idx_coverage_patient_plan_member", unique: true
+    t.index ["patient_id", "status", "coverage_order"], name: "idx_on_patient_id_status_coverage_order_5e67930726"
+    t.index ["patient_id"], name: "index_patient_insurance_coverages_on_patient_id"
+    t.index ["status"], name: "index_patient_insurance_coverages_on_status"
   end
 
   create_table "patients", force: :cascade do |t|
@@ -521,6 +630,31 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.datetime "discarded_at", precision: nil
     t.index ["merged_into_patient_id"], name: "index_patients_on_merged_into_patient_id"
     t.index ["organization_id"], name: "index_patients_on_organization_id"
+  end
+
+  create_table "payer_enrollments", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "payer_id", null: false
+    t.bigint "provider_id"
+    t.bigint "organization_location_id"
+    t.integer "enrollment_type", null: false
+    t.integer "status", default: 0, null: false
+    t.string "external_enrollment_id"
+    t.datetime "submitted_at", precision: nil
+    t.datetime "approved_at", precision: nil
+    t.datetime "rejected_at", precision: nil
+    t.datetime "cancelled_at", precision: nil
+    t.text "cancellation_reason"
+    t.integer "attempt_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["external_enrollment_id"], name: "index_payer_enrollments_on_external_enrollment_id"
+    t.index ["organization_id", "payer_id", "enrollment_type", "provider_id", "organization_location_id"], name: "idx_payer_enrollments_unique_scope", unique: true, where: "(status = ANY (ARRAY[0, 1, 2, 3]))"
+    t.index ["organization_id"], name: "index_payer_enrollments_on_organization_id"
+    t.index ["organization_location_id"], name: "index_payer_enrollments_on_organization_location_id"
+    t.index ["payer_id"], name: "index_payer_enrollments_on_payer_id"
+    t.index ["provider_id"], name: "index_payer_enrollments_on_provider_id"
+    t.index ["status"], name: "index_payer_enrollments_on_status"
   end
 
   create_table "payers", force: :cascade do |t|
@@ -617,6 +751,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
     t.datetime "updated_at", null: false
     t.index ["organization_id"], name: "index_provider_assignments_on_organization_id"
     t.index ["provider_id"], name: "index_provider_assignments_on_provider_id"
+  end
+
+  create_table "provider_notes", force: :cascade do |t|
+    t.bigint "encounter_id", null: false
+    t.bigint "provider_id", null: false
+    t.text "note_text"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_id"], name: "index_provider_notes_on_encounter_id"
+    t.index ["provider_id"], name: "index_provider_notes_on_provider_id"
   end
 
   create_table "providers", force: :cascade do |t|
@@ -731,10 +875,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
   add_foreign_key "claim_lines", "procedure_codes"
   add_foreign_key "claim_submissions", "claim_submissions", column: "prior_submission_id"
   add_foreign_key "claim_submissions", "claims"
+  add_foreign_key "claim_submissions", "insurance_plans"
   add_foreign_key "claim_submissions", "organizations"
   add_foreign_key "claim_submissions", "patients"
   add_foreign_key "claims", "encounters"
   add_foreign_key "claims", "organizations"
+  add_foreign_key "claims", "patient_insurance_coverages"
   add_foreign_key "claims", "patients"
   add_foreign_key "claims", "providers"
   add_foreign_key "claims", "specialties"
@@ -747,17 +893,29 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
   add_foreign_key "document_attachments", "users", column: "uploaded_by_id"
   add_foreign_key "documents", "organizations"
   add_foreign_key "documents", "users", column: "created_by_id"
+  add_foreign_key "encounter_comment_seens", "encounters"
+  add_foreign_key "encounter_comment_seens", "users"
+  add_foreign_key "encounter_comments", "encounters"
+  add_foreign_key "encounter_comments", "organizations"
+  add_foreign_key "encounter_comments", "patients"
+  add_foreign_key "encounter_comments", "providers"
+  add_foreign_key "encounter_comments", "users", column: "author_user_id"
   add_foreign_key "encounter_diagnosis_codes", "diagnosis_codes"
   add_foreign_key "encounter_diagnosis_codes", "encounters"
   add_foreign_key "encounters", "appointments"
   add_foreign_key "encounters", "organization_locations"
   add_foreign_key "encounters", "organizations"
+  add_foreign_key "encounters", "patient_insurance_coverages"
   add_foreign_key "encounters", "patients"
   add_foreign_key "encounters", "providers"
   add_foreign_key "encounters", "specialties"
+  add_foreign_key "insurance_plans", "payers"
   add_foreign_key "invoice_line_items", "invoices"
   add_foreign_key "invoices", "organizations"
   add_foreign_key "invoices", "users", column: "exception_set_by_user_id"
+  add_foreign_key "org_accepted_plans", "insurance_plans"
+  add_foreign_key "org_accepted_plans", "organizations"
+  add_foreign_key "org_accepted_plans", "users", column: "added_by_id"
   add_foreign_key "organization_billings", "organizations"
   add_foreign_key "organization_compliances", "organizations"
   add_foreign_key "organization_contacts", "organizations"
@@ -772,8 +930,15 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
   add_foreign_key "organization_memberships", "users"
   add_foreign_key "organization_settings", "organizations"
   add_foreign_key "organizations", "users", column: "owner_id"
+  add_foreign_key "patient_insurance_coverages", "insurance_plans"
+  add_foreign_key "patient_insurance_coverages", "organizations"
+  add_foreign_key "patient_insurance_coverages", "patients"
   add_foreign_key "patients", "organizations"
   add_foreign_key "patients", "patients", column: "merged_into_patient_id"
+  add_foreign_key "payer_enrollments", "organization_locations"
+  add_foreign_key "payer_enrollments", "organizations"
+  add_foreign_key "payer_enrollments", "payers"
+  add_foreign_key "payer_enrollments", "providers"
   add_foreign_key "payment_applications", "claim_lines"
   add_foreign_key "payment_applications", "claims"
   add_foreign_key "payment_applications", "payments"
@@ -785,6 +950,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_131600) do
   add_foreign_key "procedure_codes_specialties", "specialties"
   add_foreign_key "provider_assignments", "organizations"
   add_foreign_key "provider_assignments", "providers"
+  add_foreign_key "provider_notes", "encounters"
+  add_foreign_key "provider_notes", "providers"
   add_foreign_key "providers", "specialties"
   add_foreign_key "providers", "users"
   add_foreign_key "users", "roles"

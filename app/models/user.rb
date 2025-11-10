@@ -12,6 +12,8 @@ class User < ApplicationRecord
   has_many :organizations, foreign_key: "owner_id", dependent: :destroy
   has_many :organization_memberships, dependent: :destroy
   has_many :member_organizations, through: :organization_memberships, source: :organization, dependent: :destroy
+  has_many :encounter_comments, foreign_key: "author_user_id", dependent: :destroy
+  has_many :encounter_comment_seens, dependent: :destroy
 
   # after_create :send_invitation
 
@@ -70,5 +72,39 @@ class User < ApplicationRecord
 
   def active_organizations
     member_organizations.where(organization_memberships: { active: true })
+  end
+
+  def has_admin_access?
+    return true if super_admin?
+    return false unless role&.access
+    permissions_for("admin", "encounters", "show") || permissions_for("admin", "encounter_comments", "create")
+  end
+
+  def has_tenant_access?
+    return false unless role&.access
+    permissions_for("tenant", "encounters", "show") || permissions_for("tenant", "encounter_comments", "create")
+  end
+
+  def can_create_shared_comment?
+    has_admin_access? || has_tenant_access?
+  end
+
+  def can_create_internal_comment?
+    has_admin_access?
+  end
+
+  def can_redact_comment?
+    return true if super_admin?
+    return false unless role&.access
+    permissions_for("admin", "encounter_comments", "redact")
+  end
+
+  def can_view_internal_comments?
+    has_admin_access?
+  end
+
+  def organization_id
+    # Return the first active organization's ID for tenant users
+    active_organizations.first&.id
   end
 end

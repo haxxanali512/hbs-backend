@@ -1,4 +1,5 @@
 class Document < ApplicationRecord
+  audited
   belongs_to :documentable, polymorphic: true
   belongs_to :created_by, class_name: "User"
   belongs_to :organization

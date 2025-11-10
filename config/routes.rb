@@ -91,6 +91,39 @@ Rails.application.routes.draw do
 
       resources :payers
 
+      resources :insurance_plans do
+        member do
+          post :retire
+          post :restore
+        end
+      end
+
+      resources :org_accepted_plans do
+        member do
+          post :activate
+          post :inactivate
+          post :lock
+          post :unlock
+        end
+      end
+
+      resources :patient_insurance_coverages do
+        member do
+          post :activate
+          post :terminate
+          post :replace
+          post :run_eligibility
+        end
+      end
+
+      resources :payer_enrollments do
+        member do
+          post :submit
+          post :cancel
+          post :resubmit
+        end
+      end
+
       resources :providers do
         member do
           post :approve
@@ -150,12 +183,19 @@ Rails.application.routes.draw do
           post :request_correction
           post :override_validation
         end
+        resources :encounter_comments, only: [ :index, :create ] do
+          member do
+            post :redact
+          end
+        end
+        resources :provider_notes, only: [ :index, :show ]
       end
 
       resources :claims do
         member do
           post :validate
           post :submit
+          post :push_to_ezclaim
           post :post_adjudication
           post :void
           post :reverse
@@ -295,6 +335,26 @@ Rails.application.routes.draw do
             post :cancel
             post :request_correction
             post :attach_document
+          end
+          resources :encounter_comments, only: [ :index, :create ]
+          resources :provider_notes, except: [ :show ]
+        end
+
+        resources :payer_enrollments, only: [ :index ]
+
+        resources :org_accepted_plans do
+          member do
+            post :activate
+            post :inactivate
+          end
+        end
+
+        resources :patient_insurance_coverages do
+          member do
+            post :activate
+            post :terminate
+            post :replace
+            post :run_eligibility
           end
         end
 

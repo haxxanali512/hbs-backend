@@ -1,0 +1,58 @@
+<%= form_with model: [:admin, payer_enrollment], local: true do |f| %>
+  <% if payer_enrollment.errors.any? %>
+    <div class="mb-4 bg-red-50 border border-red-200 rounded-md p-4 text-sm text-red-700">
+      <%= payer_enrollment.errors.full_messages.join(', ') %>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <%= f.label :organization_id, "Organization", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :organization_id, options_from_collection_for_select(@organizations, :id, :name, payer_enrollment.organization_id), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+    </div>
+
+    <div>
+      <%= f.label :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :payer_id, options_from_collection_for_select(@payers, :id, :name, payer_enrollment.payer_id), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+    </div>
+
+    <div>
+      <%= f.label :enrollment_type, "Enrollment Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :enrollment_type, options_for_select(PayerEnrollment.enrollment_types.keys.map { |k| [k.humanize, k] }, payer_enrollment.enrollment_type), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+    </div>
+
+    <div>
+      <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :status, options_for_select(PayerEnrollment.statuses.keys.map { |k| [k.humanize, k] }, payer_enrollment.status), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+    </div>
+
+    <div>
+      <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :provider_id, options_from_collection_for_select(@providers, :id, :full_name, payer_enrollment.provider_id), { include_blank: "None" }, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+      <p class="text-xs text-gray-500 mt-1">Required if payer mandates provider-specific enrollment</p>
+    </div>
+
+    <div>
+      <%= f.label :organization_location_id, "Location", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :organization_location_id, options_from_collection_for_select(@locations, :id, :name, payer_enrollment.organization_location_id), { include_blank: "None" }, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+      <p class="text-xs text-gray-500 mt-1">Required if payer mandates location enrollment</p>
+    </div>
+
+    <div>
+      <%= f.label :external_enrollment_id, "External Enrollment ID", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :external_enrollment_id, class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono", placeholder: "Clearinghouse reference ID" %>
+      <p class="text-xs text-gray-500 mt-1">Set by clearinghouse after submission</p>
+    </div>
+
+    <div class="md:col-span-2">
+      <%= f.label :cancellation_reason, "Cancellation Reason", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :cancellation_reason, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2", placeholder: "Reason for cancellation (if applicable)" %>
+    </div>
+  </div>
+
+  <div class="flex justify-end mt-6">
+    <%= link_to "Cancel", admin_payer_enrollments_path, class: "px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50" %>
+    <%= f.submit payer_enrollment.persisted? ? "Update Enrollment" : "Create Enrollment", class: "ml-2 px-4 py-2 rounded-md text-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+  </div>
+<% end %>
+
