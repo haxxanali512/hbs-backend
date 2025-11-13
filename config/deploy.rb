@@ -19,7 +19,7 @@ set :ssh_options, {
 }
 set :deploy_to, "/home/deployer/www/hbs-backend"
 set :sidekiq_service_unit_name, "hbs-backend-sidekiq"
-set :linked_files, %w[config/master.key config/credentials.yml.enc config/database.yml config/puma.rb config/sidekiq.yml]
+set :linked_files, %w[config/credentials/production.key config/database.yml config/puma.rb config/sidekiq.yml]
 set :linked_dirs, %w[log tmp/pids tmp/cache tmp/sockets vendor/bundle]
 set :pm2_start_command, "bundle exec rails server -e production"
 set :rvm1_ruby_version, "3.2.0"
