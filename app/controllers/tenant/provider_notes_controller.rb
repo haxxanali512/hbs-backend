@@ -9,10 +9,22 @@ class Tenant::ProviderNotesController < Tenant::BaseController
   def show; end
 
   def new
+    if @encounter.cascaded?
+      flash[:alert] = "Cannot create provider notes after encounter finalization."
+      redirect_to tenant_encounter_path(@encounter)
+      return
+    end
+
     @provider_note = @encounter.provider_notes.build(provider: current_provider)
   end
 
   def create
+    if @encounter.cascaded?
+      flash[:alert] = "Cannot create provider notes after encounter finalization."
+      redirect_to tenant_encounter_path(@encounter)
+      return
+    end
+
     @provider_note = @encounter.provider_notes.build(provider_note_params)
     @provider_note.provider = current_provider unless @provider_note.provider_id.present?
 
@@ -47,7 +59,7 @@ class Tenant::ProviderNotesController < Tenant::BaseController
   private
 
   def set_encounter
-    @encounter = @current_organization.encounters.find(params[:encounter_id])
+    @encounter = current_organization.encounters.find(params[:encounter_id])
   end
 
   def set_provider_note

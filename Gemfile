@@ -86,6 +86,15 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Test coverage
+  gem "simplecov", require: false
+
+  # RSpec for testing
+  gem "rspec-rails", "~> 6.0"
+  gem "factory_bot_rails"
+  gem "shoulda-matchers", "~> 6.0"
+  gem "database_cleaner-active_record"
 end
 
 gem "gocardless_pro", "~> 4.2"

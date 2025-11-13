@@ -1,0 +1,51 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Provider Note</h1>
+          <p class="mt-2 text-gray-600">View provider note details</p>
+        </div>
+        <div class="flex space-x-3">
+          <%= link_to "Back to Encounter", admin_encounter_path(@encounter), class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Provider Note Details -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Provider</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @provider_note.provider.full_name %></p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Encounter</label>
+          <p class="mt-1 text-sm text-gray-900">
+            <%= link_to "View Encounter", admin_encounter_path(@encounter), class: "text-blue-600 hover:text-blue-800" %>
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Note Text</label>
+          <div class="mt-1 p-4 bg-gray-50 rounded-md">
+            <p class="text-sm text-gray-900 whitespace-pre-wrap"><%= @provider_note.note_text %></p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Created At</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @provider_note.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Updated At</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @provider_note.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

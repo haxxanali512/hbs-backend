@@ -8,7 +8,7 @@ class ProviderNote < ApplicationRecord
   # Validations
   validates :encounter_id, presence: true
   validates :provider_id, presence: true
-  validates :note_text, presence: true, if: -> { persisted? || note_text.present? }
+  validates :note_text, presence: true
 
   # Business Rules
   validate :encounter_not_finalized_on_edit, on: :update

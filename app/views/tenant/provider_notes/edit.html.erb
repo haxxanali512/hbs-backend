@@ -1,0 +1,55 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Edit Provider Note</h1>
+          <p class="mt-2 text-gray-600">Update provider note for this encounter</p>
+        </div>
+        <div>
+          <%= link_to "Back to Encounter", tenant_encounter_path(@encounter), class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <%= form_with model: [@encounter, @provider_note], url: tenant_encounter_provider_note_path(@encounter, @provider_note), local: true, class: "space-y-6" do |f| %>
+        <% if @provider_note.errors.any? %>
+          <div class="rounded-md bg-red-50 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <ul class="list-disc pl-5 space-y-1">
+                    <% @provider_note.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <div>
+          <%= f.label :note_text, "Note Text", class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= f.text_area :note_text, rows: 8, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "Enter your provider note (SOAP-style notes, quick observations, etc.)", required: true %>
+          <p class="mt-1 text-xs text-gray-500">Note: Provider notes are not legal clinical records and cannot substitute for Clinical Documentation.</p>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+          <%= link_to "Cancel", tenant_encounter_path(@encounter), class: "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+          <%= f.submit "Update Note", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
