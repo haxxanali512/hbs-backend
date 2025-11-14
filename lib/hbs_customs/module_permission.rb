@@ -71,7 +71,9 @@ module HbsCustoms
           org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false),
           patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),
           claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
-          claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false)
+          claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
+          support_tickets: DEFAULT_CRUD.except(:destroy),
+          support_ticket_comments: DEFAULT_CRUD.except(:destroy)
         }.freeze
       end
 
@@ -107,7 +109,9 @@ module HbsCustoms
           denials: DEFAULT_CRUD.merge(update_status: false, resubmit: false, mark_non_correctable: false, override_attempt_limit: false, attach_doc: false, remove_doc: false),
           denial_items: DEFAULT_CRUD.except(:destroy),
           claim_submissions: DEFAULT_CRUD.merge(resubmit: false, void: false, replace: false),
-          payer_enrollments: DEFAULT_CRUD.merge(submit: false, cancel: false, resubmit: false)
+          payer_enrollments: DEFAULT_CRUD.merge(submit: false, cancel: false, resubmit: false),
+          support_tickets: DEFAULT_CRUD.except(:destroy).merge(close: false, reopen: false, add_internal_note: false),
+          support_ticket_comments: DEFAULT_CRUD.except(:destroy).merge(redact: false)
         }.freeze
       end
 

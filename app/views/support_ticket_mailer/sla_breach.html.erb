@@ -1,0 +1,14 @@
+<p>Team,</p>
+
+<p>The <strong><%= @breach_type.titleize %></strong> SLA for ticket <strong>#<%= @ticket.id %></strong> has been breached.</p>
+
+<p>
+  Organization: <%= @ticket.organization.name %><br>
+  Priority: <%= @ticket.priority.humanize %><br>
+  Assigned to: <%= @ticket.assigned_to_user&.display_name || "unassigned" %>
+</p>
+
+<p>A follow-up task has been created automatically. Please address the ticket immediately.</p>
+
+<p>— HBS Support Automation</p>
+

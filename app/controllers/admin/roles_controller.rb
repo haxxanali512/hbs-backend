@@ -60,7 +60,7 @@ class Admin::RolesController < Admin::BaseController
 
   # Permit nested access structure like access[accounts][employees][index]=1
   def role_params
-    permitted = params.require(:role).permit(:role_name)
+    permitted = params.require(:role).permit(:role_name, :scope)
     permitted[:access] = extract_access(params[:role][:access]) if params.dig(:role, :access)
     permitted
   end
@@ -79,13 +79,35 @@ class Admin::RolesController < Admin::BaseController
 
   def normalize_permissions(hash)
     bool = ActiveModel::Type::Boolean.new
-    (hash || {}).each_with_object({}) do |(mod_key, submods), acc|
-      acc[mod_key] = {}
-      (submods || {}).each do |sub_key, actions|
-        acc[mod_key][sub_key] = {}
-        (actions || {}).each do |action, val|
-          acc[mod_key][sub_key][action] = bool.cast(val)
+    base = HbsCustoms::ModulePermission.data.deep_symbolize_keys
+    incoming = (hash || {}).deep_symbolize_keys
+
+    merged = deep_merge_permissions(base, incoming)
+
+    merged.each_with_object({}) do |(namespace, modules), acc|
+      acc[namespace] = modules.each_with_object({}) do |(mod_key, actions), mods_acc|
+        mods_acc[mod_key] = normalize_action_hash(actions, bool)
+      end
+    end
+  end
+
+  def normalize_action_hash(actions, bool)
+    (actions || {}).each_with_object({}) do |(action, val), acc|
+      acc[action] =
+        if val.is_a?(Hash)
+          normalize_action_hash(val, bool)
+        else
+          bool.cast(val)
         end
+    end
+  end
+
+  def deep_merge_permissions(base, incoming)
+    base.merge(incoming) do |_key, base_val, incoming_val|
+      if base_val.is_a?(Hash) && incoming_val.is_a?(Hash)
+        deep_merge_permissions(base_val, incoming_val)
+      else
+        incoming_val
       end
     end
   end

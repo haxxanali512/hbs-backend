@@ -91,6 +91,19 @@ Rails.application.routes.draw do
 
       resources :payers
 
+      resources :support_tickets do
+        member do
+          patch :close
+          patch :reopen
+          post :add_internal_note
+          post :attach_document
+        end
+
+        resources :comments,
+                  only: [ :create ],
+                  controller: "support_ticket_comments"
+      end
+
       resources :insurance_plans do
         member do
           post :retire
@@ -338,6 +351,16 @@ Rails.application.routes.draw do
           end
           resources :encounter_comments, only: [ :index, :create ]
           resources :provider_notes, except: [ :show ]
+        end
+
+        resources :support_tickets, only: [ :index, :new, :create, :show ] do
+          member do
+            post :attach_document
+          end
+
+          resources :comments,
+                    only: [ :create ],
+                    controller: "support_ticket_comments"
         end
 
         resources :payer_enrollments, only: [ :index ]

@@ -1,0 +1,83 @@
+<%= form_with(model: @support_ticket,
+              url: (@support_ticket.persisted? ? tenant_support_ticket_path(@support_ticket) : tenant_support_tickets_path),
+              local: true,
+              class: "space-y-6") do |f| %>
+  <% if @support_ticket.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(@support_ticket.errors.count, "error") %> prohibited this support ticket from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% @support_ticket.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <%= f.label :category, "Category", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :category,
+                   SupportTicket.categories.keys.map { |k| [k.humanize, k] },
+                   { prompt: "Select category" },
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+
+    <div>
+      <%= f.label :linked_resource_type, "Linked Resource", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <div class="flex gap-2">
+        <%= f.select :linked_resource_type,
+                     [["None", ""]] + SupportTicket::LINKED_RESOURCE_TYPES.keys.map { |k| [k, k] },
+                     {},
+                     class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.text_field :linked_resource_id,
+                         placeholder: "Reference ID",
+                         class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <p class="mt-1 text-xs text-gray-500">Optional, must belong to your organization.</p>
+    </div>
+  </div>
+
+  <div>
+    <%= f.label :subject, "Subject", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= f.text_field :subject, maxlength: 200, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    <p class="mt-1 text-xs text-gray-500">Avoid PHI. 200 characters max.</p>
+  </div>
+
+  <div>
+    <%= f.label :description, "Description", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= f.text_area :description, rows: 6, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    <p class="mt-1 text-xs text-gray-500">Do not include PHI. Share claim IDs or invoice numbers instead.</p>
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Attachment Tokens</label>
+    <input type="text"
+           name="support_ticket[attachment_tokens]"
+           value="<%= (@support_ticket.attachments || []).join(', ') %>"
+           placeholder="Paste upload tokens (comma separated)"
+           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    <p class="mt-1 text-xs text-gray-500">Provide IDs from the secure uploader when prompted by HBS.</p>
+  </div>
+
+  <div class="flex justify-end gap-3">
+    <%= link_to "Cancel",
+                tenant_support_tickets_path,
+                class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+    <%= f.submit "Submit Ticket",
+                 class: "bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+  </div>
+<% end %>
+

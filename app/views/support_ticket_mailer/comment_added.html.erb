@@ -1,0 +1,12 @@
+<p>Hello,</p>
+
+<p>There is a new <%= @comment.visibility.humanize.downcase %> comment on ticket <strong>#<%= @ticket.id %></strong>:</p>
+
+<blockquote style="border-left: 4px solid #e5e7eb; padding-left: 12px; color: #374151;">
+  <%= simple_format(@comment.body) %>
+</blockquote>
+
+<p>Sign in to the Support Center to reply or add internal notes.</p>
+
+<p>— HBS Support</p>
+

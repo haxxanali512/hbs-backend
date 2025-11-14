@@ -1,0 +1,14 @@
+<p>Hello <%= @ticket.created_by_user.first_name %>,</p>
+
+<p>We received your support request titled "<strong><%= @ticket.subject %></strong>". Our support team will respond within 72 hours.</p>
+
+<p>
+  Ticket reference: <strong>#<%= @ticket.id %></strong><br>
+  Category: <%= @ticket.category.humanize %><br>
+  Submitted: <%= l(@ticket.created_at, format: :long) %>
+</p>
+
+<p>This acknowledgement does not include PHI. Please keep future updates non-PHI unless expressly requested.</p>
+
+<p>— HBS Support</p>
+

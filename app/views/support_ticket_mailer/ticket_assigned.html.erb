@@ -1,0 +1,14 @@
+<p>Hi <%= @ticket.assigned_to_user&.first_name || "team member" %>,</p>
+
+<p>Ticket <strong>#<%= @ticket.id %></strong> has been assigned to you.</p>
+
+<p>
+  Subject: <strong><%= @ticket.subject %></strong><br>
+  Organization: <%= @ticket.organization.name %><br>
+  Priority: <%= @ticket.priority.humanize %>
+</p>
+
+<p>Please review the request and post your first response before <%= l(@ticket.first_response_due_at, format: :long) %>.</p>
+
+<p>— HBS Support Platform</p>
+
