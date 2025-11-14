@@ -14,6 +14,14 @@ class User < ApplicationRecord
   has_many :member_organizations, through: :organization_memberships, source: :organization, dependent: :destroy
   has_many :encounter_comments, foreign_key: "author_user_id", dependent: :destroy
   has_many :encounter_comment_seens, dependent: :destroy
+  has_many :created_support_tickets,
+           class_name: "SupportTicket",
+           foreign_key: "created_by_user_id",
+           dependent: :nullify
+  has_many :assigned_support_tickets,
+           class_name: "SupportTicket",
+           foreign_key: "assigned_to_user_id",
+           dependent: :nullify
 
   # after_create :send_invitation
 
@@ -83,6 +91,14 @@ class User < ApplicationRecord
   def has_tenant_access?
     return false unless role&.access
     permissions_for("tenant", "encounters", "show") || permissions_for("tenant", "encounter_comments", "create")
+  end
+
+  def hbs_user?
+    super_admin? || role&.global?
+  end
+
+  def client_user?
+    !hbs_user?
   end
 
   def can_create_shared_comment?

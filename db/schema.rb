@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_10_091218) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -819,6 +819,66 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_10_091218) do
     t.index ["discarded_at"], name: "index_specialties_on_discarded_at"
   end
 
+  create_table "support_ticket_comments", force: :cascade do |t|
+    t.bigint "support_ticket_id", null: false
+    t.bigint "author_user_id", null: false
+    t.integer "visibility", default: 0, null: false
+    t.text "body", null: false
+    t.boolean "system_generated", default: false, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_user_id"], name: "index_support_ticket_comments_on_author_user_id"
+    t.index ["created_at"], name: "index_support_ticket_comments_on_created_at"
+    t.index ["support_ticket_id"], name: "index_support_ticket_comments_on_support_ticket_id"
+    t.index ["visibility"], name: "index_support_ticket_comments_on_visibility"
+  end
+
+  create_table "support_ticket_tasks", force: :cascade do |t|
+    t.bigint "support_ticket_id", null: false
+    t.integer "task_type", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "opened_at", null: false
+    t.datetime "completed_at"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_support_ticket_tasks_on_status"
+    t.index ["support_ticket_id", "task_type"], name: "index_support_ticket_tasks_on_ticket_and_type"
+    t.index ["support_ticket_id"], name: "index_support_ticket_tasks_on_support_ticket_id"
+  end
+
+  create_table "support_tickets", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "created_by_user_id", null: false
+    t.bigint "assigned_to_user_id"
+    t.integer "category", null: false
+    t.string "subject", limit: 200, null: false
+    t.text "description", null: false
+    t.integer "priority", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.string "linked_resource_type"
+    t.string "linked_resource_id"
+    t.uuid "attachments", default: [], array: true
+    t.jsonb "internal_notes", default: [], null: false
+    t.datetime "first_response_due_at", null: false
+    t.datetime "resolution_due_at", null: false
+    t.datetime "closed_at"
+    t.datetime "discarded_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assigned_to_user_id"], name: "index_support_tickets_on_assigned_to_user_id"
+    t.index ["category"], name: "index_support_tickets_on_category"
+    t.index ["created_by_user_id"], name: "index_support_tickets_on_created_by_user_id"
+    t.index ["discarded_at"], name: "index_support_tickets_on_discarded_at"
+    t.index ["first_response_due_at"], name: "index_support_tickets_on_first_response_due_at"
+    t.index ["linked_resource_type", "linked_resource_id"], name: "index_support_tickets_on_linked_resource"
+    t.index ["organization_id"], name: "index_support_tickets_on_organization_id"
+    t.index ["priority"], name: "index_support_tickets_on_priority"
+    t.index ["resolution_due_at"], name: "index_support_tickets_on_resolution_due_at"
+    t.index ["status"], name: "index_support_tickets_on_status"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -954,5 +1014,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_10_091218) do
   add_foreign_key "provider_notes", "providers"
   add_foreign_key "providers", "specialties"
   add_foreign_key "providers", "users"
+  add_foreign_key "support_ticket_comments", "support_tickets"
+  add_foreign_key "support_ticket_comments", "users", column: "author_user_id"
+  add_foreign_key "support_ticket_tasks", "support_tickets"
+  add_foreign_key "support_tickets", "organizations"
+  add_foreign_key "support_tickets", "users", column: "assigned_to_user_id"
+  add_foreign_key "support_tickets", "users", column: "created_by_user_id"
   add_foreign_key "users", "roles"
 end

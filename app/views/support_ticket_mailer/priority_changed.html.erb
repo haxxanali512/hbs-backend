@@ -1,0 +1,12 @@
+<p>Heads up,</p>
+
+<p>Ticket <strong>#<%= @ticket.id %></strong> has been escalated to <strong><%= @ticket.priority.humanize %></strong> priority.</p>
+
+<% if @reason.present? %>
+  <p>Reason: <%= @reason %></p>
+<% end %>
+
+<p>Please adjust your workflows accordingly.</p>
+
+<p>— HBS Support Automation</p>
+

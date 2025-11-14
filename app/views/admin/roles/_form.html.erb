@@ -7,14 +7,15 @@
         <%= f.text_field :role_name, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700">Scope</label>
+        <label class="block text-sm font-medium text-gray-700">Permission Type</label>
         <%= f.select :scope,
             options_for_select([
               ['Global', 'global'],
+              ['Admin', 'admin'],
               ['Tenant', 'tenant']
             ], @role.scope),
-            { prompt: 'Select scope' },
-            { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+            { prompt: 'Select permission type' },
+            { id: "role_scope", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
       </div>
     </div>
   </div>
@@ -30,21 +31,34 @@
     </div>
 
     <% (@permissions || @role.access || {}).each do |module_key, submodules| %>
-      <div class="mb-6">
+      <div class="mb-6 permission-scope-block" data-scope="<%= module_key.to_s %>">
         <div class="rounded-md border border-gray-200 bg-gray-50">
           <div class="px-4 py-3 font-semibold text-gray-900"><%= module_key.to_s.humanize %></div>
           <div class="p-4 space-y-6 bg-white">
             <% (submodules || {}).each do |submodule_key, actions| %>
               <div>
-                <div class="text-sm font-medium text-gray-900 mb-3"><%= submodule_key.to_s.humanize %></div>
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="text-sm font-medium text-gray-900"><%= submodule_key.to_s.humanize %></div>
+                  <label class="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer hover:text-gray-900">
+                    <%= check_box_tag nil, "1", false, class: "module-check-all h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500", data: { module: module_key.to_s, submodule: submodule_key.to_s } %>
+                    <span>Check all</span>
+                  </label>
+                </div>
                 <div class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-6 gap-x-8 gap-y-3 text-sm">
-                  <% action_order = %i[index show create update destroy] %>
-                  <% action_order.each do |action_key| %>
+                  <% 
+                    # Get all actions from the hash, but prioritize CRUD order
+                    crud_order = %i[index show create update destroy]
+                    all_actions = (actions || {}).keys.map(&:to_sym)
+                    crud_actions = crud_order & all_actions
+                    other_actions = all_actions - crud_actions
+                    sorted_actions = crud_actions + other_actions.sort
+                  %>
+                  <% sorted_actions.each do |action_key| %>
                     <% raw_value = (actions || {})[action_key] %>
                     <% value = ActiveModel::Type::Boolean.new.cast(raw_value) %>
                     <label class="inline-flex items-center gap-2 text-gray-700">
-                      <%= check_box_tag "role[access][#{module_key}][#{submodule_key}][#{action_key}]", "1", value, class: "perm-toggle h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500", data: { module: module_key, submodule: submodule_key } %>
-                      <span class="capitalize"><%= action_key %></span>
+                      <%= check_box_tag "role[access][#{module_key}][#{submodule_key}][#{action_key}]", "1", value, class: "perm-toggle h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500", data: { module: module_key.to_s, submodule: submodule_key.to_s } %>
+                      <span class="capitalize"><%= action_key.to_s.humanize %></span>
                     </label>
                   <% end %>
                 </div>
@@ -63,18 +77,140 @@
 <% end %>
 
 <script>
-document.addEventListener('turbo:load', function() {
-  var selectAll = document.getElementById('selectAllPermissions');
-  var clearAll = document.getElementById('clearAllPermissions');
-  if (selectAll) {
-    selectAll.addEventListener('click', function() {
-      document.querySelectorAll('input.perm-toggle[type="checkbox"]').forEach(function(cb){ cb.checked = true; });
+(function() {
+  function filterPermissionsByScope() {
+    var scopeSelect = document.getElementById('role_scope');
+    if (!scopeSelect) return;
+    
+    var selectedScope = scopeSelect.value;
+    var permissionBlocks = document.querySelectorAll('.permission-scope-block');
+    
+    permissionBlocks.forEach(function(block) {
+      var blockScope = block.getAttribute('data-scope');
+      
+      if (selectedScope === '' || selectedScope === null) {
+        // If no scope selected, hide all
+        block.style.display = 'none';
+      } else if (selectedScope === 'global') {
+        // Global shows both admin and tenant blocks
+        block.style.display = 'block';
+      } else if (selectedScope === 'admin' && blockScope === 'admin') {
+        // Admin shows only admin blocks
+        block.style.display = 'block';
+      } else if (selectedScope === 'tenant' && blockScope === 'tenant') {
+        // Tenant shows only tenant blocks
+        block.style.display = 'block';
+      } else {
+        block.style.display = 'none';
+      }
     });
   }
-  if (clearAll) {
-    clearAll.addEventListener('click', function() {
-      document.querySelectorAll('input.perm-toggle[type="checkbox"]').forEach(function(cb){ cb.checked = false; });
+  
+  // Use event delegation (only add once)
+  document.addEventListener('change', function(e) {
+    // Handle scope changes
+    if (e.target && e.target.id === 'role_scope') {
+      filterPermissionsByScope();
+      return;
+    }
+    
+    if (e.target && e.target.classList.contains('module-check-all')) {
+      var module = e.target.getAttribute('data-module');
+      var submodule = e.target.getAttribute('data-submodule');
+      var isChecked = e.target.checked;
+      
+      var selector = 'input.perm-toggle[data-module="' + module + '"][data-submodule="' + submodule + '"]';
+      var moduleCheckboxes = document.querySelectorAll(selector);
+      
+      moduleCheckboxes.forEach(function(cb) {
+        cb.checked = isChecked;
+      });
+    }
+    
+    if (e.target && e.target.classList.contains('perm-toggle')) {
+      var module = e.target.getAttribute('data-module');
+      var submodule = e.target.getAttribute('data-submodule');
+      
+      var selector = 'input.perm-toggle[data-module="' + module + '"][data-submodule="' + submodule + '"]';
+      var moduleCheckboxes = document.querySelectorAll(selector);
+      
+      var allChecked = Array.from(moduleCheckboxes).every(function(cb) { 
+        return cb.checked; 
+      });
+      
+      var checkAllSelector = 'input.module-check-all[data-module="' + module + '"][data-submodule="' + submodule + '"]';
+      var checkAllBox = document.querySelector(checkAllSelector);
+      
+      if (checkAllBox) {
+        checkAllBox.checked = allChecked;
+      }
+    }
+  });
+  
+  function initRolePermissions() {
+    // Global select all / clear all
+    var selectAll = document.getElementById('selectAllPermissions');
+    var clearAll = document.getElementById('clearAllPermissions');
+    
+    if (selectAll) {
+      selectAll.onclick = function() {
+        // Only select visible checkboxes
+        document.querySelectorAll('.permission-scope-block').forEach(function(block) {
+          if (block.style.display !== 'none' && window.getComputedStyle(block).display !== 'none') {
+            block.querySelectorAll('input.perm-toggle[type="checkbox"]').forEach(function(cb) { 
+              cb.checked = true; 
+            });
+            block.querySelectorAll('input.module-check-all[type="checkbox"]').forEach(function(cb) { 
+              cb.checked = true; 
+            });
+          }
+        });
+      };
+    }
+    
+    if (clearAll) {
+      clearAll.onclick = function() {
+        // Only clear visible checkboxes
+        document.querySelectorAll('.permission-scope-block').forEach(function(block) {
+          if (block.style.display !== 'none' && window.getComputedStyle(block).display !== 'none') {
+            block.querySelectorAll('input.perm-toggle[type="checkbox"]').forEach(function(cb) { 
+              cb.checked = false; 
+            });
+            block.querySelectorAll('input.module-check-all[type="checkbox"]').forEach(function(cb) { 
+              cb.checked = false; 
+            });
+          }
+        });
+      };
+    }
+
+    // Initial filter on page load
+    filterPermissionsByScope();
+
+    // Initialize "Check all" state on page load
+    document.querySelectorAll('input.module-check-all[type="checkbox"]').forEach(function(checkAllBox) {
+      var module = checkAllBox.getAttribute('data-module');
+      var submodule = checkAllBox.getAttribute('data-submodule');
+      
+      var selector = 'input.perm-toggle[data-module="' + module + '"][data-submodule="' + submodule + '"]';
+      var moduleCheckboxes = document.querySelectorAll(selector);
+      
+      var allChecked = moduleCheckboxes.length > 0 && Array.from(moduleCheckboxes).every(function(cb) { 
+        return cb.checked; 
+      });
+      
+      checkAllBox.checked = allChecked;
     });
   }
-});
+
+  // Handle both Turbo and regular page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRolePermissions);
+  } else {
+    initRolePermissions();
+  }
+  
+  document.addEventListener('turbo:load', initRolePermissions);
+  document.addEventListener('turbo:render', initRolePermissions);
+})();
 </script>
