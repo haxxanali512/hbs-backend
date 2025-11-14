@@ -410,7 +410,7 @@ GEM
       net-ssh (>= 2.8.0)
       ostruct
     stringio (3.1.8)
-    stripe (16.0.0)
+    stripe (17.2.0)
     tailwindcss-rails (4.4.0)
       railties (>= 7.0.0)
       tailwindcss-ruby (~> 4.0)
