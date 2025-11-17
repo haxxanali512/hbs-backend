@@ -208,7 +208,7 @@ Rails.application.routes.draw do
         member do
           post :validate
           post :submit
-          post :push_to_ezclaim
+          get :test_ezclaim_connection
           post :post_adjudication
           post :void
           post :reverse

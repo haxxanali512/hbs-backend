@@ -19,8 +19,9 @@
         <div>
           <label class="block text-sm font-medium text-gray-700">Subdomain</label>
           <p class="mt-1 text-sm text-gray-900">
-            <%= link_to @organization.subdomain + '.localhost:3000', 
-                root_url(subdomain: @organization.subdomain), 
+            <% tenant_url = "#{request.protocol}#{@organization.subdomain}.#{request.host_with_port}" %>
+            <%= link_to "#{@organization.subdomain}.#{request.host_with_port}", 
+                tenant_url, 
                 target: '_blank',
                 class: 'text-indigo-600 hover:text-indigo-800' %>
           </p>
@@ -142,7 +143,7 @@
               data: { confirm: "Are you sure you want to activate this organization?" } %>
         <% end %>
         
-        <%= link_to "Visit Organization Portal", root_url(subdomain: @organization.subdomain),
+        <%= link_to "Visit Organization Portal", "#{request.protocol}#{@organization.subdomain}.#{request.host_with_port}",
             target: '_blank',
             class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
         
@@ -173,8 +174,9 @@
               </ul>
               <p class="mt-2">
                 <strong>Organization Portal:</strong> 
-                <%= link_to @organization.subdomain + '.localhost:3000', 
-                    root_url(subdomain: @organization.subdomain), 
+                <% tenant_url = "#{request.protocol}#{@organization.subdomain}.#{request.host_with_port}" %>
+                <%= link_to "#{@organization.subdomain}.#{request.host_with_port}", 
+                    tenant_url, 
                     target: '_blank',
                     class: 'text-amber-800 underline hover:text-amber-900' %>
               </p>

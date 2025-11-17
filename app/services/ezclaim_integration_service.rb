@@ -1,5 +1,8 @@
-# EZclaim API Integration Service
+# EZclaim API Integration Service (Legacy)
 # API Documentation: https://ezclaimapiprod.azurewebsites.net/swagger/index.html
+#
+# DEPRECATED: This service is kept for backward compatibility.
+# Please use EzclaimService for new implementations.
 #
 # Before using:
 # 1. Review Swagger docs to confirm endpoint paths, authentication, and payload format
