@@ -15,10 +15,9 @@ module HbsDataProcessing
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
-    config.assets.compile = false   # should be false for precompiled assets
-    config.assets.digest = true
-    config.assets.js_compressor = :uglifier
-    config.assets.css_compressor = :sass
+
+    # CSS compressor removed - Tailwind CSS handles its own compilation
+    # config.assets.css_compressor = :sass
     # Add services directory to autoload paths
     config.autoload_paths += %W[#{config.root}/app/services]
 

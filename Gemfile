@@ -30,6 +30,7 @@ gem "rubocop", require: false
 gem "redis", "~> 4.8"
 gem "gocardless_pro", "~> 4.2"
 gem "httparty"
+gem "uglifier", ">= 1.4.3"
 gem "pdfkit", "~> 0.8.7"
 gem "wkhtmltopdf-binary"
 gem "aws-sdk-s3", require: false
@@ -53,3 +54,5 @@ group :development, :test do
   gem "shoulda-matchers", "~> 6.0"
   gem "database_cleaner-active_record"
 end
+
+gem "jsbundling-rails", "~> 1.3"
