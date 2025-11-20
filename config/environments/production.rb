@@ -13,11 +13,16 @@ Rails.application.configure do
   config.consider_all_requests_local = false
   config.require_master_key = true
 
+  # Enable serving static files from the `/public` folder
+  config.public_file_server.enabled = ENV.fetch("RAILS_SERVE_STATIC_FILES", "true") == "true"
+
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
+
   # Use harmony mode for ES6+
   config.assets.compile = false   # should be false for precompiled assets
   config.assets.digest = true
+  config.assets.version = "1.0"
 
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
