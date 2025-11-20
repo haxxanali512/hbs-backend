@@ -266,6 +266,7 @@ GEM
       ast (~> 2.4.1)
       racc
     pdfkit (0.8.7.3)
+    pg (1.6.2)
     pg (1.6.2-arm64-darwin)
     pg (1.6.2-x86_64-darwin)
     pg (1.6.2-x86_64-linux)
@@ -426,6 +427,7 @@ GEM
     tailwindcss-rails (4.4.0)
       railties (>= 7.0.0)
       tailwindcss-ruby (~> 4.0)
+    tailwindcss-ruby (4.1.16)
     tailwindcss-ruby (4.1.16-arm64-darwin)
     tailwindcss-ruby (4.1.16-x86_64-darwin)
     tailwindcss-ruby (4.1.16-x86_64-linux)
@@ -453,6 +455,7 @@ GEM
 
 PLATFORMS
   arm64-darwin
+  ruby
   x86_64-darwin
   x86_64-linux
 
