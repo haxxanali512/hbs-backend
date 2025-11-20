@@ -109,7 +109,20 @@ class Organization < ApplicationRecord
   end
 
   def invite_owner
-    owner.invite!
+    return if owner.nil?
+    return if owner.invitation_sent_at.present? # Already invited
+
+    # Skip email sending if mailer is not configured (e.g., during seeding)
+    begin
+      owner.invite!
+    rescue => e
+      # Log error but don't fail if it's a mail delivery issue
+      if e.message.include?("Connection refused") || e.message.include?("SMTP")
+        Rails.logger.warn("Could not send owner invitation email: #{e.message}")
+      else
+        raise
+      end
+    end
   end
 
   def create_default_settings
