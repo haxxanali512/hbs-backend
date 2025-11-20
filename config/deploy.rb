@@ -27,14 +27,9 @@ set :default_env, { rvm_bin_path: "~/.rvm/bin" }
 set :rvm1_map_bins, -> { fetch(:rvm_map_bins).to_a.concat(%w[rake gem bundle ruby]).uniq }
 
 # Bundler configuration for platform-specific gems
-# Note: --deployment can prevent platform-specific gems from installing
-# Use --frozen instead to ensure Gemfile.lock is respected
-set :bundle_flags, '--quiet --frozen'
+set :bundle_flags, '--quiet'
 set :bundle_without, %w{development test}.join(' ')
 set :bundle_jobs, 4
-# Ensure platform-specific gems are installed
-set :bundle_binstubs, nil
-set :bundle_path, -> { shared_path.join('bundle') }
 
 
 # Sidekiq configuration
@@ -66,66 +61,6 @@ set :sidekiq_deploy_label, -> { "#{fetch(:stage)}-#{fetch(:current_revision, "un
 
 # set :sidekiq_monit_conf_dir, '/etc/monit/conf.d'
 # set :sidekiq_monit_use_sudo, true
-
-# before "deploy:assets:precompile", "deploy:load_translations"
-
-# Custom task to clear bundle cache and force fresh install
-namespace :bundle do
-  desc 'Clear bundle cache to force fresh gem installation'
-  task :clear_cache do
-    on roles(:app) do
-      within shared_path do
-        execute :rm, '-rf', 'bundle'
-      end
-    end
-  end
-
-  desc 'Ensure platform-specific gems are installed'
-  task :ensure_platforms do
-    on roles(:app) do
-      within release_path do
-        # Ensure force_ruby_platform is false to allow platform-specific gems
-        execute :bundle, 'config', 'unset', 'force_ruby_platform'
-        execute :bundle, 'config', 'set', '--local', 'force_ruby_platform', 'false'
-        # Ensure the platform is in the lock file
-        execute :bundle, 'lock', '--add-platform', 'x86_64-linux', raise_on_non_zero_exit: false
-        
-        # Remove the base tailwindcss-ruby gem if it exists (without platform suffix)
-        # This forces bundler to install the platform-specific variant
-        gem_path = shared_path.join('bundle/ruby/3.2.0/gems')
-        base_gem = gem_path.join('tailwindcss-ruby-4.1.16')
-        platform_gem = gem_path.join('tailwindcss-ruby-4.1.16-x86_64-linux')
-        
-        # Remove base gem if platform-specific gem doesn't exist
-        if test("[ ! -d #{platform_gem} ]") && test("[ -d #{base_gem} ]")
-          info "Removing base tailwindcss-ruby gem to force platform-specific installation"
-          execute :rm, '-rf', base_gem
-        end
-        
-        # Install with all platforms to ensure platform-specific gems are installed
-        execute :bundle, 'install', '--frozen', '--quiet', '--without', 'development test'
-        
-        # Verify the platform-specific gem and executable exist
-        if test("[ ! -d #{platform_gem} ]")
-          error "Platform-specific tailwindcss-ruby gem not found at #{platform_gem}"
-          raise "Failed to install tailwindcss-ruby platform-specific gem"
-        end
-        
-        executable_path = platform_gem.join('exe/tailwindcss')
-        if test("[ ! -f #{executable_path} ]")
-          error "Tailwind CSS executable not found at #{executable_path}"
-          raise "Tailwind CSS executable missing in platform-specific gem"
-        end
-      end
-    end
-  end
-end
-
-# Clear bundle cache before updating code
-before 'deploy:updating', 'bundle:clear_cache'
-# Ensure platform-specific gems after bundle install
-after 'bundler:install', 'bundle:ensure_platforms'
-
 namespace :deploy do
   desc "Uploads required config files"
   task :upload_configs do
