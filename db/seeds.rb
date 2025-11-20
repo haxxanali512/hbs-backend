@@ -7,7 +7,6 @@ super_admin_password = "Password!123"
 
 puts "Seeding Multi-tenant Medical Billing System..."
 
-byebug
 # Create Super Admin Role (Global)
 super_admin_role = Role.find_or_initialize_by(role_name: "Super Admin")
 super_admin_role.scope = :global
