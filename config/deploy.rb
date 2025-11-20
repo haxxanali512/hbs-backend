@@ -64,25 +64,20 @@ set :sidekiq_deploy_label, -> { "#{fetch(:stage)}-#{fetch(:current_revision, "un
 
 # before "deploy:assets:precompile", "deploy:load_translations"
 
-namespace :deploy do
-  task :start do
+# Custom task to clear bundle cache and force fresh install
+namespace :bundle do
+  desc 'Clear bundle cache to force fresh gem installation'
+  task :clear_cache do
     on roles(:app) do
-      execute :pm2, "start #{fetch(:pm2_start_command)} --name #{fetch(:pm2_app_name)}"
-    end
-  end
-
-  task :stop do
-    on roles(:app) do
-      execute :pm2, "stop #{fetch(:pm2_app_name)}"
-    end
-  end
-
-  task :restart do
-    on roles(:app) do
-      execute :pm2, "restart #{fetch(:pm2_app_name)}"
+      within shared_path do
+        execute :rm, '-rf', 'bundle'
+      end
     end
   end
 end
+
+# Clear bundle cache before updating code
+before 'deploy:updating', 'bundle:clear_cache'
 
 namespace :deploy do
   desc "Uploads required config files"
