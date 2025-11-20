@@ -5,7 +5,6 @@ set :stage, :production
 set :repo_url, "git@github.com:haxxanali512/hbs-backend.git"
 
 set :use_sudo, true
-set :deploy_via, :copy
 set :keep_releases, 5
 set :pm2_app_name, "hbs-backend"    # Name of your application in PM2
 set :pm2_bin, "/usr/local/bin/pm2"
@@ -26,6 +25,11 @@ set :rvm1_ruby_version, "3.2.0"
 set :rvm_type, :user
 set :default_env, { rvm_bin_path: "~/.rvm/bin" }
 set :rvm1_map_bins, -> { fetch(:rvm_map_bins).to_a.concat(%w[rake gem bundle ruby]).uniq }
+
+# Bundler configuration for platform-specific gems
+set :bundle_flags, '--deployment'
+set :bundle_without, %w{development test}.join(' ')
+
 
 # Sidekiq configuration
 set :sidekiq_roles, :worker
@@ -58,6 +62,23 @@ set :sidekiq_deploy_label, -> { "#{fetch(:stage)}-#{fetch(:current_revision, "un
 # set :sidekiq_monit_use_sudo, true
 
 # before "deploy:assets:precompile", "deploy:load_translations"
+
+# Custom task to ensure platform-specific gems are installed correctly
+namespace :bundler do
+  desc 'Ensure platform-specific gems are installed'
+  task :install_with_platform do
+    on roles(:app) do
+      within release_path do
+        with rails_env: fetch(:rails_env) do
+          execute :bundle, :install, '--deployment', '--quiet'
+        end
+      end
+    end
+  end
+end
+
+# Ensure platform-specific gems are installed before assets:precompile
+before 'deploy:assets:precompile', 'bundler:install_with_platform'
 
 namespace :deploy do
   task :start do
