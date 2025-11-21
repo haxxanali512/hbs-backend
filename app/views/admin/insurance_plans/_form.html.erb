@@ -1,69 +1,103 @@
-<%= form_with model: [:admin, insurance_plan], local: true do |f| %>
+<%= form_with model: [:admin, insurance_plan], local: true, class: "space-y-6" do |f| %>
   <% if insurance_plan.errors.any? %>
-    <div class="mb-4 bg-red-50 border border-red-200 rounded-md p-4 text-sm text-red-700">
-      <%= insurance_plan.errors.full_messages.join(', ') %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(insurance_plan.errors.count, "error") %> prohibited this insurance plan from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% insurance_plan.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   <% end %>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div>
-      <%= f.label :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.select :payer_id, options_from_collection_for_select(@payers, :id, :name, insurance_plan.payer_id), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+    <!-- Core Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Core Information</h3>
+      
+      <div>
+        <%= f.label :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :payer_id, options_from_collection_for_select(@payers, :id, :name, insurance_plan.payer_id), { prompt: "Select Payer" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+
+      <div>
+        <%= f.label :name, "Plan Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+      </div>
+
+      <div>
+        <%= f.label :plan_code, "Plan Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :plan_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Payer's official product/plan identifier</p>
+      </div>
+
+      <div>
+        <%= f.label :plan_type, "Plan Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :plan_type, options_for_select(InsurancePlan.plan_types.keys.map { |k| [k.humanize, k] }, insurance_plan.plan_type), { prompt: "Select Plan Type" }, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+      </div>
+
+      <div>
+        <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :status, options_for_select(InsurancePlan.statuses.keys.map { |k| [k.humanize, k] }, insurance_plan.status), {}, { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      </div>
     </div>
 
-    <div>
-      <%= f.label :name, "Plan Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :name, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
-    </div>
+    <!-- Additional Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Additional Information</h3>
+      
+      <div>
+        <%= f.label :state_scope, "State Scope", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :state_scope, value: insurance_plan.state_scope&.join(', '), class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Comma-separated state codes (e.g., GA, FL). Leave empty for national scope.</p>
+      </div>
 
-    <div>
-      <%= f.label :plan_code, "Plan Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :plan_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono" %>
-      <p class="text-xs text-gray-500 mt-1">Payer's official product/plan identifier</p>
-    </div>
+      <div>
+        <%= f.label :member_id_format, "Member ID Format (Regex)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :member_id_format, class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "^[A-Z]{3}[0-9]{9}$" %>
+        <p class="mt-1 text-sm text-gray-500">For validating patient coverage member IDs</p>
+      </div>
 
-    <div>
-      <%= f.label :plan_type, "Plan Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.select :plan_type, options_for_select(InsurancePlan.plan_types.keys.map { |k| [k.humanize, k] }, insurance_plan.plan_type), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
-    </div>
+      <div>
+        <%= f.label :group_number_format, "Group Number Format (Regex)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :group_number_format, class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "^[A-Z0-9]{6,12}$" %>
+        <p class="mt-1 text-sm text-gray-500">For validating patient coverage group numbers</p>
+      </div>
 
-    <div>
-      <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.select :status, options_for_select(InsurancePlan.statuses.keys.map { |k| [k.humanize, k] }, insurance_plan.status), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
-    </div>
-
-    <div>
-      <%= f.label :state_scope, "State Scope (comma-separated)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :state_scope, value: insurance_plan.state_scope&.join(', '), class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
-      <p class="text-xs text-gray-500 mt-1">Empty = national. Must be subset of payer's state scope. Example: GA, FL</p>
-    </div>
-
-    <div>
-      <%= f.label :member_id_format, "Member ID Format (Regex)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :member_id_format, class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono", placeholder: "^[A-Z]{3}[0-9]{9}$" %>
-      <p class="text-xs text-gray-500 mt-1">For validating patient coverage member IDs</p>
-    </div>
-
-    <div>
-      <%= f.label :group_number_format, "Group Number Format (Regex)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :group_number_format, class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono", placeholder: "^[A-Z0-9]{6,12}$" %>
-      <p class="text-xs text-gray-500 mt-1">For validating patient coverage group numbers</p>
-    </div>
-
-    <div>
-      <%= f.label :contact_url, "Contact URL", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.url_field :contact_url, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
-    </div>
-
-    <div class="md:col-span-2">
-      <%= f.label :notes_internal, "Internal Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_area :notes_internal, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2" %>
+      <div>
+        <%= f.label :contact_url, "Contact URL", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.url_field :contact_url, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
     </div>
   </div>
 
-  <div class="flex justify-end mt-6">
-    <%= link_to "Cancel", admin_insurance_plans_path, class: "px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50" %>
-    <%= f.submit insurance_plan.persisted? ? "Update Plan" : "Create Plan", class: "ml-2 px-4 py-2 rounded-md text-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+  <!-- Notes -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Notes</h3>
+    
+    <div>
+      <%= f.label :notes_internal, "Internal Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :notes_internal, rows: 4, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <%= link_to "Cancel", admin_insurance_plans_path, class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <%= f.submit insurance_plan.persisted? ? "Update Plan" : "Create Plan", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
   </div>
 <% end %>
 

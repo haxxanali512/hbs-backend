@@ -78,6 +78,12 @@ class Admin::InsurancePlansController < Admin::BaseController
   end
 
   def apply_filters(plans)
+    # Search filter
+    if params[:search].present?
+      search_term = "%#{params[:search]}%"
+      plans = plans.where("name ILIKE ? OR plan_code ILIKE ?", search_term, search_term)
+    end
+
     plans = plans.where(payer_id: params[:payer_id]) if params[:payer_id].present?
     plans = plans.where(status: params[:status]) if params[:status].present?
     plans = plans.where(plan_type: params[:plan_type]) if params[:plan_type].present?
