@@ -34,7 +34,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <% if @organization_locations.any? %>
+            <% if @organization_locations.present? && @organization_locations.any? %>
               <% @organization_locations.each do |location| %>
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -120,6 +120,13 @@
           </tbody>
         </table>
       </div>
+      
+      <% if @organization_locations.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No organization locations found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new location</div>
+        </div>
+      <% end %>
     </div>
 
     <!-- Pagination -->

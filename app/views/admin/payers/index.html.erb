@@ -36,7 +36,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <% if @payers.any? %>
+            <% if @payers.present? && @payers.any? %>
               <% @payers.each do |payer| %>
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -67,14 +67,17 @@
                   </td>
                 </tr>
               <% end %>
-            <% else %>
-              <tr>
-                <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No payers found.</td>
-              </tr>
             <% end %>
           </tbody>
         </table>
       </div>
+      
+      <% if @payers.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No payers found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new payer</div>
+        </div>
+      <% end %>
     </div>
 
     <!-- Pagination -->
