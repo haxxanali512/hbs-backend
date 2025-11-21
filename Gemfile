@@ -49,7 +49,7 @@ group :development, :test do
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
   gem "simplecov", require: false
-  gem "rspec-rails", "~> 6.0"
+  gem "rspec-rails", "~> 8.0"
   gem "factory_bot_rails"
   gem "shoulda-matchers", "~> 6.0"
   gem "database_cleaner-active_record"
