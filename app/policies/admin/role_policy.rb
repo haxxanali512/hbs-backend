@@ -8,6 +8,10 @@ module Admin
       accessible?("admin", "roles", "update")
     end
 
+    def new?
+      create?
+    end
+
     def show?
       accessible?("admin", "roles", "show")
     end
