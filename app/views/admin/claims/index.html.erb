@@ -7,7 +7,9 @@
           <h1 class="text-3xl font-bold text-gray-900">All Claims</h1>
           <p class="mt-2 text-gray-600">Manage claims across all organizations</p>
         </div>
-        <%= link_to "New Claim", new_admin_claim_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        <div>
+          <%= link_to "New Claim", new_admin_claim_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
       </div>
     </div>
 
@@ -38,7 +40,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <% if @claims.any? %>
+            <% if @claims.present? && @claims.any? %>
               <% @claims.each do |claim| %>
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -81,14 +83,17 @@
                   </td>
                 </tr>
               <% end %>
-            <% else %>
-              <tr>
-                <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No claims found.</td>
-              </tr>
             <% end %>
           </tbody>
         </table>
       </div>
+      
+      <% if @claims.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No claims found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new claim</div>
+        </div>
+      <% end %>
     </div>
 
     <!-- Pagination -->
@@ -98,7 +103,7 @@
           <%= pagination_info(@pagy) %>
         </div>
         <div>
-          <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
         </div>
       </div>
     <% end %>

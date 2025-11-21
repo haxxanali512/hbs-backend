@@ -9,7 +9,7 @@
         </div>
         <div class="flex space-x-2">
           <%= link_to "Back to Claims", admin_claims_path, class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
-          <% if (@claim.generated? || @claim.validated?) && policy(@claim).update? %>
+          <% if (@claim.generated? || @claim.validated?) && current_user.permissions_for("admin", "claims", "edit") %>
             <%= link_to "Edit", edit_admin_claim_path(@claim), class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
           <% end %>
         </div>
