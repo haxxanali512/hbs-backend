@@ -41,7 +41,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <% if @appointments.any? %>
+            <% if @appointments.present? && @appointments.any? %>
               <% @appointments.each do |appointment| %>
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
@@ -100,19 +100,30 @@
                   </td>
                 </tr>
               <% end %>
-            <% else %>
-              <tr>
-                <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No appointments found.</td>
-              </tr>
             <% end %>
           </tbody>
         </table>
       </div>
+      
+      <% if @appointments.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No appointments found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new appointment</div>
+        </div>
+      <% end %>
     </div>
 
-    <div class="mt-6">
-      <%== pagy_nav(@pagy) %>
-    </div>
+    <!-- Pagination -->
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
   </div>
 </div>
 
