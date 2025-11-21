@@ -3,6 +3,23 @@ class Admin::PayersController < Admin::BaseController
 
   def index
     @payers = Payer.order(:name)
+
+    # Search filter
+    if params[:search].present?
+      search_term = "%#{params[:search]}%"
+      @payers = @payers.where("name ILIKE ? OR hbs_payer_key ILIKE ?", search_term, search_term)
+    end
+
+    # Status filter
+    if params[:status].present?
+      @payers = @payers.where(status: params[:status])
+    end
+
+    # Payer type filter
+    if params[:payer_type].present?
+      @payers = @payers.where(payer_type: params[:payer_type])
+    end
+
     @pagy, @payers = pagy(@payers, items: 20)
   end
 
