@@ -1,4 +1,9 @@
 class Admin::PatientsController < Admin::BaseController
+  include Admin::Concerns::EzclaimIntegration
+
+  # Alias the concern method before we override it
+  alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
+
   before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate ]
 
   def index
@@ -85,6 +90,14 @@ class Admin::PatientsController < Admin::BaseController
     else
       redirect_to admin_patient_path(@patient), alert: "Failed to reactivate patient."
     end
+  end
+
+  def fetch_from_ezclaim
+    fetch_from_ezclaim_concern(resource_type: :patients, service_method: :get_patients)
+  end
+
+  def save_from_ezclaim
+    save_patients_from_ezclaim
   end
 
   private
