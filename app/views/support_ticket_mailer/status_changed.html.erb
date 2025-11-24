@@ -1,0 +1,8 @@
+<p>Hello <%= @ticket.created_by_user.first_name %>,</p>
+
+<p>Your ticket <strong>#<%= @ticket.id %></strong> is now <strong><%= @ticket.status.humanize %></strong>.</p>
+
+<p>You can reply in the Support Center if you have more context or questions.</p>
+
+<p>— HBS Support</p>
+

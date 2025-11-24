@@ -23,7 +23,7 @@
       </div>
     <% end %>
 
-    <!-- Status filter (for status parameter) -->
+    <!-- Status filter (for status field) -->
     <% if @status_options.present? && @use_status_for_action_type == true %>
       <div>
         <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>

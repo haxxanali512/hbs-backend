@@ -5,7 +5,7 @@ class Role < ApplicationRecord
   has_many :users
   has_many :organization_memberships, foreign_key: "organization_role_id"
 
-  enum :scope, { global: 0, tenant: 1 }
+  enum :scope, { global: 0, tenant: 1, admin: 2 }
 
   validates :role_name, presence: true
   validates :scope, presence: true
@@ -15,7 +15,7 @@ class Role < ApplicationRecord
 
   scope :global_roles, -> { where(scope: :global) }
   scope :tenant_roles, -> { where(scope: :tenant) }
-
+  scope :admin_roles, -> { where(scope: :admin) }
   private
 
   def ensure_access_hash

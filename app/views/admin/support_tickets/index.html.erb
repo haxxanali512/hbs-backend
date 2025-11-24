@@ -1,0 +1,49 @@
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-semibold text-gray-900">Support Tickets</h1>
+    <p class="text-sm text-gray-500">Monitor tenant requests and SLA timers.</p>
+  </div>
+</div>
+
+<%= render "shared/filters" %>
+
+<div class="bg-white rounded-md shadow-sm overflow-hidden">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Ticket</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Org</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Priority</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+      <% @support_tickets.each do |ticket| %>
+        <tr>
+          <td class="px-4 py-3">
+            <p class="font-semibold text-gray-900"><%= ticket.subject %></p>
+            <p class="text-xs text-gray-500">#<%= ticket.id %> · <%= ticket.category.humanize %></p>
+          </td>
+          <td class="px-4 py-3"><%= ticket.organization&.name %></td>
+          <td class="px-4 py-3"><%= ticket.status.humanize %></td>
+          <td class="px-4 py-3"><%= ticket.priority.humanize %></td>
+          <td class="px-4 py-3"><%= ticket.assigned_to_user&.display_name || "Unassigned" %></td>
+          <td class="px-4 py-3"><%= l(ticket.created_at, format: :short) %></td>
+          <td class="px-4 py-3 text-right">
+            <%= link_to "Review",
+                        admin_support_ticket_path(ticket),
+                        class: "text-indigo-600 hover:text-indigo-800 font-medium text-sm" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-6">
+  <%== pagy_nav(@pagy) if defined?(@pagy) && @pagy.pages > 1 %>
+</div>
+
