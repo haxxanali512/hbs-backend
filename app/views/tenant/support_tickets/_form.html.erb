@@ -27,57 +27,75 @@
   <% end %>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div>
-      <%= f.label :category, "Category", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.select :category,
-                   SupportTicket.categories.keys.map { |k| [k.humanize, k] },
-                   { prompt: "Select category" },
-                   class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-    </div>
-
-    <div>
-      <%= f.label :linked_resource_type, "Linked Resource", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <div class="flex gap-2">
-        <%= f.select :linked_resource_type,
-                     [["None", ""]] + SupportTicket::LINKED_RESOURCE_TYPES.keys.map { |k| [k, k] },
-                     {},
-                     class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        <%= f.text_field :linked_resource_id,
-                         placeholder: "Reference ID",
-                         class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    <!-- Core Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Core Information</h3>
+      
+      <div>
+        <%= f.label :category, "Category", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :category,
+                     SupportTicket.categories.keys.map { |k| [k.humanize, k] },
+                     { prompt: "Select category" },
+                     { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
       </div>
-      <p class="mt-1 text-xs text-gray-500">Optional, must belong to your organization.</p>
+
+      <div>
+        <%= f.label :subject, "Subject", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :subject, maxlength: 200, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Avoid PHI. 200 characters max.</p>
+      </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Additional Information</h3>
+      
+      <div>
+        <%= f.label :linked_resource_type, "Linked Resource", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <div class="flex gap-2">
+          <%= f.select :linked_resource_type,
+                       [["None", ""]] + SupportTicket::LINKED_RESOURCE_TYPES.keys.map { |k| [k, k] },
+                       {},
+                       { class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+          <%= f.text_field :linked_resource_id,
+                           placeholder: "Reference ID",
+                           class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        </div>
+        <p class="mt-1 text-sm text-gray-500">Optional, must belong to your organization.</p>
+      </div>
     </div>
   </div>
 
-  <div>
-    <%= f.label :subject, "Subject", class: "block text-sm font-medium text-gray-700 mb-1" %>
-    <%= f.text_field :subject, maxlength: 200, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-    <p class="mt-1 text-xs text-gray-500">Avoid PHI. 200 characters max.</p>
+  <!-- Description -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Description</h3>
+    
+    <div>
+      <%= f.label :description, "Description", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :description, rows: 6, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-sm text-gray-500">Do not include PHI. Share claim IDs or invoice numbers instead.</p>
+    </div>
   </div>
 
-  <div>
-    <%= f.label :description, "Description", class: "block text-sm font-medium text-gray-700 mb-1" %>
-    <%= f.text_area :description, rows: 6, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-    <p class="mt-1 text-xs text-gray-500">Do not include PHI. Share claim IDs or invoice numbers instead.</p>
+  <!-- Attachments -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Attachments</h3>
+    
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Attachment Tokens</label>
+      <input type="text"
+             name="support_ticket[attachment_tokens]"
+             value="<%= (@support_ticket.attachments || []).join(', ') %>"
+             placeholder="Paste upload tokens (comma separated)"
+             class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <p class="mt-1 text-sm text-gray-500">Provide IDs from the secure uploader when prompted by HBS.</p>
+    </div>
   </div>
 
-  <div>
-    <label class="block text-sm font-medium text-gray-700 mb-1">Attachment Tokens</label>
-    <input type="text"
-           name="support_ticket[attachment_tokens]"
-           value="<%= (@support_ticket.attachments || []).join(', ') %>"
-           placeholder="Paste upload tokens (comma separated)"
-           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-    <p class="mt-1 text-xs text-gray-500">Provide IDs from the secure uploader when prompted by HBS.</p>
-  </div>
-
-  <div class="flex justify-end gap-3">
-    <%= link_to "Cancel",
-                tenant_support_tickets_path,
-                class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
-    <%= f.submit "Submit Ticket",
-                 class: "bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+  <!-- Form Actions -->
+  <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <%= link_to "Cancel", tenant_support_tickets_path, class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <%= f.submit "Submit Ticket", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
   </div>
 <% end %>
 

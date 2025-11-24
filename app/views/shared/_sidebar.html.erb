@@ -26,16 +26,6 @@
             <% end %>
           </li>
         <% end %>
-        
-        <% if current_user.permissions_for("admin", "support_tickets", "index") %>
-          <li>
-            <% support_tickets_active = controller_path == 'admin/support_tickets' %>
-            <%= link_to admin_support_tickets_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{support_tickets_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 #{support_tickets_active ? 'text-indigo-600' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h8m-8 6h16"/></svg>
-              <span>Support Tickets</span>
-            <% end %>
-          </li>
-        <% end %>
 
         <% if current_user.permissions_for("admin", "users", "index") %>
           <li>
@@ -181,6 +171,16 @@
         </li>
         <% end %>
 
+        <% if current_user.permissions_for("admin", "support_tickets", "index") %>
+          <li>
+            <% support_tickets_active = controller_path == 'admin/support_tickets' %>
+            <%= link_to admin_support_tickets_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{support_tickets_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 #{support_tickets_active ? 'text-indigo-600' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h8m-8 6h16"/></svg>
+              <span>Support Tickets</span>
+            <% end %>
+          </li>
+        <% end %>
+
         <% if current_user.permissions_for("admin", "payers", "index") %>
         <li>
           <% payers_active = controller_path == 'admin/payers' %>
@@ -245,15 +245,6 @@
           <% end %>
 
           
-          <% if current_user.permissions_for("tenant", "support_tickets", "index") %>
-            <li>
-              <% support_tickets_active = controller_path == 'tenant/support_tickets' %>
-              <%= link_to tenant_support_tickets_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{support_tickets_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 #{support_tickets_active ? 'text-indigo-600' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
-                <span>Support Center</span>
-              <% end %>
-            </li>
-          <% end %>
 
           <% if current_user.permissions_for("tenant", "invoices", "index") %>
             <li>
@@ -385,6 +376,16 @@
             <% end %>
           </li>
         <% end %>
+
+          <% if current_user.permissions_for("tenant", "support_tickets", "index") %>
+            <li>
+              <% support_tickets_active = controller_path == 'tenant/support_tickets' %>
+              <%= link_to tenant_support_tickets_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{support_tickets_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 #{support_tickets_active ? 'text-indigo-600' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
+                <span>Support Center</span>
+              <% end %>
+            </li>
+          <% end %>
 
         <% if current_user.permissions_for("tenant", "organization_settings", "show") %>
             <li>
