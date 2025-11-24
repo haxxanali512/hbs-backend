@@ -5,7 +5,6 @@ set :stage, :production
 set :repo_url, "git@github.com:haxxanali512/hbs-backend.git"
 
 set :use_sudo, true
-set :deploy_via, :copy
 set :keep_releases, 5
 set :pm2_app_name, "hbs-backend"    # Name of your application in PM2
 set :pm2_bin, "/usr/local/bin/pm2"
@@ -26,6 +25,12 @@ set :rvm1_ruby_version, "3.2.0"
 set :rvm_type, :user
 set :default_env, { rvm_bin_path: "~/.rvm/bin" }
 set :rvm1_map_bins, -> { fetch(:rvm_map_bins).to_a.concat(%w[rake gem bundle ruby]).uniq }
+
+# Bundler configuration for platform-specific gems
+set :bundle_flags, '--quiet'
+set :bundle_without, %w{development test}.join(' ')
+set :bundle_jobs, 4
+
 
 # Sidekiq configuration
 set :sidekiq_roles, :worker
@@ -56,29 +61,6 @@ set :sidekiq_deploy_label, -> { "#{fetch(:stage)}-#{fetch(:current_revision, "un
 
 # set :sidekiq_monit_conf_dir, '/etc/monit/conf.d'
 # set :sidekiq_monit_use_sudo, true
-
-# before "deploy:assets:precompile", "deploy:load_translations"
-
-namespace :deploy do
-  task :start do
-    on roles(:app) do
-      execute :pm2, "start #{fetch(:pm2_start_command)} --name #{fetch(:pm2_app_name)}"
-    end
-  end
-
-  task :stop do
-    on roles(:app) do
-      execute :pm2, "stop #{fetch(:pm2_app_name)}"
-    end
-  end
-
-  task :restart do
-    on roles(:app) do
-      execute :pm2, "restart #{fetch(:pm2_app_name)}"
-    end
-  end
-end
-
 namespace :deploy do
   desc "Uploads required config files"
   task :upload_configs do

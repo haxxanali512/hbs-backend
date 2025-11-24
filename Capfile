@@ -7,6 +7,7 @@ require "capistrano/scm/git"
 require 'rvm1/capistrano3'
 require 'capistrano/bundler'
 require 'capistrano/rails/migrations'
+require 'capistrano/rails/assets'
 require 'capistrano/sidekiq'
 install_plugin Capistrano::Sidekiq # Default sidekiq tasks
 install_plugin Capistrano::Sidekiq::Systemd

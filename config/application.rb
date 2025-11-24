@@ -16,6 +16,8 @@ module HbsDataProcessing
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # CSS compressor removed - Tailwind CSS handles its own compilation
+    # config.assets.css_compressor = :sass
     # Add services directory to autoload paths
     config.autoload_paths += %W[#{config.root}/app/services]
 

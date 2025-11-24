@@ -181,19 +181,27 @@
       </div>
     <% end %>
 
-    <!-- Priority filter -->
-    <% if @priority_options.present? %>
+    <!-- Payer Type filter -->
+    <% if @payer_type_options.present? %>
       <div>
-        <%= f.label :priority, "Priority", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :priority, options_for_select([["All Priorities", ""]] + @priority_options.map { |p| p.is_a?(Array) ? p : [p.humanize, p] }, params[:priority]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :payer_type, "Payer Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :payer_type, options_for_select([["All Types", ""]] + @payer_type_options.map { |t| t.is_a?(Array) ? t : [t.humanize, t] }, params[:payer_type]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
     <% end %>
 
-    <!-- Category filter -->
-    <% if @category_options.present? %>
+    <!-- Payer filter -->
+    <% if @payer_options.present? %>
       <div>
-        <%= f.label :category, "Category", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :category, options_for_select([["All Categories", ""]] + @category_options.map { |c| c.is_a?(Array) ? c : [c.humanize, c] }, params[:category]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <%= f.label :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :payer_id, options_for_select([["All Payers", ""]] + @payer_options.map { |p| p.is_a?(Array) ? p : [p[0], p[1]] }, params[:payer_id]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
+    <!-- Plan Type filter -->
+    <% if @plan_type_options.present? %>
+      <div>
+        <%= f.label :plan_type, "Plan Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :plan_type, options_for_select([["All Types", ""]] + @plan_type_options.map { |t| t.is_a?(Array) ? t : [t.humanize, t] }, params[:plan_type]), {}, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
       </div>
     <% end %>
 
