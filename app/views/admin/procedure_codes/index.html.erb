@@ -91,14 +91,12 @@
                     
                     <% if procedure_code.can_be_retired? %>
                       <%= link_to "Retire", toggle_status_admin_procedure_code_path(procedure_code), 
-                          method: :post,
-                          class: "text-orange-600 hover:text-orange-800",
-                          data: { confirm: "Are you sure you want to retire this procedure code?" } %>
+                          data: { turbo_method: :post, turbo_confirm: "Are you sure you want to retire this procedure code?" },
+                          class: "text-orange-600 hover:text-orange-800" %>
                     <% elsif procedure_code.can_be_activated? %>
                       <%= link_to "Activate", toggle_status_admin_procedure_code_path(procedure_code), 
-                          method: :post,
-                          class: "text-green-600 hover:text-green-800",
-                          data: { confirm: "Are you sure you want to activate this procedure code?" } %>
+                          data: { turbo_method: :post, turbo_confirm: "Are you sure you want to activate this procedure code?" },
+                          class: "text-green-600 hover:text-green-800" %>
                     <% end %>
                   </div>
                 </td>

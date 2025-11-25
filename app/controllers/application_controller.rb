@@ -5,7 +5,7 @@ class ApplicationController < ActionController::Base
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
-  around_action :set_tenant_context, unless: :devise_controller?
+  around_action :set_tenant_context, unless: -> { devise_controller? || controller_name == "notifications" }
   before_action :has_access?, unless: :devise_controller?
   helper_method :current_organization
 
@@ -29,7 +29,7 @@ class ApplicationController < ActionController::Base
   end
 
   def has_access?
-    return if [ "sessions", "passwords", "health", "invitations", "stripe", "gocardless" ].include?(controller_name)
+    return if [ "sessions", "passwords", "health", "invitations", "stripe", "gocardless", "notifications" ].include?(controller_name)
 
     authorize current_user, policy_class: "#{controller_path.classify}Policy".constantize
   end

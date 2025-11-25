@@ -1,0 +1,36 @@
+<div 
+  id="notification_<%= notification.id %>"
+  class="<%= notification.unread? ? 'bg-blue-50' : 'bg-white' %> border-b border-gray-100 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
+  onclick="window.location.href='<%= notification.action_url || '#' %>'"
+>
+  <div class="flex items-start gap-3">
+    <% if notification.unread? %>
+      <div class="mt-1.5 h-2 w-2 rounded-full bg-blue-600 flex-shrink-0" data-unread-dot></div>
+    <% else %>
+      <div class="mt-1.5 h-2 w-2 flex-shrink-0"></div>
+    <% end %>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-medium text-gray-900"><%= notification.title %></p>
+      <p class="text-xs text-gray-600 mt-1 line-clamp-2"><%= notification.message %></p>
+      <p class="text-xs text-gray-400 mt-1">
+        <%= time_ago_in_words(notification.created_at) %> ago
+        <% if notification.organization %>
+          • <%= notification.organization.name %>
+        <% end %>
+      </p>
+    </div>
+    <% if notification.unread? %>
+      <button 
+        type="button"
+        class="ml-2 flex-shrink-0 text-gray-400 hover:text-gray-600"
+        onclick="event.stopPropagation(); markNotificationAsRead(<%= notification.id %>)"
+        title="Mark as read"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+    <% end %>
+  </div>
+</div>
+
