@@ -1,58 +1,71 @@
 class OrganizationBillingMailer < ApplicationMailer
   default from: "noreply@hbsdata.com"
 
-  # Email sent to super admins when a manual payment request is submitted
   def manual_payment_request(organization_billing)
-    @organization = organization_billing.organization
-    @organization_billing = organization_billing
-    @owner = @organization.owner
-
-    # Get all super admin emails
+    organization = organization_billing.organization
+    owner = organization.owner
     super_admin_emails = User.joins(:role).where(roles: { role_name: "Super Admin" }).pluck(:email)
 
-    mail(
+    amount_value = organization_billing.try(:amount_due) || organization_billing.try(:amount) || organization_billing.try(:total_amount)
+    placeholders = {
+      organization_name: organization.name,
+      owner_name: owner&.full_name || owner&.email,
+      billing_period: organization_billing.billing_period || organization_billing.created_at.strftime("%B %Y"),
+      amount_requested: amount_value
+    }
+
+    send_email_via_service(
+      template_key: "billing.manual_payment_request",
       to: super_admin_emails,
-      subject: "Manual Payment Request - #{@organization.name}",
-      reply_to: @owner.email
+      placeholders: placeholders,
+      reply_to: owner&.email
     )
   end
 
-  # Email sent to organization owner when their manual payment is approved
   def manual_payment_approved(organization_billing)
-    @organization = organization_billing.organization
-    @organization_billing = organization_billing
-    @owner = @organization.owner
+    organization = organization_billing.organization
+    owner = organization.owner
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
 
-    mail(
-      to: @owner.email,
-      subject: "Payment Approved - #{@organization.name}",
-      reply_to: "noreply@hbsdata.com"
+    send_email_via_service(
+      template_key: "billing.manual_payment_approved",
+      to: owner.email,
+      placeholders: placeholders
     )
   end
 
-  # Email sent to organization owner when their manual payment is rejected
   def manual_payment_rejected(organization_billing)
-    @organization = organization_billing.organization
-    @organization_billing = organization_billing
-    @owner = @organization.owner
+    organization = organization_billing.organization
+    owner = organization.owner
 
-    mail(
-      to: @owner.email,
-      subject: "Payment Rejected - #{@organization.name}",
-      reply_to: "noreply@hbsdata.com"
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
+
+    send_email_via_service(
+      template_key: "billing.manual_payment_rejected",
+      to: owner.email,
+      placeholders: placeholders
     )
   end
 
-  # Email sent to organization owner when billing setup is completed (for non-manual methods)
   def billing_setup_completed(organization_billing)
-    @organization = organization_billing.organization
-    @organization_billing = organization_billing
-    @owner = @organization.owner
+    organization = organization_billing.organization
+    owner = organization.owner
 
-    mail(
-      to: @owner.email,
-      subject: "Billing Setup Complete - #{@organization.name}",
-      reply_to: "noreply@hbsdata.com"
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
+
+    send_email_via_service(
+      template_key: "billing.billing_setup_completed",
+      to: owner.email,
+      placeholders: placeholders
     )
   end
 end

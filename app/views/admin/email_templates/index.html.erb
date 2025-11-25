@@ -1,0 +1,55 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-gray-900">Email Templates</h1>
+      <p class="mt-2 text-gray-600">Locale-specific overrides for template keys.</p>
+    </div>
+
+    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-5">
+      <p class="text-sm text-blue-900">
+        This list shows locale overrides. Edit a template to customize the subject/body for a specific language.
+        If a locale is missing, the system falls back to the default content defined on the template key.
+      </p>
+    </div>
+
+    <%= render "shared/filters" %>
+
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Template Key</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locale</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% @email_templates.each do |template| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 text-sm text-gray-900">
+                <div class="font-semibold"><%= template.email_template_key.name %></div>
+                <div class="font-mono text-xs text-gray-500"><%= template.email_template_key.key %></div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= template.locale %></td>
+              <td class="px-6 py-4 text-sm text-gray-900"><%= template.subject.presence || "—" %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= l(template.updated_at, format: :short) %></td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <%= link_to "View", admin_email_template_path(template), class: "text-blue-600 hover:text-blue-800 mr-3" %>
+                <%= link_to "Edit", edit_admin_email_template_path(template), class: "text-indigo-600 hover:text-indigo-800" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <% if @email_templates.empty? %>
+        <div class="text-center py-10">
+          <p class="text-gray-500 text-sm">No templates yet. Create one from a template key.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+

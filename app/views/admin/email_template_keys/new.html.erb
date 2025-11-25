@@ -1,0 +1,24 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">New Email Template Key</h1>
+          <p class="mt-2 text-gray-600">Define reusable keys and default content for transactional emails.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <%= link_to "Back to Template Keys",
+                      admin_email_template_keys_path,
+                      class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <%= render "form", email_template_key: @email_template_key %>
+    </div>
+  </div>
+</div>
+

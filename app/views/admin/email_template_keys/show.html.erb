@@ -1,0 +1,104 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900"><%= @email_template_key.name %></h1>
+        <p class="mt-2 text-gray-600 font-mono text-sm"><%= @email_template_key.key %></p>
+      </div>
+      <div class="flex space-x-3">
+        <%= link_to "New Locale Template", new_admin_email_template_key_email_template_path(@email_template_key), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        <%= link_to "Edit Key", edit_admin_email_template_key_path(@email_template_key), class: "bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+
+    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-5">
+      <h2 class="text-base font-semibold text-blue-900 mb-2">Editing guidance</h2>
+      <p class="text-sm text-blue-900">
+        Changes here override the default copy that developers ship. You can insert placeholders such as
+        <code class="font-mono bg-blue-100 px-1 rounded">{{ticket_id}}</code> or
+        <code class="font-mono bg-blue-100 px-1 rounded">{{organization_name}}</code>.
+        The system will replace them when sending emails.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Key Details</h2>
+        <dl class="space-y-4">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Description</dt>
+            <dd class="text-sm text-gray-900"><%= @email_template_key.description.presence || "—" %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Default Locale</dt>
+            <dd class="text-sm text-gray-900"><%= @email_template_key.default_locale %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Status</dt>
+            <dd>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @email_template_key.active? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+                <%= @email_template_key.active? ? "Active" : "Inactive" %>
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Default Subject</dt>
+            <dd class="text-sm text-gray-900"><%= @email_template_key.default_subject %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Default HTML Body</h2>
+        <div class="prose max-w-none" style="white-space: pre-wrap;">
+          <%= @email_template_key.default_body_html.presence || "<em>No default HTML provided</em>".html_safe %>
+        </div>
+
+        <h3 class="text-md font-semibold text-gray-900 mt-6 mb-2">Default Text Body</h3>
+        <pre class="text-sm bg-gray-50 border border-gray-200 rounded p-3"><%= @email_template_key.default_body_text.presence || "—" %></pre>
+      </div>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Locale Overrides</h2>
+        <span class="text-sm text-gray-500"><%= pluralize(@email_templates.count, "template") %></span>
+      </div>
+
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locale</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% @email_templates.each do |template| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><%= template.locale %></td>
+              <td class="px-6 py-4 text-sm text-gray-900"><%= template.subject.presence || "—" %></td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= template.active? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+                  <%= template.active? ? "Active" : "Inactive" %>
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <%= link_to "View", admin_email_template_path(template), class: "text-blue-600 hover:text-blue-800 mr-3" %>
+                <%= link_to "Edit", edit_admin_email_template_path(template), class: "text-indigo-600 hover:text-indigo-800" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <% if @email_templates.empty? %>
+        <div class="text-center py-10">
+          <p class="text-gray-500 text-sm">No locale-specific templates yet.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+

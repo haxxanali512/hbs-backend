@@ -1,0 +1,63 @@
+<%= form_with model: [:admin, @email_template_key], class: "space-y-6" do |f| %>
+  <% if @email_template_key.errors.any? %>
+    <div class="rounded-md bg-red-50 border border-red-200 p-4">
+      <p class="text-sm font-semibold text-red-800 mb-2">
+        <%= pluralize(@email_template_key.errors.count, "error") %> prevented this record from being saved:
+      </p>
+      <ul class="list-disc list-inside text-sm text-red-700">
+        <% @email_template_key.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <%= f.label :name, class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+    <div>
+      <%= f.label :key, "Key (used in code)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :key, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", disabled: @email_template_key.persisted? %>
+      <%= f.hidden_field :key if @email_template_key.persisted? %>
+    </div>
+  </div>
+
+  <div>
+    <%= f.label :description, class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= f.text_area :description, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <%= f.label :default_locale, class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :default_locale, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+    <div class="flex items-center mt-6">
+      <%= f.check_box :active, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+      <%= f.label :active, class: "ml-2 text-sm text-gray-700" %>
+    </div>
+  </div>
+
+  <div>
+    <%= f.label :default_subject, class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= f.text_field :default_subject, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+  </div>
+
+  <div>
+    <%= f.label :default_body_html, "Default HTML Body", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= f.text_area :default_body_html, rows: 6, class: "w-full font-mono text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+  </div>
+
+  <div>
+    <%= f.label :default_body_text, "Default Text Body (optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= f.text_area :default_body_text, rows: 4, class: "w-full font-mono text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+  </div>
+
+  <div class="flex items-center justify-end space-x-3">
+    <%= link_to "Cancel", admin_email_template_keys_path, class: "px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900" %>
+    <%= f.submit class: "px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700" %>
+  </div>
+<% end %>
+

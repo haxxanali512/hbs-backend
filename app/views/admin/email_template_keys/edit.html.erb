@@ -1,0 +1,16 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Edit Email Template Key</h1>
+        <p class="mt-2 text-gray-600"><%= @email_template_key.name %></p>
+      </div>
+      <%= link_to "Back", admin_email_template_key_path(@email_template_key), class: "text-blue-600 hover:text-blue-800" %>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+      <%= render "form", email_template_key: @email_template_key %>
+    </div>
+  </div>
+</div>
+

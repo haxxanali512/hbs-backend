@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -230,6 +230,37 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable_type_and_documentable_id"
     t.index ["organization_id"], name: "index_documents_on_organization_id"
     t.index ["status"], name: "index_documents_on_status"
+  end
+
+  create_table "email_template_keys", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.string "description"
+    t.string "default_subject", null: false
+    t.text "default_body_html"
+    t.text "default_body_text"
+    t.string "default_locale", default: "en", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "last_used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_email_template_keys_on_key", unique: true
+  end
+
+  create_table "email_templates", force: :cascade do |t|
+    t.bigint "email_template_key_id", null: false
+    t.string "locale", default: "en", null: false
+    t.string "subject"
+    t.text "body_html"
+    t.text "body_text"
+    t.boolean "active", default: true, null: false
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_template_key_id", "locale"], name: "index_email_templates_on_key_and_locale", unique: true
+    t.index ["email_template_key_id"], name: "index_email_templates_on_email_template_key_id"
   end
 
   create_table "encounter_comment_seens", force: :cascade do |t|
@@ -953,6 +984,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
   add_foreign_key "document_attachments", "users", column: "uploaded_by_id"
   add_foreign_key "documents", "organizations"
   add_foreign_key "documents", "users", column: "created_by_id"
+  add_foreign_key "email_templates", "email_template_keys"
+  add_foreign_key "email_templates", "users", column: "created_by_id"
+  add_foreign_key "email_templates", "users", column: "updated_by_id"
   add_foreign_key "encounter_comment_seens", "encounters"
   add_foreign_key "encounter_comment_seens", "users"
   add_foreign_key "encounter_comments", "encounters"

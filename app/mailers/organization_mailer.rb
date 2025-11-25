@@ -1,74 +1,92 @@
 class OrganizationMailer < ApplicationMailer
   default from: "noreply@hbsdata.com"
 
-  # Email sent when organization is created
   def organization_created(organization)
-    @organization = organization
-    @owner = organization.owner
+    owner = organization.owner
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
 
-    mail(
-      to: @owner.email,
-      subject: "Welcome! Your organization '#{@organization.name}' has been created",
+    send_email_via_service(
+      template_key: "organization.organization_created",
+      to: owner.email,
+      placeholders: placeholders,
       reply_to: "noreply@hbsdata.com"
     )
   end
 
-  # Email sent when billing setup step is reached
   def billing_setup_required(organization)
-    @organization = organization
-    @owner = organization.owner
+    owner = organization.owner
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
 
-    mail(
-      to: @owner.email,
-      subject: "Next Step: Complete Billing Setup for #{@organization.name}",
+    send_email_via_service(
+      template_key: "organization.billing_setup_required",
+      to: owner.email,
+      placeholders: placeholders,
       reply_to: "noreply@hbsdata.com"
     )
   end
 
-  # Email sent when compliance setup step is reached
   def compliance_setup_required(organization)
-    @organization = organization
-    @owner = organization.owner
+    owner = organization.owner
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
 
-    mail(
-      to: @owner.email,
-      subject: "Next Step: Complete Compliance Setup for #{@organization.name}",
+    send_email_via_service(
+      template_key: "organization.compliance_setup_required",
+      to: owner.email,
+      placeholders: placeholders,
       reply_to: "noreply@hbsdata.com"
     )
   end
 
-  # Email sent when document signing step is reached
   def document_signing_required(organization)
-    @organization = organization
-    @owner = organization.owner
+    owner = organization.owner
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
 
-    mail(
-      to: @owner.email,
-      subject: "Next Step: Sign Documents for #{@organization.name}",
+    send_email_via_service(
+      template_key: "organization.document_signing_required",
+      to: owner.email,
+      placeholders: placeholders,
       reply_to: "noreply@hbsdata.com"
     )
   end
 
-  # Email sent when organization is fully activated
   def organization_activated(organization)
-    @organization = organization
-    @owner = organization.owner
+    owner = organization.owner
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
 
-    mail(
-      to: @owner.email,
-      subject: "🎉 Congratulations! #{@organization.name} is now fully activated",
+    send_email_via_service(
+      template_key: "organization.organization_activated",
+      to: owner.email,
+      placeholders: placeholders,
       reply_to: "noreply@hbsdata.com"
     )
   end
 
-  # Email sent when activation is completed (final step)
   def activation_completed(organization)
-    @organization = organization
-    @owner = organization.owner
+    owner = organization.owner
+    placeholders = {
+      owner_first_name: owner&.first_name || owner&.email,
+      organization_name: organization.name
+    }
 
-    mail(
-      to: @owner.email,
-      subject: "✅ Activation Complete - #{@organization.name} is ready to use",
+    send_email_via_service(
+      template_key: "organization.activation_completed",
+      to: owner.email,
+      placeholders: placeholders,
       reply_to: "noreply@hbsdata.com"
     )
   end
