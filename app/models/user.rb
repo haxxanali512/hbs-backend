@@ -22,6 +22,7 @@ class User < ApplicationRecord
            class_name: "SupportTicket",
            foreign_key: "assigned_to_user_id",
            dependent: :nullify
+  has_many :notifications, dependent: :destroy
 
   # after_create :send_invitation
 
