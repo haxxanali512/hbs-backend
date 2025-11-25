@@ -91,6 +91,11 @@ Rails.application.routes.draw do
 
       resources :payers
 
+      resources :email_template_keys do
+        resources :email_templates, only: %i[new create]
+      end
+      resources :email_templates, only: %i[index show edit update destroy]
+
       resources :support_tickets do
         member do
           patch :close
