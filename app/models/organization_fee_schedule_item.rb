@@ -64,7 +64,6 @@ class OrganizationFeeScheduleItem < ApplicationRecord
 
   def unique_active_item_per_schedule_and_procedure
     return unless active?
-    byebug
 
     existing = OrganizationFeeScheduleItem.where(
       organization_fee_schedule: organization_fee_schedule,

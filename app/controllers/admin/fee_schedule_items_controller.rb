@@ -26,7 +26,6 @@ class Admin::FeeScheduleItemsController < Admin::BaseController
   end
 
   def create
-    byebug
     @fee_schedule_item = @fee_schedule.organization_fee_schedule_items.build(fee_schedule_item_params)
 
     if @fee_schedule_item.save

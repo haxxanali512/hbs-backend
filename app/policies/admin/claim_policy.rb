@@ -43,6 +43,18 @@ class Admin::ClaimPolicy < ApplicationPolicy
     accessible?("admin", "claims", "void")
   end
 
+  def test_ezclaim_connection?
+    accessible?("admin", "claims", "submit")
+  end
+
+  def claim_insured_data?
+    accessible?("admin", "claims", "submit")
+  end
+
+  def submit_claim_insured?
+    accessible?("admin", "claims", "submit")
+  end
+
   def reverse?
     accessible?("admin", "claims", "reverse")
   end

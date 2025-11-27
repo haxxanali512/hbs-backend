@@ -16,6 +16,10 @@ module Admin
       accessible?("admin", "users", "create")
     end
 
+    def edit?
+      accessible?("admin", "users", "update")
+    end
+
     def update?
       accessible?("admin", "users", "update")
     end

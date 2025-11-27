@@ -7,6 +7,13 @@
           <h1 class="text-3xl font-bold text-gray-900">All Encounters</h1>
           <p class="mt-2 text-gray-600">Manage encounters across all organizations</p>
         </div>
+        <div>
+          <button type="button" 
+                  onclick="openEzclaimImportModal('ezclaimEncountersModal', '<%= fetch_from_ezclaim_admin_encounters_path %>')"
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+            Pull from EZClaim
+          </button>
+        </div>
       </div>
     </div>
 
@@ -106,4 +113,13 @@
     <% end %>
   </div>
 </div>
+
+<!-- EZClaim Encounters Modal -->
+<%= render "shared/ezclaim_import_modal", 
+    modal_id: "ezclaimEncountersModal",
+    resource_type: "encounter",
+    resource_name: "Encounters",
+    fetch_url: fetch_from_ezclaim_admin_encounters_path,
+    save_url: save_from_ezclaim_admin_encounters_path,
+    display_columns: [:date_of_service, :encounter_id, :patient_id, :provider_id, :status] %>
 

@@ -23,6 +23,14 @@ class Admin::EncounterPolicy < ApplicationPolicy
     update?
   end
 
+  def fetch_from_ezclaim?
+    accessible?("admin", "encounters", "create")
+  end
+
+  def save_from_ezclaim?
+    accessible?("admin", "encounters", "create")
+  end
+
   def destroy?
     accessible?("admin", "encounters", "destroy")
   end
