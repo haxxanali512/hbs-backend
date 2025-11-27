@@ -221,7 +221,6 @@ module Admin
           }, status: :unprocessable_entity
           return
         end
-        byebug
         perform_ezclaim_save(
           model_class: Patient,
           data_key: :patients,
