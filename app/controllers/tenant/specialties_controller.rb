@@ -25,7 +25,7 @@ class Tenant::SpecialtiesController < Tenant::BaseController
   private
 
   def set_current_organization
-    @current_organization = current_user.organizations.find_by(subdomain: request.subdomain)
-    redirect_to root_path, alert: "Organization not found" unless @current_organization
+    @current_organization = current_organization || current_user.organizations.find_by(subdomain: request.subdomain)
+    redirect_to tenant_dashboard_path, alert: "Organization not found" unless @current_organization
   end
 end

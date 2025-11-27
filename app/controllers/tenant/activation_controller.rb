@@ -88,7 +88,7 @@ class Tenant::ActivationController < Tenant::BaseController
 
     OrganizationMailer.activation_completed(@organization).deliver_now
 
-    redirect_to root_path, notice: "🎉 Your organization is now active!"
+    redirect_to tenant_dashboard_path, notice: "🎉 Your organization is now active!"
   end
 
   def activation_complete
@@ -239,9 +239,9 @@ class Tenant::ActivationController < Tenant::BaseController
 
   def set_organization
     @organization = current_user.organizations.first
-    redirect_to root_path, alert: "No organization found" unless @organization
+    redirect_to tenant_dashboard_path, alert: "No organization found" unless @organization
   rescue
-    redirect_to root_path, alert: "No organization found"
+    redirect_to tenant_dashboard_path, alert: "No organization found"
   end
 
   def check_activation_status
