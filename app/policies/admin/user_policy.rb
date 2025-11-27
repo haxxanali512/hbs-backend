@@ -40,6 +40,11 @@ module Admin
       accessible?("admin", "users", "update")
     end
 
+    def masquerade?
+      # Only allow admins to masquerade as tenant users
+      user.hbs_user? && !record.hbs_user?
+    end
+
     class Scope < ApplicationPolicy::Scope
       def resolve
         if user.super_admin?
