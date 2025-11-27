@@ -18,8 +18,8 @@ class FuseApiService
   attr_reader :client_id, :client_secret, :access_token, :token_expires_at
 
   def initialize(client_id: nil, client_secret: nil)
-    @client_id = client_id || credentials.dig(:client_id)
-    @client_secret = client_secret || credentials.dig(:client_secret)
+    @client_id = client_id || Rails.application.credentials.dig(:fuse_api, :client_id)
+    @client_secret = client_secret || Rails.application.credentials.dig(:fuse_api, :client_secret)
     raise Error, "Fuse API credentials are missing" unless @client_id.present? && @client_secret.present?
   end
 
