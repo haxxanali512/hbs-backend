@@ -28,9 +28,82 @@ module Admin
           service = EzclaimService.new(organization: organization)
           result = service.public_send(service_method)
 
+          Rails.logger.debug("EZClaim fetch result: #{result.inspect}")
+
           if result[:success] && result[:data]
             # Handle both array and object responses
-            items = result[:data].is_a?(Array) ? result[:data] : (result[:data][resource_type.to_s.pluralize] || result[:data]["data"] || [])
+            data = result[:data]
+
+            # If data is a string (JSON), parse it first
+            if data.is_a?(String)
+              begin
+                data = JSON.parse(data)
+              rescue JSON::ParserError => e
+                Rails.logger.error("Failed to parse EZClaim JSON response: #{e.message}")
+                data = {}
+              end
+            end
+
+            Rails.logger.debug("EZClaim data type: #{data.class}, keys: #{data.respond_to?(:keys) ? data.keys : 'N/A'}")
+
+            if data.is_a?(Array)
+              items = data
+            elsif data.is_a?(Hash)
+              # HTTParty returns parsed JSON with string keys by default
+              # Try to find array in common keys (check both string and symbol keys)
+              items = data["Data"] ||
+                      data[:Data] ||
+                      data["data"] ||
+                      data[:data] ||
+                      data[resource_type.to_s.pluralize] ||
+                      data[resource_type.to_s.pluralize.to_sym] ||
+                      data[resource_type.to_s] ||
+                      data[resource_type.to_s.to_sym] ||
+                      data["items"] ||
+                      data[:items] ||
+                      data["results"] ||
+                      data[:results] ||
+                      nil
+
+              # If still not found, try case-insensitive search through all keys
+              if items.nil? && data.respond_to?(:keys)
+                data.keys.each do |key|
+                  key_str = key.to_s
+                  if key_str == "Data" ||
+                     key_str.downcase == "data" ||
+                     key_str.downcase == resource_type.to_s.pluralize.downcase ||
+                     key_str.downcase == resource_type.to_s.downcase
+                    candidate = data[key]
+                    if candidate.is_a?(Array)
+                      items = candidate
+                      break
+                    end
+                  end
+                end
+              end
+
+              # If still not found, try to find any array value in the hash
+              if items.nil? && data.respond_to?(:values)
+                data.values.each do |value|
+                  if value.is_a?(Array) && value.length > 0
+                    items = value
+                    break
+                  end
+                end
+              end
+
+              # If still not found or not an array, set to empty array
+              if items.nil? || !items.is_a?(Array)
+                items = []
+              end
+            else
+              items = []
+            end
+
+            # Ensure items is always an array
+            items = [] unless items.is_a?(Array)
+
+            Rails.logger.debug("EZClaim extracted items count: #{items.length}")
 
             render json: {
               success: true,

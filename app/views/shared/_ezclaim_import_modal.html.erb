@@ -185,10 +185,48 @@
       
       if (loading) loading.classList.add('hidden');
       
+      console.log('EZClaim fetch response:', data);
+      
       if (data.success && data.data) {
+        // Ensure data.data is an array
+        let items = data.data;
+        
+        console.log('EZClaim items type:', typeof items, 'isArray:', Array.isArray(items));
+        
+        if (!Array.isArray(items)) {
+          // If it's an object, try to extract array from common keys
+          if (items.Data && Array.isArray(items.Data)) {
+            items = items.Data;
+          } else if (items.data && Array.isArray(items.data)) {
+            items = items.data;
+          } else if (items.items && Array.isArray(items.items)) {
+            items = items.items;
+          } else if (items.results && Array.isArray(items.results)) {
+            items = items.results;
+          } else if (items && typeof items === 'object') {
+            // Try to find any array value in the object
+            const keys = Object.keys(items);
+            for (const key of keys) {
+              if (Array.isArray(items[key])) {
+                items = items[key];
+                break;
+              }
+            }
+            // If still not an array, wrap it
+            if (!Array.isArray(items)) {
+              items = [items];
+            }
+          } else {
+            // If it's a single object, wrap it in an array
+            items = [items];
+          }
+        }
+        
+        console.log('EZClaim final items:', items, 'count:', items.length);
+        
         // Show success state and render table
         if (success) success.classList.remove('hidden');
-        renderEzclaimDataTable(modalId, data.data, data.resource_type || 'data');
+        renderEzclaimDataTable(modalId, items, data.resource_type || 'data');
       } else {
         // Show error state
         if (error) error.classList.remove('hidden');
@@ -211,14 +249,69 @@
     const container = document.getElementById(modalId + 'TableContainer');
     if (!container) return;
 
+    // Ensure items is an array
+    if (!Array.isArray(items)) {
+      console.error('Items is not an array:', items);
+      items = [];
+    }
+
+    if (items.length === 0) {
+      container.innerHTML = '<p class="text-center py-8 text-gray-500">No items found</p>';
+      return;
+    }
+
     const config = window.ezclaimModalConfig[modalId] || {};
     const displayColumns = config.displayColumns || [];
     
-    // If no display columns specified, use all keys from first item
-    let columns = displayColumns;
-    if (columns.length === 0 && items.length > 0) {
-      columns = Object.keys(items[0]);
+    // Get all available keys from the first item
+    const firstItem = items[0];
+    const availableKeys = Object.keys(firstItem);
+    
+    // Helper function to find a key (case-insensitive, handles snake_case, camelCase, etc.)
+    function findKey(desiredKey, availableKeys) {
+      const lowerDesired = String(desiredKey).toLowerCase();
+      
+      // Exact match
+      if (availableKeys.includes(desiredKey)) return desiredKey;
+      if (availableKeys.includes(String(desiredKey))) return String(desiredKey);
+      
+      // Case-insensitive match
+      for (const key of availableKeys) {
+        if (key.toLowerCase() === lowerDesired) return key;
+      }
+      
+      // Partial match (e.g., "payer_id" matches "PayerID" or "payerId")
+      const normalizedDesired = lowerDesired.replace(/[_-]/g, '');
+      for (const key of availableKeys) {
+        const normalizedKey = key.toLowerCase().replace(/[_-]/g, '');
+        if (normalizedKey === normalizedDesired) return key;
+      }
+      
+      return null;
     }
+    
+    // If display columns specified, map them to actual keys
+    let columns = [];
+    if (displayColumns.length > 0) {
+      const foundColumns = displayColumns.map(col => findKey(col, availableKeys)).filter(Boolean);
+      
+      // If we found matching columns, use them
+      if (foundColumns.length > 0) {
+        columns = foundColumns;
+      } else {
+        // If none matched, use all available keys and log for debugging
+        console.warn('Display columns did not match any available keys. Using all available keys:', availableKeys);
+        columns = availableKeys;
+      }
+    } else {
+      // Use all available keys
+      columns = availableKeys;
+    }
+    
+    // Log for debugging
+    console.log('Rendering table with columns:', columns);
+    console.log('First item keys:', availableKeys);
+    console.log('First item sample:', firstItem);
 
     let tableHtml = `
       <div class="space-y-4">
@@ -255,8 +348,35 @@
                    onchange="updateEzclaimSelection('${modalId}')">
           </td>
           ${columns.map(col => {
-            const value = item[String(col)] || item[col.to_sym] || '';
-            return `<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${value}</td>`;
+            // Try to find the value using the key
+            let value = '';
+            if (item.hasOwnProperty(col)) {
+              value = item[col];
+            } else {
+              // Try case-insensitive match
+              const foundKey = Object.keys(item).find(k => k.toLowerCase() === String(col).toLowerCase());
+              if (foundKey) {
+                value = item[foundKey];
+              } else {
+                // Try normalized match (remove underscores/dashes)
+                const normalizedCol = String(col).toLowerCase().replace(/[_-]/g, '');
+                const foundKey2 = Object.keys(item).find(k => k.toLowerCase().replace(/[_-]/g, '') === normalizedCol);
+                if (foundKey2) {
+                  value = item[foundKey2];
+                }
+              }
+            }
+            
+            // Format the value for display
+            if (value === null || value === undefined) {
+              value = '';
+            } else if (typeof value === 'object') {
+              value = JSON.stringify(value);
+            } else {
+              value = String(value);
+            }
+            
+            return `<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${value || '—'}</td>`;
           }).join('')}
         </tr>
       `;

@@ -26,7 +26,7 @@ class EzclaimService
   # ===========================================================
 
   def get_patients(params = {})
-    make_request(:get, "/patients", params: params)
+    make_request(:post, "/patients", params: params)
   end
 
   def get_patient(patient_id)
@@ -49,8 +49,8 @@ class EzclaimService
   # PAYERS API
   # ===========================================================
 
-  def get_payers(params = {})
-    make_request(:get, "/payers", params: params)
+  def get_payers(params = { "Query" => "$top=1000" })
+    make_request(:post, "/Payers/GetSimpleList", params: params)
   end
 
   def get_payer(payer_id)
@@ -142,6 +142,16 @@ class EzclaimService
   end
 
   # ===========================================================
+  # CLAIM INSUREDS API
+  # ===========================================================
+
+  def create_claim_insured(claim_insured_data)
+    # Wrap payload in 'data' variable as expected by EZClaim API
+    data = claim_insured_data.reject { |_k, v| v.nil? || v.to_s.empty? }
+    make_request(:post, "/Claim_Insureds", params: { data: data })
+  end
+
+  # ===========================================================
   # UTILITY METHODS
   # ===========================================================
 
@@ -192,7 +202,7 @@ class EzclaimService
     raise AuthenticationError, "Organization must have EZclaim API token configured" unless settings&.ezclaim_api_token.present?
   end
 
-  def make_request(method, endpoint, params: {}, body: nil)
+  def make_request(method, endpoint, params: {}, body: nil, content_type: :json)
     settings = organization.organization_setting
     api_token = settings.ezclaim_api_token
     api_url = settings.ezclaim_api_url || "https://ezclaimapiprod.azurewebsites.net/api/v2"
@@ -200,18 +210,29 @@ class EzclaimService
 
     url = "#{api_url}#{endpoint}"
     options = {
-      headers: build_headers(api_token, api_version),
+      headers: build_headers(api_token, api_version, content_type),
       timeout: 30
     }
 
     # Add query parameters for GET requests
-    options[:query] = params if params.any? && method == :get
-
-    # Add body for POST/PUT requests
-    options[:body] = body.to_json if body.present? && [ :post, :put, :patch ].include?(method)
+    if method == :get && params.any?
+      options[:query] = params
+    # Add body for POST/PUT/PATCH requests
+    elsif [ :post, :put, :patch ].include?(method)
+      if params.any?
+        # If params are provided, use them as the body (wrapped in data if needed)
+        options[:body] = params.to_json
+      elsif body.present?
+        # If body is provided directly, use it
+        if content_type == :form
+          options[:body] = body
+        else
+          options[:body] = body.to_json
+        end
+      end
+    end
 
     response = HTTParty.send(method, url, options)
-
     parse_response(response)
   rescue HTTParty::Error => e
     {
@@ -229,24 +250,36 @@ class EzclaimService
     }
   end
 
-  def build_headers(api_token, api_version)
+  def build_headers(api_token, api_version, content_type = :json)
     {
       "Content-Type" => "application/json",
       "Accept" => "application/json",
       "Token" => api_token,
-      "Version" => api_version
+      "Version" => api_version,
+      "Cookie" => "ARRAffinity=b6bbab08004b5260938d659e633907e0f4cc0a4f6dd7d2d54cd9a3f0900e4836; ARRAffinitySameSite=b6bbab08004b5260938d659e633907e0f4cc0a4f6dd7d2d54cd9a3f0900e4836"
     }
   end
 
   def parse_response(response)
+    # HTTParty should auto-parse JSON, but ensure it's parsed
     parsed_response = response.parsed_response || {}
+
+    # If parsed_response is still a string, parse it manually
+    if parsed_response.is_a?(String)
+      begin
+        parsed_response = JSON.parse(parsed_response)
+      rescue JSON::ParserError => e
+        Rails.logger.error("Failed to parse EZClaim response: #{e.message}")
+        parsed_response = {}
+      end
+    end
 
     case response.code
     when 200..299
       {
         success: true,
         data: parsed_response,
-        message: parsed_response["message"] || "Request successful",
+        message: parsed_response["message"] || parsed_response[:message] || "Request successful",
         status_code: response.code
       }
     when 401

@@ -323,9 +323,9 @@
 
               <% if current_user.permissions_for("admin", "claims", "submit") && (@claim.generated? || @claim.validated?) && @claim.organization.organization_setting&.ezclaim_enabled? %>
                 <button type="button" 
-                        onclick="openEzclaimModal('ezclaimModal', '<%= test_ezclaim_connection_admin_claim_path(@claim) %>')"
+                        onclick="openEzclaimModal('claimInsuredModal', '<%= claim_insured_data_admin_claim_path(@claim) %>', 'claim_insured')"
                         class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
-                  Submit to EzClaim
+                  Push To EZ Claim(Claim Insured)
                 </button>
               <% elsif current_user.permissions_for("admin", "claims", "submit") && (@claim.generated? || @claim.validated?) && !@claim.organization.organization_setting&.ezclaim_enabled? %>
                 <button type="button" 
@@ -358,9 +358,12 @@
 </div>
 
 <%= render 'shared/ezclaim_modal', 
+    modal_id: 'claimInsuredModal',
     claim_id: @claim.id,
-    test_url: test_ezclaim_connection_admin_claim_path(@claim),
-    submit_url: submit_admin_claim_path(@claim)
+    data_url: claim_insured_data_admin_claim_path(@claim),
+    submit_url: submit_claim_insured_admin_claim_path(@claim),
+    title: 'Push To EZ Claim (Claim Insured)',
+    modal_type: 'claim_insured'
 %>
 
 <script>

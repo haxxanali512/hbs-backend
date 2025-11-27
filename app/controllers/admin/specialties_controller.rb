@@ -95,7 +95,7 @@ class Admin::SpecialtiesController < Admin::BaseController
   def list_providers
     @specialty = Specialty.find(params[:id])
     authorize @specialty
-    @providers = @specialty.providers.includes(:organization, :user)
+    @providers = @specialty.providers.includes(:organizations, :user)
                           .order(:first_name, :last_name)
 
     @pagy, @providers = pagy(@providers, items: 20)

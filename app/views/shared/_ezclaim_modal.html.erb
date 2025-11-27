@@ -5,6 +5,8 @@
   test_url = local_assigns[:test_url] || "/admin/claims/#{claim_id}/test_ezclaim_connection"
   submit_url = local_assigns[:submit_url] || "/admin/claims/#{claim_id}/submit"
   title = local_assigns[:title] || 'Send to EZClaim'
+  modal_type = local_assigns[:modal_type] || 'claim' # 'claim' or 'claim_insured'
+  data_url = local_assigns[:data_url] || nil
 %>
 
 <!-- EZClaim Modal -->
@@ -31,52 +33,194 @@
           <p class="mt-4 text-sm text-gray-600">Testing EZClaim connection...</p>
         </div>
 
-        <!-- Connection Success State -->
+        <!-- Connection Success State / Editable Form -->
         <div id="<%= modal_id %>Success" class="hidden">
-          <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-            <div class="flex items-center">
-              <svg class="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-              <p class="text-sm font-medium text-green-800">Connection successful!</p>
-            </div>
-          </div>
+          <% if modal_type == 'claim_insured' %>
+            <!-- Editable Form for Claim Insured -->
+            <form id="<%= modal_id %>Form" onsubmit="event.preventDefault(); submitClaimInsured('<%= modal_id %>', '<%= submit_url %>');">
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
+                <div class="bg-gray-50 rounded-md p-4 mb-4">
+                  <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API URL:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API Version:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">Endpoint:</span>
+                      <span class="text-gray-900 font-mono">POST /Claim_Insureds</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <div class="mb-4">
-            <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
-            <div class="bg-gray-50 rounded-md p-4 mb-4">
-              <div class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                  <span class="text-gray-600">API URL:</span>
-                  <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Claim Insured Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <input type="text" name="claim_insured[ClaInsFirstName]" id="<%= modal_id %>ClaInsFirstName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input type="text" name="claim_insured[ClaInsLastName]" id="<%= modal_id %>ClaInsLastName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                    <input type="date" name="claim_insured[ClaInsBirthDate]" id="<%= modal_id %>ClaInsBirthDate" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+                    <select name="claim_insured[ClaInsSex]" id="<%= modal_id %>ClaInsSex" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                      <option value="">Select</option>
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <input type="text" name="claim_insured[ClaInsAddress1]" id="<%= modal_id %>ClaInsAddress1" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                    <input type="text" name="claim_insured[ClaInsCity]" id="<%= modal_id %>ClaInsCity" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                    <input type="text" name="claim_insured[ClaInsState]" id="<%= modal_id %>ClaInsState" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" maxlength="2">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Zip</label>
+                    <input type="text" name="claim_insured[ClaInsZip]" id="<%= modal_id %>ClaInsZip" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input type="tel" name="claim_insured[ClaInsPhone]" id="<%= modal_id %>ClaInsPhone" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Employer</label>
+                    <input type="text" name="claim_insured[ClaInsEmployer]" id="<%= modal_id %>ClaInsEmployer" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                    <input type="text" name="claim_insured[ClaInsCompanyName]" id="<%= modal_id %>ClaInsCompanyName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Insurance ID</label>
+                    <input type="text" name="claim_insured[ClaInsInsuranceID]" id="<%= modal_id %>ClaInsInsuranceID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Group Number</label>
+                    <input type="text" name="claim_insured[ClaInsGroupNumber]" id="<%= modal_id %>ClaInsGroupNumber" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
+                    <input type="text" name="claim_insured[ClaInsPlanName]" id="<%= modal_id %>ClaInsPlanName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Relation to Insured</label>
+                    <select name="claim_insured[ClaInsRelationToInsured]" id="<%= modal_id %>ClaInsRelationToInsured" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                      <option value="S">Self</option>
+                      <option value="C">Child</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                    <select name="claim_insured[ClaInsSequence]" id="<%= modal_id %>ClaInsSequence" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                      <option value="1">Primary</option>
+                      <option value="2">Secondary</option>
+                      <option value="3">Tertiary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Accept Assignment</label>
+                    <input type="text" name="claim_insured[ClaInsAcceptAssignment]" id="<%= modal_id %>ClaInsAcceptAssignment" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Filing Indicator</label>
+                    <input type="text" name="claim_insured[ClaInsFilingIndicator]" id="<%= modal_id %>ClaInsFilingIndicator" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">SSN</label>
+                    <input type="text" name="claim_insured[ClaInsSSN]" id="<%= modal_id %>ClaInsSSN" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Claim FID</label>
+                    <input type="text" name="claim_insured[ClaInsClaFID]" id="<%= modal_id %>ClaInsClaFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Patient FID</label>
+                    <input type="text" name="claim_insured[ClaInsPatFID]" id="<%= modal_id %>ClaInsPatFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">GUID</label>
+                    <input type="text" name="claim_insured[ClaInsGUID]" id="<%= modal_id %>ClaInsGUID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
                 </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">API Version:</span>
-                  <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Endpoint:</span>
-                  <span class="text-gray-900 font-mono">POST /claims</span>
+              </div>
+
+              <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                  Send to EZClaim
+                </button>
+              </div>
+            </form>
+          <% else %>
+            <!-- Original Payload Preview for Regular Claims -->
+            <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+              <div class="flex items-center">
+                <svg class="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <p class="text-sm font-medium text-green-800">Connection successful!</p>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
+              <div class="bg-gray-50 rounded-md p-4 mb-4">
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">API URL:</span>
+                    <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">API Version:</span>
+                    <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Endpoint:</span>
+                    <span class="text-gray-900 font-mono">POST /claims</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="mb-4">
-            <h4 class="text-sm font-semibold text-gray-900 mb-2">Payload Preview</h4>
-            <div class="bg-gray-900 rounded-md p-4 overflow-x-auto">
-              <pre id="<%= modal_id %>Payload" class="text-xs text-green-400 font-mono"></pre>
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-900 mb-2">Payload Preview</h4>
+              <div class="bg-gray-900 rounded-md p-4 overflow-x-auto">
+                <pre id="<%= modal_id %>Payload" class="text-xs text-green-400 font-mono"></pre>
+              </div>
             </div>
-          </div>
 
-          <div class="flex justify-end space-x-3">
-            <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-              Cancel
-            </button>
-            <button type="button" onclick="submitToEzclaim('<%= modal_id %>', '<%= submit_url %>')" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
-              Send to EZClaim
-            </button>
-          </div>
+            <div class="flex justify-end space-x-3">
+              <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="button" onclick="submitToEzclaim('<%= modal_id %>', '<%= submit_url %>')" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                Send to EZClaim
+              </button>
+            </div>
+          <% end %>
         </div>
 
         <!-- Connection Error State -->
@@ -110,8 +254,9 @@
 
 <script>
   // EZClaim Modal Functions - Global functions that work with any modal ID
-  function openEzclaimModal(modalId, testUrl) {
+  function openEzclaimModal(modalId, dataUrl, modalType) {
     modalId = modalId || 'ezclaimModal';
+    modalType = modalType || 'claim';
     const modal = document.getElementById(modalId);
     const overlay = document.getElementById(modalId + 'Overlay');
     const content = document.getElementById(modalId + 'Content');
@@ -126,7 +271,12 @@
     const success = document.getElementById(modalId + 'Success');
     const error = document.getElementById(modalId + 'Error');
     
-    if (loading) loading.classList.remove('hidden');
+    if (loading) {
+      loading.classList.remove('hidden');
+      if (modalType === 'claim_insured') {
+        loading.querySelector('p').textContent = 'Loading claim insured data...';
+      }
+    }
     if (success) success.classList.add('hidden');
     if (error) error.classList.add('hidden');
     
@@ -138,9 +288,13 @@
       content.classList.add('scale-100', 'opacity-100');
     });
     
-    // Test connection and get payload
-    if (testUrl) {
-      testEzclaimConnection(modalId, testUrl);
+    // Load data based on modal type
+    if (dataUrl) {
+      if (modalType === 'claim_insured') {
+        loadClaimInsuredData(modalId, dataUrl);
+      } else {
+        testEzclaimConnection(modalId, dataUrl);
+      }
     }
   }
 
@@ -217,6 +371,119 @@
       if (loading) loading.classList.add('hidden');
       if (errorDiv) errorDiv.classList.remove('hidden');
       if (errorMessage) errorMessage.textContent = 'Error: ' + error.message;
+    });
+  }
+
+  function loadClaimInsuredData(modalId, dataUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    fetch(dataUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to load claim insured data');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const success = document.getElementById(modalId + 'Success');
+      const error = document.getElementById(modalId + 'Error');
+      
+      if (loading) loading.classList.add('hidden');
+      
+      if (data.success) {
+        if (success) success.classList.remove('hidden');
+        const apiUrl = document.getElementById(modalId + 'ApiUrl');
+        const apiVersion = document.getElementById(modalId + 'ApiVersion');
+        
+        if (apiUrl) apiUrl.textContent = data.api_url;
+        if (apiVersion) apiVersion.textContent = data.api_version;
+        
+        // Populate form fields
+        const payload = data.payload;
+        if (payload) {
+          Object.keys(payload).forEach(key => {
+            const field = document.getElementById(modalId + key);
+            if (field && payload[key]) {
+              field.value = payload[key];
+            }
+          });
+        }
+      } else {
+        if (error) error.classList.remove('hidden');
+        const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+        if (errorMessage) errorMessage.textContent = data.error || 'Failed to load data';
+      }
+    })
+    .catch(error => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const errorDiv = document.getElementById(modalId + 'Error');
+      const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+      
+      if (loading) loading.classList.add('hidden');
+      if (errorDiv) errorDiv.classList.remove('hidden');
+      if (errorMessage) errorMessage.textContent = 'Error: ' + error.message;
+    });
+  }
+
+  function submitClaimInsured(modalId, submitUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const form = document.getElementById(modalId + 'Form');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => {
+      data[key] = value;
+    });
+    
+    fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({ claim_insured: data }),
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to submit to EZClaim');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Redirect on success
+        window.location.href = data.redirect_url || window.location.href;
+      } else {
+        alert('Failed to submit to EZClaim: ' + (data.error || 'Unknown error'));
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error.message);
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
     });
   }
 

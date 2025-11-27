@@ -222,6 +222,8 @@ Rails.application.routes.draw do
           post :validate
           post :submit
           get :test_ezclaim_connection
+          get :claim_insured_data
+          post :submit_claim_insured
           post :post_adjudication
           post :void
           post :reverse
