@@ -137,9 +137,9 @@ module Admin
       end
 
       # Generic method to save data from EZclaim to database
-      # Usage: save_from_ezclaim(model_class: Payer, data_key: :payers, mapping_proc: ->(item) { ... })
+      # Usage: perform_ezclaim_save(model_class: Payer, data_key: :payers, mapping_proc: ->(item) { ... })
       # Or use resource-specific helpers like: save_patients_from_ezclaim
-      def save_from_ezclaim(model_class:, data_key:, mapping_proc:)
+      def perform_ezclaim_save(model_class:, data_key:, mapping_proc:)
         items_data = params[data_key] || []
 
         if items_data.empty?
@@ -148,6 +148,17 @@ module Admin
             error: "No #{data_key} selected"
           }, status: :unprocessable_entity
           return
+        end
+
+        # Convert to array of hashes if items_data contains ActionController::Parameters
+        items_data = items_data.map do |item|
+          if item.is_a?(ActionController::Parameters)
+            item.to_unsafe_h
+          elsif item.respond_to?(:to_h)
+            item.to_h
+          else
+            item
+          end
         end
 
         saved_count = 0
@@ -210,8 +221,8 @@ module Admin
           }, status: :unprocessable_entity
           return
         end
-
-        save_from_ezclaim(
+        byebug
+        perform_ezclaim_save(
           model_class: Patient,
           data_key: :patients,
           mapping_proc: build_patient_mapping_proc(organization_id)
@@ -230,7 +241,7 @@ module Admin
           return
         end
 
-        save_from_ezclaim(
+        perform_ezclaim_save(
           model_class: Encounter,
           data_key: :encounters,
           mapping_proc: build_encounter_mapping_proc(organization_id)
@@ -267,31 +278,29 @@ module Admin
             return skip_item("No organization available. Please select an organization.")
           end
 
-          # Parse date of birth
-          dob = parse_date_from_ezclaim(patient_data["dob"])
-
-          # Extract identifiers
-          mrn = extract_patient_identifier(patient_data, "mrn")
-          external_id = extract_patient_identifier(patient_data, "external_id")
+          normalized_data = normalize_patient_data(patient_data)
+          dob = normalized_data["dob"]
+          mrn = normalized_data["mrn"]
+          external_id = normalized_data["external_id"]
 
           # Build find_by hash
           find_by_hash = build_patient_find_by_hash(
             mrn: mrn,
             external_id: external_id,
-            patient_data: patient_data,
+            patient_data: normalized_data,
             organization_id: organization_id,
             dob: dob
           )
 
           # Validate address (required by Patient model)
-          address_validation = validate_patient_address(patient_data)
+          address_validation = validate_patient_address(normalized_data)
           return skip_item(address_validation[:reason]) unless address_validation[:valid]
 
           # Build attributes
           {
             find_by: find_by_hash,
             attributes: build_patient_attributes(
-              patient_data: patient_data,
+              patient_data: normalized_data,
               organization_id: organization_id,
               dob: dob,
               mrn: mrn,
@@ -317,17 +326,6 @@ module Admin
         end
       end
 
-      def extract_patient_identifier(patient_data, type)
-        case type
-        when "mrn"
-          patient_data["mrn"] || patient_data["patient_id"] || patient_data["id"]
-        when "external_id"
-          patient_data["external_id"] || patient_data["patient_id"] || patient_data["id"]
-        else
-          nil
-        end
-      end
-
       def build_patient_find_by_hash(mrn:, external_id:, patient_data:, organization_id:, dob:)
         if mrn.present?
           { mrn: mrn, organization_id: organization_id }
@@ -336,8 +334,8 @@ module Admin
         else
           # Fallback to name and DOB if available
           hash = {
-            first_name: patient_data["first_name"] || patient_data["firstname"] || "",
-            last_name: patient_data["last_name"] || patient_data["lastname"] || "",
+            first_name: patient_data["first_name"] || "",
+            last_name: patient_data["last_name"] || "",
             organization_id: organization_id
           }
           hash[:dob] = dob if dob.present?
@@ -346,8 +344,8 @@ module Admin
       end
 
       def validate_patient_address(patient_data)
-        address_line_1 = patient_data["address_line_1"] || patient_data["address"] || patient_data["street"] || ""
-        address_line_2 = patient_data["address_line_2"] || patient_data["address2"] || ""
+        address_line_1 = patient_data["address_line_1"].to_s.strip
+        address_line_2 = patient_data["address_line_2"].to_s.strip
 
         if address_line_1.blank? && address_line_2.blank?
           { valid: false, reason: "Address is required. Please add address information." }
@@ -363,24 +361,104 @@ module Admin
       end
 
       def build_patient_attributes(patient_data:, organization_id:, dob:, mrn:, external_id:, address:)
+        status_value = patient_data["status"] || :active
+        status_value = status_value.to_sym if status_value.respond_to?(:to_sym)
+
         {
           organization_id: organization_id,
-          first_name: patient_data["first_name"] || patient_data["firstname"] || "Unknown",
-          last_name: patient_data["last_name"] || patient_data["lastname"] || "Patient",
+          first_name: patient_data["first_name"] || "Unknown",
+          last_name: patient_data["last_name"] || "Patient",
           dob: dob,
-          sex_at_birth: patient_data["sex_at_birth"] || patient_data["gender"] || patient_data["sex"] || nil,
+          sex_at_birth: patient_data["sex_at_birth"],
           address_line_1: address[:address_line_1],
           address_line_2: address[:address_line_2],
-          city: patient_data["city"] || nil,
-          state: patient_data["state"] || nil,
-          postal: patient_data["postal"] || patient_data["zip"] || patient_data["zip_code"] || nil,
-          country: patient_data["country"] || "US",
-          phone_number: patient_data["phone_number"] || patient_data["phone"] || nil,
-          email: patient_data["email"] || nil,
+          city: patient_data["city"],
+          state: patient_data["state"],
+          postal: patient_data["postal"],
+          country: patient_data["country"],
+          phone_number: patient_data["phone_number"],
+          email: patient_data["email"],
           mrn: mrn,
           external_id: external_id,
-          status: :active
+          status: status_value,
+          notes_nonphi: patient_data["notes_nonphi"]
         }
+      end
+
+      def normalize_patient_data(patient_data)
+        # Convert to hash if it's ActionController::Parameters or other object
+        data = if patient_data.is_a?(ActionController::Parameters)
+          patient_data.to_unsafe_h.with_indifferent_access
+        elsif patient_data.respond_to?(:to_h)
+          patient_data.to_h.with_indifferent_access
+        else
+          patient_data.with_indifferent_access
+        end
+
+        city_state_zip = parse_city_state_zip(data["PatCityStateZipCC"] || data["city_state_zip"])
+
+        status =
+          if data["status"].present?
+            normalize_status_value(data["status"])
+          elsif data.key?("PatActive")
+            data["PatActive"] ? :active : :inactive
+          else
+            :active
+          end
+
+        {
+          "first_name" => data["first_name"] || data["firstname"] || data["FirstName"] || data["PatFirstName"],
+          "last_name" => data["last_name"] || data["lastname"] || data["LastName"] || data["PatLastName"],
+          "dob" => parse_date_from_ezclaim(data["dob"] || data["Dob"] || data["birth_date"] || data["PatBirthDate"]),
+          "sex_at_birth" => data["sex_at_birth"] || data["gender"] || data["sex"] || data["PatGender"],
+          "address_line_1" => data["address_line_1"] || data["address"] || data["street"] || data["PatAddress"],
+          "address_line_2" => data["address_line_2"] || data["address2"] || data["PatAddress2"],
+          "city" => data["city"] || city_state_zip[:city],
+          "state" => data["state"] || city_state_zip[:state],
+          "postal" => data["postal"] || data["zip"] || data["zip_code"] || city_state_zip[:postal],
+          "country" => data["country"] || "US",
+          "phone_number" => data["phone_number"] || data["phone"] || data["PatPhoneNo"],
+          "email" => data["email"] || data["PatPriEmail"],
+          "mrn" => data["mrn"] || data["patient_id"] || data["id"] || data["PatAccountNo"],
+          "external_id" => data["external_id"] || data["patient_id"] || data["id"] || data["PatID"],
+          "status" => status,
+          "notes_nonphi" => data["notes_nonphi"] || data["PatNotes"]
+        }
+      end
+
+      def parse_city_state_zip(value)
+        return { city: nil, state: nil, postal: nil } if value.blank?
+
+        city_part, rest = value.split(",", 2)
+        state = nil
+        postal = nil
+
+        if rest.present?
+          state_zip = rest.strip.split(/\s+/)
+          state = state_zip.shift
+          postal = state_zip.join(" ")
+        end
+
+        {
+          city: city_part&.strip,
+          state: state&.strip,
+          postal: postal&.strip
+        }
+      end
+
+      def normalize_status_value(value)
+        return value if value.is_a?(Symbol)
+        str = value.to_s.strip.downcase
+        case str
+        when "active"
+          :active
+        when "inactive"
+          :inactive
+        when "deceased"
+          :deceased
+        else
+          :active
+        end
       end
 
       def build_encounter_mapping_proc(organization_id)

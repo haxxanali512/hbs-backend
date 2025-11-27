@@ -161,7 +161,7 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def save_from_ezclaim
-    save_from_ezclaim(
+    perform_ezclaim_save(
       model_class: Provider,
       data_key: :providers,
       mapping_proc: ->(provider_data) {

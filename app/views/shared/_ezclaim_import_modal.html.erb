@@ -224,9 +224,19 @@
         
         console.log('EZClaim final items:', items, 'count:', items.length);
         
-        // Show success state and render table
+        // Store dataset for client-side pagination
+        window.ezclaimModalState = window.ezclaimModalState || {};
+        window.ezclaimModalState[modalId] = {
+          originalItems: items,
+          items: items,
+          resourceType: data.resource_type || 'data',
+          currentPage: 1,
+          perPage: 20
+        };
+        
+        // Show success state and render first page
         if (success) success.classList.remove('hidden');
-        renderEzclaimDataTable(modalId, items, data.resource_type || 'data');
+        renderEzclaimDataTable(modalId);
       } else {
         // Show error state
         if (error) error.classList.remove('hidden');
@@ -245,26 +255,26 @@
     });
   }
 
-  function renderEzclaimDataTable(modalId, items, resourceType) {
+  function renderEzclaimDataTable(modalId) {
     const container = document.getElementById(modalId + 'TableContainer');
     if (!container) return;
 
-    // Ensure items is an array
-    if (!Array.isArray(items)) {
-      console.error('Items is not an array:', items);
-      items = [];
-    }
-
-    if (items.length === 0) {
+    const state = window.ezclaimModalState?.[modalId];
+    if (!state || !Array.isArray(state.items) || state.items.length === 0) {
       container.innerHTML = '<p class="text-center py-8 text-gray-500">No items found</p>';
       return;
     }
+
+    const totalPages = Math.max(1, Math.ceil(state.items.length / state.perPage));
+    state.currentPage = Math.min(Math.max(1, state.currentPage || 1), totalPages);
+    const startIndex = (state.currentPage - 1) * state.perPage;
+    const pageItems = state.items.slice(startIndex, startIndex + state.perPage);
 
     const config = window.ezclaimModalConfig[modalId] || {};
     const displayColumns = config.displayColumns || [];
     
     // Get all available keys from the first item
-    const firstItem = items[0];
+    const firstItem = state.items[0];
     const availableKeys = Object.keys(firstItem);
     
     // Helper function to find a key (case-insensitive, handles snake_case, camelCase, etc.)
@@ -291,6 +301,16 @@
     }
     
     // If display columns specified, map them to actual keys
+    function humanizeColumn(col) {
+      if (!col) return '';
+      return String(col)
+        .replace(/_/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^./, c => c.toUpperCase());
+    }
+
     let columns = [];
     if (displayColumns.length > 0) {
       const foundColumns = displayColumns.map(col => findKey(col, availableKeys)).filter(Boolean);
@@ -317,10 +337,9 @@
       <div class="space-y-4">
         <div>
           <input type="text" 
-                 id="${modalId}Search" 
                  placeholder="Search..." 
                  class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 onkeyup="filterEzclaimTable('${modalId}Search', '${modalId}Table')">
+                 onkeyup="filterEzclaimTable('${modalId}', this.value)">
         </div>
         <div class="max-h-96 overflow-y-auto border border-gray-200 rounded-md">
           <table id="${modalId}Table" class="min-w-full divide-y divide-gray-200">
@@ -332,13 +351,13 @@
                          class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                          onchange="toggleAllEzclaimRows('${modalId}Table', this.checked, '${modalId}')">
                 </th>
-                ${columns.map(col => `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${String(col).humanize}</th>`).join('')}
+                ${columns.map(col => `<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${humanizeColumn(col)}</th>`).join('')}
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
     `;
 
-    items.forEach((item, index) => {
+    pageItems.forEach((item, index) => {
       tableHtml += `
         <tr class="ezclaim-row hover:bg-gray-50" data-index="${index}">
           <td class="px-4 py-3 whitespace-nowrap">
@@ -386,11 +405,38 @@
             </tbody>
           </table>
         </div>
+        <div class="flex items-center justify-between pt-4">
+          <div class="text-sm text-gray-600">
+            Showing ${startIndex + 1}-${startIndex + pageItems.length} of ${state.items.length}
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button"
+                    class="px-3 py-1 border rounded-md text-sm ${state.currentPage <= 1 ? 'text-gray-400 border-gray-200 cursor-not-allowed' : 'text-gray-700 border-gray-300 hover:bg-gray-50'}"
+                    ${state.currentPage <= 1 ? 'disabled' : ''}
+                    onclick="changeEzclaimPage('${modalId}', -1)">
+              Prev
+            </button>
+            <span class="text-sm text-gray-700">Page ${state.currentPage} of ${totalPages}</span>
+            <button type="button"
+                    class="px-3 py-1 border rounded-md text-sm ${state.currentPage >= totalPages ? 'text-gray-400 border-gray-200 cursor-not-allowed' : 'text-gray-700 border-gray-300 hover:bg-gray-50'}"
+                    ${state.currentPage >= totalPages ? 'disabled' : ''}
+                    onclick="changeEzclaimPage('${modalId}', 1)">
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     `;
 
     container.innerHTML = tableHtml;
     updateEzclaimSelection(modalId);
+  }
+
+  function changeEzclaimPage(modalId, delta) {
+    const state = window.ezclaimModalState?.[modalId];
+    if (!state) return;
+    state.currentPage = (state.currentPage || 1) + delta;
+    renderEzclaimDataTable(modalId);
   }
 
   function toggleAllEzclaimRows(tableId, checked, modalId) {
@@ -418,19 +464,25 @@
     }
   }
 
-  function filterEzclaimTable(searchId, tableId) {
-    const searchInput = document.getElementById(searchId);
-    const table = document.getElementById(tableId);
-    if (!searchInput || !table) return;
-    
-    const filter = searchInput.value.toLowerCase();
-    const rows = table.getElementsByClassName('ezclaim-row');
-    
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const text = row.textContent.toLowerCase();
-      row.style.display = text.includes(filter) ? '' : 'none';
+  function filterEzclaimTable(modalId, query) {
+    const state = window.ezclaimModalState?.[modalId];
+    if (!state || !Array.isArray(state.originalItems)) return;
+
+    const filter = query.toLowerCase();
+    if (filter.length === 0) {
+      state.items = state.originalItems.slice();
+    } else {
+      state.items = state.originalItems.filter(item => {
+        try {
+          return JSON.stringify(item).toLowerCase().includes(filter);
+        } catch (e) {
+          return false;
+        }
+      });
     }
+
+    state.currentPage = 1;
+    renderEzclaimDataTable(modalId);
   }
 
   function saveEzclaimData(modalId, saveUrl, resourceType) {

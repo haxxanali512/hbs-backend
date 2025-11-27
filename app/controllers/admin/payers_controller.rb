@@ -62,7 +62,7 @@ class Admin::PayersController < Admin::BaseController
   end
 
   def save_from_ezclaim
-    save_from_ezclaim(
+    perform_ezclaim_save(
       model_class: Payer,
       data_key: :payers,
       mapping_proc: ->(payer_data) {

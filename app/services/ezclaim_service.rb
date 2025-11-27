@@ -25,8 +25,8 @@ class EzclaimService
   # PATIENTS API
   # ===========================================================
 
-  def get_patients(params = {})
-    make_request(:post, "/patients", params: params)
+  def get_patients(params = { "Query" => "$top=1000" })
+    make_request(:post, "/Patients/GetSimpleList", params: params)
   end
 
   def get_patient(patient_id)

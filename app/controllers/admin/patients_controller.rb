@@ -1,7 +1,7 @@
 class Admin::PatientsController < Admin::BaseController
   include Admin::Concerns::EzclaimIntegration
 
-  # Alias the concern method before we override it
+  # Alias concern method before overriding it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
   before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate ]
