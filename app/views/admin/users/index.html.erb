@@ -47,7 +47,7 @@
         concat(link_to('Reset Password', reset_password_admin_user_path(u), data: { turbo_method: :post }, class: 'text-gray-600 hover:text-gray-900 font-medium text-sm mr-4'))
         concat(link_to('Reinvite', '#', data: { confirm_url: reinvite_admin_user_path(u), confirm_message: 'Re-send invitation to this user?', confirm_label: 'Reinvite' }, class: 'text-gray-600 hover:text-gray-900 font-medium text-sm mr-4'))
         if current_user.permissions_for("admin", "users", "masquerade")
-          concat(link_to('Impersonate', masquerade_path(u), class: 'text-purple-600 hover:text-purple-800 font-medium text-sm'))
+          concat(link_to('Impersonate', masquerade_path(u), target: '_blank', rel: 'noopener noreferrer', class: 'text-purple-600 hover:text-purple-800 font-medium text-sm'))
         end
         # Lock/Unlock moved to edit page
       end }
