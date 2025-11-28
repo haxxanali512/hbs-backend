@@ -1,7 +1,7 @@
 class Admin::ClaimsController < Admin::BaseController
   include Admin::Concerns::ClaimSubmission
 
-  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :test_ezclaim_connection, :claim_insured_data, :submit_claim_insured, :post_adjudication, :void, :reverse, :close ]
+  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :test_ezclaim_connection, :claim_insured_data, :submit_claim_insured, :claim_data, :submit_claim, :post_adjudication, :void, :reverse, :close ]
   before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
 
   def index
@@ -167,6 +167,58 @@ class Admin::ClaimsController < Admin::BaseController
     end
   end
 
+  def claim_data
+    payload = build_claim_payload
+    config = EzclaimService.new(organization: @claim.organization).api_config
+
+    render json: {
+      success: true,
+      api_url: config[:api_url],
+      api_version: config[:api_version],
+      payload: payload
+    }
+  rescue => e
+    Rails.logger.error("Claim data error: #{e.message}")
+    render json: {
+      success: false,
+      error: e.message
+    }, status: :unprocessable_entity
+  end
+
+  def submit_claim
+    return if validate_ezclaim_enabled
+
+    begin
+      payload = claim_params_for_ezclaim.to_h
+      service = EzclaimService.new(organization: @claim.organization)
+      result = service.create_claim(payload)
+
+      if result[:success]
+        respond_to do |format|
+          format.html { redirect_to admin_claim_path(@claim), notice: "Claim submitted to EZClaim successfully." }
+          format.json { render json: { success: true, redirect_url: admin_claim_path(@claim) } }
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_to admin_claim_path(@claim), alert: "Failed to submit claim: #{result[:error]}" }
+          format.json { render json: { success: false, error: result[:error] }, status: :unprocessable_entity }
+        end
+      end
+    rescue EzclaimService::AuthenticationError, EzclaimService::IntegrationError => e
+      respond_to do |format|
+        format.html { redirect_to admin_claim_path(@claim), alert: "EZClaim error: #{e.message}" }
+        format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
+      end
+    rescue => e
+      Rails.logger.error("Claim submission error: #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      respond_to do |format|
+        format.html { redirect_to admin_claim_path(@claim), alert: "Error submitting claim: #{e.message}" }
+        format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
+      end
+    end
+  end
+
   def post_adjudication
     # Placeholder for ERA/EOB posting logic
     redirect_to admin_claim_path(@claim), notice: "Adjudication posting (placeholder)."
@@ -311,6 +363,44 @@ class Admin::ClaimsController < Admin::BaseController
     when "tertiary" then "3"
     else "1"
     end
+  end
+
+  def build_claim_payload
+    {
+      ClaPatFID: @claim.patient.external_id || @claim.patient.id.to_s,
+      claRenderingPhyFID: @claim.provider.npi || @claim.provider.id.to_s,
+      ClaDiagnosis1: @claim.encounter.diagnosis_codes.first&.code || "",
+      service_LinesObjectWithoutID: @claim.claim_lines.map do |line|
+        {
+          SrvDateFrom: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || "",
+          SrvDateTo: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || "",
+          SrvProcedureCode: line.procedure_code.code,
+          SrvProcedureUnits: line.units.to_s
+        }
+      end,
+      ClaSubmissionMethod: "",
+      claBillingPhyFID: @claim.provider.npi || @claim.provider.id.to_s,
+      SrvDateFrom: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || "",
+      SrvDateTo: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || ""
+    }
+  end
+
+  def claim_params_for_ezclaim
+    params.require(:claim).permit(
+      :ClaPatFID,
+      :claRenderingPhyFID,
+      :ClaDiagnosis1,
+      :ClaSubmissionMethod,
+      :claBillingPhyFID,
+      :SrvDateFrom,
+      :SrvDateTo,
+      service_LinesObjectWithoutID: [
+        :SrvDateFrom,
+        :SrvDateTo,
+        :SrvProcedureCode,
+        :SrvProcedureUnits
+      ]
+    )
   end
 
   def load_form_options

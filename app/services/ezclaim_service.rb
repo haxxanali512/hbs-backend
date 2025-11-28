@@ -34,7 +34,8 @@ class EzclaimService
   end
 
   def create_patient(patient_data)
-    make_request(:post, "/patients", body: patient_data)
+    # Pass data as params so it gets wrapped correctly in the request
+    make_request(:post, "/Patients", params: patient_data)
   end
 
   def update_patient(patient_id, patient_data)
@@ -43,6 +44,15 @@ class EzclaimService
 
   def delete_patient(patient_id)
     make_request(:delete, "/patients/#{patient_id}")
+  end
+
+  # ===========================================================
+  # PROCEDURE CODES API
+  # ===========================================================
+
+  def create_procedure_code(procedure_code_data)
+    # Pass data as params so it gets wrapped correctly in the request
+    make_request(:post, "/Procedure_Codes", params: procedure_code_data)
   end
 
   # ===========================================================
@@ -130,7 +140,8 @@ class EzclaimService
   end
 
   def create_claim(claim_data)
-    make_request(:post, "/claims", body: claim_data)
+    # Pass data as params so it gets wrapped correctly in the request
+    make_request(:post, "/Claims", params: claim_data)
   end
 
   def update_claim(claim_id, claim_data)
@@ -233,6 +244,7 @@ class EzclaimService
     end
 
     response = HTTParty.send(method, url, options)
+    byebug
     parse_response(response)
   rescue HTTParty::Error => e
     {

@@ -187,6 +187,7 @@ Rails.application.routes.draw do
       resources :procedure_codes do
         member do
           post :toggle_status
+          post :push_to_ezclaim
         end
       end
 
@@ -224,6 +225,8 @@ Rails.application.routes.draw do
           get :test_ezclaim_connection
           get :claim_insured_data
           post :submit_claim_insured
+          get :claim_data
+          post :submit_claim
           post :post_adjudication
           post :void
           post :reverse
@@ -406,6 +409,7 @@ Rails.application.routes.draw do
             post :inactivate
             post :mark_deceased
             post :reactivate
+            post :push_to_ezclaim
           end
         end
 

@@ -2,6 +2,9 @@ class ProcedureCode < ApplicationRecord
   audited
   include Discard::Model
 
+  # Virtual attribute for EZClaim push flag
+  attr_accessor :push_to_ezclaim
+
   has_many :procedure_codes_specialties, dependent: :destroy
   has_many :specialties, through: :procedure_codes_specialties
   has_many :organization_fee_schedule_items, dependent: :restrict_with_error
@@ -24,6 +27,9 @@ class ProcedureCode < ApplicationRecord
   validates :code_type, presence: true
   validates :status, presence: true
   validate :validate_code_uniqueness
+
+  # Callbacks
+  after_create :push_to_ezclaim_if_requested
 
   scope :by_code_type, ->(type) { where(code_type: type) }
   scope :by_status, ->(status) { where(status: status) }
@@ -89,6 +95,46 @@ class ProcedureCode < ApplicationRecord
     result = ProcedureCodeValidationService.validate_code_uniqueness(self)
     unless result[:valid]
       errors.add(:code, result[:error])
+    end
+  end
+
+  def push_to_ezclaim_if_requested
+    return unless push_to_ezclaim == true || push_to_ezclaim == "1"
+
+    # Get the first organization with EZClaim enabled (or use a default organization)
+    # Since procedure codes are global, we need to find an organization with EZClaim enabled
+    organization = Organization.joins(:organization_setting)
+                              .where(organization_settings: { ezclaim_enabled: true })
+                              .first
+
+    return unless organization
+
+    begin
+      service = EzclaimService.new(organization: organization)
+
+      # Map procedure code fields to EZClaim fields
+      procedure_code_data = {
+        ProcCode: code,
+        ProcDescription: description,
+        ProcModifier: nil, # Not available in model
+        ProcCharge: nil, # Not available in model
+        ProcModifiersCC: nil, # Not available in model
+        ProcPayFID: nil, # Not available in model
+        ProcUnits: nil, # Not available in model
+        ProcModifier4: nil, # Not available in model
+        ProcModifier1: nil # Not available in model
+      }
+
+      result = service.create_procedure_code(procedure_code_data)
+
+      if result[:success]
+        Rails.logger.info "Procedure code #{id} successfully pushed to EZClaim"
+      else
+        Rails.logger.error "Failed to push procedure code #{id} to EZClaim: #{result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Error pushing procedure code #{id} to EZClaim: #{e.message}"
+      Rails.logger.error(e.backtrace.join("\n"))
     end
   end
 end

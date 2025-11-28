@@ -132,6 +132,9 @@
           <div class="space-y-2">
             <%= link_to "New Appointment", new_tenant_appointment_path(patient_id: @patient.id), class: "block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
             <%= link_to "New Encounter", new_tenant_encounter_path(patient_id: @patient.id), class: "block w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            <% if @current_organization&.organization_setting&.ezclaim_enabled? %>
+              <%= button_to "Push To EZClaim", push_to_ezclaim_tenant_patient_path(@patient), method: :post, class: "block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            <% end %>
           </div>
         </div>
 

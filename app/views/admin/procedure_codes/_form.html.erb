@@ -50,6 +50,17 @@
       <p class="mt-1 text-sm text-gray-500">Active codes can be used in encounters and claims</p>
     </div>
 
+    <!-- EZClaim Integration (only for new records) -->
+    <% if @procedure_code.new_record? %>
+      <div class="space-y-4 pt-4 border-t border-gray-200">
+        <div class="flex items-center">
+          <%= f.check_box :push_to_ezclaim, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+          <%= f.label :push_to_ezclaim, "Push To EZClaim", class: "ml-2 block text-sm font-medium text-gray-700" %>
+        </div>
+        <p class="text-sm text-gray-500">If checked, this procedure code will be automatically pushed to EZClaim after creation.</p>
+      </div>
+    <% end %>
+
     <div class="flex items-center space-x-3">
       <%= f.submit (@procedure_code.new_record? ? "Create Procedure Code" : "Update Procedure Code"), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
       <%= link_to "Cancel", (@procedure_code.new_record? ? admin_procedure_codes_path : admin_procedure_code_path(@procedure_code)), class: "text-gray-600 hover:text-gray-800" %>
