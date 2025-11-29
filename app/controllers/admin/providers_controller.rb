@@ -46,6 +46,11 @@ class Admin::ProvidersController < Admin::BaseController
   def create
     @provider = Provider.new(provider_params)
 
+    # Ensure status defaults to 'draft' if not provided or invalid
+    if @provider.status.blank? || !Provider.statuses.key?(@provider.status)
+      @provider.status = "draft"
+    end
+
     if @provider.save
       redirect_to admin_provider_path(@provider), notice: "Provider created successfully."
     else
