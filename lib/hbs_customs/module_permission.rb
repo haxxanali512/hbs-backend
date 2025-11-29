@@ -81,7 +81,7 @@ module HbsCustoms
         {
           dashboard: { index: false },
           organizations: DEFAULT_CRUD,
-          users: DEFAULT_CRUD,
+          users: DEFAULT_CRUD.merge(masquerade: false),
           roles: DEFAULT_CRUD,
           organization_billings: DEFAULT_CRUD,
           invoices: DEFAULT_CRUD,

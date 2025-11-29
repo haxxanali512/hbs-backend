@@ -1,5 +1,8 @@
 Rails.application.routes.draw do
-  devise_for :users, controllers: { invitations: "users/invitations" }
+  devise_for :users, controllers: {
+    invitations: "users/invitations",
+    masquerades: "admin/masquerades"
+  }
 
   # Health check
   get "up" => "health#show", as: :rails_health_check

@@ -41,20 +41,14 @@
       }
     },
     {
-      label: 'Actions', td_class: 'text-center',
+      label: 'Actions', td_class: 'text-left',
       render: ->(u){ capture do
-        concat(link_to(edit_admin_user_path(u), title: 'Edit user', class: 'inline-flex items-center text-indigo-600 hover:text-indigo-800', data: { tooltip: 'Edit user' }) do
-          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M4 20h4l10.5-10.5a2.5 2.5 0 10-3.536-3.536L4 16v4z"/></svg><span class="sr-only">Edit</span>'
-        end)
-        concat ' '
-        concat(link_to(reset_password_admin_user_path(u), data: { turbo_method: :post }, title: 'Send password reset', class: 'inline-flex items-center text-gray-600 hover:text-gray-900', data: { tooltip: 'Reset password' }) do
-          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="sr-only">Reset Password</span>'
-        end)
-        concat ' '
-        concat(link_to('#', data: { confirm_url: reinvite_admin_user_path(u), confirm_message: 'Re-send invitation to this user?', confirm_label: 'Reinvite' }, title: 'Re-send invitation', class: 'inline-flex items-center text-gray-600 hover:text-gray-900') do
-          raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7l-5 5 5 5"/></svg><span class="sr-only">Reinvite</span>'
-        end)
-        concat ' '
+        concat(link_to('Edit', edit_admin_user_path(u), class: 'text-indigo-600 hover:text-indigo-800 font-medium text-sm mr-4'))
+        concat(link_to('Reset Password', reset_password_admin_user_path(u), data: { turbo_method: :post }, class: 'text-gray-600 hover:text-gray-900 font-medium text-sm mr-4'))
+        concat(link_to('Reinvite', '#', data: { confirm_url: reinvite_admin_user_path(u), confirm_message: 'Re-send invitation to this user?', confirm_label: 'Reinvite' }, class: 'text-gray-600 hover:text-gray-900 font-medium text-sm mr-4'))
+        if current_user.permissions_for("admin", "users", "masquerade")
+          concat(link_to('Impersonate', masquerade_path(u), target: '_blank', rel: 'noopener noreferrer', class: 'text-purple-600 hover:text-purple-800 font-medium text-sm'))
+        end
         # Lock/Unlock moved to edit page
       end }
     }
