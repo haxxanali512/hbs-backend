@@ -20,10 +20,10 @@ class Provider < ApplicationRecord
   # Validations
   validates :first_name, :last_name, :specialty_id, :status, presence: true
   validates :first_name, :last_name, length: { minimum: 2, maximum: 100 }
-  validates :npi, length: { is: 10 }, allow_blank: true
-  validates :npi, uniqueness: true, allow_blank: true
-  validates :license_number, length: { maximum: 50 }, allow_blank: true
-  validates :license_state, length: { is: 2 }, allow_blank: true
+  validates :npi, length: { is: 10 }
+  validates :npi, uniqueness: true
+  validates :license_number, length: { maximum: 50 }
+  validates :license_state, length: { is: 2 }
   validates :status, inclusion: { in: %w[draft pending approved rejected suspended] }
   validate :specialty_must_be_active
   validate :specialty_must_exist

@@ -24,6 +24,7 @@ class Tenant::ProvidersController < Tenant::BaseController
   end
 
   def create
+    byebug
     @provider = Provider.new(provider_params)
     @provider.assign_to_organization_id = @current_organization.id
 

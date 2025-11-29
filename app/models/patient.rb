@@ -13,6 +13,9 @@ class Patient < ApplicationRecord
   belongs_to :merged_into_patient, optional: true, class_name: "Patient", foreign_key: "merged_into_patient_id"
   has_many :merged_patients, class_name: "Patient", foreign_key: "merged_into_patient_id"
 
+  # Virtual attribute for EZClaim push flag
+  attr_accessor :push_to_ezclaim
+
   # Enums
   enum :status, {
     active: 0,
@@ -64,6 +67,9 @@ class Patient < ApplicationRecord
   validate :immutable_fields_if_deceased_or_merged
   validate :can_edit_demographics
   validate :merge_target_valid, if: :merging?
+
+  # Callbacks
+  after_create :push_to_ezclaim_if_requested
 
   # Scopes
   scope :active_patients, -> { where(status: :active) }
@@ -214,6 +220,38 @@ class Patient < ApplicationRecord
     if has_future_activities?
       errors.add(:base, "PAT_INACT_WITH_FUTURE_ENC - Cancel future appointments and encounters before inactivating")
       throw(:abort)
+    end
+  end
+
+  def push_to_ezclaim_if_requested
+    return unless push_to_ezclaim == true || push_to_ezclaim == "1"
+    return unless organization&.organization_setting&.ezclaim_enabled?
+
+    begin
+      service = EzclaimService.new(organization: organization)
+
+      # Map patient fields to EZClaim fields
+      patient_data = {
+        PatFirstName: first_name,
+        PatLastName: last_name,
+        PatCity: city,
+        PatAddress: address_line_1,
+        PatZip: postal,
+        PatBirthDate: dob&.strftime("%Y-%m-%d"),
+        PatState: state,
+        PatSex: sex_at_birth
+      }
+
+      result = service.create_patient(patient_data)
+
+      if result[:success]
+        Rails.logger.info "Patient #{id} successfully pushed to EZClaim"
+      else
+        Rails.logger.error "Failed to push patient #{id} to EZClaim: #{result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Error pushing patient #{id} to EZClaim: #{e.message}"
+      Rails.logger.error(e.backtrace.join("\n"))
     end
   end
 

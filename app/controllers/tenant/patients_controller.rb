@@ -1,6 +1,6 @@
 class Tenant::PatientsController < Tenant::BaseController
   before_action :set_current_organization
-  before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate ]
+  before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate, :push_to_ezclaim ]
 
   def index
     @patients = @current_organization.patients.includes(:organization).kept
@@ -98,6 +98,41 @@ class Tenant::PatientsController < Tenant::BaseController
     end
   end
 
+  def push_to_ezclaim
+    unless @current_organization&.organization_setting&.ezclaim_enabled?
+      redirect_to tenant_patient_path(@patient), alert: "EZClaim is not enabled for this organization."
+      return
+    end
+
+    begin
+      service = EzclaimService.new(organization: @current_organization)
+
+      # Map patient fields to EZClaim fields
+      patient_data = {
+        PatFirstName: @patient.first_name,
+        PatLastName: @patient.last_name,
+        PatCity: @patient.city,
+        PatAddress: @patient.address_line_1,
+        PatZip: @patient.postal,
+        PatBirthDate: @patient.dob&.strftime("%Y-%m-%d"),
+        PatState: @patient.state,
+        PatSex: @patient.sex_at_birth
+      }
+
+      result = service.create_patient(patient_data)
+
+      if result[:success]
+        redirect_to tenant_patient_path(@patient), notice: "Patient successfully pushed to EZClaim."
+      else
+        redirect_to tenant_patient_path(@patient), alert: "Failed to push patient to EZClaim: #{result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Error pushing patient #{@patient.id} to EZClaim: #{e.message}"
+      Rails.logger.error(e.backtrace.join("\n"))
+      redirect_to tenant_patient_path(@patient), alert: "Error pushing patient to EZClaim: #{e.message}"
+    end
+  end
+
   private
 
   def set_patient
@@ -121,7 +156,8 @@ class Tenant::PatientsController < Tenant::BaseController
       :mrn,
       :external_id,
       :status,
-      :notes_nonphi
+      :notes_nonphi,
+      :push_to_ezclaim
     )
   end
 end

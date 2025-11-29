@@ -55,6 +55,14 @@ class Admin::ClaimPolicy < ApplicationPolicy
     accessible?("admin", "claims", "submit")
   end
 
+  def claim_data?
+    accessible?("admin", "claims", "submit")
+  end
+
+  def submit_claim?
+    accessible?("admin", "claims", "submit")
+  end
+
   def reverse?
     accessible?("admin", "claims", "reverse")
   end

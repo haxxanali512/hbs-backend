@@ -35,7 +35,85 @@
 
         <!-- Connection Success State / Editable Form -->
         <div id="<%= modal_id %>Success" class="hidden">
-          <% if modal_type == 'claim_insured' %>
+          <% if modal_type == 'claim' %>
+            <!-- Editable Form for Claim -->
+            <form id="<%= modal_id %>Form" onsubmit="event.preventDefault(); submitClaim('<%= modal_id %>', '<%= submit_url %>');">
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
+                <div class="bg-gray-50 rounded-md p-4 mb-4">
+                  <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API URL:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API Version:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">Endpoint:</span>
+                      <span class="text-gray-900 font-mono">POST /Claims</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Claim Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Patient FID</label>
+                    <input type="text" name="claim[ClaPatFID]" id="<%= modal_id %>ClaPatFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rendering Physician FID</label>
+                    <input type="text" name="claim[claRenderingPhyFID]" id="<%= modal_id %>claRenderingPhyFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Diagnosis 1</label>
+                    <input type="text" name="claim[ClaDiagnosis1]" id="<%= modal_id %>ClaDiagnosis1" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Submission Method</label>
+                    <input type="text" name="claim[ClaSubmissionMethod]" id="<%= modal_id %>ClaSubmissionMethod" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Billing Physician FID</label>
+                    <input type="text" name="claim[claBillingPhyFID]" id="<%= modal_id %>claBillingPhyFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Date From</label>
+                    <input type="date" name="claim[SrvDateFrom]" id="<%= modal_id %>SrvDateFrom" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Date To</label>
+                    <input type="date" name="claim[SrvDateTo]" id="<%= modal_id %>SrvDateTo" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-sm font-semibold text-gray-900">Service Lines</h4>
+                  <button type="button" onclick="addServiceLine('<%= modal_id %>')" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    + Add Service Line
+                  </button>
+                </div>
+                <div id="<%= modal_id %>ServiceLines" class="space-y-3">
+                  <!-- Service lines will be added here dynamically -->
+                </div>
+              </div>
+
+              <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                  Send to EZClaim
+                </button>
+              </div>
+            </form>
+          <% elsif modal_type == 'claim_insured' %>
             <!-- Editable Form for Claim Insured -->
             <form id="<%= modal_id %>Form" onsubmit="event.preventDefault(); submitClaimInsured('<%= modal_id %>', '<%= submit_url %>');">
               <div class="mb-4">
@@ -292,6 +370,8 @@
     if (dataUrl) {
       if (modalType === 'claim_insured') {
         loadClaimInsuredData(modalId, dataUrl);
+      } else if (modalType === 'claim') {
+        loadClaimData(modalId, dataUrl);
       } else {
         testEzclaimConnection(modalId, dataUrl);
       }
@@ -433,6 +513,246 @@
       if (loading) loading.classList.add('hidden');
       if (errorDiv) errorDiv.classList.remove('hidden');
       if (errorMessage) errorMessage.textContent = 'Error: ' + error.message;
+    });
+  }
+
+  function loadClaimData(modalId, dataUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    fetch(dataUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to load claim data');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const success = document.getElementById(modalId + 'Success');
+      const error = document.getElementById(modalId + 'Error');
+      
+      if (loading) loading.classList.add('hidden');
+      
+      if (data.success) {
+        if (success) success.classList.remove('hidden');
+        const apiUrl = document.getElementById(modalId + 'ApiUrl');
+        const apiVersion = document.getElementById(modalId + 'ApiVersion');
+        
+        if (apiUrl) apiUrl.textContent = data.api_url;
+        if (apiVersion) apiVersion.textContent = data.api_version;
+        
+        // Populate form fields
+        const payload = data.payload;
+        if (payload) {
+          Object.keys(payload).forEach(key => {
+            const field = document.getElementById(modalId + key);
+            if (field && payload[key]) {
+              field.value = payload[key];
+            }
+          });
+          
+          // Populate service lines if they exist, otherwise add one empty service line
+          const serviceLinesContainer = document.getElementById(modalId + 'ServiceLines');
+          if (serviceLinesContainer) {
+            serviceLinesContainer.innerHTML = '';
+            if (payload.service_LinesObjectWithoutID && Array.isArray(payload.service_LinesObjectWithoutID) && payload.service_LinesObjectWithoutID.length > 0) {
+              payload.service_LinesObjectWithoutID.forEach((line, index) => {
+                addServiceLine(modalId, line, index);
+              });
+            } else {
+              // Add one empty service line by default
+              addServiceLine(modalId, {}, 0);
+            }
+          }
+        }
+      } else {
+        if (error) error.classList.remove('hidden');
+        const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+        if (errorMessage) errorMessage.textContent = data.error || 'Failed to load data';
+      }
+    })
+    .catch(error => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const errorDiv = document.getElementById(modalId + 'Error');
+      const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+      
+      if (loading) loading.classList.add('hidden');
+      if (errorDiv) errorDiv.classList.remove('hidden');
+      if (errorMessage) errorMessage.textContent = 'Error: ' + error.message;
+    });
+  }
+
+  function addServiceLine(modalId, lineData, index) {
+    modalId = modalId || 'ezclaimModal';
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (!container) return;
+    
+    // If index is not provided, use the current number of children
+    if (index === undefined) {
+      index = container.children.length;
+    }
+    
+    const lineId = modalId + 'ServiceLine' + Date.now() + '_' + index;
+    
+    const lineHtml = `
+      <div id="${lineId}" class="bg-gray-50 border border-gray-200 rounded-md p-4" data-line-index="${index}">
+        <div class="flex items-center justify-between mb-3">
+          <h5 class="text-sm font-medium text-gray-700">Service Line <span class="line-number">${index + 1}</span></h5>
+          <button type="button" onclick="removeServiceLine('${lineId}', '${modalId}')" class="text-red-600 hover:text-red-700 text-sm font-medium">
+            Remove
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+            <input type="date" name="claim[service_LinesObjectWithoutID][${index}][SrvDateFrom]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvDateFrom || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+            <input type="date" name="claim[service_LinesObjectWithoutID][${index}][SrvDateTo]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvDateTo || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Procedure Code</label>
+            <input type="text" name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureCode]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvProcedureCode || ''}">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Procedure Units</label>
+            <input type="number" name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureUnits]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvProcedureUnits || ''}" step="0.01">
+          </div>
+        </div>
+      </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', lineHtml);
+    reindexServiceLines(modalId);
+  }
+
+  function removeServiceLine(lineId, modalId) {
+    const lineElement = document.getElementById(lineId);
+    if (lineElement) {
+      lineElement.remove();
+      reindexServiceLines(modalId);
+    }
+  }
+
+  function reindexServiceLines(modalId) {
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (!container) return;
+    
+    Array.from(container.children).forEach((child, index) => {
+      // Update line number display
+      const lineNumber = child.querySelector('.line-number');
+      if (lineNumber) {
+        lineNumber.textContent = index + 1;
+      }
+      
+      // Update data attribute
+      child.setAttribute('data-line-index', index);
+      
+      // Update all input names to use new index
+      const inputs = child.querySelectorAll('input');
+      inputs.forEach(input => {
+        const name = input.getAttribute('name');
+        if (name) {
+          const match = name.match(/^claim\[service_LinesObjectWithoutID\]\[(\d+)\]\[(\w+)\]$/);
+          if (match) {
+            input.setAttribute('name', `claim[service_LinesObjectWithoutID][${index}][${match[2]}]`);
+          }
+        }
+      });
+    });
+  }
+
+  function submitClaim(modalId, submitUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const form = document.getElementById(modalId + 'Form');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    const formData = new FormData(form);
+    const data = {};
+    
+    // Build the claim data object
+    data.ClaPatFID = formData.get('claim[ClaPatFID]') || '';
+    data.claRenderingPhyFID = formData.get('claim[claRenderingPhyFID]') || '';
+    data.ClaDiagnosis1 = formData.get('claim[ClaDiagnosis1]') || '';
+    data.ClaSubmissionMethod = formData.get('claim[ClaSubmissionMethod]') || '';
+    data.claBillingPhyFID = formData.get('claim[claBillingPhyFID]') || '';
+    data.SrvDateFrom = formData.get('claim[SrvDateFrom]') || '';
+    data.SrvDateTo = formData.get('claim[SrvDateTo]') || '';
+    
+    // Build service lines array
+    const serviceLinesMap = new Map();
+    formData.forEach((value, key) => {
+      const match = key.match(/^claim\[service_LinesObjectWithoutID\]\[(\d+)\]\[(\w+)\]$/);
+      if (match) {
+        const index = parseInt(match[1]);
+        const field = match[2];
+        if (!serviceLinesMap.has(index)) {
+          serviceLinesMap.set(index, {});
+        }
+        const line = serviceLinesMap.get(index);
+        line[field] = value;
+      }
+    });
+    
+    // Convert map to array and filter out empty service lines
+    data.service_LinesObjectWithoutID = Array.from(serviceLinesMap.values())
+      .filter(line => line.SrvProcedureCode || line.SrvDateFrom || line.SrvDateTo || line.SrvProcedureUnits)
+      .map(line => ({
+        SrvDateFrom: line.SrvDateFrom || '',
+        SrvDateTo: line.SrvDateTo || '',
+        SrvProcedureCode: line.SrvProcedureCode || '',
+        SrvProcedureUnits: line.SrvProcedureUnits || ''
+      }));
+    
+    fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({ claim: data }),
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to submit to EZClaim');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        alert('Claim successfully submitted to EZClaim!');
+        closeEzclaimModal(modalId);
+        window.location.reload();
+      } else {
+        alert('Error: ' + (data.error || 'Failed to submit to EZClaim'));
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error.message);
+    })
+    .finally(() => {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
     });
   }
 

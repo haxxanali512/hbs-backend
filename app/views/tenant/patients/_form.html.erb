@@ -154,6 +154,17 @@
     </div>
   </div>
 
+  <!-- EZClaim Integration (only for new records) -->
+  <% if @patient.new_record? %>
+    <div class="space-y-4 pt-4 border-t border-gray-200">
+      <div class="flex items-center">
+        <%= f.check_box :push_to_ezclaim, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+        <%= f.label :push_to_ezclaim, "Push To EZClaim", class: "ml-2 block text-sm font-medium text-gray-700" %>
+      </div>
+      <p class="text-sm text-gray-500">If checked, this patient will be automatically pushed to EZClaim after creation.</p>
+    </div>
+  <% end %>
+
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
     <%= link_to "Cancel", (@patient.new_record? ? tenant_patients_path : tenant_patient_path(@patient)), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
