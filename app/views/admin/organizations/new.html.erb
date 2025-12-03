@@ -1,9 +1,13 @@
-<div class="w-full mx-auto py-8 px-4 sm:px-6 lg:px-8">
-  <h1 class="text-2xl font-bold text-gray-900 mb-6">New Organization</h1>
-  <div class="space-y-6">
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">New Organization</h1>
+        <p class="mt-2 text-gray-600">Create a new organization and configure core settings</p>
+      </div>
+      <%= link_to "Back to Organizations", admin_organizations_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+    </div>
+
     <%= render "form" %>
-  </div>
-  <div class="mt-6">
-    <%= link_to "Back", admin_organizations_path, class: "text-sm text-gray-700 hover:text-gray-900" %>
   </div>
 </div>

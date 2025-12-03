@@ -13,7 +13,6 @@ class ProcedureCode < ApplicationRecord
   enum :code_type, {
     cpt: 0,
     hcpcs: 1,
-    icd10: 2,
     custom: 3
   }
 

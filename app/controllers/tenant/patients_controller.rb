@@ -36,24 +36,51 @@ class Tenant::PatientsController < Tenant::BaseController
 
   def new
     @patient = @current_organization.patients.build
+    @patient.build_prescription
+    if @patient.patient_insurance_coverages.empty?
+      @patient.patient_insurance_coverages.build(
+        status: :draft,
+        coverage_order: :primary,
+        organization_id: @current_organization.id
+      )
+    end
+    load_insurance_form_options
   end
 
   def create
     @patient = @current_organization.patients.build(patient_params)
+    set_insurance_coverage_organization_ids
 
     if @patient.save
+      attach_prescription_document_if_present
       redirect_to tenant_patient_path(@patient), notice: "Patient created successfully."
     else
+      load_insurance_form_options
       render :new, status: :unprocessable_entity
     end
   end
 
-  def edit; end
+  def edit
+    @patient.build_prescription unless @patient.prescription
+    if @patient.patient_insurance_coverages.empty?
+      @patient.patient_insurance_coverages.build(
+        status: :draft,
+        coverage_order: :primary,
+        organization_id: @current_organization.id
+      )
+    end
+    load_insurance_form_options
+  end
 
   def update
-    if @patient.update(patient_params)
+    @patient.assign_attributes(patient_params)
+    set_insurance_coverage_organization_ids
+
+    if @patient.save
+      attach_prescription_document_if_present
       redirect_to tenant_patient_path(@patient), notice: "Patient updated successfully."
     else
+      load_insurance_form_options
       render :edit, status: :unprocessable_entity
     end
   end
@@ -140,6 +167,9 @@ class Tenant::PatientsController < Tenant::BaseController
   end
 
   def patient_params
+    # Process subscriber_address fields before permitting
+    process_insurance_coverage_addresses
+
     params.require(:patient).permit(
       :first_name,
       :last_name,
@@ -157,7 +187,72 @@ class Tenant::PatientsController < Tenant::BaseController
       :external_id,
       :status,
       :notes_nonphi,
-      :push_to_ezclaim
+      :push_to_ezclaim,
+      prescription_attributes: [
+        :id,
+        :expires_on,
+        :title
+      ],
+      patient_insurance_coverages_attributes: [
+        :id,
+        :insurance_plan_id,
+        :member_id,
+        :subscriber_name,
+        :relationship_to_subscriber,
+        :coverage_order,
+        :effective_date,
+        :termination_date,
+        :status,
+        :_destroy,
+        subscriber_address: {}
+      ]
     )
+  end
+
+  def attach_prescription_document_if_present
+    uploaded_file = params.dig(:patient, :prescription_document_file)
+    return if uploaded_file.blank?
+
+    # Ensure we have a prescription record to attach to
+    @patient.build_prescription unless @patient.prescription
+    @patient.prescription.save! unless @patient.prescription.persisted?
+
+    DocumentUploadService.new(
+      documentable: @patient.prescription,
+      uploaded_by: current_user,
+      organization: @current_organization,
+      params: {
+        file: uploaded_file,
+        title: @patient.prescription.title.presence || "Prescription Document",
+        document_type: "patient_prescription"
+      }
+    ).call
+  end
+
+  def load_insurance_form_options
+    @insurance_plans = InsurancePlan.active_only.order(:name)
+  end
+
+  def process_insurance_coverage_addresses
+    return unless params.dig(:patient, :patient_insurance_coverages_attributes)
+
+    params[:patient][:patient_insurance_coverages_attributes].each do |index, coverage_params|
+      next unless coverage_params[:subscriber_address_line1].present?
+
+      params[:patient][:patient_insurance_coverages_attributes][index][:subscriber_address] = {
+        line1: coverage_params[:subscriber_address_line1],
+        line2: coverage_params[:subscriber_address_line2],
+        city: coverage_params[:subscriber_address_city],
+        state: coverage_params[:subscriber_address_state],
+        postal: coverage_params[:subscriber_address_postal],
+        country: coverage_params[:subscriber_address_country] || "US"
+      }
+    end
+  end
+
+  def set_insurance_coverage_organization_ids
+    @patient.patient_insurance_coverages.each do |coverage|
+      coverage.organization_id = @current_organization.id if coverage.organization_id.blank?
+    end
   end
 end
