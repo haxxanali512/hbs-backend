@@ -1,15 +1,44 @@
 <%= form_with model: [:admin, @organization], class: "space-y-6" do |f| %>
+  <% if @organization.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(@organization.errors.count, "error") %> prohibited this organization from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% @organization.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Organization Details -->
   <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-    <h3 class="text-base font-semibold text-gray-900 mb-4">Organization Details</h3>
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Organization Details</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Organization Name</label>
-        <%= f.text_field :name, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+        <%= f.text_field :name,
+              placeholder: "Organization name",
+              class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">Subdomain</label>
         <div class="mt-2 flex rounded-lg shadow-sm">
-          <%= f.text_field :subdomain, class: "block w-full h-11 rounded-l-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500" %>
+          <%= f.text_field :subdomain,
+                placeholder: "subdomain",
+                class: "block w-full h-11 rounded-l-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500" %>
           <span class="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-gray-200 bg-gray-50 text-sm text-gray-500">
             .localhost:3000
           </span>
@@ -24,7 +53,7 @@
               ['Premium', 'premium']
             ], @organization.tier),
             { prompt: 'Select tier' },
-            { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+            { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">Owner</label>
@@ -33,13 +62,45 @@
             :id, 
             ->(user) { "#{user.display_name} (#{user.email})" }, 
             { prompt: "Select owner" }, 
-            { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+            { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
       </div>
     </div>
-    <div class="mt-6 flex items-center justify-end gap-4">
-      <%= link_to "Cancel", admin_organizations_path, class: "text-sm text-gray-700 hover:text-gray-900" %>
-      <%= f.submit (@organization.persisted? ? "Update Organization" : "Create Organization"), class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700" %>
-    </div>
+  </div>
+
+  <!-- Integration Settings -->
+  <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Integration Settings</h3>
+
+    <%= f.fields_for :organization_setting do |s| %>
+      <% setting = @organization.organization_setting %>
+
+      <div class="space-y-6">
+        <div class="flex items-center">
+          <%= s.check_box :ezclaim_enabled, { id: "ezclaim_enabled_checkbox_admin", checked: setting&.ezclaim_enabled? } %>
+          <%= s.label :ezclaim_enabled, "Want to configure EZClaim?", class: "ml-2 text-sm text-gray-900 cursor-pointer", for: "ezclaim_enabled_checkbox_admin" %>
+        </div>
+
+        <div id="ezclaim-settings-admin" class="space-y-4 mt-4" style="display: <%= setting&.ezclaim_enabled? ? 'block' : 'none' %>;">
+          <div>
+            <%= s.label :ezclaim_api_token, "EZClaim API Token", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= s.password_field :ezclaim_api_token, class: "w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter EZClaim API token" %>
+            <p class="mt-1 text-xs text-gray-500">Stored securely and used for all EZClaim API calls.</p>
+          </div>
+
+          <div>
+            <%= s.label :ezclaim_api_url, "EZClaim API URL", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= s.text_field :ezclaim_api_url, class: "w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "https://ezclaimapiprod.azurewebsites.net/api/v2" %>
+            <p class="mt-1 text-xs text-gray-500">Base URL for EZClaim API. Usually you can keep the default.</p>
+          </div>
+
+          <div>
+            <%= s.label :ezclaim_api_version, "API Version", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= s.text_field :ezclaim_api_version, class: "w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "3.0.0" %>
+            <p class="mt-1 text-xs text-gray-500">EZClaim API version. Default is 3.0.0.</p>
+          </div>
+        </div>
+      </div>
+    <% end %>
   </div>
 
   <!-- Information Box -->
@@ -63,4 +124,30 @@
       </div>
     </div>
   </div>
+
+  <!-- Form Actions -->
+  <div class="flex items-center justify-end gap-3 pt-2">
+    <%= link_to "Cancel",
+        (@organization.persisted? ? admin_organization_path(@organization) : admin_organizations_path),
+        class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md text-sm transition-colors" %>
+    <%= f.submit (@organization.persisted? ? "Update Organization" : "Create Organization"),
+        class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors" %>
+  </div>
 <% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var checkbox = document.getElementById('ezclaim_enabled_checkbox_admin');
+    var settings = document.getElementById('ezclaim-settings-admin');
+
+    if (checkbox && settings) {
+      checkbox.addEventListener('change', function() {
+        if (this.checked) {
+          settings.style.display = 'block';
+        } else {
+          settings.style.display = 'none';
+        }
+      });
+    }
+  });
+</script>

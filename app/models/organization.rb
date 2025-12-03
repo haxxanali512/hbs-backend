@@ -62,6 +62,8 @@ class Organization < ApplicationRecord
   after_create :invite_owner
   after_create :create_default_settings
 
+  accepts_nested_attributes_for :organization_setting, update_only: true
+
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true
   validates :owner, presence: true
