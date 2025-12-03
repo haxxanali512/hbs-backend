@@ -192,6 +192,127 @@
         </div>
       <% end %>
     </div>
+
+  <!-- Insurance Coverage -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Insurance Coverage</h3>
+
+    <%= f.fields_for :patient_insurance_coverages do |coverage_form| %>
+      <div class="border border-gray-200 rounded-lg p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Core Information -->
+          <div class="space-y-4">
+            <div>
+              <%= coverage_form.label :insurance_plan_id, "Insurance Plan", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.select :insurance_plan_id, 
+                  options_from_collection_for_select(@insurance_plans || [], :id, :name, coverage_form.object.insurance_plan_id),
+                  { prompt: "Select Insurance Plan" },
+                  { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+            </div>
+
+            <div>
+              <%= coverage_form.label :member_id, "Member ID", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.text_field :member_id, 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500", 
+                  placeholder: "ABC12345" %>
+              <p class="text-xs text-gray-500 mt-1">1-30 characters, alphanumeric and dashes only</p>
+            </div>
+
+            <div>
+              <%= coverage_form.label :coverage_order, "Coverage Order", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.select :coverage_order, 
+                  options_for_select(PatientInsuranceCoverage.coverage_orders.keys.map { |k| [k.humanize, k] }, coverage_form.object.coverage_order),
+                  { prompt: "Select Order" },
+                  { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+            </div>
+
+            <div>
+              <%= coverage_form.label :relationship_to_subscriber, "Relationship to Subscriber", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.select :relationship_to_subscriber, 
+                  options_for_select(PatientInsuranceCoverage.relationship_to_subscribers.keys.map { |k| [k.humanize, k] }, coverage_form.object.relationship_to_subscriber),
+                  { prompt: "Select Relationship" },
+                  { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+            </div>
+          </div>
+
+          <!-- Additional Information -->
+          <div class="space-y-4">
+            <div>
+              <%= coverage_form.label :subscriber_name, "Subscriber Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.text_field :subscriber_name, 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+
+            <div>
+              <%= coverage_form.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.select :status, 
+                  options_for_select(PatientInsuranceCoverage.statuses.keys.map { |k| [k.humanize, k] }, coverage_form.object.status || "draft"),
+                  {},
+                  { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+            </div>
+
+            <div>
+              <%= coverage_form.label :effective_date, "Effective Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.date_field :effective_date, 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+
+            <div>
+              <%= coverage_form.label :termination_date, "Termination Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.date_field :termination_date, 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscriber Address -->
+        <div class="space-y-4 border-t border-gray-200 pt-4">
+          <h4 class="text-sm font-medium text-gray-900">Subscriber Address</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <%= label_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_line1]", "Address Line 1", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= text_field_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_line1]", 
+                  coverage_form.object.subscriber_address&.dig("line1"), 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div class="md:col-span-2">
+              <%= label_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_line2]", "Address Line 2", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= text_field_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_line2]", 
+                  coverage_form.object.subscriber_address&.dig("line2"), 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <%= label_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_city]", "City", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= text_field_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_city]", 
+                  coverage_form.object.subscriber_address&.dig("city"), 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <%= label_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_state]", "State", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= text_field_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_state]", 
+                  coverage_form.object.subscriber_address&.dig("state"), 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", 
+                  maxlength: 2, 
+                  placeholder: "CA" %>
+            </div>
+            <div>
+              <%= label_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_postal]", "Postal Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= text_field_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_postal]", 
+                  coverage_form.object.subscriber_address&.dig("postal"), 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <%= label_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_country]", "Country", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= text_field_tag "patient[patient_insurance_coverages_attributes][#{coverage_form.index}][subscriber_address_country]", 
+                  coverage_form.object.subscriber_address&.dig("country") || "US", 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
     <%= link_to "Cancel", (@patient.new_record? ? tenant_patients_path : tenant_patient_path(@patient)), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>

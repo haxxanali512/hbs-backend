@@ -17,6 +17,9 @@ class Patient < ApplicationRecord
   # Virtual attribute for EZClaim push flag
   attr_accessor :push_to_ezclaim
 
+  # Nested attributes
+  accepts_nested_attributes_for :patient_insurance_coverages, allow_destroy: true, reject_if: :all_blank
+
   # Enums
   enum :status, {
     active: 0,
