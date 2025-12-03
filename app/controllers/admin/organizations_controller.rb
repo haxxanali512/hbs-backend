@@ -51,8 +51,12 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def activate_tenant
-    @organization.activate!
-    redirect_to admin_organization_path(@organization), notice: "Organization activated successfully."
+    if @organization.may_activate?
+      @organization.activate!
+      redirect_to admin_organization_path(@organization), notice: "Organization activated successfully (skipped all activation steps)."
+    else
+      redirect_to admin_organization_path(@organization), alert: "Cannot activate organization. Only organizations in Pending state can be directly activated by admin."
+    end
   end
 
   def suspend_tenant
