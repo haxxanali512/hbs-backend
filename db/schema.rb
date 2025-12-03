@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_03_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -232,6 +232,37 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
     t.index ["status"], name: "index_documents_on_status"
   end
 
+  create_table "email_template_keys", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.string "description"
+    t.string "default_subject", null: false
+    t.text "default_body_html"
+    t.text "default_body_text"
+    t.string "default_locale", default: "en", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "last_used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_email_template_keys_on_key", unique: true
+  end
+
+  create_table "email_templates", force: :cascade do |t|
+    t.bigint "email_template_key_id", null: false
+    t.string "locale", default: "en", null: false
+    t.string "subject"
+    t.text "body_html"
+    t.text "body_text"
+    t.boolean "active", default: true, null: false
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_template_key_id", "locale"], name: "index_email_templates_on_key_and_locale", unique: true
+    t.index ["email_template_key_id"], name: "index_email_templates_on_email_template_key_id"
+  end
+
   create_table "encounter_comment_seens", force: :cascade do |t|
     t.bigint "encounter_id", null: false
     t.bigint "user_id", null: false
@@ -390,6 +421,25 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
     t.index ["organization_id"], name: "index_invoices_on_organization_id"
     t.index ["service_month"], name: "index_invoices_on_service_month"
     t.index ["status"], name: "index_invoices_on_status"
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "organization_id"
+    t.string "notification_type", null: false
+    t.string "title", null: false
+    t.text "message", null: false
+    t.string "action_url"
+    t.boolean "read", default: false, null: false
+    t.datetime "read_at", precision: nil
+    t.jsonb "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["notification_type"], name: "index_notifications_on_notification_type"
+    t.index ["organization_id"], name: "index_notifications_on_organization_id"
+    t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at"
+    t.index ["user_id", "read"], name: "index_notifications_on_user_id_and_read"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "org_accepted_plans", force: :cascade do |t|
@@ -719,6 +769,20 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
     t.index ["source_hash"], name: "index_payments_on_source_hash", unique: true
   end
 
+  create_table "prescriptions", force: :cascade do |t|
+    t.bigint "patient_id", null: false
+    t.date "expires_on", null: false
+    t.boolean "expired", default: false, null: false
+    t.datetime "discarded_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "title"
+    t.index ["discarded_at"], name: "index_prescriptions_on_discarded_at"
+    t.index ["expired"], name: "index_prescriptions_on_expired"
+    t.index ["expires_on"], name: "index_prescriptions_on_expires_on"
+    t.index ["patient_id"], name: "index_prescriptions_on_patient_id", unique: true
+  end
+
   create_table "procedure_codes", force: :cascade do |t|
     t.string "code"
     t.text "description"
@@ -953,6 +1017,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
   add_foreign_key "document_attachments", "users", column: "uploaded_by_id"
   add_foreign_key "documents", "organizations"
   add_foreign_key "documents", "users", column: "created_by_id"
+  add_foreign_key "email_templates", "email_template_keys"
+  add_foreign_key "email_templates", "users", column: "created_by_id"
+  add_foreign_key "email_templates", "users", column: "updated_by_id"
   add_foreign_key "encounter_comment_seens", "encounters"
   add_foreign_key "encounter_comment_seens", "users"
   add_foreign_key "encounter_comments", "encounters"
@@ -973,6 +1040,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_14_090200) do
   add_foreign_key "invoice_line_items", "invoices"
   add_foreign_key "invoices", "organizations"
   add_foreign_key "invoices", "users", column: "exception_set_by_user_id"
+  add_foreign_key "notifications", "organizations"
+  add_foreign_key "notifications", "users"
   add_foreign_key "org_accepted_plans", "insurance_plans"
   add_foreign_key "org_accepted_plans", "organizations"
   add_foreign_key "org_accepted_plans", "users", column: "added_by_id"

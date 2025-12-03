@@ -1,4 +1,10 @@
-<%= form_with(model: @patient, url: (@patient.new_record? ? tenant_patients_path : tenant_patient_path(@patient)), method: (@patient.new_record? ? :post : :patch), local: true, class: "space-y-6") do |f| %>
+<%= form_with(
+      model: @patient,
+      url: (@patient.new_record? ? tenant_patients_path : tenant_patient_path(@patient)),
+      method: (@patient.new_record? ? :post : :patch),
+      local: true,
+      html: { class: "space-y-6", multipart: true }
+    ) do |f| %>
   <% if @patient.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-md p-4">
       <div class="flex">
@@ -154,17 +160,38 @@
     </div>
   </div>
 
-  <!-- EZClaim Integration (only for new records) -->
-  <% if @patient.new_record? %>
-    <div class="space-y-4 pt-4 border-t border-gray-200">
-      <div class="flex items-center">
-        <%= f.check_box :push_to_ezclaim, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
-        <%= f.label :push_to_ezclaim, "Push To EZClaim", class: "ml-2 block text-sm font-medium text-gray-700" %>
-      </div>
-      <p class="text-sm text-gray-500">If checked, this patient will be automatically pushed to EZClaim after creation.</p>
-    </div>
-  <% end %>
+  <!-- Prescription -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Prescription</h3>
 
+      <%= f.fields_for :prescription do |pf| %>
+        <div class="space-y-4">
+
+          <!-- Prescription Title -->
+          <div class="w-full">
+            <%= pf.label :title, "Prescription Title", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= pf.text_field :title,
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+
+          <!-- Expiry Date -->
+          <div class="w-full">
+            <%= pf.label :expires_on, "Prescription Expiry Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= pf.date_field :expires_on,
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+
+          <!-- Document File -->
+          <div class="w-full">
+            <%= f.label :prescription_document_file, "Prescription Document (PDF or image)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= f.file_field :prescription_document_file,
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            <p class="mt-1 text-xs text-gray-500">PDF, images, or office docs. Max 25MB.</p>
+          </div>
+
+        </div>
+      <% end %>
+    </div>
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
     <%= link_to "Cancel", (@patient.new_record? ? tenant_patients_path : tenant_patient_path(@patient)), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
