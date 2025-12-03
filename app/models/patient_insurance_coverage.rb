@@ -5,7 +5,7 @@ class PatientInsuranceCoverage < ApplicationRecord
   # Associations
   # =========================
   belongs_to :organization
-  belongs_to :patient
+  belongs_to :patient, optional: true
   belongs_to :insurance_plan
   belongs_to :last_eligibility_check, class_name: "EligibilityCheck", optional: true
   has_many :eligibility_checks, dependent: :nullify
@@ -38,7 +38,7 @@ class PatientInsuranceCoverage < ApplicationRecord
   # =========================
   # Validations
   # =========================
-  validates :organization_id, :patient_id, :insurance_plan_id, :member_id, :subscriber_name,
+  validates :organization_id, :insurance_plan_id, :member_id, :subscriber_name,
             :relationship_to_subscriber, :coverage_order, presence: true
   validates :member_id, length: { in: 1..30 }, format: { with: /\A[A-Za-z0-9\-]+\z/, message: "COV_MEMBER_ID_INVALID" }
   validates :subscriber_name, length: { in: 1..200 }

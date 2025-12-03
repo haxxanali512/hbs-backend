@@ -117,7 +117,7 @@ class Encounter < ApplicationRecord
 
   # Custom validations
   validate :date_of_service_not_in_future
-  validate :provider_assigned_to_organization
+  # validate :provider_assigned_to_organization
   validate :specialty_valid_and_active
   validate :diagnosis_codes_required
   validate :insurance_requirements_if_insurance_billing
