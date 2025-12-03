@@ -3,5 +3,3 @@ class AddTitleToPrescriptions < ActiveRecord::Migration[7.2]
     add_column :prescriptions, :title, :string
   end
 end
-
-

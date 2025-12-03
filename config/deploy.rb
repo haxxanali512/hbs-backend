@@ -27,8 +27,8 @@ set :default_env, { rvm_bin_path: "~/.rvm/bin" }
 set :rvm1_map_bins, -> { fetch(:rvm_map_bins).to_a.concat(%w[rake gem bundle ruby]).uniq }
 
 # Bundler configuration for platform-specific gems
-set :bundle_flags, '--quiet'
-set :bundle_without, %w{development test}.join(' ')
+set :bundle_flags, "--quiet"
+set :bundle_without, %w[development test].join(" ")
 set :bundle_jobs, 4
 
 
