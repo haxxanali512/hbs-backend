@@ -35,7 +35,7 @@ class Organization < ApplicationRecord
     event :activate do
       # Admin override: can activate directly from pending (skip all steps)
       # Normal user flow: activate from terms_agreement (last step completed)
-      transitions from: [:pending, :terms_agreement], to: :activated
+      transitions from: [ :pending, :terms_agreement ], to: :activated
     end
   end
 
