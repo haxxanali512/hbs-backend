@@ -15,5 +15,3 @@ class CreatePrescriptions < ActiveRecord::Migration[7.2]
     add_index :prescriptions, :expired
   end
 end
-
-

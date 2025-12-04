@@ -4,11 +4,12 @@ class Organization < ApplicationRecord
 
   include AASM
 
+  # Flow: pending → compliance_setup → billing_setup → terms_agreement → activated
   enum :activation_status, {
     pending: 0,
     compliance_setup: 1,
     billing_setup: 2,
-    document_signing: 3,
+    terms_agreement: 3,
     activated: 4
   }
 
@@ -16,23 +17,25 @@ class Organization < ApplicationRecord
     state :pending, initial: true
     state :compliance_setup
     state :billing_setup
-    state :document_signing
+    state :terms_agreement
     state :activated
 
-    event :compliance_setup_complete! do
+    event :compliance_setup_complete do
       transitions from: :pending, to: :compliance_setup
     end
 
-    event :billing_setup_complete! do
+    event :billing_setup_complete do
       transitions from: :compliance_setup, to: :billing_setup
     end
 
-    event :document_signing_complete! do
-      transitions from: :billing_setup, to: :document_signing
+    event :terms_agreement_complete do
+      transitions from: :billing_setup, to: :terms_agreement
     end
 
     event :activate do
-      transitions from: :document_signing, to: :activated
+      # Admin override: can activate directly from pending (skip all steps)
+      # Normal user flow: activate from terms_agreement (last step completed)
+      transitions from: [ :pending, :terms_agreement ], to: :activated
     end
   end
 
@@ -73,7 +76,7 @@ class Organization < ApplicationRecord
     when "pending" then 0
     when "compliance_setup" then 25
     when "billing_setup" then 50
-    when "document_signing" then 75
+    when "terms_agreement" then 75
     when "activated" then 100
     else 0
     end
@@ -81,20 +84,20 @@ class Organization < ApplicationRecord
 
   def next_activation_step
     case activation_status
-    when "pending" then "billing_setup"
+    when "pending" then "compliance_setup"
     when "compliance_setup" then "billing_setup"
-    when "billing_setup" then "document_signing"
-    when "document_signing" then "activated"
+    when "billing_setup" then "terms_agreement"
+    when "terms_agreement" then "activated"
     else nil
     end
   end
 
   def can_proceed_to_step?(step)
     case step
-    when "billing_setup" then pending?
-    when "compliance_setup" then compliance_setup?
-    when "document_signing" then billing_setup?
-    when "activated" then document_signing?
+    when "compliance_setup" then pending?
+    when "billing_setup" then compliance_setup?
+    when "terms_agreement" then billing_setup?
+    when "activated" then terms_agreement?
     else false
     end
   end

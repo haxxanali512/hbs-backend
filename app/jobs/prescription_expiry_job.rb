@@ -8,5 +8,3 @@ class PrescriptionExpiryJob < ApplicationJob
     end
   end
 end
-
-
