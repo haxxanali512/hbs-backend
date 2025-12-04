@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%= turbo_include_tags %>
     <!-- Outfit font to match TailAdmin typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,11 +43,7 @@
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <button class="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V8.25A6.75 6.75 0 104.5 8.25v1.5a8.967 8.967 0 01-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m7.214 0a24.255 24.255 0 01-7.214 0m7.214 0a3 3 0 11-6 0" />
-                  </svg>
-                </button>
+                <%= render 'shared/notifications' %>
                 <div class="flex items-center gap-3 pl-3 ml-3 border-l border-gray-200">
                   <div class="text-right hidden sm:block">
                     <div class="text-sm font-medium text-gray-900"><%= current_user.display_name %></div>

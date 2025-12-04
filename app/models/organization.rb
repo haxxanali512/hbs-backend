@@ -62,6 +62,7 @@ class Organization < ApplicationRecord
   has_many :org_accepted_plans, dependent: :restrict_with_error
   has_many :payer_enrollments, dependent: :restrict_with_error
   has_many :support_tickets, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   after_create :invite_owner
   after_create :create_default_settings
 

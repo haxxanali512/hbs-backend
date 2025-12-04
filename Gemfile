@@ -15,6 +15,7 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 
 gem "pagy"
+gem "turbo-rails"
 
 gem "rack-cors"
 gem "pundit"

@@ -21,6 +21,7 @@ class Admin::OrganizationsController < Admin::BaseController
 
     if @organization.save
       @organization.add_member(@organization.owner, nil)
+      NotificationService.notify_organization_created(@organization)
 
       redirect_to admin_organization_path(@organization),
                   notice: "Organization created successfully. The owner (#{@organization.owner.email}) must complete activation at #{@organization.subdomain}.localhost:3000"
@@ -37,7 +38,9 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def update
+    changes = @organization.changes
     if @organization.update(organization_params)
+      NotificationService.notify_organization_updated(@organization, changes)
       redirect_to admin_organization_path(@organization), notice: "Organization was successfully updated."
     else
       @users = User.all.order(:first_name, :last_name)
@@ -46,7 +49,10 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def destroy
+    organization_name = @organization.name
+    owner_email = @organization.owner.email
     @organization.discard
+    NotificationService.notify_organization_deleted(organization_name, owner_email)
     redirect_to admin_organizations_path, notice: "Organization was successfully deleted."
   end
 
@@ -60,6 +66,8 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def suspend_tenant
+    @organization.update(activation_status: :pending)
+    NotificationService.notify_organization_suspended(@organization)
     redirect_to admin_organization_path(@organization), notice: "Organization suspended successfully."
   end
 

@@ -85,6 +85,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def approve
     if @provider.approve!
+      notify_organizations(:notify_provider_approved)
       redirect_to admin_provider_path(@provider), notice: "Provider approved successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to approve provider."
@@ -93,6 +94,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def reject
     if @provider.reject!
+      notify_organizations(:notify_provider_rejected)
       redirect_to admin_provider_path(@provider), notice: "Provider rejected successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to reject provider."
@@ -101,6 +103,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def suspend
     if @provider.suspend!
+      notify_organizations(:notify_provider_suspended)
       redirect_to admin_provider_path(@provider), notice: "Provider suspended successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to suspend provider."
@@ -109,6 +112,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def reactivate
     if @provider.reactivate!
+      notify_organizations(:notify_provider_approved)
       redirect_to admin_provider_path(@provider), notice: "Provider reactivated successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to reactivate provider."
@@ -207,6 +211,12 @@ class Admin::ProvidersController < Admin::BaseController
 
   def set_provider
     @provider = Provider.find(params[:id])
+  end
+
+  def notify_organizations(notification_method)
+    @provider.organizations.each do |organization|
+      NotificationService.public_send(notification_method, @provider, organization)
+    end
   end
 
   def provider_params

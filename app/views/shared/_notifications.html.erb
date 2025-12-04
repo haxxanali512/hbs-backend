@@ -1,0 +1,106 @@
+<% unread_count = current_user.notifications.unread.count %>
+<%= turbo_stream_from "user_#{current_user.id}_notifications" %>
+<div class="relative" id="notifications-container">
+  <button 
+    type="button" 
+    id="notifications-button"
+    class="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V8.25A6.75 6.75 0 104.5 8.25v1.5a8.967 8.967 0 01-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m7.214 0a24.255 24.255 0 01-7.214 0m7.214 0a3 3 0 11-6 0" />
+    </svg>
+    <%= render partial: 'notifications/badge', locals: { unread_count: unread_count } %>
+  </button>
+
+  <!-- Dropdown -->
+  <div 
+    id="notifications-dropdown"
+    class="hidden absolute right-0 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg z-50"
+  >
+    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+      <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
+      <% if unread_count > 0 %>
+        <button 
+          type="button"
+          class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          onclick="markAllNotificationsAsRead()"
+        >
+          Mark all as read
+        </button>
+      <% end %>
+    </div>
+    
+    <div id="notifications_list" class="max-h-96 overflow-y-auto">
+      <% notifications = current_user.notifications.recent.limit(10) %>
+      <% if notifications.any? %>
+        <% notifications.each do |notification| %>
+          <%= render partial: 'notifications/notification_item', locals: { notification: notification } %>
+        <% end %>
+      <% else %>
+        <div id="notifications_empty_state" class="px-4 py-8 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-12 w-12 text-gray-400 mx-auto mb-3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V8.25A6.75 6.75 0 104.5 8.25v1.5a8.967 8.967 0 01-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m7.214 0a24.255 24.255 0 01-7.214 0m7.214 0a3 3 0 11-6 0" />
+          </svg>
+          <p class="text-sm text-gray-500">No notifications</p>
+        </div>
+      <% end %>
+    </div>
+    
+    <div class="border-t border-gray-200 px-4 py-3">
+      <%= link_to "View all notifications", notifications_path, class: "text-sm text-blue-600 hover:text-blue-700 font-medium text-center block" %>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const button = document.getElementById('notifications-button');
+    const dropdown = document.getElementById('notifications-dropdown');
+    
+    if (!button || !dropdown) return;
+
+    // Toggle dropdown
+    button.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('hidden');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const container = document.getElementById('notifications-container');
+      if (container && !container.contains(event.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    // Prevent dropdown from closing when clicking inside it
+    dropdown.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  })();
+
+  function markNotificationAsRead(notificationId) {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    fetch(`/notifications/${notificationId}/mark_as_read`, {
+      method: 'PATCH',
+      headers: {
+        'X-CSRF-Token': token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    }).catch(error => console.error('Error marking notification as read:', error));
+  }
+
+  function markAllNotificationsAsRead() {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    fetch('/notifications/mark_all_as_read', {
+      method: 'PATCH',
+      headers: {
+        'X-CSRF-Token': token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    }).catch(error => console.error('Error marking all as read:', error));
+  }
+</script>
+

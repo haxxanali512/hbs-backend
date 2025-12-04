@@ -1,0 +1,66 @@
+<div class="mb-8">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Notifications</h1>
+      <p class="mt-1 text-sm text-gray-600">View and manage your notifications</p>
+    </div>
+    <% unread_count = current_user.notifications.unread.count %>
+    <% if unread_count > 0 %>
+      <%= button_to "Mark all as read", mark_all_as_read_notifications_path, 
+          data: { turbo_method: :patch },
+          class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+  <% if @notifications.any? %>
+    <div class="divide-y divide-gray-200">
+      <% @notifications.each do |notification| %>
+        <div class="<%= notification.unread? ? 'bg-blue-50' : 'bg-white' %> px-6 py-4 hover:bg-gray-50 transition-colors">
+          <div class="flex items-start gap-4">
+            <% if notification.unread? %>
+              <div class="mt-1.5 h-2 w-2 rounded-full bg-blue-600 flex-shrink-0"></div>
+            <% else %>
+              <div class="mt-1.5 h-2 w-2 flex-shrink-0"></div>
+            <% end %>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900"><%= notification.title %></h3>
+                  <p class="text-sm text-gray-600 mt-1"><%= notification.message %></p>
+                  <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                    <span><%= notification.created_at.strftime("%b %d, %Y at %I:%M %p") %></span>
+                    <% if notification.organization %>
+                      <span>•</span>
+                      <span><%= notification.organization.name %></span>
+                    <% end %>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <% if notification.action_url.present? %>
+                    <%= link_to "View", notification.action_url, 
+                        class: "text-xs text-blue-600 hover:text-blue-700 font-medium" %>
+                  <% end %>
+                  <% if notification.unread? %>
+                    <%= button_to "Mark as read", mark_as_read_notification_path(notification), 
+                        data: { turbo_method: :patch },
+                        class: "text-xs text-gray-600 hover:text-gray-700 font-medium" %>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="px-6 py-12 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-12 w-12 text-gray-400 mx-auto mb-3">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V8.25A6.75 6.75 0 104.5 8.25v1.5a8.967 8.967 0 01-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m7.214 0a24.255 24.255 0 01-7.214 0m7.214 0a3 3 0 11-6 0" />
+      </svg>
+      <p class="text-sm text-gray-500">No notifications</p>
+    </div>
+  <% end %>
+</div>
+

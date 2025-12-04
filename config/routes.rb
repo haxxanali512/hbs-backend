@@ -7,6 +7,17 @@ Rails.application.routes.draw do
   # Health check
   get "up" => "health#show", as: :rails_health_check
 
+  # Notifications (available in both admin and tenant)
+  resources :notifications, only: [ :index ] do
+    member do
+      patch :mark_as_read
+    end
+    collection do
+      patch :mark_all_as_read
+      get :unread_count
+    end
+  end
+
   # API routes
   namespace :api do
     namespace :v1 do
