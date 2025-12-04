@@ -23,6 +23,15 @@ class Admin::PayerPolicy < ApplicationPolicy
     accessible?("admin", "payers", "update")
   end
 
+  def fetch_from_ezclaim?
+    accessible?("admin", "payers", "create")
+  end
+
+  def save_from_ezclaim?
+    accessible?("admin", "payers", "create")
+  end
+
+
   def destroy?
     accessible?("admin", "payers", "destroy")
   end

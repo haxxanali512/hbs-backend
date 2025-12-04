@@ -9,8 +9,8 @@
 # migrations use external dependencies or application code.
 #
 # It's strongly recommended that you check this file into your version control system.
+ActiveRecord::Schema[7.2].define(version: 2025_12_03_100000) do
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_25_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -767,6 +767,20 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_130000) do
     t.index ["payment_status"], name: "index_payments_on_payment_status"
     t.index ["processed_by_user_id"], name: "index_payments_on_processed_by_user_id"
     t.index ["source_hash"], name: "index_payments_on_source_hash", unique: true
+  end
+
+  create_table "prescriptions", force: :cascade do |t|
+    t.bigint "patient_id", null: false
+    t.date "expires_on", null: false
+    t.boolean "expired", default: false, null: false
+    t.datetime "discarded_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "title"
+    t.index ["discarded_at"], name: "index_prescriptions_on_discarded_at"
+    t.index ["expired"], name: "index_prescriptions_on_expired"
+    t.index ["expires_on"], name: "index_prescriptions_on_expires_on"
+    t.index ["patient_id"], name: "index_prescriptions_on_patient_id", unique: true
   end
 
   create_table "procedure_codes", force: :cascade do |t|

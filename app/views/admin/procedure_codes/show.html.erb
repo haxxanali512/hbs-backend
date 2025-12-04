@@ -149,6 +149,11 @@
                   data: { turbo_method: :post, turbo_confirm: "Are you sure you want to activate this procedure code?" },
                   class: "w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center block" %>
             <% end %>
+            
+            <% if Organization.joins(:organization_setting).where(organization_settings: { ezclaim_enabled: true }).exists? %>
+              <%= button_to "Push To EZClaim", push_to_ezclaim_admin_procedure_code_path(@procedure_code), method: :post, 
+                  class: "w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+            <% end %>
           </div>
         </div>
 

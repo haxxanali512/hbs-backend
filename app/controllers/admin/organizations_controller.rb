@@ -13,6 +13,7 @@ class Admin::OrganizationsController < Admin::BaseController
   def new
     @organization = Organization.new
     @users = User.all.order(:first_name, :last_name)
+    @organization.build_organization_setting unless @organization.organization_setting
   end
 
   def create
@@ -33,6 +34,7 @@ class Admin::OrganizationsController < Admin::BaseController
 
   def edit
     @users = User.all.order(:first_name, :last_name)
+    @organization.build_organization_setting unless @organization.organization_setting
   end
 
   def update
@@ -55,9 +57,12 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def activate_tenant
-    @organization.activate!
-    NotificationService.notify_organization_activated(@organization)
-    redirect_to admin_organization_path(@organization), notice: "Organization activated successfully."
+    if @organization.may_activate?
+      @organization.activate!
+      redirect_to admin_organization_path(@organization), notice: "Organization activated successfully (skipped all activation steps)."
+    else
+      redirect_to admin_organization_path(@organization), alert: "Cannot activate organization. Only organizations in Pending state can be directly activated by admin."
+    end
   end
 
   def suspend_tenant
@@ -73,6 +78,18 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def organization_params
-    params.require(:organization).permit(:name, :subdomain, :tier, :owner_id)
+    params.require(:organization).permit(
+      :name,
+      :subdomain,
+      :tier,
+      :owner_id,
+      organization_setting_attributes: [
+        :id,
+        :ezclaim_enabled,
+        :ezclaim_api_token,
+        :ezclaim_api_url,
+        :ezclaim_api_version
+      ]
+    )
   end
 end

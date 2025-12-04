@@ -33,4 +33,3 @@ class Tenant::PatientPolicy < ApplicationPolicy
     end
   end
 end
-

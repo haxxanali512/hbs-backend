@@ -7,7 +7,12 @@
           <h1 class="text-3xl font-bold text-gray-900">Payers</h1>
           <p class="mt-2 text-gray-600">Global catalog of insurance payers</p>
         </div>
-        <div>
+        <div class="flex space-x-3">
+          <button type="button" 
+                  onclick="openEzclaimImportModal('ezclaimPayersModal', '<%= fetch_from_ezclaim_admin_payers_path %>')"
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+            Pull from EZClaim
+          </button>
           <%= link_to "New Payer", new_admin_payer_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
         </div>
       </div>
@@ -94,4 +99,11 @@
   </div>
 </div>
 
-
+<!-- EZClaim Payers Modal -->
+<%= render "shared/ezclaim_import_modal", 
+    modal_id: "ezclaimPayersModal",
+    resource_type: "payer",
+    resource_name: "Payers",
+    fetch_url: fetch_from_ezclaim_admin_payers_path,
+    save_url: save_from_ezclaim_admin_payers_path,
+    display_columns: [:PayName, :PayID, :PayExternalID, :PayInactive] %>

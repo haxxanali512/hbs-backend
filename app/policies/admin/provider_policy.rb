@@ -31,6 +31,15 @@ class Admin::ProviderPolicy < ApplicationPolicy
     accessible?("admin", "providers", "update")
   end
 
+  def fetch_from_ezclaim?
+    accessible?("admin", "providers", "create")
+  end
+
+  def save_from_ezclaim?
+    accessible?("admin", "providers", "create")
+  end
+
+
   def reject?
     accessible?("admin", "providers", "update")
   end

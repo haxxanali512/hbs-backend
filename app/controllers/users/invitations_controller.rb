@@ -9,11 +9,12 @@ class Users::InvitationsController < Devise::InvitationsController
     end
 
     resource
+  rescue ActiveRecord::RecordInvalid => e
+    # Return the resource with errors so form can display them
+    e.record
   end
 
-  private
-
-  def accept_invitation_params
+  def update_resource_params
     params.require(resource_name).permit(:invitation_token, :username, :password, :password_confirmation)
   end
 end

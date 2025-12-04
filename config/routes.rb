@@ -1,5 +1,8 @@
 Rails.application.routes.draw do
-  devise_for :users, controllers: { invitations: "users/invitations" }
+  devise_for :users, controllers: {
+    invitations: "users/invitations",
+    masquerades: "admin/masquerades"
+  }
 
   # Health check
   get "up" => "health#show", as: :rails_health_check
@@ -100,7 +103,12 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :payers
+      resources :payers do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
+      end
 
       resources :support_tickets do
         member do
@@ -149,6 +157,10 @@ Rails.application.routes.draw do
       end
 
       resources :providers do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
         member do
           post :approve
           post :reject
@@ -189,6 +201,7 @@ Rails.application.routes.draw do
       resources :procedure_codes do
         member do
           post :toggle_status
+          post :push_to_ezclaim
         end
       end
 
@@ -202,6 +215,10 @@ Rails.application.routes.draw do
       resources :appointments, only: [ :index, :show, :edit, :update, :destroy ]
 
       resources :encounters, only: [ :index, :show, :edit, :update, :destroy ] do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
         member do
           post :cancel
           post :request_correction
@@ -219,7 +236,11 @@ Rails.application.routes.draw do
         member do
           post :validate
           post :submit
-          post :push_to_ezclaim
+          get :test_ezclaim_connection
+          get :claim_insured_data
+          post :submit_claim_insured
+          get :claim_data
+          post :submit_claim
           post :post_adjudication
           post :void
           post :reverse
@@ -251,6 +272,10 @@ Rails.application.routes.draw do
       end
 
       resources :patients, only: [ :index, :show, :edit, :update, :destroy ] do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
         member do
           post :activate
           post :inactivate
@@ -398,6 +423,7 @@ Rails.application.routes.draw do
             post :inactivate
             post :mark_deceased
             post :reactivate
+            post :push_to_ezclaim
           end
         end
 

@@ -19,6 +19,15 @@ class Admin::PatientPolicy < ApplicationPolicy
     accessible?("admin", "patients", "update")
   end
 
+  def fetch_from_ezclaim?
+    accessible?("admin", "patients", "create")
+  end
+
+  def save_from_ezclaim?
+    accessible?("admin", "patients", "create")
+  end
+
+
   def edit?
     update?
   end

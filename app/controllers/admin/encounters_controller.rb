@@ -1,69 +1,18 @@
 class Admin::EncountersController < Admin::BaseController
+  include Admin::Concerns::EzclaimIntegration
+  include Admin::Concerns::EncounterConcern
+
+  # Alias the concern method before we override it
+  alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
+
   before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction ]
   before_action :load_form_options, only: [ :index, :edit, :update ]
 
   def index
-    @encounters = Encounter.includes(:organization, :patient, :provider, :specialty, :organization_location, :appointment).kept
-
-    # Filtering by organization
-    @encounters = @encounters.where(organization_id: params[:organization_id]) if params[:organization_id].present?
-
-    # Filtering by status
-    @encounters = @encounters.by_status(params[:status]) if params[:status].present?
-
-    # Filtering by provider
-    @encounters = @encounters.by_provider(params[:provider_id]) if params[:provider_id].present?
-
-    # Filtering by patient
-    @encounters = @encounters.by_patient(params[:patient_id]) if params[:patient_id].present?
-
-    # Filtering by specialty
-    @encounters = @encounters.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
-
-    # Filtering by billing channel
-    @encounters = @encounters.by_billing_channel(params[:billing_channel]) if params[:billing_channel].present?
-
-    if params[:cascaded_filter] == "cascaded"
-      @encounters = @encounters.cascaded
-    elsif params[:cascaded_filter] == "not_cascaded"
-      @encounters = @encounters.not_cascaded
-    end
-
-    # Date range filter
-    if params[:date_from].present? && params[:date_to].present?
-      @encounters = @encounters.where(
-        "date_of_service >= ? AND date_of_service <= ?",
-        params[:date_from],
-        params[:date_to]
-      )
-    elsif params[:date_from].present?
-      @encounters = @encounters.where("date_of_service >= ?", params[:date_from])
-    elsif params[:date_to].present?
-      @encounters = @encounters.where("date_of_service <= ?", params[:date_to])
-    end
-
-    # Search
-    if params[:search].present?
-      # Placeholder for search functionality
-      search_term = "%#{params[:search]}%"
-      @encounters = @encounters.joins(:patient)
-        .where("patients.first_name ILIKE ? OR patients.last_name ILIKE ?", search_term, search_term)
-    end
-
-    # Sorting
-    case params[:sort]
-    when "date_desc"
-      @encounters = @encounters.order(date_of_service: :desc)
-    when "date_asc"
-      @encounters = @encounters.order(date_of_service: :asc)
-    when "status"
-      @encounters = @encounters.order(status: :asc)
-    else
-      @encounters = @encounters.recent
-    end
-
-    # Pagination
-    @pagy, @encounters = pagy(@encounters, items: 20)
+    @encounters = build_encounters_index_query
+    @encounters = apply_encounters_filters(@encounters)
+    @encounters = apply_encounters_sorting(@encounters)
+    @pagy, @encounters = paginate_encounters(@encounters)
   end
 
   def show
@@ -112,6 +61,14 @@ class Admin::EncountersController < Admin::BaseController
     else
       redirect_to admin_encounter_path(@encounter), alert: "Cannot request correction for non-cascaded encounter."
     end
+  end
+
+  def fetch_from_ezclaim
+    fetch_from_ezclaim_concern(resource_type: :encounters, service_method: :get_encounters)
+  end
+
+  def save_from_ezclaim
+    save_encounters_from_ezclaim
   end
 
   private
