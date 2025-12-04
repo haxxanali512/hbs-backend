@@ -26,8 +26,18 @@ class Admin::PatientsController < Admin::BaseController
       @patients = @patients.order(:first_name, :last_name)
     when "name_desc"
       @patients = @patients.order(first_name: :desc, last_name: :desc)
+    when "dob_asc"
+      @patients = @patients.order(:dob)
+    when "dob_desc"
+      @patients = @patients.order(dob: :desc)
     when "created_desc"
       @patients = @patients.order(created_at: :desc)
+    when "created_asc"
+      @patients = @patients.order(:created_at)
+    when "mrn_asc"
+      @patients = @patients.order(:mrn)
+    when "mrn_desc"
+      @patients = @patients.order(mrn: :desc)
     else
       @patients = @patients.recent
     end
@@ -38,6 +48,16 @@ class Admin::PatientsController < Admin::BaseController
     # For filters
     @organizations = Organization.kept.order(:name)
     @statuses = Patient.statuses.keys
+    @sort_options = [
+      [ "Recently Added", "created_desc" ],
+      [ "Oldest First", "created_asc" ],
+      [ "Name (A-Z)", "name_asc" ],
+      [ "Name (Z-A)", "name_desc" ],
+      [ "Date of Birth (Oldest)", "dob_asc" ],
+      [ "Date of Birth (Youngest)", "dob_desc" ],
+      [ "MRN (A-Z)", "mrn_asc" ],
+      [ "MRN (Z-A)", "mrn_desc" ]
+    ]
   end
 
   def show; end

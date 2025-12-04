@@ -29,21 +29,9 @@ class EzclaimService
     make_request(:post, "/Patients/GetSimpleList", params: params)
   end
 
-  def get_patient(patient_id)
-    make_request(:get, "/patients/#{patient_id}")
-  end
-
   def create_patient(patient_data)
     # Pass data as params so it gets wrapped correctly in the request
     make_request(:post, "/Patients", params: patient_data)
-  end
-
-  def update_patient(patient_id, patient_data)
-    make_request(:put, "/patients/#{patient_id}", body: patient_data)
-  end
-
-  def delete_patient(patient_id)
-    make_request(:delete, "/patients/#{patient_id}")
   end
 
   # ===========================================================
@@ -62,47 +50,6 @@ class EzclaimService
   def get_payers(params = { "Query" => "$top=1000" })
     make_request(:post, "/Payers/GetSimpleList", params: params)
   end
-
-  def get_payer(payer_id)
-    make_request(:get, "/payers/#{payer_id}")
-  end
-
-  def create_payer(payer_data)
-    make_request(:post, "/payers", body: payer_data)
-  end
-
-  def update_payer(payer_id, payer_data)
-    make_request(:put, "/payers/#{payer_id}", body: payer_data)
-  end
-
-  def delete_payer(payer_id)
-    make_request(:delete, "/payers/#{payer_id}")
-  end
-
-  # ===========================================================
-  # PROVIDERS API
-  # ===========================================================
-
-  def get_providers(params = {})
-    make_request(:get, "/providers", params: params)
-  end
-
-  def get_provider(provider_id)
-    make_request(:get, "/providers/#{provider_id}")
-  end
-
-  def create_provider(provider_data)
-    make_request(:post, "/providers", body: provider_data)
-  end
-
-  def update_provider(provider_id, provider_data)
-    make_request(:put, "/providers/#{provider_id}", body: provider_data)
-  end
-
-  def delete_provider(provider_id)
-    make_request(:delete, "/providers/#{provider_id}")
-  end
-
   # ===========================================================
   # ENCOUNTERS API
   # ===========================================================
@@ -131,27 +78,10 @@ class EzclaimService
   # CLAIMS API
   # ===========================================================
 
-  def get_claims(params = {})
-    make_request(:get, "/claims", params: params)
-  end
-
-  def get_claim(claim_id)
-    make_request(:get, "/claims/#{claim_id}")
-  end
-
   def create_claim(claim_data)
     # Pass data as params so it gets wrapped correctly in the request
     make_request(:post, "/Claims", params: claim_data)
   end
-
-  def update_claim(claim_id, claim_data)
-    make_request(:put, "/claims/#{claim_id}", body: claim_data)
-  end
-
-  def delete_claim(claim_id)
-    make_request(:delete, "/claims/#{claim_id}")
-  end
-
   # ===========================================================
   # CLAIM INSUREDS API
   # ===========================================================
