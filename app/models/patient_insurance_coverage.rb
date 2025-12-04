@@ -38,6 +38,7 @@ class PatientInsuranceCoverage < ApplicationRecord
   # =========================
   # Validations
   # =========================
+  validates :patient_id, presence: true, unless: -> { patient.present? && patient_id.blank? }
   validates :organization_id, :insurance_plan_id, :member_id, :subscriber_name,
             :relationship_to_subscriber, :coverage_order, presence: true
   validates :member_id, length: { in: 1..30 }, format: { with: /\A[A-Za-z0-9\-]+\z/, message: "COV_MEMBER_ID_INVALID" }
