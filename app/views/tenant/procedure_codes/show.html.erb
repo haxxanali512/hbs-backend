@@ -31,7 +31,7 @@
               <dt class="text-sm font-medium text-gray-500">Type</dt>
               <dd class="mt-1">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @procedure_code.code_type_badge_color %>">
-                  <%= @procedure_code.code_type.humanize %>
+                  <%= @procedure_code.code_type&.humanize || 'N/A' %>
                 </span>
               </dd>
             </div>

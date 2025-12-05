@@ -7,12 +7,12 @@
          onclick="selectProcedureCode('<%= line_id %>', <%= pc.id %>, '<%= pc.code %>', '<%= j(pc.description) %>', '<%= search_url %>'); return false;"
       <div class="flex items-center justify-between">
         <div class="flex-1">
-          <div class="font-medium text-sm text-gray-900"><%= pc.code %></div>
-          <div class="text-xs text-gray-500 mt-0.5"><%= pc.description %></div>
+          <div class="font-medium text-sm text-gray-900"><%= pc.code || 'N/A' %></div>
+          <div class="text-xs text-gray-500 mt-0.5"><%= pc.description || 'No description' %></div>
         </div>
         <div class="ml-2">
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <%= pc.code_type == 'cpt' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800' %>">
-            <%= pc.code_type.upcase %>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <%= pc.code_type == 'cpt' ? 'bg-blue-100 text-blue-800' : pc.code_type == 'hcpcs' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800' %>">
+            <%= pc.code_type&.upcase || 'N/A' %>
           </span>
         </div>
       </div>
