@@ -36,6 +36,14 @@
                 data: { confirm: "This will generate billing documents. Continue?" } %>
           <% end %>
           
+          <% if current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.completed_confirmed? && @encounter.organization.organization_setting&.ezclaim_enabled? && !@encounter.claim&.submitted? %>
+            <button type="button" 
+                    onclick="openEzclaimModal('encounterBillingModal', '<%= billing_data_tenant_encounter_path(@encounter) %>', 'claim')"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+              Submit for Billing
+            </button>
+          <% end %>
+          
           <% if @encounter.may_cancel? %>
             <%= link_to "Cancel", cancel_tenant_encounter_path(@encounter), method: :post,
                 class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
@@ -190,4 +198,14 @@
     </div>
   </div>
 </div>
+
+<%= render 'shared/ezclaim_modal',
+    modal_id: 'encounterBillingModal',
+    claim_id: @encounter.id,
+    data_url: billing_data_tenant_encounter_path(@encounter),
+    submit_url: submit_for_billing_tenant_encounter_path(@encounter),
+    search_url: procedure_codes_search_tenant_encounter_path(@encounter),
+    title: 'Submit for Billing',
+    modal_type: 'claim'
+%>
 

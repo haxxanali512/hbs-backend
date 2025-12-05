@@ -1,0 +1,28 @@
+<input type="number" 
+       id="<%= line_id %>UnitPrice" 
+       name="claim[service_LinesObjectWithoutID][<%= line_id %>][unit_price]" 
+       class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" 
+       value="<%= unit_price.to_f %>" 
+       step="0.01"
+       readonly
+       placeholder="Auto-populated from fee schedule"
+       data-unit-price="<%= unit_price.to_f %>"
+       data-pricing-rule="<%= pricing_rule || 'per_unit' %>">
+
+<script>
+  // Trigger total charges calculation after Turbo Stream update
+  (function() {
+    const lineId = '<%= line_id %>';
+    const pricingRule = '<%= pricing_rule || 'per_unit' %>';
+    setTimeout(() => {
+      // Update units label based on pricing rule
+      if (typeof updateUnitsLabelForPricingRule === 'function') {
+        updateUnitsLabelForPricingRule(lineId, pricingRule);
+      }
+      const unitsInput = document.getElementById(lineId + 'Units');
+      if (unitsInput && typeof calculateTotalCharges === 'function') {
+        calculateTotalCharges(lineId);
+      }
+    }, 100);
+  })();
+</script>

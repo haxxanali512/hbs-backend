@@ -1,7 +1,7 @@
 class Admin::ClaimsController < Admin::BaseController
   include Admin::Concerns::ClaimSubmission
 
-  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :test_ezclaim_connection, :claim_insured_data, :submit_claim_insured, :claim_data, :submit_claim, :post_adjudication, :void, :reverse, :close ]
+  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :test_ezclaim_connection, :post_adjudication, :void, :reverse, :close ]
   before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
 
   def index
@@ -92,14 +92,11 @@ class Admin::ClaimsController < Admin::BaseController
       # Get API config
       config = service.api_config
 
-      # Build payload preview
-      payload = build_ezclaim_payload_preview
-
       render json: {
         success: true,
         api_url: config[:api_url],
         api_version: config[:api_version],
-        payload: payload
+        message: "Connection successful"
       }
     else
       render json: {
@@ -115,109 +112,6 @@ class Admin::ClaimsController < Admin::BaseController
     }, status: :unprocessable_entity
   end
 
-  def claim_insured_data
-    payload = build_claim_insured_payload
-    config = EzclaimService.new(organization: @claim.organization).api_config
-
-    render json: {
-      success: true,
-      api_url: config[:api_url],
-      api_version: config[:api_version],
-      payload: payload
-    }
-  rescue => e
-    Rails.logger.error("Claim insured data error: #{e.message}")
-    render json: {
-      success: false,
-      error: e.message
-    }, status: :unprocessable_entity
-  end
-
-  def submit_claim_insured
-    return if validate_ezclaim_enabled
-
-    begin
-      payload = claim_insured_params.to_h
-      service = EzclaimService.new(organization: @claim.organization)
-      result = service.create_claim_insured(payload)
-
-      if result[:success]
-        respond_to do |format|
-          format.html { redirect_to admin_claim_path(@claim), notice: "Claim insured submitted to EZClaim successfully." }
-          format.json { render json: { success: true, redirect_url: admin_claim_path(@claim) } }
-        end
-      else
-        respond_to do |format|
-          format.html { redirect_to admin_claim_path(@claim), alert: "Failed to submit claim insured: #{result[:error]}" }
-          format.json { render json: { success: false, error: result[:error] }, status: :unprocessable_entity }
-        end
-      end
-    rescue EzclaimService::AuthenticationError, EzclaimService::IntegrationError => e
-      respond_to do |format|
-        format.html { redirect_to admin_claim_path(@claim), alert: "EZClaim error: #{e.message}" }
-        format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
-      end
-    rescue => e
-      Rails.logger.error("Claim insured submission error: #{e.message}")
-      Rails.logger.error(e.backtrace.join("\n"))
-      respond_to do |format|
-        format.html { redirect_to admin_claim_path(@claim), alert: "Error submitting claim insured: #{e.message}" }
-        format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
-      end
-    end
-  end
-
-  def claim_data
-    payload = build_claim_payload
-    config = EzclaimService.new(organization: @claim.organization).api_config
-
-    render json: {
-      success: true,
-      api_url: config[:api_url],
-      api_version: config[:api_version],
-      payload: payload
-    }
-  rescue => e
-    Rails.logger.error("Claim data error: #{e.message}")
-    render json: {
-      success: false,
-      error: e.message
-    }, status: :unprocessable_entity
-  end
-
-  def submit_claim
-    return if validate_ezclaim_enabled
-
-    begin
-      payload = claim_params_for_ezclaim.to_h
-      service = EzclaimService.new(organization: @claim.organization)
-      result = service.create_claim(payload)
-
-      if result[:success]
-        respond_to do |format|
-          format.html { redirect_to admin_claim_path(@claim), notice: "Claim submitted to EZClaim successfully." }
-          format.json { render json: { success: true, redirect_url: admin_claim_path(@claim) } }
-        end
-      else
-        respond_to do |format|
-          format.html { redirect_to admin_claim_path(@claim), alert: "Failed to submit claim: #{result[:error]}" }
-          format.json { render json: { success: false, error: result[:error] }, status: :unprocessable_entity }
-        end
-      end
-    rescue EzclaimService::AuthenticationError, EzclaimService::IntegrationError => e
-      respond_to do |format|
-        format.html { redirect_to admin_claim_path(@claim), alert: "EZClaim error: #{e.message}" }
-        format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
-      end
-    rescue => e
-      Rails.logger.error("Claim submission error: #{e.message}")
-      Rails.logger.error(e.backtrace.join("\n"))
-      respond_to do |format|
-        format.html { redirect_to admin_claim_path(@claim), alert: "Error submitting claim: #{e.message}" }
-        format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
-      end
-    end
-  end
 
   def post_adjudication
     # Placeholder for ERA/EOB posting logic
@@ -257,151 +151,6 @@ class Admin::ClaimsController < Admin::BaseController
     @claim = Claim.find(params[:id])
   end
 
-  def build_ezclaim_payload_preview
-    {
-      claim_id: @claim.id,
-      organization_id: @claim.organization.id,
-      patient: {
-        first_name: @claim.patient.first_name,
-        last_name: @claim.patient.last_name,
-        dob: @claim.patient.dob&.strftime("%Y-%m-%d"),
-        mrn: @claim.patient.mrn
-      },
-      provider: {
-        npi: @claim.provider.npi,
-        name: @claim.provider.full_name
-      },
-      date_of_service: @claim.encounter.date_of_service.strftime("%Y-%m-%d"),
-      place_of_service: @claim.place_of_service_code,
-      diagnosis_codes: @claim.encounter.diagnosis_codes.map(&:code),
-      claim_lines: @claim.claim_lines.map do |line|
-        {
-          procedure_code: line.procedure_code.code,
-          description: line.procedure_code.description,
-          units: line.units,
-          amount_billed: line.amount_billed,
-          modifiers: line.modifiers,
-          diagnosis_pointers: line.dx_pointers_numeric
-        }
-      end,
-      total_billed: @claim.total_billed,
-      total_units: @claim.total_units
-    }
-  end
-
-  def build_claim_insured_payload
-    patient = @claim.patient
-    coverage = @claim.patient_insurance_coverage
-
-    {
-      ClaInsFirstName: patient.first_name,
-      ClaInsLastName: patient.last_name,
-      ClaInsBirthDate: patient.dob&.strftime("%Y-%m-%d"),
-      ClaInsSex: patient.sex_at_birth&.upcase,
-      ClaInsAddress1: patient.address_line_1,
-      ClaInsCity: patient.city,
-      ClaInsState: patient.state,
-      ClaInsZip: patient.postal,
-      ClaInsPhone: patient.phone_number,
-      ClaInsEmployer: "",
-      ClaInsCompanyName: coverage&.insurance_plan&.payer&.name || "",
-      ClaInsInsuranceID: coverage&.member_id || "",
-      ClaInsGroupNumber: "",
-      ClaInsPlanName: coverage&.insurance_plan&.name || "",
-      ClaInsRelationToInsured: map_relationship_to_insured(coverage&.relationship_to_subscriber),
-      ClaInsSequence: map_coverage_order(coverage&.coverage_order),
-      ClaInsAcceptAssignment: "",
-      ClaInsFilingIndicator: "",
-      ClaInsSSN: "",
-      ClaInsClaFID: @claim.external_claim_key || @claim.id.to_s,
-      ClaInsPatFID: patient.external_id || patient.id.to_s,
-      ClaInsGUID: ""
-    }
-  end
-
-  def claim_insured_params
-    params.require(:claim_insured).permit(
-      :ClaInsFirstName,
-      :ClaInsLastName,
-      :ClaInsBirthDate,
-      :ClaInsSex,
-      :ClaInsAddress1,
-      :ClaInsCity,
-      :ClaInsState,
-      :ClaInsZip,
-      :ClaInsPhone,
-      :ClaInsEmployer,
-      :ClaInsCompanyName,
-      :ClaInsInsuranceID,
-      :ClaInsGroupNumber,
-      :ClaInsPlanName,
-      :ClaInsRelationToInsured,
-      :ClaInsSequence,
-      :ClaInsAcceptAssignment,
-      :ClaInsFilingIndicator,
-      :ClaInsSSN,
-      :ClaInsClaFID,
-      :ClaInsPatFID,
-      :ClaInsGUID
-    )
-  end
-
-  def map_relationship_to_insured(relationship)
-    case relationship&.to_s
-    when "self" then "S"
-    when "spouse" then "S"
-    when "child" then "C"
-    when "other" then "O"
-    else "S"
-    end
-  end
-
-  def map_coverage_order(order)
-    case order&.to_s
-    when "primary" then "1"
-    when "secondary" then "2"
-    when "tertiary" then "3"
-    else "1"
-    end
-  end
-
-  def build_claim_payload
-    {
-      ClaPatFID: @claim.patient.external_id || @claim.patient.id.to_s,
-      claRenderingPhyFID: @claim.provider.npi || @claim.provider.id.to_s,
-      ClaDiagnosis1: @claim.encounter.diagnosis_codes.first&.code || "",
-      service_LinesObjectWithoutID: @claim.claim_lines.map do |line|
-        {
-          SrvDateFrom: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || "",
-          SrvDateTo: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || "",
-          SrvProcedureCode: line.procedure_code.code,
-          SrvProcedureUnits: line.units.to_s
-        }
-      end,
-      ClaSubmissionMethod: "",
-      claBillingPhyFID: @claim.provider.npi || @claim.provider.id.to_s,
-      SrvDateFrom: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || "",
-      SrvDateTo: @claim.encounter.date_of_service&.strftime("%Y-%m-%d") || ""
-    }
-  end
-
-  def claim_params_for_ezclaim
-    params.require(:claim).permit(
-      :ClaPatFID,
-      :claRenderingPhyFID,
-      :ClaDiagnosis1,
-      :ClaSubmissionMethod,
-      :claBillingPhyFID,
-      :SrvDateFrom,
-      :SrvDateTo,
-      service_LinesObjectWithoutID: [
-        :SrvDateFrom,
-        :SrvDateTo,
-        :SrvProcedureCode,
-        :SrvProcedureUnits
-      ]
-    )
-  end
 
   def load_form_options
     @organizations = Organization.kept.order(:name)

@@ -1,6 +1,7 @@
 class OrganizationFeeScheduleItem < ApplicationRecord
   audited except: [ :unit_price ]
-  include Discard::Model
+  # Note: Discard::Model not included - table doesn't have discarded_at column
+  # Use active: false for soft deactivation instead
 
 
   belongs_to :organization_fee_schedule
@@ -65,15 +66,26 @@ class OrganizationFeeScheduleItem < ApplicationRecord
   def unique_active_item_per_schedule_and_procedure
     return unless active?
 
-    existing = OrganizationFeeScheduleItem.where(
-      organization_fee_schedule: organization_fee_schedule,
-      procedure_code: procedure_code,
-      active: true
-    )
+    # Enforce: Only ONE active item per (organization_id, procedure_code_id)
+    # This ensures one unit price per procedure code per organization
+    # Provider-specific pricing can be added later if needed
+    org_id = organization_fee_schedule.organization_id
+    
+    existing = OrganizationFeeScheduleItem.joins(:organization_fee_schedule)
+                                         .where(organization_fee_schedules: {
+                                           organization_id: org_id
+                                         })
+                                         .where(procedure_code_id: procedure_code_id)
+                                         .where(active: true)
     existing = existing.where.not(id: id) if persisted?
 
     if existing.exists?
-      errors.add(:procedure_code, "FEE_DUP_ITEM - Duplicate fee for this code (provider scope).")
+      existing_item = existing.first
+      existing_schedule = existing_item.organization_fee_schedule
+      scope_info = existing_schedule.provider_id.present? ? 
+                   " (existing item is provider-specific)" : 
+                   " (existing item is organization-wide)"
+      errors.add(:procedure_code, "FEE_DUP_ITEM - Only one active fee schedule item allowed per procedure code per organization#{scope_info}.")
     end
   end
 

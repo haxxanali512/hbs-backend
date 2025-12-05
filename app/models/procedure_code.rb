@@ -80,6 +80,21 @@ class ProcedureCode < ApplicationRecord
     end
   end
 
+  # Find the active fee schedule item for a given organization
+  # Returns nil if no active item exists
+  def active_fee_schedule_item_for(organization)
+    organization_fee_schedule_items
+      .joins(:organization_fee_schedule)
+      .where(organization_fee_schedules: { organization_id: organization.id })
+      .where(active: true)
+      .first
+  end
+
+  # Check if this procedure code has an active fee schedule item for an organization
+  def has_active_fee_schedule_for?(organization)
+    active_fee_schedule_item_for(organization).present?
+  end
+
   private
 
   def retire!

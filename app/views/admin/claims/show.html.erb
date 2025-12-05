@@ -312,34 +312,11 @@
         </div>
 
         <!-- Actions -->
-        <% if (current_user.permissions_for("admin", "claims", "validate") && @claim.generated?) || 
-              (current_user.permissions_for("admin", "claims", "submit") && (@claim.generated? || @claim.validated?) && @claim.organization.organization_setting&.ezclaim_enabled?) %>
+        <% if current_user.permissions_for("admin", "claims", "validate") && @claim.generated? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
             <div class="space-y-2">
-              <% if current_user.permissions_for("admin", "claims", "validate") && @claim.generated? %>
                 <%= button_to "Validate", validate_admin_claim_path(@claim), method: :post, class: "w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700" %>
-              <% end %>
-
-              <% if current_user.permissions_for("admin", "claims", "submit") && (@claim.generated? || @claim.validated?) && @claim.organization.organization_setting&.ezclaim_enabled? %>
-                <button type="button" 
-                        onclick="openEzclaimModal('claimInsuredModal', '<%= claim_insured_data_admin_claim_path(@claim) %>', 'claim_insured')"
-                        class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
-                  Push To EZ Claim(Claim Insured)
-                </button>
-                <button type="button" 
-                        onclick="openEzclaimModal('claimModal', '<%= claim_data_admin_claim_path(@claim) %>', 'claim')"
-                        class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 mt-2">
-                  Push To EZClaim (Claim)
-                </button>
-              <% elsif current_user.permissions_for("admin", "claims", "submit") && (@claim.generated? || @claim.validated?) && !@claim.organization.organization_setting&.ezclaim_enabled? %>
-                <button type="button" 
-                        disabled
-                        class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-400 cursor-not-allowed"
-                        title="EZClaim is not enabled for this organization">
-                  Submit to EzClaim (EZClaim not enabled)
-                </button>
-              <% end %>
             </div>
           </div>
         <% end %>
@@ -362,23 +339,6 @@
   </div>
 </div>
 
-<%= render 'shared/ezclaim_modal', 
-    modal_id: 'claimInsuredModal',
-    claim_id: @claim.id,
-    data_url: claim_insured_data_admin_claim_path(@claim),
-    submit_url: submit_claim_insured_admin_claim_path(@claim),
-    title: 'Push To EZ Claim (Claim Insured)',
-    modal_type: 'claim_insured'
-%>
-
-<%= render 'shared/ezclaim_modal', 
-    modal_id: 'claimModal',
-    claim_id: @claim.id,
-    data_url: claim_data_admin_claim_path(@claim),
-    submit_url: submit_claim_admin_claim_path(@claim),
-    title: 'Push To EZClaim (Claim)',
-    modal_type: 'claim'
-%>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {

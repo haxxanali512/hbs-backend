@@ -115,6 +115,21 @@ class Organization < ApplicationRecord
     organization_memberships.create!(user: user, organization_role: role, active: true)
   end
 
+  # Find the active fee schedule item for a given procedure code
+  # Returns nil if no active item exists
+  def fee_schedule_item_for(procedure_code)
+    OrganizationFeeScheduleItem.joins(:organization_fee_schedule)
+                              .where(organization_fee_schedules: { organization_id: id })
+                              .where(procedure_code_id: procedure_code.id)
+                              .where(active: true)
+                              .first
+  end
+
+  # Check if a procedure code has an active fee schedule item
+  def has_fee_schedule_for?(procedure_code)
+    fee_schedule_item_for(procedure_code).present?
+  end
+
   def invite_owner
     return if owner.nil?
     return if owner.invitation_sent_at.present? # Already invited

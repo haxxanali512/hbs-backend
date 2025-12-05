@@ -17,7 +17,15 @@
         <%= f.select :procedure_code_id, 
             options_from_collection_for_select(@procedure_codes, :id, :code, @fee_schedule_item.procedure_code_id),
             { prompt: "Select Procedure Code" },
-            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+              id: "procedure_code_select",
+              data: { existing_items: @existing_items_by_code.to_json } } %>
+        <% if @existing_items_by_code.present? %>
+          <div id="existing_item_warning" class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800 hidden">
+            <p class="font-medium">⚠️ Warning: An active fee schedule item already exists for this procedure code.</p>
+            <p class="mt-1">Only one active item is allowed per procedure code per organization. Please edit the existing item or deactivate it first.</p>
+          </div>
+        <% end %>
       </div>
 
       <div>
@@ -62,3 +70,28 @@
     </div>
   <% end %>
 </div>
+
+<script>
+  (function() {
+    const procedureCodeSelect = document.getElementById('procedure_code_select');
+    const warningDiv = document.getElementById('existing_item_warning');
+    
+    if (procedureCodeSelect && warningDiv) {
+      const existingItems = JSON.parse(procedureCodeSelect.dataset.existingItems || '{}');
+      
+      procedureCodeSelect.addEventListener('change', function() {
+        const selectedCodeId = this.value;
+        if (selectedCodeId && existingItems[selectedCodeId]) {
+          warningDiv.classList.remove('hidden');
+        } else {
+          warningDiv.classList.add('hidden');
+        }
+      });
+      
+      // Show warning on page load if a code is pre-selected
+      if (procedureCodeSelect.value && existingItems[procedureCodeSelect.value]) {
+        warningDiv.classList.remove('hidden');
+      }
+    }
+  })();
+</script>
