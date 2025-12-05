@@ -3,7 +3,7 @@
     { key: :pending, label: "Pending" },
     { key: :compliance_setup, label: "Compliance Setup" },
     { key: :billing_setup, label: "Billing Setup" },
-    { key: :document_signing, label: "Document Signing" },
+    { key: :terms_agreement, label: "Terms & Agreement" },
     { key: :activated, label: "Activated" }
   ]
   
@@ -30,7 +30,12 @@
           <% steps.each do |step| %>
             <% 
               step_order = Organization.activation_statuses[step[:key]]
-              is_completed = step_order < current_order || (step_order == current_order && current_status == :activated)
+              # Handle nil step_order (if key doesn't exist in enum)
+              if step_order.nil?
+                is_completed = false
+              else
+                is_completed = step_order < current_order || (step_order == current_order && current_status == :activated)
+              end
             %>
             <td class="px-3 py-2 whitespace-nowrap text-center">
               <% if is_completed %>
