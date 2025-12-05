@@ -223,6 +223,9 @@ Rails.application.routes.draw do
           post :cancel
           post :request_correction
           post :override_validation
+          get :billing_data
+          get :procedure_codes_search
+          post :submit_for_billing
         end
         resources :encounter_comments, only: [ :index, :create ] do
           member do
@@ -237,10 +240,6 @@ Rails.application.routes.draw do
           post :validate
           post :submit
           get :test_ezclaim_connection
-          get :claim_insured_data
-          post :submit_claim_insured
-          get :claim_data
-          post :submit_claim
           post :post_adjudication
           post :void
           post :reverse
@@ -384,6 +383,9 @@ Rails.application.routes.draw do
             post :cancel
             post :request_correction
             post :attach_document
+            get :billing_data
+            get :procedure_codes_search
+            post :submit_for_billing
           end
           resources :encounter_comments, only: [ :index, :create ]
           resources :provider_notes, except: [ :show ]
@@ -426,6 +428,8 @@ Rails.application.routes.draw do
             post :push_to_ezclaim
           end
         end
+
+        resources :claims, only: [ :index, :show ]
 
         resource :organization_setting, only: [ :show, :edit, :update ]
       end

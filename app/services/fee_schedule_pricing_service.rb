@@ -1,52 +1,29 @@
 class FeeSchedulePricingService
   class << self
     # Resolves pricing for a given encounter/claim_line
-    # Priority: provider_specific -> org_wide -> error
+    # Enforces: One active item per (organization_id, procedure_code_id)
+    # Provider_id parameter kept for future flexibility but not used in lookup
     def resolve_pricing(organization_id, provider_id, procedure_code_id)
-      # First try provider-specific schedule
-      provider_schedule = OrganizationFeeSchedule.kept
-                                                 .where(organization_id: organization_id, provider_id: provider_id)
-                                                 .joins(:organization_fee_schedule_items)
-                                                 .where(organization_fee_schedule_items: {
-                                                   procedure_code_id: procedure_code_id,
-                                                   active: true
-                                                 })
-                                                 .first
+      # Find any active item for this organization and procedure code
+      # Only one active item should exist per org per procedure code
+      item = OrganizationFeeScheduleItem
+                                       .joins(:organization_fee_schedule)
+                                       .where(organization_fee_schedules: {
+                                         organization_id: organization_id
+                                       })
+                                       .where(procedure_code_id: procedure_code_id)
+                                       .where(active: true)
+                                       .first
 
-      if provider_schedule
-        item = provider_schedule.organization_fee_schedule_items
-                               .where(procedure_code_id: procedure_code_id, active: true)
-                               .first
-
+      if item
+        schedule = item.organization_fee_schedule
+        source = schedule.provider_id.present? ? "provider_specific" : "org_wide"
+        
         return {
           success: true,
           pricing: item.pricing_snapshot,
-          source: "provider_specific",
-          schedule_id: provider_schedule.id,
-          item_id: item.id
-        }
-      end
-
-      # Fallback to org-wide schedule
-      org_schedule = OrganizationFeeSchedule.kept
-                                           .where(organization_id: organization_id, provider_id: nil)
-                                           .joins(:organization_fee_schedule_items)
-                                           .where(organization_fee_schedule_items: {
-                                             procedure_code_id: procedure_code_id,
-                                             active: true
-                                           })
-                                           .first
-
-      if org_schedule
-        item = org_schedule.organization_fee_schedule_items
-                          .where(procedure_code_id: procedure_code_id, active: true)
-                          .first
-
-        return {
-          success: true,
-          pricing: item.pricing_snapshot,
-          source: "org_wide",
-          schedule_id: org_schedule.id,
+          source: source,
+          schedule_id: schedule.id,
           item_id: item.id
         }
       end
@@ -54,7 +31,7 @@ class FeeSchedulePricingService
       # No applicable schedule found
       {
         success: false,
-        error: "FEE_SCHEDULE_NOT_FOUND - No applicable fee schedule for this provider/organization.",
+        error: "FEE_SCHEDULE_NOT_FOUND - No applicable fee schedule for this organization.",
         organization_id: organization_id,
         provider_id: provider_id,
         procedure_code_id: procedure_code_id
@@ -64,7 +41,7 @@ class FeeSchedulePricingService
     # Get all available pricing for a provider
     def get_provider_pricing(organization_id, provider_id)
       # Get provider-specific pricing
-      provider_items = OrganizationFeeScheduleItem.kept
+      provider_items = OrganizationFeeScheduleItem
                                                   .joins(:organization_fee_schedule)
                                                   .where(organization_fee_schedules: {
                                                     organization_id: organization_id,
@@ -77,7 +54,7 @@ class FeeSchedulePricingService
       # Get org-wide pricing for codes not covered by provider-specific
       provider_codes = provider_items.pluck(:procedure_code_id)
 
-      org_items = OrganizationFeeScheduleItem.kept
+      org_items = OrganizationFeeScheduleItem
                                             .joins(:organization_fee_schedule)
                                             .where(organization_fee_schedules: {
                                               organization_id: organization_id,
@@ -137,7 +114,7 @@ class FeeSchedulePricingService
 
     # Get pricing history for audit
     def get_pricing_history(organization_id, procedure_code_id = nil)
-      items = OrganizationFeeScheduleItem.kept
+      items = OrganizationFeeScheduleItem
                                         .joins(:organization_fee_schedule)
                                         .where(organization_fee_schedules: { organization_id: organization_id })
                                         .includes(:procedure_code, :organization_fee_schedule)

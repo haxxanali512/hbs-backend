@@ -7,10 +7,11 @@
   title = local_assigns[:title] || 'Send to EZClaim'
   modal_type = local_assigns[:modal_type] || 'claim' # 'claim' or 'claim_insured'
   data_url = local_assigns[:data_url] || nil
+  search_url = local_assigns[:search_url] || nil # URL for procedure code search
 %>
 
 <!-- EZClaim Modal -->
-<div id="<%= modal_id %>" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="<%= modal_id %>-title" role="dialog" aria-modal="true">
+<div id="<%= modal_id %>" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="<%= modal_id %>-title" role="dialog" aria-modal="true" data-search-url="<%= search_url || '' %>">
   <div class="relative flex min-h-full items-center justify-center p-4">
     <!-- Background overlay -->
     <div id="<%= modal_id %>Overlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out opacity-0" onclick="closeEzclaimModal('<%= modal_id %>')"></div>
@@ -603,6 +604,8 @@
     }
     
     const lineId = modalId + 'ServiceLine' + Date.now() + '_' + index;
+    const modalElement = document.getElementById(modalId);
+    const searchUrl = modalElement ? modalElement.getAttribute('data-search-url') || '' : '';
     
     const lineHtml = `
       <div id="${lineId}" class="bg-gray-50 border border-gray-200 rounded-md p-4" data-line-index="${index}">
@@ -623,11 +626,71 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Procedure Code</label>
-            <input type="text" name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureCode]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvProcedureCode || ''}">
+            <div class="relative">
+              <div class="relative">
+                <input type="text" 
+                       id="${lineId}ProcedureCode" 
+                       name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureCode]" 
+                       class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 text-sm procedure-code-search" 
+                       value="${lineData?.SrvProcedureCode || ''}"
+                       placeholder="Type to search procedure codes..."
+                       autocomplete="off"
+                       data-line-id="${lineId}"
+                       data-search-url="${searchUrl || ''}"
+                       onfocus="showProcedureCodeDropdown('${lineId}', '${searchUrl}')"
+                       oninput="searchProcedureCodes('${lineId}', '${searchUrl}', this.value)"
+                       onclick="showProcedureCodeDropdown('${lineId}', '${searchUrl}')">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              <input type="hidden" id="${lineId}ProcedureCodeId" name="claim[service_LinesObjectWithoutID][${index}][procedure_code_id]">
+              <div id="procedure_code_${lineId}_results" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-60 overflow-auto">
+                <div class="p-2 border-b border-gray-200">
+                  <div class="text-xs text-gray-500">Type to search procedure codes...</div>
+                </div>
+              </div>
+            </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Procedure Units</label>
-            <input type="number" name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureUnits]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvProcedureUnits || ''}" step="0.01">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Unit Price</label>
+            <div id="procedure_code_${lineId}_unit_price">
+              <input type="number" 
+                     id="${lineId}UnitPrice" 
+                     name="claim[service_LinesObjectWithoutID][${index}][unit_price]" 
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" 
+                     value="${lineData?.unit_price || ''}" 
+                     step="0.01"
+                     readonly
+                     placeholder="Auto-populated from fee schedule"
+                     data-pricing-rule="${lineData?.pricing_rule || 'per_unit'}">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" id="${lineId}UnitsLabel">Procedure Units</label>
+            <input type="number" 
+                   id="${lineId}Units" 
+                   name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureUnits]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" 
+                   value="${lineData?.SrvProcedureUnits || ''}" 
+                   step="0.25"
+                   min="0.25"
+                   placeholder="Enter units (1 unit = 15 mins)"
+                   oninput="calculateTotalCharges('${lineId}')">
+            <p class="mt-1 text-xs text-gray-500" id="${lineId}UnitsHelp">1 unit = 15 minutes</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Total Charges</label>
+            <input type="number" 
+                   id="${lineId}TotalCharges" 
+                   name="claim[service_LinesObjectWithoutID][${index}][total_charges]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" 
+                   value="${lineData?.total_charges || ''}" 
+                   step="0.01"
+                   readonly
+                   placeholder="Unit Price × Units">
           </div>
         </div>
       </div>
@@ -635,6 +698,272 @@
     
     container.insertAdjacentHTML('beforeend', lineHtml);
     reindexServiceLines(modalId);
+    
+    // Initialize total charges calculation
+    setTimeout(() => {
+      const unitPriceInput = document.getElementById(lineId + 'UnitPrice');
+      const unitsInput = document.getElementById(lineId + 'Units');
+      const totalChargesInput = document.getElementById(lineId + 'TotalCharges');
+      
+      if (unitPriceInput && unitsInput && totalChargesInput) {
+        unitsInput.addEventListener('input', function() {
+          calculateTotalCharges(lineId);
+        });
+        if (lineData?.unit_price && lineData?.SrvProcedureUnits) {
+          calculateTotalCharges(lineId);
+        }
+      }
+    }, 100);
+  }
+
+  // Global functions for procedure code search with Turbo Streams
+  let searchTimeouts = {};
+  
+  function showProcedureCodeDropdown(lineId, searchUrl) {
+    const resultsDiv = document.getElementById('procedure_code_' + lineId + '_results');
+    if (!resultsDiv) return;
+    
+    resultsDiv.classList.remove('hidden');
+    
+    // Load initial list if empty
+    if (resultsDiv.children.length <= 1) {
+      searchProcedureCodes(lineId, searchUrl, '');
+    }
+  }
+
+  function searchProcedureCodes(lineId, searchUrl, query) {
+    const resultsDiv = document.getElementById('procedure_code_' + lineId + '_results');
+    if (!resultsDiv || !searchUrl) return;
+    
+    // Clear previous timeout
+    if (searchTimeouts[lineId]) {
+      clearTimeout(searchTimeouts[lineId]);
+    }
+    
+    // Debounce search
+    searchTimeouts[lineId] = setTimeout(() => {
+      // Show loading state
+      resultsDiv.classList.remove('hidden');
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Searching...</div>';
+      
+      // Use Turbo Stream for search
+      const url = searchUrl + '?q=' + encodeURIComponent(query) + '&line_id=' + encodeURIComponent(lineId);
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/vnd.turbo-stream.html',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => {
+        if (response.headers.get('Content-Type')?.includes('turbo-stream')) {
+          return response.text();
+        } else {
+          return response.json().then(data => {
+            // Fallback to JSON if Turbo Stream not available
+            if (data.success && data.results) {
+              displayProcedureCodeResultsJSON(resultsDiv, data.results, lineId, searchUrl);
+            }
+            return null;
+          });
+        }
+      })
+      .then(html => {
+        if (html) {
+          // Turbo will handle the stream update automatically
+          Turbo.renderStreamMessage(html);
+        }
+      })
+      .catch(error => {
+        console.error('Error searching procedure codes:', error);
+        resultsDiv.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching procedure codes</div>';
+      });
+    }, query.length > 0 ? 300 : 0);
+  }
+
+  function displayProcedureCodeResultsJSON(resultsDiv, results, lineId, searchUrl) {
+    if (results.length === 0) {
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No procedure codes found</div>';
+      resultsDiv.classList.remove('hidden');
+      return;
+    }
+
+    const html = results.map(result => `
+      <div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 procedure-code-option transition-colors"
+           data-code-id="${result.id}"
+           data-code="${result.code}"
+           data-description="${result.description}"
+           onclick="selectProcedureCode('${lineId}', ${result.id}, '${result.code}', '${result.description.replace(/'/g, "\\'")}', '${searchUrl}')">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="font-medium text-sm text-gray-900">${result.code}</div>
+            <div class="text-xs text-gray-500 mt-0.5">${result.description}</div>
+          </div>
+          <div class="ml-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${result.code_type === 'cpt' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">
+              ${result.code_type.toUpperCase()}
+            </span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    resultsDiv.innerHTML = '<div class="p-2 border-b border-gray-200"><div class="text-xs text-gray-500">Select a procedure code:</div></div>' + html;
+    resultsDiv.classList.remove('hidden');
+  }
+
+  function selectProcedureCode(lineId, procedureCodeId, code, description, searchUrl) {
+    const searchInput = document.getElementById(lineId + 'ProcedureCode');
+    const codeIdInput = document.getElementById(lineId + 'ProcedureCodeId');
+    const resultsDiv = document.getElementById('procedure_code_' + lineId + '_results');
+    const unitPriceInput = document.getElementById(lineId + 'UnitPrice');
+    
+    if (searchInput) searchInput.value = code;
+    if (codeIdInput) codeIdInput.value = procedureCodeId;
+    if (resultsDiv) resultsDiv.classList.add('hidden');
+    
+    // Show loading state
+    if (unitPriceInput) {
+      unitPriceInput.value = '';
+      unitPriceInput.placeholder = 'Loading pricing...';
+    }
+    
+    // Fetch pricing - try JSON first for reliability
+    const url = searchUrl + '?procedure_code_id=' + encodeURIComponent(procedureCodeId) + '&line_id=' + encodeURIComponent(lineId);
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      console.log('Pricing response status:', response.status);
+      console.log('Pricing response content-type:', response.headers.get('Content-Type'));
+      
+      if (!response.ok) {
+        throw new Error('Response not OK: ' + response.status);
+      }
+      
+      return response.json().then(data => {
+        console.log('Pricing data received:', data);
+        
+        if (data.success && data.unit_price !== undefined && unitPriceInput) {
+          unitPriceInput.value = data.unit_price.toFixed(2);
+          unitPriceInput.placeholder = 'Auto-populated from fee schedule';
+          
+          // Store pricing rule for calculation
+          if (data.pricing_rule) {
+            unitPriceInput.setAttribute('data-pricing-rule', data.pricing_rule);
+          }
+          
+          // Update units label based on pricing rule
+          updateUnitsLabelForPricingRule(lineId, data.pricing_rule);
+          
+          calculateTotalCharges(lineId);
+          console.log('Unit price updated to:', data.unit_price, 'Pricing rule:', data.pricing_rule);
+        } else {
+          unitPriceInput.value = '';
+          unitPriceInput.placeholder = 'Pricing not found';
+          const errorMsg = data.error || 'Unknown error';
+          console.error('Pricing error:', errorMsg);
+          alert('Pricing not found for this procedure code: ' + errorMsg);
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching pricing:', error);
+      if (unitPriceInput) {
+        unitPriceInput.value = '';
+        unitPriceInput.placeholder = 'Error loading pricing';
+      }
+      alert('Error fetching pricing: ' + error.message);
+    });
+  }
+
+  function updateUnitsLabelForPricingRule(lineId, pricingRule) {
+    const unitsLabel = document.getElementById(lineId + 'UnitsLabel');
+    const unitsHelp = document.getElementById(lineId + 'UnitsHelp');
+    const unitsInput = document.getElementById(lineId + 'Units');
+    
+    if (!unitsLabel || !unitsHelp || !unitsInput) return;
+    
+    switch(pricingRule) {
+      case 'per_hour':
+      case 'hourly':
+        unitsLabel.textContent = 'Units (15-min increments)';
+        unitsHelp.textContent = 'Enter units (1 unit = 15 minutes, 4 units = 1 hour). Price is per hour.';
+        unitsInput.step = '0.25'; // 15 minute increments
+        unitsInput.min = '0.25';
+        break;
+      case 'per_minute':
+        unitsLabel.textContent = 'Minutes';
+        unitsHelp.textContent = 'Enter minutes';
+        unitsInput.step = '1';
+        unitsInput.min = '1';
+        break;
+      case 'per_visit':
+      case 'per_procedure':
+        unitsLabel.textContent = 'Units';
+        unitsHelp.textContent = 'Enter number of visits/procedures';
+        unitsInput.step = '1';
+        unitsInput.min = '1';
+        break;
+      case 'per_unit':
+      default:
+        unitsLabel.textContent = 'Units';
+        unitsHelp.textContent = '1 unit = 15 minutes';
+        unitsInput.step = '0.25'; // 15 minute increments
+        unitsInput.min = '0.25';
+        break;
+    }
+  }
+
+  function calculateTotalCharges(lineId) {
+    const unitPriceInput = document.getElementById(lineId + 'UnitPrice');
+    const unitsInput = document.getElementById(lineId + 'Units');
+    const totalChargesInput = document.getElementById(lineId + 'TotalCharges');
+    
+    if (unitPriceInput && unitsInput && totalChargesInput) {
+      const unitPrice = parseFloat(unitPriceInput.value) || 0;
+      const units = parseFloat(unitsInput.value) || 0;
+      const pricingRule = unitPriceInput.getAttribute('data-pricing-rule') || 'per_unit';
+      
+      let total = 0;
+      
+      // Calculate based on pricing rule
+      switch(pricingRule) {
+        case 'per_hour':
+        case 'hourly':
+          // If unit_price is per hour, convert units (15-min increments) to hours
+          // 1 unit = 15 minutes = 0.25 hours
+          // So: units * 0.25 = hours, then hours * unit_price = total
+          const hours = units * 0.25; // Convert 15-min units to hours
+          total = unitPrice * hours;
+          break;
+        case 'per_minute':
+          // If unit_price is per minute, multiply by minutes
+          total = unitPrice * units;
+          break;
+        case 'per_visit':
+        case 'per_procedure':
+          // Flat rate per visit/procedure
+          total = unitPrice * units;
+          break;
+        case 'per_unit':
+        default:
+          // Standard calculation: unit_price * units
+          // If unit_price is per 15-min unit, multiply directly
+          total = unitPrice * units;
+          break;
+      }
+      
+      totalChargesInput.value = total > 0 ? total.toFixed(2) : '';
+    }
   }
 
   function removeServiceLine(lineId, modalId) {
@@ -859,6 +1188,20 @@
       modals.forEach(modal => {
         const modalId = modal.id;
         closeEzclaimModal(modalId);
+      });
+      
+      // Close any open procedure code dropdowns
+      document.querySelectorAll('[id^="procedure_code_"][id$="_results"]:not(.hidden)').forEach(dropdown => {
+        dropdown.classList.add('hidden');
+      });
+    }
+  });
+
+  // Close procedure code dropdowns when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.procedure-code-search') && !event.target.closest('[id^="procedure_code_"][id$="_results"]')) {
+      document.querySelectorAll('[id^="procedure_code_"][id$="_results"]:not(.hidden)').forEach(dropdown => {
+        dropdown.classList.add('hidden');
       });
     }
   });

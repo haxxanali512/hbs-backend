@@ -93,6 +93,16 @@ class EzclaimService
   end
 
   # ===========================================================
+  # SERVICE LINES API
+  # ===========================================================
+
+  def create_service_lines(service_lines_data)
+    # POST service lines to EZClaim
+    # Endpoint: POST /Service_Lines/list
+    make_request(:post, "/Service_Lines/list", params: service_lines_data)
+  end
+
+  # ===========================================================
   # UTILITY METHODS
   # ===========================================================
 
@@ -174,7 +184,6 @@ class EzclaimService
     end
 
     response = HTTParty.send(method, url, options)
-    byebug
     parse_response(response)
   rescue HTTParty::Error => e
     {

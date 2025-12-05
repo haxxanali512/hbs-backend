@@ -1,0 +1,130 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Claim Details</h1>
+          <p class="mt-2 text-gray-600">Claim #<%= @claim.id %></p>
+        </div>
+        <div class="flex space-x-2">
+          <%= link_to "Back to Claims", tenant_claims_path, class: "inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="mb-6">
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <%= @claim.status_badge_color %>">
+        <%= @claim.status&.humanize || "—" %>
+      </span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left Column - Claim Header -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Claim Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Claim Information</h2>
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Patient</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.patient.full_name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Provider</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.provider.full_name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Specialty</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.specialty.name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Date of Service</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.encounter.date_of_service.strftime("%B %d, %Y") if @claim.encounter&.date_of_service %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Place of Service</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.place_of_service_code %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">External Claim Key</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.external_claim_key || "N/A" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Generated At</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @claim.generated_at&.strftime("%B %d, %Y %I:%M %p") || "N/A" %></dd>
+            </div>
+            <% if @claim.submitted_at %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Submitted At</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= @claim.submitted_at.strftime("%B %d, %Y %I:%M %p") %></dd>
+              </div>
+            <% end %>
+          </dl>
+        </div>
+
+        <!-- Claim Lines -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Claim Lines</h2>
+          <% if @claim.claim_lines.any? %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Procedure</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Modifiers</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">DX Pointers</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @claim.claim_lines.each do |line| %>
+                    <tr>
+                      <td class="px-4 py-3 text-sm text-gray-900">
+                        <%= line.procedure_code.code %> - <%= line.procedure_code.description %>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= line.units %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= number_to_currency(line.amount_billed) %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= line.modifiers.join(", ") || "N/A" %></td>
+                      <td class="px-4 py-3 text-sm text-gray-900"><%= line.dx_pointers_numeric.join(", ") || "N/A" %></td>
+                      <td class="px-4 py-3 text-sm">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <%= line.status.humanize %>
+                        </span>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No claim lines yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Right Column - Totals & Actions -->
+      <div class="space-y-6">
+        <!-- Totals -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Totals</h2>
+          <dl class="space-y-3">
+            <div class="flex justify-between">
+              <dt class="text-sm font-medium text-gray-500">Total Units</dt>
+              <dd class="text-sm text-gray-900"><%= @claim.total_units || 0 %></dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-sm font-medium text-gray-500">Total Billed</dt>
+              <dd class="text-sm font-semibold text-gray-900"><%= number_to_currency(@claim.total_billed || 0) %></dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

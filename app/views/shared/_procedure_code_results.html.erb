@@ -1,0 +1,24 @@
+<% if procedure_codes.any? %>
+  <% procedure_codes.each do |pc| %>
+    <div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 procedure-code-option transition-colors"
+         data-code-id="<%= pc.id %>"
+         data-code="<%= pc.code %>"
+         data-description="<%= pc.description %>"
+         onclick="selectProcedureCode('<%= line_id %>', <%= pc.id %>, '<%= pc.code %>', '<%= j(pc.description) %>', '<%= search_url %>'); return false;"
+      <div class="flex items-center justify-between">
+        <div class="flex-1">
+          <div class="font-medium text-sm text-gray-900"><%= pc.code %></div>
+          <div class="text-xs text-gray-500 mt-0.5"><%= pc.description %></div>
+        </div>
+        <div class="ml-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <%= pc.code_type == 'cpt' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800' %>">
+            <%= pc.code_type.upcase %>
+          </span>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% else %>
+  <div class="p-3 text-sm text-gray-500 text-center">No procedure codes found</div>
+<% end %>
+

@@ -39,6 +39,18 @@ class Tenant::EncounterPolicy < ApplicationPolicy
     accessible?("tenant", "encounters", "request_correction")
   end
 
+  def submit_for_billing?
+    accessible?("tenant", "encounters", "submit_for_billing")
+  end
+
+  def billing_data?
+    submit_for_billing?
+  end
+
+  def procedure_codes_search?
+    submit_for_billing?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

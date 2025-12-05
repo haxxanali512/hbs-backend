@@ -64,7 +64,7 @@ module HbsCustoms
           organization_locations: DEFAULT_CRUD_WITH_STATE,
           appointments: DEFAULT_CRUD_WITH_STATE,
           organization_settings: { show: false, edit: false, update: false },
-          encounters: DEFAULT_CRUD_WITH_WORKFLOW,
+          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(submit_for_billing: false),
           encounter_comments: { index: false, create: false, redact: false },
           provider_notes: DEFAULT_CRUD,
           patients: DEFAULT_CRUD,
@@ -73,7 +73,8 @@ module HbsCustoms
           claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
           support_tickets: DEFAULT_CRUD.except(:destroy),
-          support_ticket_comments: DEFAULT_CRUD.except(:destroy)
+          support_ticket_comments: DEFAULT_CRUD.except(:destroy),
+          claims: DEFAULT_CRUD.merge(claim_insured_data: false, submit_claim_insured: false, claim_data: false, submit_claim: false)
         }.freeze
       end
 
@@ -96,7 +97,7 @@ module HbsCustoms
           organization_locations: DEFAULT_CRUD_WITH_STATE.except(:create),
           appointments: DEFAULT_CRUD_WITH_STATE.except(:create, :destroy),
           audits: { index: false, show: false, model_audits: false },
-          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false),
+          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false, submit_for_billing: false),
           encounter_comments: DEFAULT_CRUD.merge(redact: false),
           provider_notes: DEFAULT_CRUD,
           patients: DEFAULT_CRUD,
