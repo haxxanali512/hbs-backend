@@ -22,7 +22,7 @@ module ProcedureCodeSearch
 
   def handle_procedure_code_pricing(procedure_code_id, line_id)
     procedure_code = ProcedureCode.find_by(id: procedure_code_id)
-    
+
     unless procedure_code
       render json: { success: false, error: "Procedure code not found" }, status: :not_found
       return
@@ -39,9 +39,9 @@ module ProcedureCodeSearch
       # Try to find an active item first, then fall back to any item
       fallback_item = procedure_code.organization_fee_schedule_items
                                     .where(active: true)
-                                    .last || 
+                                    .last ||
                      procedure_code.organization_fee_schedule_items.last
-      
+
       if fallback_item
         pricing_result = {
           success: true,
@@ -71,20 +71,20 @@ module ProcedureCodeSearch
                                    .order(:code)
 
     respond_to do |format|
-      format.json do
-        render json: {
-          success: true,
-          results: procedure_codes.map do |pc|
-            {
-              id: pc.id,
-              code: pc.code,
-              description: pc.description,
-              code_type: pc.code_type,
-              display: "#{pc.code} - #{pc.description}"
+          format.json do
+            render json: {
+              success: true,
+              results: procedure_codes.map do |pc|
+                {
+                  id: pc.id,
+                  code: pc.code || "",
+                  description: pc.description || "",
+                  code_type: pc.code_type || nil,
+                  display: "#{pc.code || 'N/A'} - #{pc.description || 'No description'}"
+                }
+              end
             }
           end
-        }
-      end
       format.turbo_stream do
         render turbo_stream: turbo_stream.update(
           "procedure_code_#{line_id}_results",
@@ -176,4 +176,3 @@ module ProcedureCodeSearch
     raise NotImplementedError, "Must implement procedure_codes_search_path_for_encounter"
   end
 end
-

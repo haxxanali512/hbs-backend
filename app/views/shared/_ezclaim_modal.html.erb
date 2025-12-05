@@ -790,25 +790,35 @@
       return;
     }
 
-    const html = results.map(result => `
+    const html = results.map(result => {
+      const code = result.code || 'N/A';
+      const description = result.description || 'No description';
+      const codeType = result.code_type || null;
+      const codeTypeClass = codeType === 'cpt' ? 'bg-blue-100 text-blue-800' : 
+                           codeType === 'hcpcs' ? 'bg-purple-100 text-purple-800' : 
+                           'bg-gray-100 text-gray-800';
+      const codeTypeDisplay = codeType ? codeType.toUpperCase() : 'N/A';
+      
+      return `
       <div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 procedure-code-option transition-colors"
            data-code-id="${result.id}"
-           data-code="${result.code}"
-           data-description="${result.description}"
-           onclick="selectProcedureCode('${lineId}', ${result.id}, '${result.code}', '${result.description.replace(/'/g, "\\'")}', '${searchUrl}')">
+           data-code="${code}"
+           data-description="${description}"
+           onclick="selectProcedureCode('${lineId}', ${result.id}, '${code.replace(/'/g, "\\'")}', '${description.replace(/'/g, "\\'")}', '${searchUrl}')">
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <div class="font-medium text-sm text-gray-900">${result.code}</div>
-            <div class="text-xs text-gray-500 mt-0.5">${result.description}</div>
+            <div class="font-medium text-sm text-gray-900">${code}</div>
+            <div class="text-xs text-gray-500 mt-0.5">${description}</div>
           </div>
           <div class="ml-2">
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${result.code_type === 'cpt' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">
-              ${result.code_type.toUpperCase()}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${codeTypeClass}">
+              ${codeTypeDisplay}
             </span>
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     resultsDiv.innerHTML = '<div class="p-2 border-b border-gray-200"><div class="text-xs text-gray-500">Select a procedure code:</div></div>' + html;
     resultsDiv.classList.remove('hidden');
