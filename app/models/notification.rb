@@ -35,6 +35,14 @@ class Notification < ApplicationRecord
     update!(read: true, read_at: Time.current) unless read?
   end
 
+  def read?
+    read
+  end
+
+  def unread?
+    !read
+  end
+
   private
 
   def broadcast_to_user
@@ -75,13 +83,5 @@ class Notification < ApplicationRecord
 
   def mark_as_unread!
     update!(read: false, read_at: nil) if read?
-  end
-
-  def read?
-    read
-  end
-
-  def unread?
-    !read
   end
 end
