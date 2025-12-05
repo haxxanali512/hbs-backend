@@ -36,7 +36,7 @@
                 data: { confirm: "This will generate billing documents. Continue?" } %>
           <% end %>
           
-          <% if current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.completed_confirmed? && @encounter.organization.organization_setting&.ezclaim_enabled? && !@encounter.claim&.submitted? %>
+          <% if current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.organization.organization_setting&.ezclaim_enabled? %>
             <button type="button" 
                     onclick="openEzclaimModal('encounterBillingModal', '<%= billing_data_tenant_encounter_path(@encounter) %>', 'claim')"
                     class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
