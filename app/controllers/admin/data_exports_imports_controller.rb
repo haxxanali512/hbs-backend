@@ -118,7 +118,9 @@ class Admin::DataExportsImportsController < Admin::BaseController
       { name: "Claim", class: "Claim", description: "Import/Export claim data" },
       { name: "Insurance Plan", class: "InsurancePlan", description: "Import/Export insurance plan data" },
       { name: "Organization Location", class: "OrganizationLocation", description: "Import/Export organization location data" },
-      { name: "Specialty", class: "Specialty", description: "Import/Export specialty data" }
+      { name: "Specialty", class: "Specialty", description: "Import/Export specialty data" },
+      { name: "Procedure Code", class: "ProcedureCode", description: "Import/Export procedure code data" },
+      { name: "Diagnosis Code", class: "DiagnosisCode", description: "Import/Export diagnosis code data" }
     ]
   end
 

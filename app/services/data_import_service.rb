@@ -233,7 +233,7 @@ class DataImportService
     # Use unique identifiers to find existing records
     find_by = {}
 
-    # Priority: external_id, mrn, email, then name-based lookups
+    # Priority: external_id, mrn, email, npi, code (with code_type if applicable)
     if attributes["external_id"].present?
       find_by["external_id"] = attributes["external_id"]
     elsif attributes["mrn"].present? && attributes["organization_id"].present?
@@ -243,6 +243,13 @@ class DataImportService
       find_by["email"] = attributes["email"]
     elsif attributes["npi"].present?
       find_by["npi"] = attributes["npi"]
+    elsif attributes["code"].present?
+      # For ProcedureCode: code + code_type is unique
+      # For DiagnosisCode: code is unique
+      find_by["code"] = attributes["code"]
+      if attributes["code_type"].present? && @model_class.column_names.include?("code_type")
+        find_by["code_type"] = attributes["code_type"]
+      end
     end
 
     find_by
