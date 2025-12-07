@@ -17,12 +17,11 @@ class FeeSchedulePricingService
 
       if item
         schedule = item.organization_fee_schedule
-        source = schedule.provider_id.present? ? "provider_specific" : "org_wide"
-        
+
         return {
           success: true,
           pricing: item.pricing_snapshot,
-          source: source,
+          source: "org_wide",
           schedule_id: schedule.id,
           item_id: item.id
         }
@@ -38,37 +37,22 @@ class FeeSchedulePricingService
       }
     end
 
-    # Get all available pricing for a provider
-    def get_provider_pricing(organization_id, provider_id)
-      # Get provider-specific pricing
-      provider_items = OrganizationFeeScheduleItem
-                                                  .joins(:organization_fee_schedule)
-                                                  .where(organization_fee_schedules: {
-                                                    organization_id: organization_id,
-                                                    provider_id: provider_id,
-                                                    locked: false
-                                                  })
-                                                  .where(active: true)
-                                                  .includes(:procedure_code, :organization_fee_schedule)
-
-      # Get org-wide pricing for codes not covered by provider-specific
-      provider_codes = provider_items.pluck(:procedure_code_id)
-
+    # Get all available pricing for an organization
+    # Note: All fee schedules are now org-wide (no provider-specific)
+    def get_provider_pricing(organization_id, provider_id = nil)
+      # Get all org-wide pricing items
       org_items = OrganizationFeeScheduleItem
                                             .joins(:organization_fee_schedule)
                                             .where(organization_fee_schedules: {
                                               organization_id: organization_id,
-                                              provider_id: nil,
                                               locked: false
                                             })
                                             .where(active: true)
-                                            .where.not(procedure_code_id: provider_codes)
                                             .includes(:procedure_code, :organization_fee_schedule)
 
       {
-        provider_specific: provider_items.map(&:pricing_snapshot),
         org_wide: org_items.map(&:pricing_snapshot),
-        total_items: provider_items.count + org_items.count
+        total_items: org_items.count
       }
     end
 
@@ -76,12 +60,10 @@ class FeeSchedulePricingService
     def get_organization_pricing_summary(organization_id)
       schedules = OrganizationFeeSchedule.kept
                                         .where(organization_id: organization_id)
-                                        .includes(:provider, :organization_fee_schedule_items)
+                                        .includes(:specialty, :organization_fee_schedule_items)
 
       {
         total_schedules: schedules.count,
-        org_wide_schedules: schedules.org_wide.count,
-        provider_schedules: schedules.provider_specific.count,
         locked_schedules: schedules.locked.count,
         total_items: schedules.joins(:organization_fee_schedule_items).count,
         active_items: schedules.joins(:organization_fee_schedule_items)

@@ -3,18 +3,33 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
   before_action :set_fee_schedule, only: [ :show, :edit, :update, :destroy, :lock, :unlock ]
 
   def index
-    @fee_schedules = @current_organization.organization_fee_schedules
-                                         .kept
-                                         .includes(:provider, :organization_fee_schedule_items)
-                                         .order(:provider_id)
+    # Get or create the organization's fee schedule
+    @fee_schedule = @current_organization.get_or_create_fee_schedule
+
+    # Get all fee schedule items for the organization
+    @fee_schedule_items = @fee_schedule.organization_fee_schedule_items
+                                      .includes(:procedure_code)
+                                      .order(:procedure_code_id)
 
     # Apply filters
-    @fee_schedules = @fee_schedules.where(provider_id: params[:provider_id]) if params[:provider_id].present?
-    @fee_schedules = @fee_schedules.where(locked: params[:locked] == "true") if params[:locked].present?
-    @fee_schedules = @fee_schedules.where(currency: params[:currency]) if params[:currency].present?
+    @fee_schedule_items = @fee_schedule_items.where(active: params[:active] == "true") if params[:active].present?
+    @fee_schedule_items = @fee_schedule_items.joins(:procedure_code)
+                                            .where("procedure_codes.code ILIKE ? OR procedure_codes.description ILIKE ?",
+                                                   "%#{params[:search]}%", "%#{params[:search]}%") if params[:search].present?
 
-    @pagy, @fee_schedules = pagy(@fee_schedules, items: 20)
-    @providers = @current_organization.providers.kept.order(:first_name, :last_name)
+    # If showing active items, ensure only one per procedure code (enforce uniqueness)
+    if params[:active] == "true" || params[:active].blank?
+      # Group by procedure_code_id and take only the first active item per code
+      active_items = @fee_schedule_items.where(active: true)
+      procedure_code_ids = active_items.pluck(:procedure_code_id).uniq
+      @fee_schedule_items = @fee_schedule_items.where(
+        id: active_items.where(procedure_code_id: procedure_code_ids)
+                       .group(:procedure_code_id)
+                       .select("MIN(organization_fee_schedule_items.id)")
+      ).or(@fee_schedule_items.where(active: false))
+    end
+
+    @pagy, @fee_schedule_items = pagy(@fee_schedule_items, items: 20)
   end
 
   def show
@@ -26,7 +41,7 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
 
   def new
     @fee_schedule = @current_organization.organization_fee_schedules.build
-    @providers = @current_organization.providers.kept.order(:first_name, :last_name)
+    @specialties = Specialty.active.order(:name)
   end
 
   def create
@@ -35,20 +50,20 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
     if @fee_schedule.save
       redirect_to tenant_fee_schedule_path(@fee_schedule), notice: "Fee schedule created successfully."
     else
-      @providers = @current_organization.providers.kept.order(:first_name, :last_name)
+      @specialties = Specialty.active.order(:name)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
-    @providers = @current_organization.providers.kept.order(:first_name, :last_name)
+    @specialties = Specialty.active.order(:name)
   end
 
   def update
     if @fee_schedule.update(fee_schedule_params)
       redirect_to tenant_fee_schedule_path(@fee_schedule), notice: "Fee schedule updated successfully."
     else
-      @providers = @current_organization.providers.kept.order(:first_name, :last_name)
+      @specialties = Specialty.active.order(:name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -85,7 +100,7 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
 
   def fee_schedule_params
     params.require(:organization_fee_schedule).permit(
-      :provider_id, :name, :currency, :notes, :locked
+      :specialty_id, :name, :currency, :notes, :locked
     )
   end
 end

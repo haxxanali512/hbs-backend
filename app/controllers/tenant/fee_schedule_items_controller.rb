@@ -35,7 +35,7 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
     @fee_schedule_item = @fee_schedule.organization_fee_schedule_items.build
     @procedure_codes = ProcedureCode.order(:code)
     @existing_items_by_code = {}
-    
+
     # Pre-check which procedure codes already have active items for this organization
     if params[:procedure_code_id].present?
       procedure_code = ProcedureCode.find_by(id: params[:procedure_code_id])
@@ -75,11 +75,35 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
 
   def update
     if @fee_schedule_item.update(fee_schedule_item_params)
-      redirect_to tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
-                  notice: "Fee schedule item updated successfully."
+      respond_to do |format|
+        format.html do
+          redirect_to tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
+                      notice: "Fee schedule item updated successfully."
+        end
+        format.json do
+          render json: {
+            success: true,
+            item: {
+              id: @fee_schedule_item.id,
+              unit_price: @fee_schedule_item.unit_price,
+              formatted_price: number_to_currency(@fee_schedule_item.unit_price || 0)
+            }
+          }
+        end
+      end
     else
-      @procedure_codes = ProcedureCode.order(:code)
-      render :edit, status: :unprocessable_entity
+      respond_to do |format|
+        format.html do
+          @procedure_codes = ProcedureCode.order(:code)
+          render :edit, status: :unprocessable_entity
+        end
+        format.json do
+          render json: {
+            success: false,
+            errors: @fee_schedule_item.errors.full_messages
+          }, status: :unprocessable_entity
+        end
+      end
     end
   end
 

@@ -3,7 +3,7 @@ class OrganizationFeeSchedule < ApplicationRecord
   include Discard::Model
 
   belongs_to :organization
-  belongs_to :provider, optional: true
+  belongs_to :specialty, optional: true
   has_many :organization_fee_schedule_items, dependent: :destroy
   has_many :procedure_codes, through: :organization_fee_schedule_items
 
@@ -17,21 +17,10 @@ class OrganizationFeeSchedule < ApplicationRecord
   validates :name, presence: true
   validates :currency, presence: true
   validates :organization_id, presence: true
-  validate :provider_belongs_to_organization
-  validate :unique_schedule_per_provider
+  validate :unique_schedule_per_organization
 
-  scope :org_wide, -> { where(provider_id: nil) }
-  scope :provider_specific, -> { where.not(provider_id: nil) }
   scope :unlocked, -> { where(locked: false) }
   scope :locked, -> { where(locked: true) }
-
-  def org_wide?
-    provider_id.nil?
-  end
-
-  def provider_specific?
-    provider_id.present?
-  end
 
   def can_be_edited?
     !locked?
@@ -61,28 +50,31 @@ class OrganizationFeeSchedule < ApplicationRecord
     organization_fee_schedule_items.update_all(locked: true)
   end
 
-  private
+  # Class method to get or create fee schedule for an organization
+  def self.get_or_create_for_organization(organization, specialty = nil)
+    fee_schedule = organization.organization_fee_schedules.kept.first
 
-  def provider_belongs_to_organization
-    return unless provider_id.present?
-
-    unless organization.providers.exists?(provider_id)
-      errors.add(:provider, "must belong to the organization")
+    if fee_schedule.nil?
+      fee_schedule = organization.organization_fee_schedules.create!(
+        name: "#{organization.name} Fee Schedule",
+        currency: :usd,
+        specialty_id: specialty&.id
+      )
     end
+
+    fee_schedule
   end
 
-  def unique_schedule_per_provider
+  private
+
+  def unique_schedule_per_organization
     return unless organization_id.present?
 
-    existing = OrganizationFeeSchedule.where(organization_id: organization_id, provider_id: provider_id)
+    existing = OrganizationFeeSchedule.kept.where(organization_id: organization_id)
     existing = existing.where.not(id: id) if persisted?
 
     if existing.exists?
-      if provider_id.present?
-        errors.add(:provider, "already has a fee schedule for this organization")
-      else
-        errors.add(:organization, "already has an organization-wide fee schedule")
-      end
+      errors.add(:organization, "already has a fee schedule")
     end
   end
 end

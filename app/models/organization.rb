@@ -130,6 +130,49 @@ class Organization < ApplicationRecord
     fee_schedule_item_for(procedure_code).present?
   end
 
+  # Get or create the organization's fee schedule
+  def get_or_create_fee_schedule(specialty = nil)
+    OrganizationFeeSchedule.get_or_create_for_organization(self, specialty)
+  end
+
+  # Get all procedure codes unlocked for this organization
+  # (through active providers with active specialties)
+  def unlocked_procedure_codes
+    ProcedureCode.joins(
+      specialties: { providers: :provider_assignments }
+    ).where(
+      provider_assignments: { organization_id: id, active: true },
+      specialties: { status: :active },
+      providers: { status: "approved" }
+    ).distinct
+  end
+
+  # Check if a specific procedure code is unlocked for this organization
+  def procedure_code_unlocked?(procedure_code_id)
+    providers.active
+      .joins(:specialty)
+      .joins("INNER JOIN procedure_codes_specialties ON procedure_codes_specialties.specialty_id = specialties.id")
+      .where(
+        specialties: { status: :active },
+        procedure_codes_specialties: { procedure_code_id: procedure_code_id }
+      )
+      .exists?
+  end
+
+  # Get all specialties that unlocked a specific procedure code for this organization
+  def specialties_for_procedure_code(procedure_code_id)
+    Specialty.joins(
+      providers: { provider_assignments: :organization }
+    ).joins(
+      "INNER JOIN procedure_codes_specialties ON procedure_codes_specialties.specialty_id = specialties.id"
+    ).where(
+      provider_assignments: { organization_id: id, active: true },
+      providers: { status: "approved" },
+      specialties: { status: :active },
+      procedure_codes_specialties: { procedure_code_id: procedure_code_id }
+    ).distinct
+  end
+
   def invite_owner
     return if owner.nil?
     return if owner.invitation_sent_at.present? # Already invited

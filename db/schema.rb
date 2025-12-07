@@ -9,8 +9,8 @@
 # migrations use external dependencies or application code.
 #
 # It's strongly recommended that you check this file into your version control system.
-ActiveRecord::Schema[7.2].define(version: 2025_12_03_100000) do
 
+ActiveRecord::Schema[7.2].define(version: 2025_12_06_061318) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -537,7 +537,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_03_100000) do
 
   create_table "organization_fee_schedules", force: :cascade do |t|
     t.bigint "organization_id", null: false
-    t.bigint "provider_id", null: false
     t.string "name"
     t.integer "currency"
     t.text "notes"
@@ -545,8 +544,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_03_100000) do
     t.datetime "updated_at", null: false
     t.datetime "discarded_at", precision: nil
     t.boolean "locked", default: false, null: false
+    t.bigint "specialty_id"
     t.index ["organization_id"], name: "index_organization_fee_schedules_on_organization_id"
-    t.index ["provider_id"], name: "index_organization_fee_schedules_on_provider_id"
+    t.index ["specialty_id"], name: "index_organization_fee_schedules_on_specialty_id"
   end
 
   create_table "organization_identifiers", force: :cascade do |t|
@@ -1051,7 +1051,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_03_100000) do
   add_foreign_key "organization_fee_schedule_items", "organization_fee_schedules"
   add_foreign_key "organization_fee_schedule_items", "procedure_codes"
   add_foreign_key "organization_fee_schedules", "organizations"
-  add_foreign_key "organization_fee_schedules", "providers"
+  add_foreign_key "organization_fee_schedules", "specialties"
   add_foreign_key "organization_identifiers", "organizations"
   add_foreign_key "organization_locations", "organizations"
   add_foreign_key "organization_memberships", "organizations"
