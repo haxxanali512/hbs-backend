@@ -13,12 +13,12 @@
   <%= form_with(model: @fee_schedule, url: (@fee_schedule.persisted? ? tenant_fee_schedule_path(@fee_schedule) : tenant_fee_schedules_path), local: true, class: "space-y-6") do |f| %>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
-        <%= f.label :provider_id, "Provider (Optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :provider_id, 
-            options_from_collection_for_select(@providers, :id, :full_name, @fee_schedule.provider_id),
-            { prompt: "Organization-wide (leave blank)" },
+        <%= f.label :specialty_id, "Specialty (Optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :specialty_id, 
+            options_from_collection_for_select(@specialties, :id, :name, @fee_schedule.specialty_id),
+            { prompt: "Select Specialty (Optional)" },
             { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-        <p class="mt-1 text-sm text-gray-500">Leave blank for organization-wide schedule</p>
+        <p class="mt-1 text-sm text-gray-500">Optional: Track which specialty originally created this schedule</p>
       </div>
 
       <div>
