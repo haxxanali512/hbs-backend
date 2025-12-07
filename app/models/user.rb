@@ -3,7 +3,7 @@ class User < ApplicationRecord
   include Discard::Model
   # Include default devise modules. Others available are:
   # :confirmable, :timeoutable, :trackable and :omniauthable
-  devise :database_authenticatable,
+  devise :two_factor_authenticatable,
          :recoverable, :rememberable, :validatable,
          :invitable, :lockable, :masqueradable
 
@@ -123,5 +123,48 @@ class User < ApplicationRecord
   def organization_id
     # Return the first active organization's ID for tenant users
     active_organizations.first&.id
+  end
+
+  # ===========================================
+  # Two-Factor Authentication (MFA) Methods
+  # ===========================================
+
+  # Check if MFA is enabled for this user
+  def mfa_enabled?
+    otp_required_for_login? && otp_secret.present?
+  end
+
+  # Enable MFA - generate and save OTP secret
+  def enable_mfa!
+    self.otp_secret = User.generate_otp_secret
+    self.otp_required_for_login = true
+    save!
+  end
+
+  # Disable MFA
+  def disable_mfa!
+    self.otp_secret = nil
+    self.otp_required_for_login = false
+    self.consumed_timestep = nil
+    save!
+  end
+
+  # Generate provisioning URI for authenticator apps
+  def mfa_provisioning_uri
+    otp_provisioning_uri(email, issuer: "HBS Healthcare")
+  end
+
+  # Generate QR code as SVG for the provisioning URI
+  def mfa_qr_code_svg
+    return nil unless otp_secret.present?
+
+    qrcode = RQRCode::QRCode.new(mfa_provisioning_uri)
+    qrcode.as_svg(
+      color: "000",
+      shape_rendering: "crispEdges",
+      module_size: 4,
+      standalone: true,
+      use_path: true
+    )
   end
 end

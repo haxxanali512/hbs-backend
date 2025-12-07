@@ -1,8 +1,21 @@
 Rails.application.routes.draw do
   devise_for :users, controllers: {
     invitations: "users/invitations",
-    masquerades: "admin/masquerades"
+    masquerades: "admin/masquerades",
+    sessions: "users/sessions"
   }
+
+  # MFA (Two-Factor Authentication) routes
+  namespace :users do
+    resource :mfa, only: [:show], controller: "mfa" do
+      post :enable
+      post :verify
+      delete :disable, action: :disable
+    end
+    # OTP verification during login
+    get "mfa/verify", to: "otp#new", as: :mfa_verify
+    post "mfa/authenticate", to: "otp#create", as: :mfa_authenticate
+  end
 
   # Health check
   get "up" => "health#show", as: :rails_health_check
