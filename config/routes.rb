@@ -110,6 +110,14 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :data_exports_imports, only: [ :index ] do
+        collection do
+          get :download_sample
+          post :export
+          post :import
+        end
+      end
+
       resources :support_tickets do
         member do
           patch :close
