@@ -77,7 +77,7 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
     if @fee_schedule_item.update(fee_schedule_item_params)
       respond_to do |format|
         format.html do
-          redirect_to tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
+          redirect_to tenant_fee_schedules_path,
                       notice: "Fee schedule item updated successfully."
         end
         format.json do
@@ -110,10 +110,10 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
   def destroy
     if @fee_schedule_item.can_be_deleted?
       @fee_schedule_item.discard
-      redirect_to tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
+      redirect_to tenant_fee_schedules_path,
                   notice: "Fee schedule item deleted successfully."
     else
-      redirect_to tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
+      redirect_to tenant_fee_schedules_path,
                   alert: "FEE_ITEM_IN_USE - Item has posted claims; deactivate instead."
     end
   end
