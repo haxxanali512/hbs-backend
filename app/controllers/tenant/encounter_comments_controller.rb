@@ -15,6 +15,14 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
   end
 
   def create
+    existing_comments = @encounter.encounter_comments.where.not(id: nil)
+    hbs_initiated = existing_comments.any? { |c| c.actor_type.to_s.in?([ "hbs_admin", "hbs_user", "system" ]) }
+
+    unless hbs_initiated
+      redirect_to tenant_encounter_path(@encounter), alert: "HBS must start this thread before clients can comment."
+      return
+    end
+
     @comment = @encounter.encounter_comments.build(encounter_comment_params)
     @comment.author = current_user
     @comment.visibility = :shared_with_client
