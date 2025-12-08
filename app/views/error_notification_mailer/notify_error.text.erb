@@ -1,0 +1,76 @@
+🚨 SERVER ERROR NOTIFICATION
+============================
+
+Environment: <%= @environment.upcase %>
+Time: <%= @timestamp.strftime("%Y-%m-%d %H:%M:%S %Z") %>
+<% if @error_fingerprint.present? %>Error Fingerprint: <%= @error_fingerprint %>
+<% end %>
+
+ERROR DETAILS
+-------------
+Exception Class: <%= @exception.class.name %>
+Error Message: <%= @exception.message %>
+<% if @exception_cause.present? %>
+Caused by: <%= @exception_cause.class.name %>
+  <%= @exception_cause.message %>
+<% end %>
+
+<% if @system_info.present? %>
+SYSTEM INFORMATION
+------------------
+<% if @system_info[:ruby_version].present? %>Ruby Version: <%= @system_info[:ruby_version] %>
+<% end %><% if @system_info[:rails_version].present? %>Rails Version: <%= @system_info[:rails_version] %>
+<% end %><% if @system_info[:hostname].present? %>Hostname: <%= @system_info[:hostname] %>
+<% end %><% if @system_info[:pid].present? %>Process ID: <%= @system_info[:pid] %>
+<% end %><% if @system_info[:memory_usage].present? %>Memory Usage: <%= @system_info[:memory_usage] %>
+<% end %>
+<% end %>
+
+<% if @request_details.present? %>
+<% if @request_details[:job_class].present? %>
+BACKGROUND JOB INFORMATION
+--------------------------
+Job Class: <%= @request_details[:job_class] %>
+Job ID: <%= @request_details[:job_id] %>
+<% if @request_details[:arguments].present? %>
+Job Arguments:
+<%= JSON.pretty_generate(@request_details[:arguments]) %>
+<% end %>
+<% else %>
+REQUEST INFORMATION
+-------------------
+<% if @request_details[:url].present? %>URL: <%= @request_details[:url] %>
+<% end %><% if @request_details[:method].present? %>Method: <%= @request_details[:method] %>
+<% end %><% if @request_details[:path].present? %>Path: <%= @request_details[:path] %>
+<% end %><% if @request_details[:ip].present? %>IP Address: <%= @request_details[:ip] %>
+<% end %><% if @request_details[:user_id].present? %>User ID: <%= @request_details[:user_id] %>
+<% end %><% if @request_details[:organization_id].present? %>Organization ID: <%= @request_details[:organization_id] %>
+<% end %><% if @request_details[:request_id].present? %>Request ID: <%= @request_details[:request_id] %>
+<% end %><% if @request_details[:params].present? && @request_details[:params].any? %>
+Parameters:
+<%= JSON.pretty_generate(@request_details[:params]) %>
+<% end %>
+<% end %>
+
+<% if @backtrace.any? %>
+BACKTRACE<% if @backtrace_count > @backtrace.count %> (showing first <%= @backtrace.count %> of <%= @backtrace_count %> lines)<% else %> (<%= @backtrace_count %> lines)<% end %>
+<% if @backtrace_count > @backtrace.count %>--------------------------<% else %>--------------------------<% end %>
+<% @backtrace.each_with_index do |line, index| %>
+<%= "%3d" % (index + 1) %>: <%= line %>
+<% end %>
+<% if @backtrace_count > @backtrace.count %>
+
+... <%= @backtrace_count - @backtrace.count %> more lines (check logs for full backtrace)
+<% end %>
+<% end %>
+
+NEXT STEPS
+----------
+- Check the application logs for more details
+- Review the request parameters and user context above
+<% if @request_details[:request_id].present? %>- Use the Request ID to search logs: <%= @request_details[:request_id] %>
+<% end %><% if @error_fingerprint.present? %>- Search for similar errors using fingerprint: <%= @error_fingerprint %>
+<% end %>- Check if this is a recurring issue or a one-time error
+<% if @backtrace_count > @backtrace.count %>- Full backtrace available in application logs (showing <%= @backtrace.count %> of <%= @backtrace_count %> lines above)
+<% end %>
+
