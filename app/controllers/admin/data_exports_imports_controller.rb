@@ -1,3 +1,7 @@
+require "csv"
+require "securerandom"
+require "fileutils"
+
 class Admin::DataExportsImportsController < Admin::BaseController
   before_action :load_available_models, only: [ :index ]
 
@@ -107,7 +111,73 @@ class Admin::DataExportsImportsController < Admin::BaseController
     end
   end
 
+  # Uploads a file and queues FileProcessingJob (no job_id needed)
+  def upload_processing_file
+    file = params[:file]
+
+    unless file.present?
+      redirect_to admin_data_exports_imports_path(action_type: "import"), alert: "Please select a file to upload."
+      return
+    end
+
+    begin
+      saved_path = persist_uploaded_file(file)
+      file_type = File.extname(file.original_filename).delete(".").downcase
+
+      FileProcessingJob.perform_later(saved_path, file_type, nil)
+
+      redirect_to admin_data_exports_imports_path(action_type: "import"),
+                  notice: "File uploaded. Processing has started."
+    rescue => e
+      Rails.logger.error("Processing file upload failed: #{e.message}")
+      redirect_to admin_data_exports_imports_path(action_type: "import"),
+                  alert: "Upload failed: #{e.message}"
+    end
+  end
+
+  # Provides a CSV with the expected headers for processing
+  def download_processing_sample
+    format = params[:format].presence || "csv"
+    file_extension = format == "xlsx" ? "xlsx" : "csv"
+
+    headers = processing_sample_headers
+    csv_content = CSV.generate do |csv|
+      csv << headers
+    end
+
+    send_data csv_content,
+              filename: "processing_sample_#{Time.current.strftime('%Y%m%d')}.#{file_extension}",
+              type: "text/csv",
+              disposition: "attachment"
+  end
+
   private
+
+  def persist_uploaded_file(file)
+    dir = Rails.root.join("tmp", "uploads")
+    FileUtils.mkdir_p(dir)
+
+    ext = File.extname(file.original_filename)
+    filename = "#{SecureRandom.uuid}#{ext}"
+    path = dir.join(filename)
+
+    File.open(path, "wb") { |f| f.write(file.read) }
+    path.to_s
+  end
+
+  def processing_sample_headers
+    [
+      "Remit Account",
+      "Remit Patient Name",
+      "Remit Service From Date",
+      "Remit Service to Date",
+      "Remit Received Date",
+      "Service Line Procedure Code",
+      "Service Line Adjustment CARC",
+      "Service Line Total Paid Amount",
+      "Remit Total Paid Amount"
+    ]
+  end
 
   def load_available_models
     @available_models = [

@@ -113,8 +113,10 @@ Rails.application.routes.draw do
       resources :data_exports_imports, only: [ :index ] do
         collection do
           get :download_sample
+          get :download_processing_sample
           post :export
           post :import
+          post :upload_processing_file
         end
       end
 
