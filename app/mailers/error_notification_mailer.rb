@@ -45,7 +45,7 @@ class ErrorNotificationMailer < ApplicationMailer
       exception.message&.split("\n")&.first, # First line of message
       @full_backtrace&.first(3)&.join("|") # First 3 backtrace lines
     ].compact.join("|")
-    
+
     Digest::MD5.hexdigest(key_parts)
   end
 
@@ -54,12 +54,18 @@ class ErrorNotificationMailer < ApplicationMailer
       ruby_version: RUBY_VERSION,
       rails_version: Rails.version,
       environment: Rails.env,
-      hostname: Socket.gethostname rescue "unknown",
+      hostname: get_hostname,
       pid: Process.pid,
       memory_usage: get_memory_usage
     }
   rescue => e
     { error: "Failed to gather system info: #{e.message}" }
+  end
+
+  def get_hostname
+    Socket.gethostname
+  rescue
+    "unknown"
   end
 
   def get_memory_usage
@@ -84,4 +90,3 @@ class ErrorNotificationMailer < ApplicationMailer
     end
   end
 end
-
