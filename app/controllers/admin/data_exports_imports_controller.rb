@@ -190,12 +190,14 @@ class Admin::DataExportsImportsController < Admin::BaseController
       { name: "Organization Location", class: "OrganizationLocation", description: "Import/Export organization location data" },
       { name: "Specialty", class: "Specialty", description: "Import/Export specialty data" },
       { name: "Procedure Code", class: "ProcedureCode", description: "Import/Export procedure code data" },
-      { name: "Diagnosis Code", class: "DiagnosisCode", description: "Import/Export diagnosis code data" }
+      { name: "Diagnosis Code", class: "DiagnosisCode", description: "Import/Export diagnosis code data" },
+      { name: "Organization", class: "Organization", description: "Import/Export organization data" },
+      { name: "User", class: "User", description: "Import/Export user data" }
     ]
   end
 
   def generate_sample_headers(model_class)
-    excluded_columns = %w[id created_at updated_at discarded_at]
+    excluded_columns = %w[id created_at updated_at discarded_at encrypted_password reset_password_token confirmation_token unlock_token invitation_token]
     columns = model_class.column_names.reject { |col| excluded_columns.include?(col) }
 
     columns.map do |col|
@@ -203,7 +205,12 @@ class Admin::DataExportsImportsController < Admin::BaseController
         association_name = col.gsub("_id", "")
         association = model_class.reflect_on_association(association_name.to_sym)
         if association
-          "#{association_name}_name"
+          # Special handling for Organization owner (User)
+          if model_class == Organization && association_name == "owner"
+            "owner_email" # Use email instead of name for User
+          else
+            "#{association_name}_name"
+          end
         else
           col
         end
@@ -228,18 +235,26 @@ class Admin::DataExportsImportsController < Admin::BaseController
 
   def generate_sample_value(model_class, header)
     # Generate sample values based on header type
-    if header.include?("name")
-      "Sample #{header.gsub('_name', '').humanize}"
-    elsif header.include?("email")
+    if header.include?("email")
       "sample@example.com"
+    elsif header.include?("username")
+      "sample_user"
+    elsif header.include?("name")
+      "Sample #{header.gsub('_name', '').humanize}"
     elsif header.include?("phone")
       "123-456-7890"
     elsif header.include?("date") || header.include?("dob")
       Date.today.strftime("%Y-%m-%d")
     elsif header.include?("status")
-      model_class.defined_enums[header.gsub("_", "")]&.keys&.first || "active"
+      enum_key = header.gsub("_", "").gsub(" ", "")
+      model_class.defined_enums[enum_key]&.keys&.first || model_class.defined_enums["status"]&.keys&.first || "active"
     elsif header.include?("type")
-      model_class.defined_enums[header.gsub("_", "")]&.keys&.first || "other"
+      enum_key = header.gsub("_", "").gsub(" ", "")
+      model_class.defined_enums[enum_key]&.keys&.first || "other"
+    elsif header.include?("subdomain")
+      "sample-org"
+    elsif header.include?("password")
+      "ChangeThisPassword123!"
     else
       "Sample Value"
     end

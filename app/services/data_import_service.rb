@@ -128,6 +128,18 @@ class DataImportService
     # Map CSV headers to model attributes
     attributes = map_attributes(normalized_data)
 
+    # Special validation for Organization: owner_id must be present
+    if @model_class == Organization && attributes["owner_id"].blank?
+      # Try to find owner from normalized_data
+      if normalized_data["owner_email"].present?
+        owner = User.find_by(email: normalized_data["owner_email"])
+        attributes["owner_id"] = owner.id if owner
+      elsif normalized_data["owner_username"].present?
+        owner = User.find_by(username: normalized_data["owner_username"])
+        attributes["owner_id"] = owner.id if owner
+      end
+    end
+
     # Find or initialize record
     find_by_attributes = extract_find_by_attributes(attributes)
     record = if find_by_attributes.any?
@@ -169,6 +181,13 @@ class DataImportService
       # Check if it's a foreign key
       elsif key.end_with?("_id")
         attributes[key] = value.to_i if value.to_s.match?(/^\d+$/)
+      # Special handling for owner_email and owner_username (for Organization)
+      elsif key == "owner_email" && @model_class == Organization
+        owner = User.find_by(email: value)
+        attributes["owner_id"] = owner.id if owner
+      elsif key == "owner_username" && @model_class == Organization
+        owner = User.find_by(username: value)
+        attributes["owner_id"] = owner.id if owner
       end
     end
 
@@ -179,12 +198,32 @@ class DataImportService
       end
     end
 
+    # Special handling for User password
+    if @model_class == User && attributes["password"].blank? && attributes["encrypted_password"].blank?
+      # Generate a random password if not provided
+      # User will need to reset password via email
+      require "securerandom"
+      attributes["password"] = SecureRandom.alphanumeric(16)
+    end
+
     attributes
   end
 
   def parse_value(column_name, value)
     column = @model_class.columns_hash[column_name]
     return value unless column
+
+    # Handle enum fields (stored as integers but can accept string values)
+    if @model_class.respond_to?(:defined_enums) && @model_class.defined_enums.key?(column_name.to_s)
+      enum_values = @model_class.defined_enums[column_name.to_s]
+      # Try to find by string key (e.g., "pending", "active")
+      if enum_values.key?(value.to_s.downcase)
+        return enum_values[value.to_s.downcase]
+      # Try to find by integer value
+      elsif value.to_s.match?(/^\d+$/) && enum_values.values.include?(value.to_i)
+        return value.to_i
+      end
+    end
 
     case column.type
     when :integer, :bigint
@@ -207,6 +246,22 @@ class DataImportService
     return nil unless association
 
     associated_model = association.class_name.constantize
+
+    # Special handling for User (owner association)
+    if associated_model == User
+      # Try to find by email first
+      record = associated_model.find_by(email: value)
+      return record.id if record
+      # Try to find by username
+      record = associated_model.find_by(username: value)
+      return record.id if record
+      # Try case-insensitive email search
+      record = associated_model.where("email ILIKE ?", value).first
+      return record.id if record
+      # Try case-insensitive username search
+      record = associated_model.where("username ILIKE ?", value).first
+      return record.id if record
+    end
 
     # Try to find by name
     if associated_model.respond_to?(:find_by_name)
@@ -233,22 +288,38 @@ class DataImportService
     # Use unique identifiers to find existing records
     find_by = {}
 
-    # Priority: external_id, mrn, email, npi, code (with code_type if applicable)
-    if attributes["external_id"].present?
-      find_by["external_id"] = attributes["external_id"]
-    elsif attributes["mrn"].present? && attributes["organization_id"].present?
-      find_by["mrn"] = attributes["mrn"]
-      find_by["organization_id"] = attributes["organization_id"]
-    elsif attributes["email"].present?
-      find_by["email"] = attributes["email"]
-    elsif attributes["npi"].present?
-      find_by["npi"] = attributes["npi"]
-    elsif attributes["code"].present?
-      # For ProcedureCode: code + code_type is unique
-      # For DiagnosisCode: code is unique
-      find_by["code"] = attributes["code"]
-      if attributes["code_type"].present? && @model_class.column_names.include?("code_type")
-        find_by["code_type"] = attributes["code_type"]
+    # Model-specific unique identifiers
+    if @model_class == Organization
+      # Organization: subdomain is unique
+      if attributes["subdomain"].present?
+        find_by["subdomain"] = attributes["subdomain"]
+      end
+    elsif @model_class == User
+      # User: email is unique, username is also unique
+      if attributes["email"].present?
+        find_by["email"] = attributes["email"]
+      elsif attributes["username"].present?
+        find_by["username"] = attributes["username"]
+      end
+    else
+      # Generic unique identifiers for other models
+      # Priority: external_id, mrn, email, npi, code (with code_type if applicable)
+      if attributes["external_id"].present?
+        find_by["external_id"] = attributes["external_id"]
+      elsif attributes["mrn"].present? && attributes["organization_id"].present?
+        find_by["mrn"] = attributes["mrn"]
+        find_by["organization_id"] = attributes["organization_id"]
+      elsif attributes["email"].present?
+        find_by["email"] = attributes["email"]
+      elsif attributes["npi"].present?
+        find_by["npi"] = attributes["npi"]
+      elsif attributes["code"].present?
+        # For ProcedureCode: code + code_type is unique
+        # For DiagnosisCode: code is unique
+        find_by["code"] = attributes["code"]
+        if attributes["code_type"].present? && @model_class.column_names.include?("code_type")
+          find_by["code_type"] = attributes["code_type"]
+        end
       end
     end
 
