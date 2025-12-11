@@ -10,7 +10,7 @@
     </div>
   <% end %>
 
-  <%= form_with(model: [@fee_schedule, @fee_schedule_item], local: true, class: "space-y-6") do |f| %>
+  <%= form_with(model: @fee_schedule_item, url: (@fee_schedule_item.persisted? ? tenant_fee_schedule_fee_schedule_item_path(@fee_schedule, @fee_schedule_item) : tenant_fee_schedule_fee_schedule_items_path(@fee_schedule)), local: true, class: "space-y-6") do |f| %>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
         <%= f.label :procedure_code_id, "Procedure Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
