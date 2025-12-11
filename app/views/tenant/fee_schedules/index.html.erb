@@ -12,6 +12,11 @@
           <p class="mt-1 text-sm text-gray-500">
             Procedure codes are automatically added when specialties are assigned to your organization.
           </p>
+          <% if @missing_rate_count.positive? %>
+            <div class="mt-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+              <%= @missing_rate_count %> code(s) need a rate. Please fill the empty rates below.
+            </div>
+          <% end %>
         </div>
       </div>
     </div>

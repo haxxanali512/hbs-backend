@@ -10,6 +10,7 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
     @fee_schedule_items = @fee_schedule.organization_fee_schedule_items
                                       .includes(:procedure_code)
                                       .order(:procedure_code_id)
+    @missing_rate_count = @fee_schedule_items.where(unit_price: nil).count
 
     # Apply filters
     @fee_schedule_items = @fee_schedule_items.where(active: params[:active] == "true") if params[:active].present?

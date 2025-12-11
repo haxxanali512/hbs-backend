@@ -7,7 +7,8 @@ class OrganizationFeeScheduleItem < ApplicationRecord
   belongs_to :organization_fee_schedule
   belongs_to :procedure_code
 
-  validates :unit_price, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  # Rate can be set later; allow nil until client admin fills it
+  validates :unit_price, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :pricing_rule, presence: true
   validates :active, inclusion: { in: [ true, false ] }
   validates :locked, inclusion: { in: [ true, false ] }
@@ -70,7 +71,7 @@ class OrganizationFeeScheduleItem < ApplicationRecord
     # This ensures one unit price per procedure code per organization
     # Provider-specific pricing can be added later if needed
     org_id = organization_fee_schedule.organization_id
-    
+
     existing = OrganizationFeeScheduleItem.joins(:organization_fee_schedule)
                                          .where(organization_fee_schedules: {
                                            organization_id: org_id
@@ -82,8 +83,8 @@ class OrganizationFeeScheduleItem < ApplicationRecord
     if existing.exists?
       existing_item = existing.first
       existing_schedule = existing_item.organization_fee_schedule
-      scope_info = existing_schedule.provider_id.present? ? 
-                   " (existing item is provider-specific)" : 
+      scope_info = existing_schedule.provider_id.present? ?
+                   " (existing item is provider-specific)" :
                    " (existing item is organization-wide)"
       errors.add(:procedure_code, "FEE_DUP_ITEM - Only one active fee schedule item allowed per procedure code per organization#{scope_info}.")
     end
