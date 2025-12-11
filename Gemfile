@@ -6,6 +6,8 @@ gem "puma", ">= 5.0"
 gem "devise"
 gem "devise_invitable"
 gem "devise_masquerade"
+gem "devise-two-factor"
+gem "rqrcode"  # For generating QR codes
 gem "tailwindcss-ruby", "3.4.13"
 gem "audited"
 gem "discard"

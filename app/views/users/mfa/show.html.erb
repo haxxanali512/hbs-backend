@@ -1,0 +1,144 @@
+<% content_for :title, "Two-Factor Authentication" %>
+
+<div class="w-full mx-auto py-8 px-4 sm:px-6 lg:px-8 max-w-2xl">
+  <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <!-- Header -->
+    <div class="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-indigo-100">
+          <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base font-medium text-gray-800">Two-Factor Authentication</h1>
+          <p class="text-sm text-gray-500">Add an extra layer of security to your account</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <% if notice %>
+      <div class="mx-5 mt-4 sm:mx-6 rounded-lg border border-green-200 bg-green-50 p-4">
+        <div class="flex items-center gap-2">
+          <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-sm text-green-800"><%= notice %></p>
+        </div>
+      </div>
+    <% end %>
+
+    <% if alert %>
+      <div class="mx-5 mt-4 sm:mx-6 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div class="flex items-center gap-2">
+          <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-sm text-red-800"><%= alert %></p>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Content -->
+    <div class="p-5 sm:p-6">
+      <% if @mfa_enabled %>
+        <!-- MFA Enabled State -->
+        <div class="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-medium text-green-800">Two-Factor Authentication is Enabled</h3>
+            <p class="mt-1 text-sm text-green-700">
+              Your account is protected with an authenticator app. You'll need to enter a verification code each time you sign in.
+            </p>
+          </div>
+        </div>
+
+        <!-- Disable MFA Form -->
+        <div class="mt-6 pt-6 border-t border-gray-100">
+          <h3 class="text-sm font-medium text-gray-800 mb-3">Disable Two-Factor Authentication</h3>
+          <p class="text-sm text-gray-600 mb-4">
+            If you disable 2FA, your account will only be protected by your password. We recommend keeping it enabled.
+          </p>
+
+          <%= form_with url: disable_users_mfa_path, method: :delete, data: { turbo: false }, class: "space-y-4" do |f| %>
+            <div>
+              <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Confirm your password</label>
+              <input type="password" name="password" id="password" required
+                     class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10"
+                     placeholder="Enter your password">
+            </div>
+            <button type="submit" 
+                    class="inline-flex items-center rounded-lg border border-red-300 px-4 py-2.5 text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors"
+                    onclick="return confirm('Are you sure you want to disable two-factor authentication?')">
+              <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728l-2.121 2.121M5.636 5.636l-2.121 2.121" />
+              </svg>
+              Disable Two-Factor Authentication
+            </button>
+          <% end %>
+        </div>
+      <% else %>
+        <!-- MFA Disabled State -->
+        <div class="flex items-start gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-medium text-amber-800">Two-Factor Authentication is Disabled</h3>
+            <p class="mt-1 text-sm text-amber-700">
+              Protect your account by enabling two-factor authentication. You'll need an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator.
+            </p>
+          </div>
+        </div>
+
+        <!-- Enable MFA Button -->
+        <div class="mt-6">
+          <%= form_with url: enable_users_mfa_path, method: :post, data: { turbo: false } do %>
+            <button type="submit" 
+                    class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700">
+              <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Enable Two-Factor Authentication
+            </button>
+          <% end %>
+        </div>
+
+        <!-- Instructions -->
+        <div class="mt-8 pt-6 border-t border-gray-100">
+          <h3 class="text-sm font-medium text-gray-800 mb-3">How it works</h3>
+          <ol class="space-y-3 text-sm text-gray-600">
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">1</span>
+              <span>Download an authenticator app (Google Authenticator, Authy, or Microsoft Authenticator)</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">2</span>
+              <span>Scan the QR code with your authenticator app</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">3</span>
+              <span>Enter the 6-digit code from your app to verify setup</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">4</span>
+              <span>You'll need to enter a code each time you sign in</span>
+            </li>
+          </ol>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-5 py-4 sm:px-6 bg-gray-50 border-t border-gray-100">
+      <%= link_to "← Back to Dashboard", :back, class: "text-sm text-gray-600 hover:text-gray-900" %>
+    </div>
+  </div>
+</div>
