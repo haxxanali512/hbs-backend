@@ -439,7 +439,8 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :claims, only: [ :index, :show ]
+        # Claims index removed per request; comment out tenant claims routes
+        # resources :claims, only: [ :index, :show ]
 
         resource :organization_setting, only: [ :show, :edit, :update ]
       end

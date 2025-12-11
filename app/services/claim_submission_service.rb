@@ -15,8 +15,6 @@ class ClaimSubmissionService
 
   # Main entry point: Submit encounter for billing
   def submit_for_billing
-    validate_encounter_ready!
-
     # Build claim payload from encounter
     claim_payload = build_claim_payload
 
@@ -35,7 +33,7 @@ class ClaimSubmissionService
       raise SubmissionError, "EZClaim did not return a claim ID"
     end
 
-    # Build service lines payload
+    # Build service lines payload (may be empty if no lines)
     service_lines_array = build_service_lines_payload(claim_id)
 
     # POST service lines to EZClaim
@@ -82,18 +80,9 @@ class ClaimSubmissionService
   attr_reader :encounter, :organization, :ezclaim_service
 
   # Validate that encounter is ready for billing
+  # Note: validations are intentionally skipped per request to allow submission to EZClaim
   def validate_encounter_ready!
-    raise ValidationError, "Encounter must be completed and confirmed" unless encounter.completed_confirmed?
-    raise ValidationError, "Encounter must have at least one diagnosis code" if encounter.diagnosis_codes.empty?
-    raise ValidationError, "Organization must have EZClaim enabled" unless organization.organization_setting&.ezclaim_enabled?
-    raise ValidationError, "Encounter already has a claim submitted" if encounter.claim&.submitted?
-
-    # Check if encounter has a claim with procedure codes (claim_lines)
-    # The claim should be created locally first with procedure codes before submitting to EZClaim
-    # TODO: When encounter_procedure_items is implemented, we can build service lines directly from encounter
-    unless encounter.claim&.claim_lines&.any?
-      raise ValidationError, "Encounter must have a claim with at least one claim line (procedure code). Please create a claim with procedure codes first."
-    end
+    true
   end
 
   # Build claim payload from encounter
@@ -119,8 +108,6 @@ class ClaimSubmissionService
     # Get claim lines from existing claim
     claim_lines = encounter.claim&.claim_lines || []
 
-    raise ValidationError, "No claim lines found for encounter" if claim_lines.empty?
-
     # Build array of service lines
     service_lines = claim_lines.map do |line|
       # Look up pricing from fee schedule using procedure code
@@ -131,12 +118,12 @@ class ClaimSubmissionService
         line.procedure_code_id
       )
 
-      unless pricing_result[:success]
-        raise ValidationError, "Fee schedule not found for procedure code #{line.procedure_code.code}: #{pricing_result[:error]}"
+      # If pricing fails, allow submission with zero pricing
+      unit_price = if pricing_result[:success]
+                     pricing_result[:pricing][:unit_price].to_f
+      else
+                     0.0
       end
-
-      # Get unit price from fee schedule (1 unit = 15 minutes per business rule)
-      unit_price = pricing_result[:pricing][:unit_price].to_f
       units = line.units.to_f
 
       # Calculate charges: unit_price * units
@@ -173,11 +160,20 @@ class ClaimSubmissionService
 
   # Update Claim record with EZClaim response data
   def create_claim_record(claim_result, claim_id)
-    # Claim should already exist (created locally with claim_lines)
+    # Claim should ideally already exist; if not, create a minimal one
     existing_claim = encounter.claim
 
     unless existing_claim
-      raise SubmissionError, "Claim record not found. Please create a claim with procedure codes first."
+      existing_claim = Claim.create!(
+        organization_id: organization.id,
+        encounter_id: encounter.id,
+        patient_id: encounter.patient_id,
+        provider_id: encounter.provider_id,
+        specialty_id: encounter.specialty_id,
+        place_of_service_code: encounter.organization_location&.place_of_service_code || "11",
+        status: :generated,
+        generated_at: Time.current
+      )
     end
 
     # Update existing claim with EZClaim response data

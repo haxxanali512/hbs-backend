@@ -338,13 +338,7 @@
         <% end %>
 
          <% if current_user.permissions_for("tenant", "claims", "index") %>
-          <li>
-            <% claims_active = controller_path == 'tenant/claims' %>
-            <%= link_to tenant_claims_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{claims_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{claims_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <span>Claims</span>
-            <% end %>
-          </li>
+          <%# Claims link hidden per request (tenant claims index not required) %>
         <% end %>
 
         <% if current_user.permissions_for("tenant", "org_accepted_plans", "index") %>
