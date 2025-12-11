@@ -19,7 +19,7 @@ class Tenant::ClaimsController < Tenant::BaseController
 
   # Claim Indexing and Filtering Methods
   def build_claims_index_query
-    current_organization.claims.includes(:patient, :provider, :encounter).kept
+    current_organization.claims.includes(:patient, :provider, :encounter)
   end
 
   def apply_claims_filters(claims)

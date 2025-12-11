@@ -134,7 +134,9 @@
         <%= render "shared/provider_notes", namespace: "tenant" %>
 
         <!-- Comments Section -->
-        <%= render "shared/encounter_comments", namespace: "tenant" %>
+        <% if @encounter.encounter_comments.shared_with_client.where(redacted: false).exists? %>
+          <%= render "shared/encounter_comments", namespace: "tenant" %>
+        <% end %>
       </div>
 
       <!-- Sidebar -->
