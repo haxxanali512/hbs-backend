@@ -21,7 +21,6 @@ class ClaimSubmissionService
     # POST claim to EZClaim
     claim_result = @ezclaim_service.create_claim(claim_payload)
 
-    byebug
     unless claim_result[:success]
       raise SubmissionError, "Failed to create claim in EZClaim: #{claim_result[:error]}"
     end
