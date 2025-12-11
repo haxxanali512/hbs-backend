@@ -158,12 +158,23 @@ class Admin::ClaimsController < Admin::BaseController
     @patients = Patient.order(:first_name, :last_name)
     @specialties = Specialty.active.kept.order(:name)
     @encounters = Encounter.kept.order(date_of_service: :desc).limit(100)
-    @procedure_codes = ProcedureCode.active.order(:code)
+    @procedure_codes = resolve_procedure_codes_for_selected_org
     @statuses = Claim.statuses.keys
 
     if action_name == "index"
       @statuses = Claim.statuses.keys
     end
+  end
+
+  def resolve_procedure_codes_for_selected_org
+    org_id = params.dig(:claim, :organization_id) || params[:organization_id] || @claim&.organization_id
+    if org_id.present?
+      org = Organization.find_by(id: org_id)
+      return org.unlocked_procedure_codes.kept.active.order(:code) if org
+    end
+
+    # Fallback to all active codes if no org selected
+    ProcedureCode.active.order(:code)
   end
 
   def claim_params
