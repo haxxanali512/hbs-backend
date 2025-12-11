@@ -34,13 +34,18 @@ module ProcedureCodeSearch
       procedure_code.id
     )
 
-    # Fallback: if service doesn't find pricing, use .last item from procedure code
+    # Fallback: if service doesn't find pricing, use the org's last active item
     if !pricing_result[:success] && procedure_code.organization_fee_schedule_items.any?
-      # Try to find an active item first, then fall back to any item
+      org_id = current_organization_for_pricing.id
       fallback_item = procedure_code.organization_fee_schedule_items
+                                    .joins(:organization_fee_schedule)
+                                    .where(organization_fee_schedules: { organization_id: org_id })
                                     .where(active: true)
                                     .last ||
-                     procedure_code.organization_fee_schedule_items.last
+                     procedure_code.organization_fee_schedule_items
+                                    .joins(:organization_fee_schedule)
+                                    .where(organization_fee_schedules: { organization_id: org_id })
+                                    .last
 
       if fallback_item
         pricing_result = {
@@ -65,7 +70,11 @@ module ProcedureCodeSearch
   end
 
   def handle_procedure_code_search(search_term, line_id)
+    org = current_organization_for_pricing
+    unlocked_ids = org.unlocked_procedure_codes.select(:id)
+
     procedure_codes = ProcedureCode.kept.active
+                                   .where(id: unlocked_ids)
                                    .search(search_term)
                                    .limit(50)
                                    .order(:code)
