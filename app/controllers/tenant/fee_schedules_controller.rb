@@ -46,10 +46,22 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
   end
 
   def create
-    @fee_schedule = @current_organization.organization_fee_schedules.build(fee_schedule_params)
+    @fee_schedule = @current_organization.organization_fee_schedules.build(fee_schedule_params.except(:specialty_ids))
 
     if @fee_schedule.save
-      redirect_to tenant_fee_schedule_path(@fee_schedule), notice: "Fee schedule created successfully."
+      # Assign selected specialties
+      if params[:organization_fee_schedule][:specialty_ids].present?
+        specialty_ids = params[:organization_fee_schedule][:specialty_ids].reject(&:blank?)
+        @fee_schedule.specialty_ids = specialty_ids.map(&:to_i)
+
+        # Unlock procedure codes for all selected specialties
+        specialty_ids.each do |specialty_id|
+          specialty = Specialty.find_by(id: specialty_id)
+          FeeScheduleUnlockService.unlock_procedure_codes_for_organization(@current_organization, specialty) if specialty
+        end
+      end
+
+      redirect_to tenant_fee_schedules_path, notice: "Fee schedule created successfully."
     else
       @specialties = Specialty.active.order(:name)
       render :new, status: :unprocessable_entity
@@ -61,8 +73,28 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
   end
 
   def update
-    if @fee_schedule.update(fee_schedule_params)
-      redirect_to tenant_fee_schedule_path(@fee_schedule), notice: "Fee schedule updated successfully."
+    specialty_ids_param = params[:organization_fee_schedule][:specialty_ids]&.reject(&:blank?) || []
+    old_specialty_ids = @fee_schedule.specialty_ids
+
+    if @fee_schedule.update(fee_schedule_params.except(:specialty_ids))
+      # Update specialties
+      new_specialty_ids = specialty_ids_param.map(&:to_i)
+      @fee_schedule.specialty_ids = new_specialty_ids
+
+      # Unlock procedure codes for newly added specialties
+      added_specialty_ids = new_specialty_ids - old_specialty_ids
+      added_specialty_ids.each do |specialty_id|
+        specialty = Specialty.find_by(id: specialty_id)
+        FeeScheduleUnlockService.unlock_procedure_codes_for_organization(@current_organization, specialty) if specialty
+      end
+
+      # Check and deactivate codes for removed specialties
+      removed_specialty_ids = old_specialty_ids - new_specialty_ids
+      if removed_specialty_ids.any?
+        FeeScheduleUnlockService.check_and_deactivate_unlocked_codes(@current_organization)
+      end
+
+      redirect_to tenant_fee_schedules_path, notice: "Fee schedule updated successfully."
     else
       @specialties = Specialty.active.order(:name)
       render :edit, status: :unprocessable_entity
@@ -101,7 +133,7 @@ class Tenant::FeeSchedulesController < Tenant::BaseController
 
   def fee_schedule_params
     params.require(:organization_fee_schedule).permit(
-      :specialty_id, :name, :currency, :notes, :locked
+      :name, :currency, :notes, :locked, specialty_ids: []
     )
   end
 end

@@ -349,7 +349,7 @@ Rails.application.routes.draw do
         end
 
         resources :providers
-        resources :specialties, only: [ :index, :show ]
+        resources :specialties
         resources :organization_locations do
           member do
             post :activate

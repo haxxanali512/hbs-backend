@@ -11,23 +11,32 @@
   <% end %>
 
   <%= form_with(model: @fee_schedule, url: (@fee_schedule.persisted? ? tenant_fee_schedule_path(@fee_schedule) : tenant_fee_schedules_path), local: true, class: "space-y-6") do |f| %>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <%= f.label :specialty_id, "Specialty (Optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :specialty_id, 
-            options_from_collection_for_select(@specialties, :id, :name, @fee_schedule.specialty_id),
-            { prompt: "Select Specialty (Optional)" },
-            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-        <p class="mt-1 text-sm text-gray-500">Optional: Track which specialty originally created this schedule</p>
+    <div>
+      <%= f.label :specialty_ids, "Select Specialties", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <p class="text-sm text-gray-500 mb-3">Select one or more specialties to unlock procedure codes for your fee schedule</p>
+      <div class="space-y-2 max-h-64 overflow-y-auto border border-gray-300 rounded-md p-4">
+        <% @specialties.each do |specialty| %>
+          <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+            <%= check_box_tag "organization_fee_schedule[specialty_ids][]", 
+                specialty.id, 
+                @fee_schedule.specialty_ids.include?(specialty.id),
+                { class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" } %>
+            <span class="text-sm text-gray-700"><%= specialty.name %></span>
+            <% if specialty.description.present? %>
+              <span class="text-xs text-gray-500">- <%= truncate(specialty.description, length: 50) %></span>
+            <% end %>
+          </label>
+        <% end %>
       </div>
+      <%= hidden_field_tag "organization_fee_schedule[specialty_ids][]", "" %>
+    </div>
 
-      <div>
-        <%= f.label :currency, class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :currency, 
-            OrganizationFeeSchedule.currencies.map { |k, v| [k.humanize, k] },
-            { selected: @fee_schedule.currency || 'usd' },
-            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-      </div>
+    <div>
+      <%= f.label :currency, class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :currency, 
+          OrganizationFeeSchedule.currencies.map { |k, v| [k.humanize, k] },
+          { selected: @fee_schedule.currency || 'usd' },
+          { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
     </div>
 
     <div>

@@ -3,7 +3,8 @@ class OrganizationFeeSchedule < ApplicationRecord
   include Discard::Model
 
   belongs_to :organization
-  belongs_to :specialty, optional: true
+  has_many :organization_fee_schedule_specialties, dependent: :destroy
+  has_many :specialties, through: :organization_fee_schedule_specialties
   has_many :organization_fee_schedule_items, dependent: :destroy
   has_many :procedure_codes, through: :organization_fee_schedule_items
 
@@ -57,9 +58,10 @@ class OrganizationFeeSchedule < ApplicationRecord
     if fee_schedule.nil?
       fee_schedule = organization.organization_fee_schedules.create!(
         name: "#{organization.name} Fee Schedule",
-        currency: :usd,
-        specialty_id: specialty&.id
+        currency: :usd
       )
+      # Add specialty if provided
+      fee_schedule.specialties << specialty if specialty.present?
     end
 
     fee_schedule

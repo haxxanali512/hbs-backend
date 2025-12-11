@@ -56,7 +56,7 @@ module HbsCustoms
           stripe: { setup_intent: false, confirm_card: false },
           gocardless: { create_redirect_flow: false },
           providers: DEFAULT_CRUD.except(:destroy),
-          specialties: DEFAULT_CRUD,
+          specialties: DEFAULT_CRUD.except(:destroy),
           diagnosis_codes: DEFAULT_CRUD.merge(request: false),
           fee_schedules: DEFAULT_CRUD,
           fee_schedule_items: DEFAULT_CRUD,
@@ -70,7 +70,6 @@ module HbsCustoms
           patients: DEFAULT_CRUD,
           org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false),
           patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),
-          claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
           support_tickets: DEFAULT_CRUD.except(:destroy),
           support_ticket_comments: DEFAULT_CRUD.except(:destroy),
@@ -113,7 +112,7 @@ module HbsCustoms
           payer_enrollments: DEFAULT_CRUD.merge(submit: false, cancel: false, resubmit: false),
           support_tickets: DEFAULT_CRUD.except(:destroy).merge(close: false, reopen: false, add_internal_note: false),
           support_ticket_comments: DEFAULT_CRUD.except(:destroy).merge(redact: false),
-          data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false)
+          data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false, upload_processing_file: false)
         }.freeze
       end
 
