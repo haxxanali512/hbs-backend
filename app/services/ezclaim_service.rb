@@ -225,6 +225,11 @@ class EzclaimService
       end
     end
 
+    # Log full response body for non-success to aid troubleshooting
+    if response.code >= 400
+      Rails.logger.error("EZClaim API #{response.code} for #{response.request.http_method::METHOD} #{response.request.uri}: #{response.body}")
+    end
+
     case response.code
     when 200..299
       {
