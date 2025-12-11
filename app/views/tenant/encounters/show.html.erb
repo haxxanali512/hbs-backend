@@ -31,9 +31,11 @@
 
         <div class="flex space-x-2">
           <% if @encounter.can_be_confirmed? && !@encounter.completed_confirmed? %>
-            <%= link_to "Confirm Completed", confirm_completed_tenant_encounter_path(@encounter), method: :post,
+            <%= button_to "Confirm Completed", confirm_completed_tenant_encounter_path(@encounter),
+                method: :post,
+                form: { class: "inline-block" },
                 class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
-                data: { confirm: "This will generate billing documents. Continue?" } %>
+                data: { turbo_confirm: "This will generate billing documents. Continue?" } %>
           <% end %>
           
           <% if current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.organization.organization_setting&.ezclaim_enabled? %>
@@ -51,7 +53,9 @@
           <% end %>
           
           <% if @encounter.cascaded? %>
-            <%= link_to "Request Correction", request_correction_tenant_encounter_path(@encounter), method: :post,
+            <%= button_to "Request Correction", request_correction_tenant_encounter_path(@encounter),
+                method: :post,
+                form: { class: "inline-block" },
                 class: "bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
           <% end %>
         </div>
