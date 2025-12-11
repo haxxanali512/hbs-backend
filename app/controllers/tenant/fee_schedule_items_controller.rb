@@ -1,4 +1,5 @@
 class Tenant::FeeScheduleItemsController < Tenant::BaseController
+  include ActionView::Helpers::NumberHelper
   before_action :set_fee_schedule
   before_action :set_fee_schedule_item, only: [ :show, :edit, :update, :destroy, :activate, :deactivate ]
 
