@@ -1,15 +1,3 @@
-<%# 
-  Document Upload Partial
-  Usage: <%= render 'shared/document_upload', document_type: 'clinical_notes' %>
-  
-  Params:
-  - document_type: Type of document (e.g., 'clinical_notes', 'eob', 'insurance_card')
-  - multiple: Allow multiple files (default: true)
-  - label: Custom label (default: 'Attach Documents')
-  - hint: Custom hint text (optional)
-  - field_name: Form field name (default: 'documents')
-%>
-
 <% document_type ||= 'document' %>
 <% multiple ||= true %>
 <% label ||= 'Attach Documents' %>
