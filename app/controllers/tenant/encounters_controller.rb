@@ -67,6 +67,9 @@ class Tenant::EncountersController < Tenant::BaseController
     @encounter.confirmed_by = current_user if params[:confirm_now]
 
     if @encounter.save
+      # Handle document uploads
+      upload_documents if params.dig(:encounter, :documents).present?
+
       if params[:confirm_now] && @encounter.can_be_confirmed?
         @encounter.confirm_completed!
       end
@@ -80,6 +83,9 @@ class Tenant::EncountersController < Tenant::BaseController
 
   def update
     if @encounter.update(encounter_params)
+      # Handle document uploads
+      upload_documents if params.dig(:encounter, :documents).present?
+
       redirect_to tenant_encounter_path(@encounter), notice: "Encounter updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -281,5 +287,26 @@ class Tenant::EncountersController < Tenant::BaseController
       :notes,
       diagnosis_code_ids: []
     )
+  end
+
+  def upload_documents
+    documents = params.dig(:encounter, :documents)
+    return unless documents.is_a?(Array)
+
+    documents.each do |file|
+      next if file.blank?
+
+      DocumentUploadService.new(
+        documentable: @encounter,
+        uploaded_by: current_user,
+        organization: @current_organization,
+        params: {
+          file: file,
+          title: file.original_filename,
+          document_type: params[:document_type] || "clinical_notes",
+          description: "Uploaded with encounter creation"
+        }
+      ).call
+    end
   end
 end

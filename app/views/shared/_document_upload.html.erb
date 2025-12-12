@@ -1,0 +1,120 @@
+<%# 
+  Document Upload Partial
+  Usage: <%= render 'shared/document_upload', document_type: 'clinical_notes' %>
+  
+  Params:
+  - document_type: Type of document (e.g., 'clinical_notes', 'eob', 'insurance_card')
+  - multiple: Allow multiple files (default: true)
+  - label: Custom label (default: 'Attach Documents')
+  - hint: Custom hint text (optional)
+  - field_name: Form field name (default: 'documents')
+%>
+
+<% document_type ||= 'document' %>
+<% multiple ||= true %>
+<% label ||= 'Attach Documents' %>
+<% hint ||= 'Supported formats: PDF, JPG, PNG, DOC, DOCX. Max file size: 25MB' %>
+<% field_name ||= 'documents' %>
+<% unique_id = "doc_upload_#{SecureRandom.hex(4)}" %>
+
+<div class="document-upload-section" id="<%= unique_id %>">
+  <div class="flex items-center justify-between mb-3">
+    <label class="block text-sm font-medium text-gray-700"><%= label %></label>
+    <span class="text-xs text-gray-500">Optional</span>
+  </div>
+
+  <!-- Drop Zone -->
+  <div class="dropzone relative border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-400 transition-colors cursor-pointer"
+       ondragover="event.preventDefault(); this.classList.add('border-blue-500', 'bg-blue-50');"
+       ondragleave="this.classList.remove('border-blue-500', 'bg-blue-50');"
+       ondrop="event.preventDefault(); this.classList.remove('border-blue-500', 'bg-blue-50'); document.getElementById('<%= unique_id %>_input').files = event.dataTransfer.files; document.getElementById('<%= unique_id %>_input').dispatchEvent(new Event('change'));">
+    
+    <input type="file" 
+           name="<%= field_name %>[]"
+           id="<%= unique_id %>_input"
+           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+           <%= 'multiple' if multiple %>
+           accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt"
+           onchange="handleFileSelect(this, '<%= unique_id %>')">
+    
+    <div class="text-center pointer-events-none">
+      <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <div class="mt-2">
+        <p class="text-sm text-gray-600">
+          <span class="font-medium text-blue-600 hover:text-blue-500">Click to upload</span>
+          or drag and drop
+        </p>
+        <p class="mt-1 text-xs text-gray-500"><%= hint %></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden field for document type -->
+  <input type="hidden" name="document_type" value="<%= document_type %>">
+
+  <!-- File Preview List -->
+  <div class="file-preview mt-4 space-y-2" id="<%= unique_id %>_preview">
+    <!-- Files will be added here dynamically -->
+  </div>
+</div>
+
+<script>
+  function handleFileSelect(input, containerId) {
+    const previewContainer = document.getElementById(containerId + '_preview');
+    previewContainer.innerHTML = '';
+    
+    if (!input.files || input.files.length === 0) return;
+    
+    Array.from(input.files).forEach((file, index) => {
+      // Validate file size (25MB max)
+      if (file.size > 25 * 1024 * 1024) {
+        alert(`File "${file.name}" is too large. Maximum size is 25MB.`);
+        return;
+      }
+      
+      const fileItem = document.createElement('div');
+      fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200';
+      fileItem.dataset.fileIndex = index;
+      
+      // Get appropriate icon color based on file type
+      let iconColor = 'text-gray-400';
+      if (file.type.startsWith('image/')) iconColor = 'text-green-500';
+      else if (file.type === 'application/pdf') iconColor = 'text-red-500';
+      else if (file.type.includes('spreadsheet') || file.type.includes('excel') || file.name.endsWith('.csv')) iconColor = 'text-green-600';
+      else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) iconColor = 'text-blue-500';
+      
+      fileItem.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <div class="flex-shrink-0">
+            <svg class="h-8 w-8 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-gray-900 truncate">${file.name}</p>
+            <p class="text-xs text-gray-500">${formatFileSize(file.size)}</p>
+          </div>
+        </div>
+        <div class="flex items-center text-green-600">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="ml-1 text-xs">Ready</span>
+        </div>
+      `;
+      
+      previewContainer.appendChild(fileItem);
+    });
+  }
+  
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+</script>
+
