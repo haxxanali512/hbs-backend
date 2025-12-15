@@ -6,7 +6,7 @@ class Admin::EncountersController < Admin::BaseController
   # Alias the concern method before we override it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :submit_for_billing ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing ]
   before_action :load_form_options, only: [ :index, :edit, :update ]
 
   def index
@@ -97,10 +97,18 @@ class Admin::EncountersController < Admin::BaseController
       }
     end
 
-    # Combine claim payload with service lines
+    # Add diagnosis code IDs to payload for proper multi-select initialization
+    diagnosis_codes = @encounter.diagnosis_codes.limit(4).to_a
+    diagnosis_payload = {}
+    diagnosis_codes.each_with_index do |dc, index|
+      diagnosis_payload["ClaDiagnosis#{index + 1}"] = dc.code
+      diagnosis_payload["diagnosis_#{index + 1}_id"] = dc.id
+    end
+
+    # Combine claim payload with service lines and diagnosis codes
     combined_payload = claim_payload.merge(
       service_LinesObjectWithoutID: formatted_service_lines
-    )
+    ).merge(diagnosis_payload)
 
     render json: {
       success: true,
@@ -127,6 +135,33 @@ class Admin::EncountersController < Admin::BaseController
 
   def procedure_codes_search_path_for_encounter
     procedure_codes_search_admin_encounter_path(@encounter)
+  end
+
+  def diagnosis_codes_search
+    search_term = params[:q] || params[:search] || ""
+
+    diagnosis_codes = DiagnosisCode.active
+                                   .search(search_term)
+                                   .limit(50)
+                                   .order(:code)
+
+    render json: {
+      success: true,
+      results: diagnosis_codes.map do |dc|
+        {
+          id: dc.id,
+          code: dc.code || "",
+          description: dc.description || "",
+          display: "#{dc.code || 'N/A'} - #{dc.description || 'No description'}"
+        }
+      end
+    }
+  rescue => e
+    Rails.logger.error("Error in diagnosis_codes_search: #{e.message}")
+    render json: {
+      success: false,
+      error: e.message
+    }, status: :unprocessable_entity
   end
 
   def submit_for_billing

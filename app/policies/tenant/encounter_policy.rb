@@ -51,6 +51,10 @@ class Tenant::EncounterPolicy < ApplicationPolicy
     submit_for_billing?
   end
 
+  def diagnosis_codes_search?
+    submit_for_billing?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

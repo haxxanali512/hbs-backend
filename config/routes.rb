@@ -235,6 +235,7 @@ Rails.application.routes.draw do
           post :override_validation
           get :billing_data
           get :procedure_codes_search
+          get :diagnosis_codes_search
           post :submit_for_billing
         end
         resources :encounter_comments, only: [ :index, :create ] do
@@ -390,6 +391,7 @@ Rails.application.routes.draw do
             post :attach_document
             get :billing_data
             get :procedure_codes_search
+            get :diagnosis_codes_search
             post :submit_for_billing
           end
           resources :encounter_comments, only: [ :index, :create ]

@@ -88,12 +88,15 @@ class ClaimSubmissionService
   def build_claim_payload
     patient = encounter.patient
     provider = encounter.provider
-    diagnosis_codes = encounter.diagnosis_codes
+    diagnosis_codes = encounter.diagnosis_codes.limit(4).to_a
 
     {
       ClaPatFID: patient.external_id || patient.id.to_s,
       claRenderingPhyFID: provider.npi || provider.id.to_s,
-      ClaDiagnosis1: diagnosis_codes.first&.code || "",
+      ClaDiagnosis1: diagnosis_codes[0]&.code || "",
+      ClaDiagnosis2: diagnosis_codes[1]&.code || "",
+      ClaDiagnosis3: diagnosis_codes[2]&.code || "",
+      ClaDiagnosis4: diagnosis_codes[3]&.code || "",
       ClaSubmissionMethod: "E", # Electronic
       claBillingPhyFID: provider.npi || provider.id.to_s,
       SrvDateFrom: encounter.date_of_service&.strftime("%Y-%m-%d") || "",

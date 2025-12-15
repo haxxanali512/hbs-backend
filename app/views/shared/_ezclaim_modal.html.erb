@@ -8,10 +8,11 @@
   modal_type = local_assigns[:modal_type] || 'claim' # 'claim' or 'claim_insured'
   data_url = local_assigns[:data_url] || nil
   search_url = local_assigns[:search_url] || nil # URL for procedure code search
+  diagnosis_search_url = local_assigns[:diagnosis_search_url] || nil # URL for diagnosis code search
 %>
 
 <!-- EZClaim Modal -->
-<div id="<%= modal_id %>" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="<%= modal_id %>-title" role="dialog" aria-modal="true" data-search-url="<%= search_url || '' %>">
+<div id="<%= modal_id %>" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="<%= modal_id %>-title" role="dialog" aria-modal="true" data-search-url="<%= search_url || '' %>" data-diagnosis-search-url="<%= diagnosis_search_url || '' %>">
   <div class="relative flex min-h-full items-center justify-center p-4">
     <!-- Background overlay -->
     <div id="<%= modal_id %>Overlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out opacity-0" onclick="closeEzclaimModal('<%= modal_id %>')"></div>
@@ -70,9 +71,38 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Rendering Physician FID</label>
                     <input type="text" name="claim[claRenderingPhyFID]" id="<%= modal_id %>claRenderingPhyFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
                   </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Diagnosis 1</label>
-                    <input type="text" name="claim[ClaDiagnosis1]" id="<%= modal_id %>ClaDiagnosis1" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Diagnosis Codes (up to 4)</label>
+                    <div class="relative">
+                      <input type="text" 
+                             id="<%= modal_id %>DiagnosisCodesInput" 
+                             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm diagnosis-code-search" 
+                             placeholder="Type to search and select diagnosis codes..."
+                             autocomplete="off"
+                             data-modal-id="<%= modal_id %>"
+                             onfocus="showDiagnosisCodeDropdown('<%= modal_id %>')"
+                             oninput="searchDiagnosisCodes('<%= modal_id %>', this.value)"
+                             onclick="showDiagnosisCodeDropdown('<%= modal_id %>')">
+                      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <!-- Selected diagnosis codes display -->
+                    <div id="<%= modal_id %>SelectedDiagnosisCodes" class="mt-2 flex flex-wrap gap-2">
+                      <!-- Selected codes will appear here as chips -->
+                    </div>
+                    <!-- Hidden inputs for form submission -->
+                    <div id="<%= modal_id %>DiagnosisHiddenInputs" class="hidden">
+                      <!-- Hidden inputs for ClaDiagnosis1-4 will be added here -->
+                    </div>
+                    <!-- Dropdown results -->
+                    <div id="diagnosis_<%= modal_id %>_results" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-64 overflow-y-auto overscroll-contain" style="max-height: 16rem;">
+                      <div class="p-2 border-b border-gray-200">
+                        <div class="text-xs text-gray-500">Type to search diagnosis codes...</div>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Submission Method</label>
@@ -367,6 +397,18 @@
       content.classList.add('scale-100', 'opacity-100');
     });
     
+    // Initialize diagnosis codes storage for this modal
+    if (modalType === 'claim') {
+      if (!selectedDiagnosisCodes[modalId]) {
+        selectedDiagnosisCodes[modalId] = [];
+      }
+      
+      // Set up service line date sync when modal opens
+      setTimeout(() => {
+        setupServiceLineDateSync(modalId);
+      }, 100);
+    }
+    
     // Load data based on modal type
     if (dataUrl) {
       if (modalType === 'claim_insured') {
@@ -386,6 +428,17 @@
     const content = document.getElementById(modalId + 'Content');
     
     if (!modal || !overlay || !content) return;
+    
+    // Reset diagnosis codes for this modal
+    if (selectedDiagnosisCodes[modalId]) {
+      selectedDiagnosisCodes[modalId] = [];
+    }
+    
+    // Hide any open dropdowns
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    if (resultsDiv) {
+      resultsDiv.classList.add('hidden');
+    }
     
     // Trigger fade out animation
     overlay.classList.remove('opacity-100');
@@ -556,11 +609,95 @@
         const payload = data.payload;
         if (payload) {
           Object.keys(payload).forEach(key => {
+            // Skip diagnosis codes - handled separately
+            if (key.startsWith('ClaDiagnosis')) return;
+            
             const field = document.getElementById(modalId + key);
             if (field && payload[key]) {
               field.value = payload[key];
             }
           });
+          
+          // Populate diagnosis codes (up to 4)
+          const diagnosisCodes = [
+            { code: payload.ClaDiagnosis1, id: payload.diagnosis_1_id },
+            { code: payload.ClaDiagnosis2, id: payload.diagnosis_2_id },
+            { code: payload.ClaDiagnosis3, id: payload.diagnosis_3_id },
+            { code: payload.ClaDiagnosis4, id: payload.diagnosis_4_id }
+          ].filter(item => item.code);
+          
+          // Initialize selected codes array
+          if (!selectedDiagnosisCodes[modalId]) {
+            selectedDiagnosisCodes[modalId] = [];
+          }
+          
+          // If we have diagnosis codes from payload, populate them
+          if (diagnosisCodes.length > 0) {
+            // Fetch full details for codes that have IDs
+            const codesToFetch = diagnosisCodes.filter(item => item.id);
+            const codesWithoutIds = diagnosisCodes.filter(item => !item.id);
+            
+            if (codesToFetch.length > 0) {
+              // Fetch descriptions for codes with IDs
+              const modalElement = document.getElementById(modalId);
+              const searchUrl = modalElement ? modalElement.getAttribute('data-diagnosis-search-url') || '' : '';
+              
+              // Fetch each code's details
+              Promise.all(codesToFetch.map(item => {
+                return fetch(searchUrl + '?q=' + encodeURIComponent(item.code), {
+                  method: 'GET',
+                  headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                  },
+                  credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                  if (data.success && data.results && data.results.length > 0) {
+                    const found = data.results.find(r => r.id === item.id || r.code === item.code);
+                    return found ? {
+                      id: found.id,
+                      code: found.code,
+                      description: found.description || ''
+                    } : {
+                      id: item.id,
+                      code: item.code,
+                      description: ''
+                    };
+                  }
+                  return {
+                    id: item.id,
+                    code: item.code,
+                    description: ''
+                  };
+                })
+                .catch(() => ({
+                  id: item.id,
+                  code: item.code,
+                  description: ''
+                }));
+              })).then(fetchedCodes => {
+                // Combine fetched codes with codes without IDs
+                const allCodes = [...fetchedCodes, ...codesWithoutIds.map(item => ({
+                  id: null,
+                  code: item.code,
+                  description: ''
+                }))];
+                
+                selectedDiagnosisCodes[modalId] = allCodes;
+                updateDiagnosisCodesDisplay(modalId);
+              });
+            } else {
+              // No IDs, just use codes directly
+              selectedDiagnosisCodes[modalId] = codesWithoutIds.map(item => ({
+                id: null,
+                code: item.code,
+                description: ''
+              }));
+              updateDiagnosisCodesDisplay(modalId);
+            }
+          }
           
           // Populate service lines if they exist, otherwise add one empty service line
           const serviceLinesContainer = document.getElementById(modalId + 'ServiceLines');
@@ -575,6 +712,11 @@
               addServiceLine(modalId, {}, 0);
             }
           }
+          
+          // Set up date sync after loading data
+          setTimeout(() => {
+            setupServiceLineDateSync(modalId);
+          }, 200);
         }
       } else {
         if (error) error.classList.remove('hidden');
@@ -593,6 +735,185 @@
     });
   }
 
+  // Global functions for diagnosis code multi-select search
+  let diagnosisSearchTimeouts = {};
+  let selectedDiagnosisCodes = {}; // Store selected codes per modal: { modalId: [{id, code, description}] }
+  
+  function showDiagnosisCodeDropdown(modalId) {
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    if (!resultsDiv) return;
+    
+    resultsDiv.classList.remove('hidden');
+    
+    // Load initial list if empty
+    if (resultsDiv.children.length <= 1) {
+      searchDiagnosisCodes(modalId, '');
+    }
+  }
+
+  function searchDiagnosisCodes(modalId, query) {
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    const modalElement = document.getElementById(modalId);
+    if (!resultsDiv || !modalElement) return;
+    
+    const searchUrl = modalElement.getAttribute('data-diagnosis-search-url');
+    if (!searchUrl) return;
+    
+    // Clear previous timeout
+    if (diagnosisSearchTimeouts[modalId]) {
+      clearTimeout(diagnosisSearchTimeouts[modalId]);
+    }
+    
+    // Debounce search
+    diagnosisSearchTimeouts[modalId] = setTimeout(() => {
+      // Show loading state
+      resultsDiv.classList.remove('hidden');
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Searching...</div>';
+      
+      const url = searchUrl + '?q=' + encodeURIComponent(query);
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.results) {
+          displayDiagnosisCodeResults(resultsDiv, data.results, modalId);
+        } else {
+          resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No diagnosis codes found</div>';
+        }
+      })
+      .catch(error => {
+        console.error('Error searching diagnosis codes:', error);
+        resultsDiv.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching diagnosis codes</div>';
+      });
+    }, query.length > 0 ? 300 : 0);
+  }
+
+  function displayDiagnosisCodeResults(resultsDiv, results, modalId) {
+    if (results.length === 0) {
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No diagnosis codes found</div>';
+      resultsDiv.classList.remove('hidden');
+      return;
+    }
+
+    // Get already selected codes for this modal
+    const selected = selectedDiagnosisCodes[modalId] || [];
+    const selectedIds = selected.map(s => s.id);
+
+    const html = results.map(result => {
+      const code = result.code || 'N/A';
+      const description = result.description || 'No description';
+      const isSelected = selectedIds.includes(result.id);
+      
+      return `
+      <div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 diagnosis-code-option transition-colors ${isSelected ? 'bg-indigo-100' : ''}"
+           data-code-id="${result.id}"
+           data-code="${code}"
+           data-description="${description}"
+           onclick="selectDiagnosisCode('${modalId}', ${result.id}, '${code.replace(/'/g, "\\'")}', '${description.replace(/'/g, "\\'")}')">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="font-medium text-sm text-gray-900">${code} ${isSelected ? '<span class="text-xs text-green-600">(Selected)</span>' : ''}</div>
+            <div class="text-xs text-gray-500 mt-0.5">${description}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    resultsDiv.innerHTML = '<div class="p-2 border-b border-gray-200"><div class="text-xs text-gray-500">Select diagnosis codes (up to 4):</div></div>' + html;
+    resultsDiv.classList.remove('hidden');
+  }
+
+  function selectDiagnosisCode(modalId, diagnosisCodeId, code, description) {
+    // Initialize array if it doesn't exist
+    if (!selectedDiagnosisCodes[modalId]) {
+      selectedDiagnosisCodes[modalId] = [];
+    }
+    
+    const selected = selectedDiagnosisCodes[modalId];
+    const existingIndex = selected.findIndex(s => s.id === diagnosisCodeId);
+    
+    if (existingIndex >= 0) {
+      // Remove if already selected
+      selected.splice(existingIndex, 1);
+    } else {
+      // Add if not already selected and under limit
+      if (selected.length < 4) {
+        selected.push({ id: diagnosisCodeId, code: code, description: description });
+      } else {
+        alert('You can only select up to 4 diagnosis codes.');
+        return;
+      }
+    }
+    
+    // Update UI
+    updateDiagnosisCodesDisplay(modalId);
+    
+    // Clear search input
+    const searchInput = document.getElementById(modalId + 'DiagnosisCodesInput');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    
+    // Hide dropdown
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    if (resultsDiv) {
+      resultsDiv.classList.add('hidden');
+    }
+  }
+
+  function updateDiagnosisCodesDisplay(modalId) {
+    const container = document.getElementById(modalId + 'SelectedDiagnosisCodes');
+    const hiddenInputsContainer = document.getElementById(modalId + 'DiagnosisHiddenInputs');
+    if (!container || !hiddenInputsContainer) return;
+    
+    const selected = selectedDiagnosisCodes[modalId] || [];
+    
+    // Update visible chips
+    if (selected.length === 0) {
+      container.innerHTML = '<span class="text-xs text-gray-500">No diagnosis codes selected</span>';
+    } else {
+      container.innerHTML = selected.map((item, index) => {
+        const displayText = item.description ? `${item.code} - ${item.description}` : item.code;
+        return `
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+            ${displayText}
+            <button type="button" 
+                    onclick="removeDiagnosisCodeByIndex('${modalId}', ${index})" 
+                    class="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-600">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </span>
+        `;
+      }).join('');
+    }
+    
+    // Update hidden inputs for form submission
+    hiddenInputsContainer.innerHTML = selected.map((item, index) => `
+      <input type="hidden" name="claim[ClaDiagnosis${index + 1}]" value="${item.code}">
+      <input type="hidden" name="claim[diagnosis_${index + 1}_id]" value="${item.id || ''}">
+    `).join('');
+  }
+
+  function removeDiagnosisCodeByIndex(modalId, index) {
+    if (!selectedDiagnosisCodes[modalId]) return;
+    
+    const selected = selectedDiagnosisCodes[modalId];
+    if (index >= 0 && index < selected.length) {
+      selected.splice(index, 1);
+      updateDiagnosisCodesDisplay(modalId);
+    }
+  }
+
   function addServiceLine(modalId, lineData, index) {
     modalId = modalId || 'ezclaimModal';
     const container = document.getElementById(modalId + 'ServiceLines');
@@ -602,6 +923,12 @@
     if (index === undefined) {
       index = container.children.length;
     }
+    
+    // Get service dates from top section if not provided in lineData
+    const topDateFrom = document.getElementById(modalId + 'SrvDateFrom');
+    const topDateTo = document.getElementById(modalId + 'SrvDateTo');
+    const serviceDateFrom = lineData?.SrvDateFrom || (topDateFrom ? topDateFrom.value : '');
+    const serviceDateTo = lineData?.SrvDateTo || (topDateTo ? topDateTo.value : '');
     
     const lineId = modalId + 'ServiceLine' + Date.now() + '_' + index;
     const modalElement = document.getElementById(modalId);
@@ -618,11 +945,23 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
-            <input type="date" name="claim[service_LinesObjectWithoutID][${index}][SrvDateFrom]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvDateFrom || ''}">
+            <input type="date" 
+                   id="${lineId}SrvDateFrom"
+                   name="claim[service_LinesObjectWithoutID][${index}][SrvDateFrom]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm service-line-date" 
+                   value="${serviceDateFrom}"
+                   data-line-id="${lineId}"
+                   onchange="this.dataset.manuallyEdited = 'true'">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
-            <input type="date" name="claim[service_LinesObjectWithoutID][${index}][SrvDateTo]" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" value="${lineData?.SrvDateTo || ''}">
+            <input type="date" 
+                   id="${lineId}SrvDateTo"
+                   name="claim[service_LinesObjectWithoutID][${index}][SrvDateTo]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm service-line-date" 
+                   value="${serviceDateTo}"
+                   data-line-id="${lineId}"
+                   onchange="this.dataset.manuallyEdited = 'true'">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Procedure Code</label>
@@ -713,7 +1052,64 @@
           calculateTotalCharges(lineId);
         }
       }
+      
+      // Add event listeners to sync with top section dates
+      setupServiceLineDateSync(modalId);
     }, 100);
+  }
+
+  function setupServiceLineDateSync(modalId) {
+    const topDateFrom = document.getElementById(modalId + 'SrvDateFrom');
+    const topDateTo = document.getElementById(modalId + 'SrvDateTo');
+    
+    if (!topDateFrom || !topDateTo) return;
+    
+    // Store original values to detect changes
+    const originalDateFrom = topDateFrom.value;
+    const originalDateTo = topDateTo.value;
+    
+    // Remove existing listeners by cloning (to avoid duplicates)
+    if (!topDateFrom.dataset.syncListenerAdded) {
+      topDateFrom.addEventListener('change', function() {
+        syncServiceLineDates(modalId, 'SrvDateFrom', this.value);
+      });
+      topDateFrom.dataset.syncListenerAdded = 'true';
+    }
+    
+    if (!topDateTo.dataset.syncListenerAdded) {
+      topDateTo.addEventListener('change', function() {
+        syncServiceLineDates(modalId, 'SrvDateTo', this.value);
+      });
+      topDateTo.dataset.syncListenerAdded = 'true';
+    }
+    
+    // Also sync when service line date fields are manually changed (to track manual edits)
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (container) {
+      container.querySelectorAll('.service-line-date').forEach(input => {
+        if (!input.dataset.syncListenerAdded) {
+          input.addEventListener('change', function() {
+            // Mark as manually edited
+            this.dataset.manuallyEdited = 'true';
+          });
+          input.dataset.syncListenerAdded = 'true';
+        }
+      });
+    }
+  }
+
+  function syncServiceLineDates(modalId, fieldName, value) {
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (!container) return;
+    
+    // Update all service line date fields that haven't been manually edited
+    const dateInputs = container.querySelectorAll(`input[name*="[${fieldName}]"]`);
+    dateInputs.forEach(input => {
+      // Only update if not manually edited
+      if (input.dataset.manuallyEdited !== 'true') {
+        input.value = value;
+      }
+    });
   }
 
   // Global functions for procedure code search with Turbo Streams
@@ -1028,7 +1424,14 @@
     // Build the claim data object
     data.ClaPatFID = formData.get('claim[ClaPatFID]') || '';
     data.claRenderingPhyFID = formData.get('claim[claRenderingPhyFID]') || '';
-    data.ClaDiagnosis1 = formData.get('claim[ClaDiagnosis1]') || '';
+    
+    // Get diagnosis codes from selectedDiagnosisCodes array
+    const selectedDiagnoses = selectedDiagnosisCodes[modalId] || [];
+    data.ClaDiagnosis1 = selectedDiagnoses[0]?.code || '';
+    data.ClaDiagnosis2 = selectedDiagnoses[1]?.code || '';
+    data.ClaDiagnosis3 = selectedDiagnoses[2]?.code || '';
+    data.ClaDiagnosis4 = selectedDiagnoses[3]?.code || '';
+    
     data.ClaSubmissionMethod = formData.get('claim[ClaSubmissionMethod]') || '';
     data.claBillingPhyFID = formData.get('claim[claBillingPhyFID]') || '';
     data.SrvDateFrom = formData.get('claim[SrvDateFrom]') || '';
@@ -1211,6 +1614,13 @@
   document.addEventListener('click', function(event) {
     if (!event.target.closest('.procedure-code-search') && !event.target.closest('[id^="procedure_code_"][id$="_results"]')) {
       document.querySelectorAll('[id^="procedure_code_"][id$="_results"]:not(.hidden)').forEach(dropdown => {
+        dropdown.classList.add('hidden');
+      });
+    }
+    
+    // Close diagnosis code dropdowns when clicking outside
+    if (!event.target.closest('.diagnosis-code-search') && !event.target.closest('[id^="diagnosis_"][id$="_results"]')) {
+      document.querySelectorAll('[id^="diagnosis_"][id$="_results"]:not(.hidden)').forEach(dropdown => {
         dropdown.classList.add('hidden');
       });
     }
