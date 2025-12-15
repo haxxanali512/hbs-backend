@@ -33,41 +33,11 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
   end
 
   def new
-    @fee_schedule_item = @fee_schedule.organization_fee_schedule_items.build
-    @procedure_codes = ProcedureCode.order(:code)
-    @existing_items_by_code = {}
-
-    # Pre-check which procedure codes already have active items for this organization
-    if params[:procedure_code_id].present?
-      procedure_code = ProcedureCode.find_by(id: params[:procedure_code_id])
-      if procedure_code
-        existing_item = @current_organization.fee_schedule_item_for(procedure_code)
-        @existing_items_by_code[procedure_code.id] = existing_item if existing_item
-      end
-    end
+    redirect_to tenant_fee_schedules_path, alert: "Fee schedule items are managed automatically. You can edit rates only."
   end
 
   def create
-    @fee_schedule_item = @fee_schedule.organization_fee_schedule_items.build(fee_schedule_item_params)
-
-    # Pre-check: if trying to create an active item, check if one already exists
-    if @fee_schedule_item.active? && @fee_schedule_item.procedure_code_id.present?
-      existing_item = @current_organization.fee_schedule_item_for(@fee_schedule_item.procedure_code)
-      if existing_item && existing_item.id != @fee_schedule_item.id
-        @fee_schedule_item.errors.add(:procedure_code, "FEE_DUP_ITEM - An active fee schedule item already exists for this procedure code in your organization.")
-        @procedure_codes = ProcedureCode.order(:code)
-        render :new, status: :unprocessable_entity
-        return
-      end
-    end
-
-    if @fee_schedule_item.save
-      redirect_to tenant_fee_schedule_fee_schedule_items_path(@fee_schedule),
-                  notice: "Fee schedule item created successfully."
-    else
-      @procedure_codes = ProcedureCode.order(:code)
-      render :new, status: :unprocessable_entity
-    end
+    redirect_to tenant_fee_schedules_path, alert: "Fee schedule items are managed automatically. You can edit rates only."
   end
 
   def edit
@@ -150,8 +120,6 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
   end
 
   def fee_schedule_item_params
-    params.require(:organization_fee_schedule_item).permit(
-      :procedure_code_id, :unit_price, :pricing_rule, :active
-    )
+    params.require(:organization_fee_schedule_item).permit(:unit_price)
   end
 end

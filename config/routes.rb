@@ -358,17 +358,12 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :fee_schedules do
+        resources :fee_schedules, only: [ :index, :show ] do
           member do
             post :lock
             post :unlock
           end
-          resources :fee_schedule_items do
-            member do
-              post :activate
-              post :deactivate
-            end
-          end
+          resources :fee_schedule_items, only: [ :update ]
         end
 
         resources :procedure_codes, only: [ :index, :show ]
