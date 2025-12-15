@@ -200,7 +200,7 @@ class Admin::DataExportsImportsController < Admin::BaseController
     excluded_columns = %w[id created_at updated_at discarded_at encrypted_password reset_password_token confirmation_token unlock_token invitation_token]
     columns = model_class.column_names.reject { |col| excluded_columns.include?(col) }
 
-    columns.map do |col|
+    headers = columns.map do |col|
       if col.end_with?("_id")
         association_name = col.gsub("_id", "")
         association = model_class.reflect_on_association(association_name.to_sym)
@@ -218,6 +218,32 @@ class Admin::DataExportsImportsController < Admin::BaseController
         col.humanize
       end
     end
+
+    # For Organization, append associated OrganizationIdentifier and OrganizationSetting fields
+    if model_class == Organization
+      headers += [
+        # OrganizationIdentifier fields
+        "identifier_tax_identification_number",
+        "identifier_npi",
+        "identifier_previous_tin",
+        "identifier_previous_npi",
+        "identifier_identifiers_change_status",
+        "identifier_identifiers_change_docs",
+        "identifier_identifiers_change_effective_on",
+        # OrganizationSetting fields
+        "setting_mrn_prefix",
+        "setting_mrn_sequence",
+        "setting_mrn_format",
+        "setting_mrn_enabled",
+        "setting_feature_entitlements",
+        "setting_ezclaim_api_token",
+        "setting_ezclaim_api_url",
+        "setting_ezclaim_api_version",
+        "setting_ezclaim_enabled"
+      ]
+    end
+
+    headers
   end
 
   def generate_sample_data(model_class, headers)

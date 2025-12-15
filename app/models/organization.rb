@@ -71,6 +71,25 @@ class Organization < ApplicationRecord
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true
   validates :owner, presence: true
+  validates :tier, presence: true
+  validate :tier_value_valid
+
+  # Parsed numeric tier percentage, e.g. "6%", "6.0", 6 -> 6.0
+  def tier_percentage
+    return nil unless tier.present?
+    str = tier.to_s.strip
+    str = str.delete("%")
+    Float(str)
+  rescue ArgumentError
+    nil
+  end
+
+  def tier_value_valid
+    value = tier_percentage
+    unless value&.in?([ 6.0, 7.0, 8.0, 9.0 ])
+      errors.add(:tier, "must be one of 6, 7, 8, or 9 percent")
+    end
+  end
 
   def activation_progress_percentage
     case activation_status
@@ -136,26 +155,20 @@ class Organization < ApplicationRecord
   end
 
   # Get all procedure codes unlocked for this organization
-  # (through active providers with active specialties)
+  # Based on active fee schedule items for this org
   def unlocked_procedure_codes
-    ProcedureCode.joins(
-      specialties: { providers: :provider_assignments }
-    ).where(
-      provider_assignments: { organization_id: id, active: true },
-      specialties: { status: :active },
-      providers: { status: "approved" }
-    ).distinct
+    ProcedureCode.joins(organization_fee_schedule_items: :organization_fee_schedule)
+                 .where(organization_fee_schedules: { organization_id: id })
+                 .where(organization_fee_schedule_items: { active: true })
+                 .distinct
   end
 
   # Check if a specific procedure code is unlocked for this organization
   def procedure_code_unlocked?(procedure_code_id)
-    providers.active
-      .joins(:specialty)
-      .joins("INNER JOIN procedure_codes_specialties ON procedure_codes_specialties.specialty_id = specialties.id")
-      .where(
-        specialties: { status: :active },
-        procedure_codes_specialties: { procedure_code_id: procedure_code_id }
-      )
+    organization_fee_schedule_items
+      .joins(:organization_fee_schedule)
+      .where(organization_fee_schedules: { organization_id: id })
+      .where(procedure_code_id: procedure_code_id, active: true)
       .exists?
   end
 

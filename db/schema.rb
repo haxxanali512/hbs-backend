@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_11_111754) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_11_153515) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -535,6 +535,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_111754) do
     t.index ["procedure_code_id"], name: "index_organization_fee_schedule_items_on_procedure_code_id"
   end
 
+  create_table "organization_fee_schedule_specialties", force: :cascade do |t|
+    t.bigint "organization_fee_schedule_id", null: false
+    t.bigint "specialty_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_fee_schedule_id", "specialty_id"], name: "index_org_fee_schedule_specialties_unique", unique: true
+    t.index ["organization_fee_schedule_id"], name: "idx_on_organization_fee_schedule_id_468ea506a8"
+    t.index ["specialty_id"], name: "index_organization_fee_schedule_specialties_on_specialty_id"
+  end
+
   create_table "organization_fee_schedules", force: :cascade do |t|
     t.bigint "organization_id", null: false
     t.string "name"
@@ -1050,6 +1060,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_111754) do
   add_foreign_key "organization_contacts", "organizations"
   add_foreign_key "organization_fee_schedule_items", "organization_fee_schedules"
   add_foreign_key "organization_fee_schedule_items", "procedure_codes"
+  add_foreign_key "organization_fee_schedule_specialties", "organization_fee_schedules"
+  add_foreign_key "organization_fee_schedule_specialties", "specialties"
   add_foreign_key "organization_fee_schedules", "organizations"
   add_foreign_key "organization_fee_schedules", "specialties"
   add_foreign_key "organization_identifiers", "organizations"

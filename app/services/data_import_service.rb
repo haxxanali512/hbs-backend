@@ -19,6 +19,9 @@ class DataImportService
       error_count: 0,
       errors: []
     }
+    # Nested attrs for Organization associations
+    @organization_identifier_attrs = {}
+    @organization_setting_attrs = {}
   end
 
   def perform
@@ -151,6 +154,19 @@ class DataImportService
     # Assign attributes
     record.assign_attributes(attributes.except(*find_by_attributes.keys))
 
+    # Assign nested OrganizationIdentifier / OrganizationSetting for Organization imports
+    if @model_class == Organization
+      if @organization_identifier_attrs.present?
+        record.build_organization_identifier unless record.organization_identifier
+        record.organization_identifier.assign_attributes(@organization_identifier_attrs)
+      end
+
+      if @organization_setting_attrs.present?
+        record.build_organization_setting unless record.organization_setting
+        record.organization_setting.assign_attributes(@organization_setting_attrs)
+      end
+    end
+
     record
   end
 
@@ -166,6 +182,12 @@ class DataImportService
 
   def map_attributes(normalized_data)
     attributes = {}
+
+    # Reset nested attrs per row
+    if @model_class == Organization
+      @organization_identifier_attrs = {}
+      @organization_setting_attrs = {}
+    end
 
     normalized_data.each do |key, value|
       next if value.blank?
@@ -188,6 +210,14 @@ class DataImportService
       elsif key == "owner_username" && @model_class == Organization
         owner = User.find_by(username: value)
         attributes["owner_id"] = owner.id if owner
+      # Nested OrganizationIdentifier fields
+      elsif @model_class == Organization && key.start_with?("identifier_")
+        nested_key = key.sub("identifier_", "")
+        @organization_identifier_attrs[nested_key] = parse_associated_value(OrganizationIdentifier, nested_key, value)
+      # Nested OrganizationSetting fields
+      elsif @model_class == Organization && key.start_with?("setting_")
+        nested_key = key.sub("setting_", "")
+        @organization_setting_attrs[nested_key] = parse_associated_value(OrganizationSetting, nested_key, value)
       end
     end
 
@@ -236,6 +266,32 @@ class DataImportService
       Date.parse(value) rescue value
     when :datetime, :timestamp
       DateTime.parse(value) rescue value
+    else
+      value
+    end
+  end
+
+  def parse_associated_value(associated_class, column_name, value)
+    column = associated_class.columns_hash[column_name]
+    return value unless column
+
+    case column.type
+    when :integer, :bigint
+      value.to_i rescue value
+    when :decimal, :float
+      value.to_f rescue value
+    when :boolean
+      [ "true", "1", "yes", "y" ].include?(value.to_s.downcase)
+    when :date
+      Date.parse(value) rescue value
+    when :datetime, :timestamp
+      DateTime.parse(value) rescue value
+    when :json, :jsonb
+      begin
+        value.is_a?(String) ? JSON.parse(value) : value
+      rescue JSON::ParserError
+        value
+      end
     else
       value
     end
