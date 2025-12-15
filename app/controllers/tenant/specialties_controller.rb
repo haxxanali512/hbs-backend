@@ -21,16 +21,16 @@ class Tenant::SpecialtiesController < Tenant::BaseController
 
   def new
     @specialty = Specialty.new
-    @procedure_codes = @current_organization.unlocked_procedure_codes.kept.active.order(:code)
+    @procedure_codes = ProcedureCode.kept.active.order(:code)
   end
 
   def create
     @specialty = Specialty.new(specialty_params)
 
     if @specialty.save
-      # Handle procedure code assignments (only allow codes unlocked for this organization)
+      # Handle procedure code assignments (allow from all active procedure codes)
       if params[:specialty][:procedure_code_ids].present?
-        allowed_code_ids = @current_organization.unlocked_procedure_codes.pluck(:id)
+        allowed_code_ids = ProcedureCode.kept.active.pluck(:id)
         selected_code_ids = params[:specialty][:procedure_code_ids].map(&:to_i) & allowed_code_ids
         @specialty.procedure_code_ids = selected_code_ids
       end
@@ -48,20 +48,20 @@ class Tenant::SpecialtiesController < Tenant::BaseController
 
       redirect_to tenant_specialty_path(@specialty), notice: "Specialty created successfully and assigned to your organization."
     else
-      @procedure_codes = @current_organization.unlocked_procedure_codes.kept.active.order(:code)
+      @procedure_codes = ProcedureCode.kept.active.order(:code)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
-    @procedure_codes = @current_organization.unlocked_procedure_codes.kept.active.order(:code)
+    @procedure_codes = ProcedureCode.kept.active.order(:code)
   end
 
   def update
     if @specialty.update(specialty_params)
-      # Handle procedure code assignments (only allow codes unlocked for this organization)
+      # Handle procedure code assignments (allow from all active procedure codes)
       if params[:specialty][:procedure_code_ids].present?
-        allowed_code_ids = @current_organization.unlocked_procedure_codes.pluck(:id)
+        allowed_code_ids = ProcedureCode.kept.active.pluck(:id)
         selected_code_ids = params[:specialty][:procedure_code_ids].map(&:to_i) & allowed_code_ids
         @specialty.procedure_code_ids = selected_code_ids
       end
@@ -82,7 +82,7 @@ class Tenant::SpecialtiesController < Tenant::BaseController
 
       redirect_to tenant_specialty_path(@specialty), notice: "Specialty updated successfully."
     else
-      @procedure_codes = @current_organization.unlocked_procedure_codes.kept.active.order(:code)
+      @procedure_codes = ProcedureCode.kept.active.order(:code)
       render :edit, status: :unprocessable_entity
     end
   end
