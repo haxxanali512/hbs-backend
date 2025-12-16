@@ -962,7 +962,7 @@
                      data-pricing-rule="${lineData?.pricing_rule || 'price_per_unit'}">
             </div>
           </div>
-          <div>
+          <div id="${lineId}UnitsWrapper">
             <label class="block text-sm font-medium text-gray-700 mb-1" id="${lineId}UnitsLabel">Procedure Units</label>
             <input type="number" 
                    id="${lineId}Units" 
@@ -1006,6 +1006,10 @@
         if (lineData?.unit_price && lineData?.SrvProcedureUnits) {
           calculateTotalCharges(lineId);
         }
+
+        // Apply initial pricing rule behavior (e.g., disable units for flat pricing)
+        const initialPricingRule = unitPriceInput.getAttribute('data-pricing-rule') || 'price_per_unit';
+        updateUnitsLabelForPricingRule(lineId, initialPricingRule);
       }
       
       // Add event listeners to sync with top section dates
