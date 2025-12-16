@@ -7,6 +7,7 @@ class Admin::EmailTemplateKeysController < Admin::BaseController
     @email_template_keys = EmailTemplateKey.all
     @email_template_keys = apply_filters(@email_template_keys)
     @email_template_keys = @email_template_keys.order(:name)
+    @pagy, @email_template_keys = pagy(@email_template_keys, items: 20)
   end
 
   def show

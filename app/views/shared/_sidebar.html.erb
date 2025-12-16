@@ -221,6 +221,16 @@
         </li>
         <% end %>
 
+        <% if current_user.permissions_for("admin", "email_template_keys", "index") %>
+        <li>
+          <% email_template_keys_active = controller_path == 'admin/email_template_keys' %>
+          <%= link_to admin_email_template_keys_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{email_template_keys_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{email_template_keys_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Email Template Keys</span>
+          <% end %>
+        </li>
+        <% end %>
+
         <% if current_user.permissions_for("admin", "diagnosis_codes", "index") %>
           <li>
             <% diagnosis_codes_active = controller_path == 'admin/diagnosis_codes' %>

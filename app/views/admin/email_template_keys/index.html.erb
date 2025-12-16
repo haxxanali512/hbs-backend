@@ -64,6 +64,18 @@
         </div>
       <% end %>
     </div>
+
+    <!-- Pagination -->
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
   </div>
 </div>
 
