@@ -3,7 +3,7 @@ class Admin::FeeSchedulesController < Admin::BaseController
 
   def index
     @fee_schedules = OrganizationFeeSchedule.kept
-                                           .includes(:organization, :specialty, :organization_fee_schedule_items)
+                                           .includes(:organization, :specialties, :organization_fee_schedule_items)
                                            .order(:organization_id)
 
     # Apply filters
@@ -87,7 +87,7 @@ class Admin::FeeSchedulesController < Admin::BaseController
 
   def fee_schedule_params
     params.require(:organization_fee_schedule).permit(
-      :organization_id, :specialty_id, :name, :currency, :notes, :locked
+      :organization_id, :name, :currency, :notes, :locked
     )
   end
 end

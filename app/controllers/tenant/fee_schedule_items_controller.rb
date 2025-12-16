@@ -57,6 +57,7 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
             item: {
               id: @fee_schedule_item.id,
               unit_price: @fee_schedule_item.unit_price,
+              pricing_rule: @fee_schedule_item.pricing_rule,
               formatted_price: number_to_currency(@fee_schedule_item.unit_price || 0)
             }
           }
@@ -120,6 +121,6 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
   end
 
   def fee_schedule_item_params
-    params.require(:organization_fee_schedule_item).permit(:unit_price)
+    params.require(:organization_fee_schedule_item).permit(:unit_price, :pricing_rule)
   end
 end
