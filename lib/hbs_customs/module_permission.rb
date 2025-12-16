@@ -113,7 +113,7 @@ module HbsCustoms
           support_tickets: DEFAULT_CRUD.except(:destroy).merge(close: false, reopen: false, add_internal_note: false),
           support_ticket_comments: DEFAULT_CRUD.except(:destroy).merge(redact: false),
           email_template_keys: DEFAULT_CRUD,
-          email_templates: DEFAULT_CRUD
+          email_templates: DEFAULT_CRUD,
           data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false, upload_processing_file: false)
         }.freeze
       end
