@@ -1,0 +1,51 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900"><%= @email_template.email_template_key.name %></h1>
+        <p class="mt-1 text-gray-600">Locale: <span class="font-mono"><%= @email_template.locale %></span></p>
+      </div>
+      <div class="flex space-x-3">
+        <%= link_to "Edit", edit_admin_email_template_path(@email_template), class: "bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors" %>
+        <%= link_to "Delete", admin_email_template_path(@email_template), method: :delete, data: { confirm: "Delete this template override?" }, class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Template Details</h2>
+        <dl class="space-y-4">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Subject</dt>
+            <dd class="text-sm text-gray-900"><%= @email_template.subject.presence || "— (defaults to key)" %></dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Status</dt>
+            <dd>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @email_template.active? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+                <%= @email_template.active? ? "Active" : "Inactive" %>
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+            <dd class="text-sm text-gray-900"><%= l(@email_template.updated_at, format: :long) %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">HTML Body</h2>
+        <div class="prose max-w-none" style="white-space: pre-wrap;">
+          <%= @email_template.body_html.presence || "<em>Defaults to key content</em>".html_safe %>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Text Body</h2>
+      <pre class="text-sm bg-gray-50 border border-gray-200 rounded p-3"><%= @email_template.body_text.presence || "Defaults to key content" %></pre>
+    </div>
+  </div>
+</div>
+
