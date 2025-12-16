@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_11_153515) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_16_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -523,11 +523,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_11_153515) do
     t.bigint "organization_fee_schedule_id", null: false
     t.bigint "procedure_code_id", null: false
     t.decimal "unit_price", precision: 10, scale: 2
-    t.string "pricing_rule", null: false
     t.boolean "active", default: true, null: false
     t.boolean "locked", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "pricing_rule", default: 0, null: false
     t.index ["active"], name: "index_organization_fee_schedule_items_on_active"
     t.index ["locked"], name: "index_organization_fee_schedule_items_on_locked"
     t.index ["organization_fee_schedule_id", "procedure_code_id"], name: "index_fee_schedule_items_on_schedule_and_procedure", unique: true

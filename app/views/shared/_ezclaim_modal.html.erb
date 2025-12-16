@@ -41,31 +41,22 @@
             <!-- Editable Form for Claim -->
             <form id="<%= modal_id %>Form" onsubmit="event.preventDefault(); submitClaim('<%= modal_id %>', '<%= submit_url %>');">
               <div class="mb-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
-                <div class="bg-gray-50 rounded-md p-4 mb-4">
-                  <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">API URL:</span>
-                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
-                    </div>
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">API Version:</span>
-                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
-                    </div>
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Endpoint:</span>
-                      <span class="text-gray-900 font-mono">POST /Claims</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mb-4">
                 <h4 class="text-sm font-semibold text-gray-900 mb-3">Claim Information</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Patient FID</label>
-                    <input type="text" name="claim[ClaPatFID]" id="<%= modal_id %>ClaPatFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Patient</label>
+                    <div class="flex items-center space-x-2">
+                      <input type="text"
+                             name="claim[ClaPatFID]"
+                             id="<%= modal_id %>ClaPatFID"
+                             class="w-32 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                             placeholder="FID">
+                      <input type="text"
+                             name="claim[PatientName]"
+                             id="<%= modal_id %>PatientName"
+                             class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                             placeholder="Patient name">
+                    </div>
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Rendering Physician FID</label>
@@ -147,26 +138,6 @@
           <% elsif modal_type == 'claim_insured' %>
             <!-- Editable Form for Claim Insured -->
             <form id="<%= modal_id %>Form" onsubmit="event.preventDefault(); submitClaimInsured('<%= modal_id %>', '<%= submit_url %>');">
-              <div class="mb-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
-                <div class="bg-gray-50 rounded-md p-4 mb-4">
-                  <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">API URL:</span>
-                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
-                    </div>
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">API Version:</span>
-                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
-                    </div>
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Endpoint:</span>
-                      <span class="text-gray-900 font-mono">POST /Claim_Insureds</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <div class="mb-4">
                 <h4 class="text-sm font-semibold text-gray-900 mb-3">Claim Insured Information</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,26 +262,6 @@
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <p class="text-sm font-medium text-green-800">Connection successful!</p>
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
-              <div class="bg-gray-50 rounded-md p-4 mb-4">
-                <div class="space-y-2 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">API URL:</span>
-                    <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">API Version:</span>
-                    <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Endpoint:</span>
-                    <span class="text-gray-900 font-mono">POST /claims</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1004,7 +955,7 @@
                      step="0.01"
                      readonly
                      placeholder="Auto-populated from fee schedule"
-                     data-pricing-rule="${lineData?.pricing_rule || 'per_unit'}">
+                     data-pricing-rule="${lineData?.pricing_rule || 'price_per_unit'}">
             </div>
           </div>
           <div>
@@ -1299,32 +1250,19 @@
     if (!unitsLabel || !unitsHelp || !unitsInput) return;
     
     switch(pricingRule) {
-      case 'per_hour':
-      case 'hourly':
-        unitsLabel.textContent = 'Units (15-min increments)';
-        unitsHelp.textContent = 'Enter units (1 unit = 15 minutes, 4 units = 1 hour). Price is per hour.';
-        unitsInput.step = '0.25'; // 15 minute increments
-        unitsInput.min = '0.25';
-        break;
-      case 'per_minute':
-        unitsLabel.textContent = 'Minutes';
-        unitsHelp.textContent = 'Enter minutes';
-        unitsInput.step = '1';
-        unitsInput.min = '1';
-        break;
-      case 'per_visit':
-      case 'per_procedure':
+      case 'flat':
         unitsLabel.textContent = 'Units';
-        unitsHelp.textContent = 'Enter number of visits/procedures';
-        unitsInput.step = '1';
-        unitsInput.min = '1';
+        unitsHelp.textContent = 'Flat rate - units are not used in calculation.';
+        unitsInput.value = '';
+        unitsInput.disabled = true;
         break;
-      case 'per_unit':
+      case 'price_per_unit':
       default:
         unitsLabel.textContent = 'Units';
         unitsHelp.textContent = '1 unit = 15 minutes';
         unitsInput.step = '0.25'; // 15 minute increments
         unitsInput.min = '0.25';
+        unitsInput.disabled = false;
         break;
     }
   }
@@ -1337,33 +1275,19 @@
     if (unitPriceInput && unitsInput && totalChargesInput) {
       const unitPrice = parseFloat(unitPriceInput.value) || 0;
       const units = parseFloat(unitsInput.value) || 0;
-      const pricingRule = unitPriceInput.getAttribute('data-pricing-rule') || 'per_unit';
+      const pricingRule = unitPriceInput.getAttribute('data-pricing-rule') || 'price_per_unit';
       
       let total = 0;
       
       // Calculate based on pricing rule
       switch(pricingRule) {
-        case 'per_hour':
-        case 'hourly':
-          // If unit_price is per hour, convert units (15-min increments) to hours
-          // 1 unit = 15 minutes = 0.25 hours
-          // So: units * 0.25 = hours, then hours * unit_price = total
-          const hours = units * 0.25; // Convert 15-min units to hours
-          total = unitPrice * hours;
+        case 'flat':
+          // Flat pricing ignores units - total is just the unit_price
+          total = unitPrice;
           break;
-        case 'per_minute':
-          // If unit_price is per minute, multiply by minutes
-          total = unitPrice * units;
-          break;
-        case 'per_visit':
-        case 'per_procedure':
-          // Flat rate per visit/procedure
-          total = unitPrice * units;
-          break;
-        case 'per_unit':
+        case 'price_per_unit':
         default:
           // Standard calculation: unit_price * units
-          // If unit_price is per 15-min unit, multiply directly
           total = unitPrice * units;
           break;
       }
@@ -1423,6 +1347,7 @@
     
     // Build the claim data object
     data.ClaPatFID = formData.get('claim[ClaPatFID]') || '';
+    data.PatientName = formData.get('claim[PatientName]') || '';
     data.claRenderingPhyFID = formData.get('claim[claRenderingPhyFID]') || '';
     
     // Get diagnosis codes from selectedDiagnosisCodes array

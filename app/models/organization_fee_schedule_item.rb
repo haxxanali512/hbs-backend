@@ -7,9 +7,10 @@ class OrganizationFeeScheduleItem < ApplicationRecord
   belongs_to :organization_fee_schedule
   belongs_to :procedure_code
 
+  enum pricing_rule: { price_per_unit: 0, flat: 1 }
+
   # Rate can be set later; allow nil until client admin fills it
   validates :unit_price, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :pricing_rule, presence: true
   validates :active, inclusion: { in: [ true, false ] }
   validates :locked, inclusion: { in: [ true, false ] }
   validate :unique_active_item_per_schedule_and_procedure
@@ -93,9 +94,8 @@ class OrganizationFeeScheduleItem < ApplicationRecord
   def pricing_rule_compatible_with_procedure
     return unless pricing_rule.present? && procedure_code.present?
 
-    # This would validate against CPT Rule matrix
-    # For now, we'll accept common pricing rules
-    valid_rules = %w[per_unit per_minute per_hour per_visit per_procedure]
+    # For now, only allow our two supported rules
+    valid_rules = %w[price_per_unit flat]
 
     unless valid_rules.include?(pricing_rule)
       errors.add(:pricing_rule, "FEE_RULE_INVALID - Pricing rule not allowed for this CPT.")

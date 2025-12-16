@@ -4,7 +4,7 @@
          data-code-id="<%= pc.id %>"
          data-code="<%= pc.code %>"
          data-description="<%= pc.description %>"
-         onclick="selectProcedureCode('<%= line_id %>', <%= pc.id %>, '<%= pc.code %>', '<%= j(pc.description) %>', '<%= search_url %>'); return false;"
+         onclick="selectProcedureCode('<%= line_id %>', <%= pc.id %>, '<%= pc.code %>', '<%= j(pc.description) %>', '<%= search_url %>'); return false;">
       <div class="flex items-center justify-between">
         <div class="flex-1">
           <div class="font-medium text-sm text-gray-900"><%= pc.code || 'N/A' %></div>

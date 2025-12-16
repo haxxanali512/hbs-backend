@@ -7,13 +7,13 @@
        readonly
        placeholder="Auto-populated from fee schedule"
        data-unit-price="<%= unit_price.to_f %>"
-       data-pricing-rule="<%= pricing_rule || 'per_unit' %>">
+       data-pricing-rule="<%= pricing_rule || 'price_per_unit' %>">
 
 <script>
   // Trigger total charges calculation after Turbo Stream update
   (function() {
     const lineId = '<%= line_id %>';
-    const pricingRule = '<%= pricing_rule || 'per_unit' %>';
+    const pricingRule = '<%= pricing_rule || 'price_per_unit' %>';
     setTimeout(() => {
       // Update units label based on pricing rule
       if (typeof updateUnitsLabelForPricingRule === 'function') {

@@ -74,9 +74,8 @@ class FeeSchedulePricingService
 
     # Validate pricing rule compatibility
     def validate_pricing_rule(procedure_code_id, pricing_rule)
-      # This would check against CPT Rule matrix
-      # For now, we'll use a simple validation
-      valid_rules = %w[per_unit per_minute per_hour per_visit per_procedure]
+      # For now, support only the two main rules used in the UI
+      valid_rules = %w[price_per_unit flat]
 
       if valid_rules.include?(pricing_rule)
         { valid: true }

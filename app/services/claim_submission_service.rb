@@ -92,6 +92,7 @@ class ClaimSubmissionService
 
     {
       ClaPatFID: patient.external_id || patient.id.to_s,
+      PatientName: "#{patient.first_name} #{patient.last_name}".strip,
       claRenderingPhyFID: provider.npi || provider.id.to_s,
       ClaDiagnosis1: diagnosis_codes[0]&.code || "",
       ClaDiagnosis2: diagnosis_codes[1]&.code || "",

@@ -22,7 +22,7 @@ class FeeScheduleUnlockService
         fee_schedule.organization_fee_schedule_items.create!(
           procedure_code_id: procedure_code.id,
           unit_price: nil, # Will be filled by Client_Admin
-          pricing_rule: "per_unit", # Default, can be changed later
+          pricing_rule: :price_per_unit, # Default, can be changed later
           active: true
         )
         unlocked_count += 1
