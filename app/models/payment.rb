@@ -1,7 +1,7 @@
 class Payment < ApplicationRecord
   audited
 
-  belongs_to :invoice
+  belongs_to :invoice, optional: true
   belongs_to :organization
   belongs_to :payer, optional: true
   belongs_to :processed_by_user, class_name: "User", optional: true

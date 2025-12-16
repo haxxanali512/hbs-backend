@@ -1,61 +1,14 @@
 class Admin::ClaimsController < Admin::BaseController
-  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :push_to_ezclaim, :post_adjudication, :void, :reverse, :close ]
+  include Admin::Concerns::ClaimSubmission
+
+  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :test_ezclaim_connection, :post_adjudication, :void, :reverse, :close ]
   before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
 
   def index
-    @claims = Claim.includes(:organization, :encounter, :patient, :provider, :specialty, :claim_lines)
-
-    # Filtering by organization
-    @claims = @claims.where(organization_id: params[:organization_id]) if params[:organization_id].present?
-
-    # Filtering by status
-    @claims = @claims.where(status: params[:status]) if params[:status].present?
-
-    # Filtering by provider
-    @claims = @claims.where(provider_id: params[:provider_id]) if params[:provider_id].present?
-
-    # Filtering by patient
-    @claims = @claims.where(patient_id: params[:patient_id]) if params[:patient_id].present?
-
-    # Filtering by specialty
-    @claims = @claims.where(specialty_id: params[:specialty_id]) if params[:specialty_id].present?
-
-    # Date range filter
-    if params[:date_from].present? && params[:date_to].present?
-      @claims = @claims.joins(:encounter).where(
-        "encounters.date_of_service >= ? AND encounters.date_of_service <= ?",
-        params[:date_from],
-        params[:date_to]
-      )
-    elsif params[:date_from].present?
-      @claims = @claims.joins(:encounter).where("encounters.date_of_service >= ?", params[:date_from])
-    elsif params[:date_to].present?
-      @claims = @claims.joins(:encounter).where("encounters.date_of_service <= ?", params[:date_to])
-    end
-
-    # Search
-    if params[:search].present?
-      search_term = "%#{params[:search]}%"
-      @claims = @claims.joins(:patient)
-        .where("patients.first_name ILIKE ? OR patients.last_name ILIKE ?", search_term, search_term)
-    end
-
-    # Sorting
-    case params[:sort]
-    when "date_desc"
-      @claims = @claims.joins(:encounter).order("encounters.date_of_service DESC")
-    when "date_asc"
-      @claims = @claims.joins(:encounter).order("encounters.date_of_service ASC")
-    when "status"
-      @claims = @claims.order(status: :asc)
-    when "total_billed_desc"
-      @claims = @claims.order(total_billed: :desc)
-    else
-      @claims = @claims.order(created_at: :desc)
-    end
-
-    # Pagination
-    @pagy, @claims = pagy(@claims, items: 20)
+    @claims = build_claims_index_query
+    @claims = apply_claims_filters(@claims)
+    @claims = apply_claims_sorting(@claims)
+    @pagy, @claims = paginate_claims(@claims)
   end
 
   def show; end
@@ -112,40 +65,53 @@ class Admin::ClaimsController < Admin::BaseController
   end
 
   def submit
-    if @claim.generated? || @claim.validated?
+    return if validate_claim_submission_status
+    return if validate_ezclaim_enabled
+
+    begin
       ActiveRecord::Base.transaction do
-        @claim.update!(status: :submitted)
-        @claim.claim_lines.update_all(status: "locked_on_submission")
-        @claim.update!(submitted_at: Time.current)
-
-        # Create a submission attempt record
-        # TODO: Implement GEN API call to create submission key
-        @claim.claim_submissions.create!(
-          submission_method: :api,
-          status: :submitted,
-          ack_status: :pending,
-          submitted_at: Time.current,
-          external_submission_key: SecureRandom.uuid # placeholder until GEN returns a real key
-        )
+        apply_internal_submission_changes
+        submit_to_ezclaim
       end
-      redirect_to admin_claim_path(@claim), notice: "Claim submitted successfully."
-    else
-      redirect_to admin_claim_path(@claim), alert: "Claim cannot be submitted from current status."
+
+      render_submission_success
+    rescue EzclaimService::AuthenticationError, EzclaimService::IntegrationError => e
+      handle_ezclaim_error(e)
+    rescue => e
+      handle_submission_error(e)
     end
   end
 
-  def push_to_ezclaim
-    result = EzclaimIntegrationService.new(
-      claim: @claim,
-      organization: @claim.organization
-    ).push_claim
+  def test_ezclaim_connection
+    service = EzclaimService.new(organization: @claim.organization)
 
-    if result[:success]
-      redirect_to admin_claim_path(@claim), notice: "Claim pushed to EZclaim successfully. #{result[:message]}"
+    # Test connection
+    connection_result = service.test_connection
+
+    if connection_result[:success]
+      # Get API config
+      config = service.api_config
+
+      render json: {
+        success: true,
+        api_url: config[:api_url],
+        api_version: config[:api_version],
+        message: "Connection successful"
+      }
     else
-      redirect_to admin_claim_path(@claim), alert: "Failed to push to EZclaim: #{result[:error]}"
+      render json: {
+        success: false,
+        error: connection_result[:message] || connection_result[:error] || "Connection test failed"
+      }, status: :unprocessable_entity
     end
+  rescue => e
+    Rails.logger.error("EZclaim connection test error: #{e.message}")
+    render json: {
+      success: false,
+      error: e.message
+    }, status: :unprocessable_entity
   end
+
 
   def post_adjudication
     # Placeholder for ERA/EOB posting logic
@@ -185,18 +151,30 @@ class Admin::ClaimsController < Admin::BaseController
     @claim = Claim.find(params[:id])
   end
 
+
   def load_form_options
     @organizations = Organization.kept.order(:name)
     @providers = Provider.kept.active.order(:first_name, :last_name)
     @patients = Patient.order(:first_name, :last_name)
     @specialties = Specialty.active.kept.order(:name)
     @encounters = Encounter.kept.order(date_of_service: :desc).limit(100)
-    @procedure_codes = ProcedureCode.active.order(:code)
+    @procedure_codes = resolve_procedure_codes_for_selected_org
     @statuses = Claim.statuses.keys
 
     if action_name == "index"
       @statuses = Claim.statuses.keys
     end
+  end
+
+  def resolve_procedure_codes_for_selected_org
+    org_id = params.dig(:claim, :organization_id) || params[:organization_id] || @claim&.organization_id
+    if org_id.present?
+      org = Organization.find_by(id: org_id)
+      return org.unlocked_procedure_codes.kept.active.order(:code) if org
+    end
+
+    # Fallback to all active codes if no org selected
+    ProcedureCode.active.order(:code)
   end
 
   def claim_params

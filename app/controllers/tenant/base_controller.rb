@@ -4,7 +4,8 @@ class Tenant::BaseController < ApplicationController
   private
 
   def ensure_tenant_access
-    unless current_org_member?
+    # Allow access if user is a member of the organization OR if they're masquerading
+    unless current_org_member? || (respond_to?(:user_masquerade?) && user_masquerade?)
       reset_session
       redirect_to new_user_session_path, alert: "Access denied. Organization membership required."
     end

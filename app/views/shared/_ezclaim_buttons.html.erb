@@ -1,0 +1,60 @@
+<% 
+  # This partial renders EZClaim buttons for both admin and tenant namespaces
+  # Required parameters:
+  #   - claim: The claim object
+  #   - namespace: 'admin' or 'tenant'
+  #   - can_submit: Boolean indicating if user can submit
+  #   - ezclaim_enabled: Boolean indicating if EZClaim is enabled
+  #   - claim_insured_data_path: Path helper for claim_insured_data action
+  #   - claim_data_path: Path helper for claim_data action
+  #   - submit_claim_insured_path: Path helper for submit_claim_insured action
+  #   - submit_claim_path: Path helper for submit_claim action
+  
+  claim_obj = local_assigns[:claim] || @claim
+  namespace = local_assigns[:namespace] || 'admin'
+  can_submit = local_assigns[:can_submit] || false
+  ezclaim_enabled = local_assigns[:ezclaim_enabled] || false
+  claim_insured_data_path = local_assigns[:claim_insured_data_path]
+  claim_data_path = local_assigns[:claim_data_path]
+  submit_claim_insured_path = local_assigns[:submit_claim_insured_path]
+  submit_claim_path = local_assigns[:submit_claim_path]
+%>
+
+<% if can_submit && (claim_obj.generated? || claim_obj.validated?) && ezclaim_enabled %>
+  <button type="button" 
+          onclick="openEzclaimModal('claimInsuredModal', '<%= claim_insured_data_path %>', 'claim_insured')"
+          class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+    Send for billing
+  </button>
+  <button type="button" 
+          onclick="openEzclaimModal('claimModal', '<%= claim_data_path %>', 'claim')"
+          class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 mt-2">
+    Send for billing
+  </button>
+<% elsif can_submit && (claim_obj.generated? || claim_obj.validated?) && !ezclaim_enabled %>
+  <button type="button" 
+          disabled
+          class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-400 cursor-not-allowed"
+          title="EZClaim is not enabled for this organization">
+    Send for billing (EZClaim not enabled)
+  </button>
+<% end %>
+
+<%= render 'shared/ezclaim_modal', 
+    modal_id: 'claimInsuredModal',
+    claim_id: claim_obj.id,
+    data_url: claim_insured_data_path,
+    submit_url: submit_claim_insured_path,
+    title: 'Send for billing (Claim Insured)',
+    modal_type: 'claim_insured'
+%>
+
+<%= render 'shared/ezclaim_modal', 
+    modal_id: 'claimModal',
+    claim_id: claim_obj.id,
+    data_url: claim_data_path,
+    submit_url: submit_claim_path,
+    title: 'Send for billing (Claim)',
+    modal_type: 'claim'
+%>
+

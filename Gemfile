@@ -5,6 +5,7 @@ gem "pg", "~> 1.1"
 gem "puma", ">= 5.0"
 gem "devise"
 gem "devise_invitable"
+gem "devise_masquerade"
 gem "tailwindcss-ruby", "3.4.13"
 gem "audited"
 gem "discard"
@@ -14,6 +15,7 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 
 gem "pagy"
+gem "turbo-rails"
 
 gem "rack-cors"
 gem "pundit"

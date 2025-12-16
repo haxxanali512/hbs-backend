@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_11_153515) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -423,6 +423,25 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
     t.index ["status"], name: "index_invoices_on_status"
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "organization_id"
+    t.string "notification_type", null: false
+    t.string "title", null: false
+    t.text "message", null: false
+    t.string "action_url"
+    t.boolean "read", default: false, null: false
+    t.datetime "read_at", precision: nil
+    t.jsonb "metadata"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["notification_type"], name: "index_notifications_on_notification_type"
+    t.index ["organization_id"], name: "index_notifications_on_organization_id"
+    t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at"
+    t.index ["user_id", "read"], name: "index_notifications_on_user_id_and_read"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
   create_table "org_accepted_plans", force: :cascade do |t|
     t.bigint "organization_id", null: false
     t.bigint "insurance_plan_id", null: false
@@ -503,7 +522,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
   create_table "organization_fee_schedule_items", force: :cascade do |t|
     t.bigint "organization_fee_schedule_id", null: false
     t.bigint "procedure_code_id", null: false
-    t.decimal "unit_price", precision: 10, scale: 2, null: false
+    t.decimal "unit_price", precision: 10, scale: 2
     t.string "pricing_rule", null: false
     t.boolean "active", default: true, null: false
     t.boolean "locked", default: false, null: false
@@ -516,9 +535,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
     t.index ["procedure_code_id"], name: "index_organization_fee_schedule_items_on_procedure_code_id"
   end
 
+  create_table "organization_fee_schedule_specialties", force: :cascade do |t|
+    t.bigint "organization_fee_schedule_id", null: false
+    t.bigint "specialty_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_fee_schedule_id", "specialty_id"], name: "index_org_fee_schedule_specialties_unique", unique: true
+    t.index ["organization_fee_schedule_id"], name: "idx_on_organization_fee_schedule_id_468ea506a8"
+    t.index ["specialty_id"], name: "index_organization_fee_schedule_specialties_on_specialty_id"
+  end
+
   create_table "organization_fee_schedules", force: :cascade do |t|
     t.bigint "organization_id", null: false
-    t.bigint "provider_id", null: false
     t.string "name"
     t.integer "currency"
     t.text "notes"
@@ -526,8 +554,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
     t.datetime "updated_at", null: false
     t.datetime "discarded_at", precision: nil
     t.boolean "locked", default: false, null: false
+    t.bigint "specialty_id"
     t.index ["organization_id"], name: "index_organization_fee_schedules_on_organization_id"
-    t.index ["provider_id"], name: "index_organization_fee_schedules_on_provider_id"
+    t.index ["specialty_id"], name: "index_organization_fee_schedules_on_specialty_id"
   end
 
   create_table "organization_identifiers", force: :cascade do |t|
@@ -748,6 +777,20 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
     t.index ["payment_status"], name: "index_payments_on_payment_status"
     t.index ["processed_by_user_id"], name: "index_payments_on_processed_by_user_id"
     t.index ["source_hash"], name: "index_payments_on_source_hash", unique: true
+  end
+
+  create_table "prescriptions", force: :cascade do |t|
+    t.bigint "patient_id", null: false
+    t.date "expires_on", null: false
+    t.boolean "expired", default: false, null: false
+    t.datetime "discarded_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "title"
+    t.index ["discarded_at"], name: "index_prescriptions_on_discarded_at"
+    t.index ["expired"], name: "index_prescriptions_on_expired"
+    t.index ["expires_on"], name: "index_prescriptions_on_expires_on"
+    t.index ["patient_id"], name: "index_prescriptions_on_patient_id", unique: true
   end
 
   create_table "procedure_codes", force: :cascade do |t|
@@ -1007,6 +1050,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
   add_foreign_key "invoice_line_items", "invoices"
   add_foreign_key "invoices", "organizations"
   add_foreign_key "invoices", "users", column: "exception_set_by_user_id"
+  add_foreign_key "notifications", "organizations"
+  add_foreign_key "notifications", "users"
   add_foreign_key "org_accepted_plans", "insurance_plans"
   add_foreign_key "org_accepted_plans", "organizations"
   add_foreign_key "org_accepted_plans", "users", column: "added_by_id"
@@ -1015,8 +1060,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_25_121000) do
   add_foreign_key "organization_contacts", "organizations"
   add_foreign_key "organization_fee_schedule_items", "organization_fee_schedules"
   add_foreign_key "organization_fee_schedule_items", "procedure_codes"
+  add_foreign_key "organization_fee_schedule_specialties", "organization_fee_schedules"
+  add_foreign_key "organization_fee_schedule_specialties", "specialties"
   add_foreign_key "organization_fee_schedules", "organizations"
-  add_foreign_key "organization_fee_schedules", "providers"
+  add_foreign_key "organization_fee_schedules", "specialties"
   add_foreign_key "organization_identifiers", "organizations"
   add_foreign_key "organization_locations", "organizations"
   add_foreign_key "organization_memberships", "organizations"

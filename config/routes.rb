@@ -1,8 +1,22 @@
 Rails.application.routes.draw do
-  devise_for :users, controllers: { invitations: "users/invitations" }
+  devise_for :users, controllers: {
+    invitations: "users/invitations",
+    masquerades: "admin/masquerades"
+  }
 
   # Health check
   get "up" => "health#show", as: :rails_health_check
+
+  # Notifications (available in both admin and tenant)
+  resources :notifications, only: [ :index ] do
+    member do
+      patch :mark_as_read
+    end
+    collection do
+      patch :mark_all_as_read
+      get :unread_count
+    end
+  end
 
   # API routes
   namespace :api do
@@ -89,7 +103,22 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :payers
+      resources :payers do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
+      end
+
+      resources :data_exports_imports, only: [ :index ] do
+        collection do
+          get :download_sample
+          get :download_processing_sample
+          post :export
+          post :import
+          post :upload_processing_file
+        end
+      end
 
       resources :email_template_keys do
         resources :email_templates, only: %i[new create]
@@ -143,6 +172,10 @@ Rails.application.routes.draw do
       end
 
       resources :providers do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
         member do
           post :approve
           post :reject
@@ -183,6 +216,7 @@ Rails.application.routes.draw do
       resources :procedure_codes do
         member do
           post :toggle_status
+          post :push_to_ezclaim
         end
       end
 
@@ -196,10 +230,18 @@ Rails.application.routes.draw do
       resources :appointments, only: [ :index, :show, :edit, :update, :destroy ]
 
       resources :encounters, only: [ :index, :show, :edit, :update, :destroy ] do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
         member do
           post :cancel
           post :request_correction
           post :override_validation
+          get :billing_data
+          get :procedure_codes_search
+          get :diagnosis_codes_search
+          post :submit_for_billing
         end
         resources :encounter_comments, only: [ :index, :create ] do
           member do
@@ -213,7 +255,7 @@ Rails.application.routes.draw do
         member do
           post :validate
           post :submit
-          post :push_to_ezclaim
+          get :test_ezclaim_connection
           post :post_adjudication
           post :void
           post :reverse
@@ -245,6 +287,10 @@ Rails.application.routes.draw do
       end
 
       resources :patients, only: [ :index, :show, :edit, :update, :destroy ] do
+        collection do
+          get :fetch_from_ezclaim
+          post :save_from_ezclaim
+        end
         member do
           post :activate
           post :inactivate
@@ -309,7 +355,7 @@ Rails.application.routes.draw do
         end
 
         resources :providers
-        resources :specialties, only: [ :index, :show ]
+        resources :specialties
         resources :organization_locations do
           member do
             post :activate
@@ -318,17 +364,12 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :fee_schedules do
+        resources :fee_schedules, only: [ :index, :show ] do
           member do
             post :lock
             post :unlock
           end
-          resources :fee_schedule_items do
-            member do
-              post :activate
-              post :deactivate
-            end
-          end
+          resources :fee_schedule_items, only: [ :update ]
         end
 
         resources :procedure_codes, only: [ :index, :show ]
@@ -353,6 +394,10 @@ Rails.application.routes.draw do
             post :cancel
             post :request_correction
             post :attach_document
+            get :billing_data
+            get :procedure_codes_search
+            get :diagnosis_codes_search
+            post :submit_for_billing
           end
           resources :encounter_comments, only: [ :index, :create ]
           resources :provider_notes, except: [ :show ]
@@ -392,8 +437,12 @@ Rails.application.routes.draw do
             post :inactivate
             post :mark_deceased
             post :reactivate
+            post :push_to_ezclaim
           end
         end
+
+        # Claims index removed per request; comment out tenant claims routes
+        # resources :claims, only: [ :index, :show ]
 
         resource :organization_setting, only: [ :show, :edit, :update ]
       end

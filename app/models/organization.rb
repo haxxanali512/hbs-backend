@@ -4,11 +4,12 @@ class Organization < ApplicationRecord
 
   include AASM
 
+  # Flow: pending → compliance_setup → billing_setup → terms_agreement → activated
   enum :activation_status, {
     pending: 0,
     compliance_setup: 1,
     billing_setup: 2,
-    document_signing: 3,
+    terms_agreement: 3,
     activated: 4
   }
 
@@ -16,23 +17,25 @@ class Organization < ApplicationRecord
     state :pending, initial: true
     state :compliance_setup
     state :billing_setup
-    state :document_signing
+    state :terms_agreement
     state :activated
 
-    event :compliance_setup_complete! do
+    event :compliance_setup_complete do
       transitions from: :pending, to: :compliance_setup
     end
 
-    event :billing_setup_complete! do
+    event :billing_setup_complete do
       transitions from: :compliance_setup, to: :billing_setup
     end
 
-    event :document_signing_complete! do
-      transitions from: :billing_setup, to: :document_signing
+    event :terms_agreement_complete do
+      transitions from: :billing_setup, to: :terms_agreement
     end
 
     event :activate do
-      transitions from: :document_signing, to: :activated
+      # Admin override: can activate directly from pending (skip all steps)
+      # Normal user flow: activate from terms_agreement (last step completed)
+      transitions from: [ :pending, :terms_agreement ], to: :activated
     end
   end
 
@@ -59,19 +62,41 @@ class Organization < ApplicationRecord
   has_many :org_accepted_plans, dependent: :restrict_with_error
   has_many :payer_enrollments, dependent: :restrict_with_error
   has_many :support_tickets, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   after_create :invite_owner
   after_create :create_default_settings
+
+  accepts_nested_attributes_for :organization_setting, update_only: true
 
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true
   validates :owner, presence: true
+  validates :tier, presence: true
+  validate :tier_value_valid
+
+  # Parsed numeric tier percentage, e.g. "6%", "6.0", 6 -> 6.0
+  def tier_percentage
+    return nil unless tier.present?
+    str = tier.to_s.strip
+    str = str.delete("%")
+    Float(str)
+  rescue ArgumentError
+    nil
+  end
+
+  def tier_value_valid
+    value = tier_percentage
+    unless value&.in?([ 6.0, 7.0, 8.0, 9.0 ])
+      errors.add(:tier, "must be one of 6, 7, 8, or 9 percent")
+    end
+  end
 
   def activation_progress_percentage
     case activation_status
     when "pending" then 0
     when "compliance_setup" then 25
     when "billing_setup" then 50
-    when "document_signing" then 75
+    when "terms_agreement" then 75
     when "activated" then 100
     else 0
     end
@@ -79,20 +104,20 @@ class Organization < ApplicationRecord
 
   def next_activation_step
     case activation_status
-    when "pending" then "billing_setup"
+    when "pending" then "compliance_setup"
     when "compliance_setup" then "billing_setup"
-    when "billing_setup" then "document_signing"
-    when "document_signing" then "activated"
+    when "billing_setup" then "terms_agreement"
+    when "terms_agreement" then "activated"
     else nil
     end
   end
 
   def can_proceed_to_step?(step)
     case step
-    when "billing_setup" then pending?
-    when "compliance_setup" then compliance_setup?
-    when "document_signing" then billing_setup?
-    when "activated" then document_signing?
+    when "compliance_setup" then pending?
+    when "billing_setup" then compliance_setup?
+    when "terms_agreement" then billing_setup?
+    when "activated" then terms_agreement?
     else false
     end
   end
@@ -107,6 +132,58 @@ class Organization < ApplicationRecord
 
   def add_member(user, role = nil)
     organization_memberships.create!(user: user, organization_role: role, active: true)
+  end
+
+  # Find the active fee schedule item for a given procedure code
+  # Returns nil if no active item exists
+  def fee_schedule_item_for(procedure_code)
+    OrganizationFeeScheduleItem.joins(:organization_fee_schedule)
+                              .where(organization_fee_schedules: { organization_id: id })
+                              .where(procedure_code_id: procedure_code.id)
+                              .where(active: true)
+                              .first
+  end
+
+  # Check if a procedure code has an active fee schedule item
+  def has_fee_schedule_for?(procedure_code)
+    fee_schedule_item_for(procedure_code).present?
+  end
+
+  # Get or create the organization's fee schedule
+  def get_or_create_fee_schedule(specialty = nil)
+    OrganizationFeeSchedule.get_or_create_for_organization(self, specialty)
+  end
+
+  # Get all procedure codes unlocked for this organization
+  # Based on active fee schedule items for this org
+  def unlocked_procedure_codes
+    ProcedureCode.joins(organization_fee_schedule_items: :organization_fee_schedule)
+                 .where(organization_fee_schedules: { organization_id: id })
+                 .where(organization_fee_schedule_items: { active: true })
+                 .distinct
+  end
+
+  # Check if a specific procedure code is unlocked for this organization
+  def procedure_code_unlocked?(procedure_code_id)
+    organization_fee_schedule_items
+      .joins(:organization_fee_schedule)
+      .where(organization_fee_schedules: { organization_id: id })
+      .where(procedure_code_id: procedure_code_id, active: true)
+      .exists?
+  end
+
+  # Get all specialties that unlocked a specific procedure code for this organization
+  def specialties_for_procedure_code(procedure_code_id)
+    Specialty.joins(
+      providers: { provider_assignments: :organization }
+    ).joins(
+      "INNER JOIN procedure_codes_specialties ON procedure_codes_specialties.specialty_id = specialties.id"
+    ).where(
+      provider_assignments: { organization_id: id, active: true },
+      providers: { status: "approved" },
+      specialties: { status: :active },
+      procedure_codes_specialties: { procedure_code_id: procedure_code_id }
+    ).distinct
   end
 
   def invite_owner

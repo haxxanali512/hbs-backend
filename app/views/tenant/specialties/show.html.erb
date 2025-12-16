@@ -54,7 +54,7 @@
                 <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-md">
                   <div>
                     <div class="font-medium text-gray-900"><%= provider.full_name %></div>
-                    <div class="text-sm text-gray-600"><%= provider.email %></div>
+                    <div class="text-sm text-gray-600"><%= provider.user&.email || "No email on file" %></div>
                   </div>
                   <div>
                     <% status_colors = {

@@ -101,6 +101,20 @@
 
       <!-- Sidebar -->
       <div class="space-y-6">
+        <!-- Actions -->
+        <% if current_user.permissions_for("admin", "encounters", "submit_for_billing") %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+            <div class="space-y-2">
+              <button type="button" 
+                      onclick="openEzclaimModal('encounterBillingModal', '<%= billing_data_admin_encounter_path(@encounter) %>', 'claim')"
+                      class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                Submit for Billing
+              </button>
+            </div>
+          </div>
+        <% end %>
+
         <!-- Status Information -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Information</h3>
@@ -127,4 +141,15 @@
     </div>
   </div>
 </div>
+
+<%= render 'shared/ezclaim_modal',
+    modal_id: 'encounterBillingModal',
+    claim_id: @encounter.id,
+    data_url: billing_data_admin_encounter_path(@encounter),
+    submit_url: submit_for_billing_admin_encounter_path(@encounter),
+    search_url: procedure_codes_search_admin_encounter_path(@encounter),
+    diagnosis_search_url: diagnosis_codes_search_admin_encounter_path(@encounter),
+    title: 'Submit for Billing',
+    modal_type: 'claim'
+%>
 

@@ -1,5 +1,5 @@
 class Admin::ProcedureCodesController < Admin::BaseController
-  before_action :set_procedure_code, only: [ :show, :edit, :update, :destroy, :toggle_status ]
+  before_action :set_procedure_code, only: [ :show, :edit, :update, :destroy, :toggle_status, :push_to_ezclaim ]
 
   def index
     @procedure_codes = ProcedureCode.kept
@@ -66,6 +66,45 @@ class Admin::ProcedureCodesController < Admin::BaseController
     end
   end
 
+  def push_to_ezclaim
+    # Get the first organization with EZClaim enabled (or use current user's organization)
+    organization = current_user&.organizations&.first
+
+    unless organization&.organization_setting&.ezclaim_enabled?
+      redirect_to admin_procedure_code_path(@procedure_code), alert: "EZClaim is not enabled for this organization."
+      return
+    end
+
+    begin
+      service = EzclaimService.new(organization: organization)
+
+      # Map procedure code fields to EZClaim fields
+      procedure_code_data = {
+        ProcCode: @procedure_code.code,
+        ProcDescription: @procedure_code.description,
+        ProcModifier: nil, # Not available in model
+        ProcCharge: nil, # Not available in model
+        ProcModifiersCC: nil, # Not available in model
+        ProcPayFID: nil, # Not available in model
+        ProcUnits: nil, # Not available in model
+        ProcModifier4: nil, # Not available in model
+        ProcModifier1: nil # Not available in model
+      }
+
+      result = service.create_procedure_code(procedure_code_data)
+
+      if result[:success]
+        redirect_to admin_procedure_code_path(@procedure_code), notice: "Procedure code successfully pushed to EZClaim."
+      else
+        redirect_to admin_procedure_code_path(@procedure_code), alert: "Failed to push procedure code to EZClaim: #{result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Error pushing procedure code #{@procedure_code.id} to EZClaim: #{e.message}"
+      Rails.logger.error(e.backtrace.join("\n"))
+      redirect_to admin_procedure_code_path(@procedure_code), alert: "Error pushing procedure code to EZClaim: #{e.message}"
+    end
+  end
+
   private
 
   def set_procedure_code
@@ -73,6 +112,6 @@ class Admin::ProcedureCodesController < Admin::BaseController
   end
 
   def procedure_code_params
-    params.require(:procedure_code).permit(:code, :description, :code_type, :status)
+    params.require(:procedure_code).permit(:code, :description, :code_type, :status, :push_to_ezclaim)
   end
 end

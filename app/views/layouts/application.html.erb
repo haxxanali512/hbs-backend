@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%= turbo_include_tags %>
     <!-- Outfit font to match TailAdmin typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,11 +43,7 @@
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <button class="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V8.25A6.75 6.75 0 104.5 8.25v1.5a8.967 8.967 0 01-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m7.214 0a24.255 24.255 0 01-7.214 0m7.214 0a3 3 0 11-6 0" />
-                  </svg>
-                </button>
+                <%= render 'shared/notifications' %>
                 <div class="flex items-center gap-3 pl-3 ml-3 border-l border-gray-200">
                   <div class="text-right hidden sm:block">
                     <div class="text-sm font-medium text-gray-900"><%= current_user.display_name %></div>
@@ -59,6 +56,27 @@
               </div>
             </div>
           </header>
+
+          <!-- Masquerade Banner -->
+          <% if respond_to?(:user_masquerade?) && user_masquerade? %>
+            <div class="bg-purple-600 text-white px-4 md:px-8 py-3 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                <span class="text-sm font-medium">
+                  You are impersonating <strong><%= current_user.display_name %></strong>
+                </span>
+              </div>
+              <%= link_to back_masquerade_path(current_user), 
+                  class: "inline-flex items-center gap-2 px-3 py-1.5 bg-white text-purple-600 rounded-md text-sm font-medium hover:bg-purple-50 transition-colors" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Stop Impersonating
+              <% end %>
+            </div>
+          <% end %>
 
           <!-- Content -->
           <main class="flex-1 p-4 md:p-8 bg-gray-50">

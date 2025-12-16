@@ -7,6 +7,7 @@
           <h1 class="text-3xl font-bold text-gray-900">All Patients</h1>
           <p class="mt-2 text-gray-600">Manage patients across all organizations</p>
         </div>
+        <%# Pull from EZClaim (disabled per request) %>
       </div>
     </div>
 
@@ -110,10 +111,19 @@
           <%= pagination_info(@pagy) %>
         </div>
         <div>
-          <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
         </div>
       </div>
     <% end %>
   </div>
 </div>
+
+<!-- EZClaim Patients Modal -->
+<%= render "shared/ezclaim_import_modal", 
+    modal_id: "ezclaimPatientsModal",
+    resource_type: "patient",
+    resource_name: "Patients",
+    fetch_url: fetch_from_ezclaim_admin_patients_path,
+    save_url: save_from_ezclaim_admin_patients_path,
+    display_columns: [:first_name, :last_name, :patient_id, :dob, :email, :phone_number] %>
 

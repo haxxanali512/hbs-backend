@@ -103,6 +103,7 @@ class EzclaimIntegrationService
         "Content-Type" => "application/json",
         "Accept" => "application/json",
         "Token" => api_token,
+        "Cookie" => "ARRAffinity=b6bbab08004b5260938d659e633907e0f4cc0a4f6dd7d2d54cd9a3f0900e4836; ARRAffinitySameSite=b6bbab08004b5260938d659e633907e0f4cc0a4f6dd7d2d54cd9a3f0900e4836",
         "Version" => api_version
       },
       body: payload.to_json,

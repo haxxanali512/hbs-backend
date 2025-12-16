@@ -1,69 +1,19 @@
 class Admin::EncountersController < Admin::BaseController
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction ]
+  include Admin::Concerns::EzclaimIntegration
+  include Admin::Concerns::EncounterConcern
+  include ProcedureCodeSearch
+
+  # Alias the concern method before we override it
+  alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
+
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing ]
   before_action :load_form_options, only: [ :index, :edit, :update ]
 
   def index
-    @encounters = Encounter.includes(:organization, :patient, :provider, :specialty, :organization_location, :appointment).kept
-
-    # Filtering by organization
-    @encounters = @encounters.where(organization_id: params[:organization_id]) if params[:organization_id].present?
-
-    # Filtering by status
-    @encounters = @encounters.by_status(params[:status]) if params[:status].present?
-
-    # Filtering by provider
-    @encounters = @encounters.by_provider(params[:provider_id]) if params[:provider_id].present?
-
-    # Filtering by patient
-    @encounters = @encounters.by_patient(params[:patient_id]) if params[:patient_id].present?
-
-    # Filtering by specialty
-    @encounters = @encounters.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
-
-    # Filtering by billing channel
-    @encounters = @encounters.by_billing_channel(params[:billing_channel]) if params[:billing_channel].present?
-
-    if params[:cascaded_filter] == "cascaded"
-      @encounters = @encounters.cascaded
-    elsif params[:cascaded_filter] == "not_cascaded"
-      @encounters = @encounters.not_cascaded
-    end
-
-    # Date range filter
-    if params[:date_from].present? && params[:date_to].present?
-      @encounters = @encounters.where(
-        "date_of_service >= ? AND date_of_service <= ?",
-        params[:date_from],
-        params[:date_to]
-      )
-    elsif params[:date_from].present?
-      @encounters = @encounters.where("date_of_service >= ?", params[:date_from])
-    elsif params[:date_to].present?
-      @encounters = @encounters.where("date_of_service <= ?", params[:date_to])
-    end
-
-    # Search
-    if params[:search].present?
-      # Placeholder for search functionality
-      search_term = "%#{params[:search]}%"
-      @encounters = @encounters.joins(:patient)
-        .where("patients.first_name ILIKE ? OR patients.last_name ILIKE ?", search_term, search_term)
-    end
-
-    # Sorting
-    case params[:sort]
-    when "date_desc"
-      @encounters = @encounters.order(date_of_service: :desc)
-    when "date_asc"
-      @encounters = @encounters.order(date_of_service: :asc)
-    when "status"
-      @encounters = @encounters.order(status: :asc)
-    else
-      @encounters = @encounters.recent
-    end
-
-    # Pagination
-    @pagy, @encounters = pagy(@encounters, items: 20)
+    @encounters = build_encounters_index_query
+    @encounters = apply_encounters_filters(@encounters)
+    @encounters = apply_encounters_sorting(@encounters)
+    @pagy, @encounters = paginate_encounters(@encounters)
   end
 
   def show
@@ -112,6 +62,154 @@ class Admin::EncountersController < Admin::BaseController
     else
       redirect_to admin_encounter_path(@encounter), alert: "Cannot request correction for non-cascaded encounter."
     end
+  end
+
+  def billing_data
+    service = ClaimSubmissionService.new(
+      encounter: @encounter,
+      organization: @encounter.organization
+    )
+
+    # Build claim payload
+    claim_payload = service.send(:build_claim_payload)
+
+    # Build service lines payload (we'll use a placeholder claim_id for preview)
+    service_lines_payload = []
+    begin
+      service_lines_payload = service.send(:build_service_lines_payload, "PREVIEW")
+    rescue => e
+      # If service lines can't be built, return empty array
+      Rails.logger.warn("Could not build service lines for preview: #{e.message}")
+    end
+
+    # Get EZClaim service config
+    ezclaim_service = EzclaimService.new(organization: @encounter.organization)
+    config = ezclaim_service.api_config
+
+    # Format payload to match what the modal expects
+    # The modal expects service_LinesObjectWithoutID array
+    formatted_service_lines = service_lines_payload.map do |line|
+      {
+        SrvDateFrom: line[:SrvFromDate],
+        SrvDateTo: line[:SrvToDate],
+        SrvProcedureCode: line[:SrvProcedureCode],
+        SrvProcedureUnits: line[:SrvUnits]
+      }
+    end
+
+    # Add diagnosis code IDs to payload for proper multi-select initialization
+    diagnosis_codes = @encounter.diagnosis_codes.limit(4).to_a
+    diagnosis_payload = {}
+    diagnosis_codes.each_with_index do |dc, index|
+      diagnosis_payload["ClaDiagnosis#{index + 1}"] = dc.code
+      diagnosis_payload["diagnosis_#{index + 1}_id"] = dc.id
+    end
+
+    # Combine claim payload with service lines and diagnosis codes
+    combined_payload = claim_payload.merge(
+      service_LinesObjectWithoutID: formatted_service_lines
+    ).merge(diagnosis_payload)
+
+    render json: {
+      success: true,
+      api_url: config[:api_url],
+      api_version: config[:api_version],
+      payload: combined_payload
+    }
+  rescue => e
+    Rails.logger.error("Error building billing data: #{e.message}")
+    render json: {
+      success: false,
+      error: e.message
+    }, status: :unprocessable_entity
+  end
+
+  # Implement abstract methods from ProcedureCodeSearch concern
+  def current_organization_for_pricing
+    @encounter.organization
+  end
+
+  def current_encounter_for_pricing
+    @encounter
+  end
+
+  def procedure_codes_search_path_for_encounter
+    procedure_codes_search_admin_encounter_path(@encounter)
+  end
+
+  def diagnosis_codes_search
+    search_term = params[:q] || params[:search] || ""
+
+    diagnosis_codes = DiagnosisCode.active
+                                   .search(search_term)
+                                   .limit(50)
+                                   .order(:code)
+
+    render json: {
+      success: true,
+      results: diagnosis_codes.map do |dc|
+        {
+          id: dc.id,
+          code: dc.code || "",
+          description: dc.description || "",
+          display: "#{dc.code || 'N/A'} - #{dc.description || 'No description'}"
+        }
+      end
+    }
+  rescue => e
+    Rails.logger.error("Error in diagnosis_codes_search: #{e.message}")
+    render json: {
+      success: false,
+      error: e.message
+    }, status: :unprocessable_entity
+  end
+
+  def submit_for_billing
+    service = ClaimSubmissionService.new(
+      encounter: @encounter,
+      organization: @encounter.organization
+    )
+
+    # Build and submit using service
+    # Note: In the future, we could accept edited payload from modal (params[:claim])
+    # and modify the service to use it instead of building from scratch
+    result = service.submit_for_billing
+
+    respond_to do |format|
+      format.html do
+        if result[:success]
+          notice_message = "Encounter submitted for billing successfully."
+          if result[:service_lines_error]
+            notice_message += " Warning: Service lines submission had issues: #{result[:service_lines_error]}"
+          end
+          redirect_to admin_encounter_path(@encounter), notice: notice_message
+        else
+          redirect_to admin_encounter_path(@encounter), alert: "Failed to submit for billing: #{result[:error]}"
+        end
+      end
+      format.json do
+        if result[:success]
+          render json: {
+            success: true,
+            message: "Encounter submitted for billing successfully.",
+            redirect_url: admin_encounter_path(@encounter)
+          }
+        else
+          render json: {
+            success: false,
+            error: result[:error] || "Failed to submit for billing"
+          }, status: :unprocessable_entity
+        end
+      end
+    end
+  end
+
+  def fetch_from_ezclaim
+    fetch_from_ezclaim_concern(resource_type: :encounters, service_method: :get_encounters)
+  end
+
+  def save_from_ezclaim
+    save_encounters_from_ezclaim
   end
 
   private

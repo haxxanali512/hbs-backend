@@ -16,12 +16,9 @@ class ProviderAssignment < ApplicationRecord
   validates :provider_id, uniqueness: { scope: :organization_id, message: "Provider is already assigned to this organization" }
 
   before_validation :set_default_role
-
-  private
-
-  def set_default_role
-    self.role ||= "primary"
-  end
+  after_create :unlock_procedure_codes_for_specialty
+  after_update :handle_active_status_change
+  after_discard :check_and_deactivate_codes
 
   scope :active, -> { where(active: true) }
   scope :inactive, -> { where(active: false) }
@@ -32,5 +29,40 @@ class ProviderAssignment < ApplicationRecord
 
   def can_be_deactivated?
     active?
+  end
+
+  private
+
+  def set_default_role
+    self.role ||= "primary"
+  end
+
+  # Unlock procedure codes when provider is assigned to organization
+  def unlock_procedure_codes_for_specialty
+    return unless active?
+    return unless provider.present? && provider.specialty.present?
+
+    FeeScheduleUnlockService.unlock_procedure_codes_for_organization(
+      organization,
+      provider.specialty
+    )
+  end
+
+  # Handle when active status changes
+  def handle_active_status_change
+    if saved_change_to_active?
+      if active?
+        # Provider assignment activated - unlock codes
+        unlock_procedure_codes_for_specialty
+      else
+        # Provider assignment deactivated - check if codes should be deactivated
+        FeeScheduleUnlockService.check_and_deactivate_unlocked_codes(organization)
+      end
+    end
+  end
+
+  # Check and deactivate codes when provider assignment is removed
+  def check_and_deactivate_codes
+    FeeScheduleUnlockService.check_and_deactivate_unlocked_codes(organization)
   end
 end

@@ -31,9 +31,19 @@
 
         <div class="flex space-x-2">
           <% if @encounter.can_be_confirmed? && !@encounter.completed_confirmed? %>
-            <%= link_to "Confirm Completed", confirm_completed_tenant_encounter_path(@encounter), method: :post,
+            <%= button_to "Confirm Completed", confirm_completed_tenant_encounter_path(@encounter),
+                method: :post,
+                form: { class: "inline-block" },
                 class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
-                data: { confirm: "This will generate billing documents. Continue?" } %>
+                data: { turbo_confirm: "This will generate billing documents. Continue?" } %>
+          <% end %>
+          
+          <% if current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.organization.organization_setting&.ezclaim_enabled? %>
+            <button type="button" 
+                    onclick="openEzclaimModal('encounterBillingModal', '<%= billing_data_tenant_encounter_path(@encounter) %>', 'claim')"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+              Submit for Billing
+            </button>
           <% end %>
           
           <% if @encounter.may_cancel? %>
@@ -43,7 +53,9 @@
           <% end %>
           
           <% if @encounter.cascaded? %>
-            <%= link_to "Request Correction", request_correction_tenant_encounter_path(@encounter), method: :post,
+            <%= button_to "Request Correction", request_correction_tenant_encounter_path(@encounter),
+                method: :post,
+                form: { class: "inline-block" },
                 class: "bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
           <% end %>
         </div>
@@ -122,7 +134,9 @@
         <%= render "shared/provider_notes", namespace: "tenant" %>
 
         <!-- Comments Section -->
-        <%= render "shared/encounter_comments", namespace: "tenant" %>
+        <% if @encounter.encounter_comments.shared_with_client.where(redacted: false).exists? %>
+          <%= render "shared/encounter_comments", namespace: "tenant" %>
+        <% end %>
       </div>
 
       <!-- Sidebar -->
@@ -190,4 +204,15 @@
     </div>
   </div>
 </div>
+
+<%= render 'shared/ezclaim_modal',
+    modal_id: 'encounterBillingModal',
+    claim_id: @encounter.id,
+    data_url: billing_data_tenant_encounter_path(@encounter),
+    submit_url: submit_for_billing_tenant_encounter_path(@encounter),
+    search_url: procedure_codes_search_tenant_encounter_path(@encounter),
+    diagnosis_search_url: diagnosis_codes_search_tenant_encounter_path(@encounter),
+    title: 'Submit for Billing',
+    modal_type: 'claim'
+%>
 

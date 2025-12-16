@@ -7,6 +7,7 @@
           <h1 class="text-3xl font-bold text-gray-900">All Encounters</h1>
           <p class="mt-2 text-gray-600">Manage encounters across all organizations</p>
         </div>
+        <%# Pull from EZClaim (disabled per request) %>
       </div>
     </div>
 
@@ -14,6 +15,7 @@
     <%
       @search_placeholder = "Patient name..."
       @status_options = @statuses
+      @use_status_for_action_type = true
       @provider_options = @providers
       @specialty_options = @specialties
       @organization_options = @organizations
@@ -100,10 +102,19 @@
           <%= pagination_info(@pagy) %>
         </div>
         <div>
-          <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
         </div>
       </div>
     <% end %>
   </div>
 </div>
+
+<!-- EZClaim Encounters Modal -->
+<%= render "shared/ezclaim_import_modal", 
+    modal_id: "ezclaimEncountersModal",
+    resource_type: "encounter",
+    resource_name: "Encounters",
+    fetch_url: fetch_from_ezclaim_admin_encounters_path,
+    save_url: save_from_ezclaim_admin_encounters_path,
+    display_columns: [:date_of_service, :encounter_id, :patient_id, :provider_id, :status] %>
 

@@ -5,7 +5,7 @@ class User < ApplicationRecord
   # :confirmable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable,
          :recoverable, :rememberable, :validatable,
-         :invitable, :lockable
+         :invitable, :lockable, :masqueradable
 
   # Associations
   belongs_to :role, optional: true
@@ -22,6 +22,7 @@ class User < ApplicationRecord
            class_name: "SupportTicket",
            foreign_key: "assigned_to_user_id",
            dependent: :nullify
+  has_many :notifications, dependent: :destroy
 
   # after_create :send_invitation
 

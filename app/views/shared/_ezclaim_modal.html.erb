@@ -1,0 +1,1629 @@
+<% 
+  # Default values
+  modal_id = local_assigns[:modal_id] || 'ezclaimModal'
+  claim_id = local_assigns[:claim_id] || @claim&.id
+  test_url = local_assigns[:test_url] || "/admin/claims/#{claim_id}/test_ezclaim_connection"
+  submit_url = local_assigns[:submit_url] || "/admin/claims/#{claim_id}/submit"
+  title = local_assigns[:title] || 'Send to EZClaim'
+  modal_type = local_assigns[:modal_type] || 'claim' # 'claim' or 'claim_insured'
+  data_url = local_assigns[:data_url] || nil
+  search_url = local_assigns[:search_url] || nil # URL for procedure code search
+  diagnosis_search_url = local_assigns[:diagnosis_search_url] || nil # URL for diagnosis code search
+%>
+
+<!-- EZClaim Modal -->
+<div id="<%= modal_id %>" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="<%= modal_id %>-title" role="dialog" aria-modal="true" data-search-url="<%= search_url || '' %>" data-diagnosis-search-url="<%= diagnosis_search_url || '' %>">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <!-- Background overlay -->
+    <div id="<%= modal_id %>Overlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out opacity-0" onclick="closeEzclaimModal('<%= modal_id %>')"></div>
+
+    <!-- Modal panel -->
+    <div id="<%= modal_id %>Content" class="relative z-10 w-full max-w-4xl rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out scale-95 opacity-0">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900" id="<%= modal_id %>-title"><%= title %></h3>
+          <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="<%= modal_id %>Loading" class="text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+          <p class="mt-4 text-sm text-gray-600">Loading...</p>
+        </div>
+
+        <!-- Connection Success State / Editable Form -->
+        <div id="<%= modal_id %>Success" class="hidden">
+          <% if modal_type == 'claim' %>
+            <!-- Editable Form for Claim -->
+            <form id="<%= modal_id %>Form" onsubmit="event.preventDefault(); submitClaim('<%= modal_id %>', '<%= submit_url %>');">
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
+                <div class="bg-gray-50 rounded-md p-4 mb-4">
+                  <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API URL:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API Version:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">Endpoint:</span>
+                      <span class="text-gray-900 font-mono">POST /Claims</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Claim Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Patient FID</label>
+                    <input type="text" name="claim[ClaPatFID]" id="<%= modal_id %>ClaPatFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rendering Physician FID</label>
+                    <input type="text" name="claim[claRenderingPhyFID]" id="<%= modal_id %>claRenderingPhyFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Diagnosis Codes (up to 4)</label>
+                    <div class="relative">
+                      <input type="text" 
+                             id="<%= modal_id %>DiagnosisCodesInput" 
+                             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm diagnosis-code-search" 
+                             placeholder="Type to search and select diagnosis codes..."
+                             autocomplete="off"
+                             data-modal-id="<%= modal_id %>"
+                             onfocus="showDiagnosisCodeDropdown('<%= modal_id %>')"
+                             oninput="searchDiagnosisCodes('<%= modal_id %>', this.value)"
+                             onclick="showDiagnosisCodeDropdown('<%= modal_id %>')">
+                      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <!-- Selected diagnosis codes display -->
+                    <div id="<%= modal_id %>SelectedDiagnosisCodes" class="mt-2 flex flex-wrap gap-2">
+                      <!-- Selected codes will appear here as chips -->
+                    </div>
+                    <!-- Hidden inputs for form submission -->
+                    <div id="<%= modal_id %>DiagnosisHiddenInputs" class="hidden">
+                      <!-- Hidden inputs for ClaDiagnosis1-4 will be added here -->
+                    </div>
+                    <!-- Dropdown results -->
+                    <div id="diagnosis_<%= modal_id %>_results" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-64 overflow-y-auto overscroll-contain" style="max-height: 16rem;">
+                      <div class="p-2 border-b border-gray-200">
+                        <div class="text-xs text-gray-500">Type to search diagnosis codes...</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Submission Method</label>
+                    <input type="text" name="claim[ClaSubmissionMethod]" id="<%= modal_id %>ClaSubmissionMethod" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Billing Physician FID</label>
+                    <input type="text" name="claim[claBillingPhyFID]" id="<%= modal_id %>claBillingPhyFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Date From</label>
+                    <input type="date" name="claim[SrvDateFrom]" id="<%= modal_id %>SrvDateFrom" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Date To</label>
+                    <input type="date" name="claim[SrvDateTo]" id="<%= modal_id %>SrvDateTo" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-sm font-semibold text-gray-900">Service Lines</h4>
+                  <button type="button" onclick="addServiceLine('<%= modal_id %>')" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    + Add Service Line
+                  </button>
+                </div>
+                <div id="<%= modal_id %>ServiceLines" class="space-y-3">
+                  <!-- Service lines will be added here dynamically -->
+                </div>
+              </div>
+
+              <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                  Send to EZClaim
+                </button>
+              </div>
+            </form>
+          <% elsif modal_type == 'claim_insured' %>
+            <!-- Editable Form for Claim Insured -->
+            <form id="<%= modal_id %>Form" onsubmit="event.preventDefault(); submitClaimInsured('<%= modal_id %>', '<%= submit_url %>');">
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
+                <div class="bg-gray-50 rounded-md p-4 mb-4">
+                  <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API URL:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">API Version:</span>
+                      <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">Endpoint:</span>
+                      <span class="text-gray-900 font-mono">POST /Claim_Insureds</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-900 mb-3">Claim Insured Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <input type="text" name="claim_insured[ClaInsFirstName]" id="<%= modal_id %>ClaInsFirstName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input type="text" name="claim_insured[ClaInsLastName]" id="<%= modal_id %>ClaInsLastName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" required>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                    <input type="date" name="claim_insured[ClaInsBirthDate]" id="<%= modal_id %>ClaInsBirthDate" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+                    <select name="claim_insured[ClaInsSex]" id="<%= modal_id %>ClaInsSex" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                      <option value="">Select</option>
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <input type="text" name="claim_insured[ClaInsAddress1]" id="<%= modal_id %>ClaInsAddress1" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                    <input type="text" name="claim_insured[ClaInsCity]" id="<%= modal_id %>ClaInsCity" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                    <input type="text" name="claim_insured[ClaInsState]" id="<%= modal_id %>ClaInsState" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" maxlength="2">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Zip</label>
+                    <input type="text" name="claim_insured[ClaInsZip]" id="<%= modal_id %>ClaInsZip" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input type="tel" name="claim_insured[ClaInsPhone]" id="<%= modal_id %>ClaInsPhone" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Employer</label>
+                    <input type="text" name="claim_insured[ClaInsEmployer]" id="<%= modal_id %>ClaInsEmployer" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                    <input type="text" name="claim_insured[ClaInsCompanyName]" id="<%= modal_id %>ClaInsCompanyName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Insurance ID</label>
+                    <input type="text" name="claim_insured[ClaInsInsuranceID]" id="<%= modal_id %>ClaInsInsuranceID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Group Number</label>
+                    <input type="text" name="claim_insured[ClaInsGroupNumber]" id="<%= modal_id %>ClaInsGroupNumber" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
+                    <input type="text" name="claim_insured[ClaInsPlanName]" id="<%= modal_id %>ClaInsPlanName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Relation to Insured</label>
+                    <select name="claim_insured[ClaInsRelationToInsured]" id="<%= modal_id %>ClaInsRelationToInsured" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                      <option value="S">Self</option>
+                      <option value="C">Child</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sequence</label>
+                    <select name="claim_insured[ClaInsSequence]" id="<%= modal_id %>ClaInsSequence" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                      <option value="1">Primary</option>
+                      <option value="2">Secondary</option>
+                      <option value="3">Tertiary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Accept Assignment</label>
+                    <input type="text" name="claim_insured[ClaInsAcceptAssignment]" id="<%= modal_id %>ClaInsAcceptAssignment" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Filing Indicator</label>
+                    <input type="text" name="claim_insured[ClaInsFilingIndicator]" id="<%= modal_id %>ClaInsFilingIndicator" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">SSN</label>
+                    <input type="text" name="claim_insured[ClaInsSSN]" id="<%= modal_id %>ClaInsSSN" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Claim FID</label>
+                    <input type="text" name="claim_insured[ClaInsClaFID]" id="<%= modal_id %>ClaInsClaFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Patient FID</label>
+                    <input type="text" name="claim_insured[ClaInsPatFID]" id="<%= modal_id %>ClaInsPatFID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">GUID</label>
+                    <input type="text" name="claim_insured[ClaInsGUID]" id="<%= modal_id %>ClaInsGUID" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                  Send to EZClaim
+                </button>
+              </div>
+            </form>
+          <% else %>
+            <!-- Original Payload Preview for Regular Claims -->
+            <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+              <div class="flex items-center">
+                <svg class="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <p class="text-sm font-medium text-green-800">Connection successful!</p>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-900 mb-2">Request Details</h4>
+              <div class="bg-gray-50 rounded-md p-4 mb-4">
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">API URL:</span>
+                    <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiUrl"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">API Version:</span>
+                    <span class="text-gray-900 font-mono" id="<%= modal_id %>ApiVersion"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Endpoint:</span>
+                    <span class="text-gray-900 font-mono">POST /claims</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold text-gray-900 mb-2">Payload Preview</h4>
+              <div class="bg-gray-900 rounded-md p-4 overflow-x-auto">
+                <pre id="<%= modal_id %>Payload" class="text-xs text-green-400 font-mono"></pre>
+              </div>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+              <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="button" onclick="submitToEzclaim('<%= modal_id %>', '<%= submit_url %>')" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                Send to EZClaim
+              </button>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Connection Error State -->
+        <div id="<%= modal_id %>Error" class="hidden">
+          <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div class="flex items-center">
+              <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+              <p class="text-sm font-medium text-red-800">Connection failed</p>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <h4 class="text-sm font-semibold text-gray-900 mb-2">Error Details</h4>
+            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+              <p class="text-sm text-red-800" id="<%= modal_id %>ErrorMessage"></p>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button type="button" onclick="closeEzclaimModal('<%= modal_id %>')" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // EZClaim Modal Functions - Global functions that work with any modal ID
+  function openEzclaimModal(modalId, dataUrl, modalType) {
+    modalId = modalId || 'ezclaimModal';
+    modalType = modalType || 'claim';
+    const modal = document.getElementById(modalId);
+    const overlay = document.getElementById(modalId + 'Overlay');
+    const content = document.getElementById(modalId + 'Content');
+    
+    if (!modal || !overlay || !content) return;
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Reset states
+    const loading = document.getElementById(modalId + 'Loading');
+    const success = document.getElementById(modalId + 'Success');
+    const error = document.getElementById(modalId + 'Error');
+    
+    if (loading) {
+      loading.classList.remove('hidden');
+      if (modalType === 'claim_insured') {
+        loading.querySelector('p').textContent = 'Loading claim insured data...';
+      }
+    }
+    if (success) success.classList.add('hidden');
+    if (error) error.classList.add('hidden');
+    
+    // Trigger fade in animation
+    requestAnimationFrame(() => {
+      overlay.classList.remove('opacity-0');
+      overlay.classList.add('opacity-100');
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    });
+    
+    // Initialize diagnosis codes storage for this modal
+    if (modalType === 'claim') {
+      if (!selectedDiagnosisCodes[modalId]) {
+        selectedDiagnosisCodes[modalId] = [];
+      }
+      
+      // Set up service line date sync when modal opens
+      setTimeout(() => {
+        setupServiceLineDateSync(modalId);
+      }, 100);
+    }
+    
+    // Load data based on modal type
+    if (dataUrl) {
+      if (modalType === 'claim_insured') {
+        loadClaimInsuredData(modalId, dataUrl);
+      } else if (modalType === 'claim') {
+        loadClaimData(modalId, dataUrl);
+      } else {
+        testEzclaimConnection(modalId, dataUrl);
+      }
+    }
+  }
+
+  function closeEzclaimModal(modalId) {
+    modalId = modalId || 'ezclaimModal';
+    const modal = document.getElementById(modalId);
+    const overlay = document.getElementById(modalId + 'Overlay');
+    const content = document.getElementById(modalId + 'Content');
+    
+    if (!modal || !overlay || !content) return;
+    
+    // Reset diagnosis codes for this modal
+    if (selectedDiagnosisCodes[modalId]) {
+      selectedDiagnosisCodes[modalId] = [];
+    }
+    
+    // Hide any open dropdowns
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    if (resultsDiv) {
+      resultsDiv.classList.add('hidden');
+    }
+    
+    // Trigger fade out animation
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    
+    // Hide modal after animation completes
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }, 300);
+  }
+
+  function testEzclaimConnection(modalId, testUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Connection test failed');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const success = document.getElementById(modalId + 'Success');
+      const error = document.getElementById(modalId + 'Error');
+      
+      if (loading) loading.classList.add('hidden');
+      
+      if (data.success) {
+        // Show success state
+        if (success) success.classList.remove('hidden');
+        const apiUrl = document.getElementById(modalId + 'ApiUrl');
+        const apiVersion = document.getElementById(modalId + 'ApiVersion');
+        const payload = document.getElementById(modalId + 'Payload');
+        
+        if (apiUrl) apiUrl.textContent = data.api_url;
+        if (apiVersion) apiVersion.textContent = data.api_version;
+        if (payload) payload.textContent = JSON.stringify(data.payload, null, 2);
+      } else {
+        // Show error state
+        if (error) error.classList.remove('hidden');
+        const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+        if (errorMessage) errorMessage.textContent = data.error || 'Connection failed';
+      }
+    })
+    .catch(error => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const errorDiv = document.getElementById(modalId + 'Error');
+      const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+      
+      if (loading) loading.classList.add('hidden');
+      if (errorDiv) errorDiv.classList.remove('hidden');
+      if (errorMessage) errorMessage.textContent = 'Error: ' + error.message;
+    });
+  }
+
+  function loadClaimInsuredData(modalId, dataUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    fetch(dataUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to load claim insured data');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const success = document.getElementById(modalId + 'Success');
+      const error = document.getElementById(modalId + 'Error');
+      
+      if (loading) loading.classList.add('hidden');
+      
+      if (data.success) {
+        if (success) success.classList.remove('hidden');
+        const apiUrl = document.getElementById(modalId + 'ApiUrl');
+        const apiVersion = document.getElementById(modalId + 'ApiVersion');
+        
+        if (apiUrl) apiUrl.textContent = data.api_url;
+        if (apiVersion) apiVersion.textContent = data.api_version;
+        
+        // Populate form fields
+        const payload = data.payload;
+        if (payload) {
+          Object.keys(payload).forEach(key => {
+            const field = document.getElementById(modalId + key);
+            if (field && payload[key]) {
+              field.value = payload[key];
+            }
+          });
+        }
+      } else {
+        if (error) error.classList.remove('hidden');
+        const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+        if (errorMessage) errorMessage.textContent = data.error || 'Failed to load data';
+      }
+    })
+    .catch(error => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const errorDiv = document.getElementById(modalId + 'Error');
+      const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+      
+      if (loading) loading.classList.add('hidden');
+      if (errorDiv) errorDiv.classList.remove('hidden');
+      if (errorMessage) errorMessage.textContent = 'Error: ' + error.message;
+    });
+  }
+
+  function loadClaimData(modalId, dataUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    fetch(dataUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to load claim data');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const success = document.getElementById(modalId + 'Success');
+      const error = document.getElementById(modalId + 'Error');
+      
+      if (loading) loading.classList.add('hidden');
+      
+      if (data.success) {
+        if (success) success.classList.remove('hidden');
+        const apiUrl = document.getElementById(modalId + 'ApiUrl');
+        const apiVersion = document.getElementById(modalId + 'ApiVersion');
+        
+        if (apiUrl) apiUrl.textContent = data.api_url;
+        if (apiVersion) apiVersion.textContent = data.api_version;
+        
+        // Populate form fields
+        const payload = data.payload;
+        if (payload) {
+          Object.keys(payload).forEach(key => {
+            // Skip diagnosis codes - handled separately
+            if (key.startsWith('ClaDiagnosis')) return;
+            
+            const field = document.getElementById(modalId + key);
+            if (field && payload[key]) {
+              field.value = payload[key];
+            }
+          });
+          
+          // Populate diagnosis codes (up to 4)
+          const diagnosisCodes = [
+            { code: payload.ClaDiagnosis1, id: payload.diagnosis_1_id },
+            { code: payload.ClaDiagnosis2, id: payload.diagnosis_2_id },
+            { code: payload.ClaDiagnosis3, id: payload.diagnosis_3_id },
+            { code: payload.ClaDiagnosis4, id: payload.diagnosis_4_id }
+          ].filter(item => item.code);
+          
+          // Initialize selected codes array
+          if (!selectedDiagnosisCodes[modalId]) {
+            selectedDiagnosisCodes[modalId] = [];
+          }
+          
+          // If we have diagnosis codes from payload, populate them
+          if (diagnosisCodes.length > 0) {
+            // Fetch full details for codes that have IDs
+            const codesToFetch = diagnosisCodes.filter(item => item.id);
+            const codesWithoutIds = diagnosisCodes.filter(item => !item.id);
+            
+            if (codesToFetch.length > 0) {
+              // Fetch descriptions for codes with IDs
+              const modalElement = document.getElementById(modalId);
+              const searchUrl = modalElement ? modalElement.getAttribute('data-diagnosis-search-url') || '' : '';
+              
+              // Fetch each code's details
+              Promise.all(codesToFetch.map(item => {
+                return fetch(searchUrl + '?q=' + encodeURIComponent(item.code), {
+                  method: 'GET',
+                  headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                  },
+                  credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                  if (data.success && data.results && data.results.length > 0) {
+                    const found = data.results.find(r => r.id === item.id || r.code === item.code);
+                    return found ? {
+                      id: found.id,
+                      code: found.code,
+                      description: found.description || ''
+                    } : {
+                      id: item.id,
+                      code: item.code,
+                      description: ''
+                    };
+                  }
+                  return {
+                    id: item.id,
+                    code: item.code,
+                    description: ''
+                  };
+                })
+                .catch(() => ({
+                  id: item.id,
+                  code: item.code,
+                  description: ''
+                }));
+              })).then(fetchedCodes => {
+                // Combine fetched codes with codes without IDs
+                const allCodes = [...fetchedCodes, ...codesWithoutIds.map(item => ({
+                  id: null,
+                  code: item.code,
+                  description: ''
+                }))];
+                
+                selectedDiagnosisCodes[modalId] = allCodes;
+                updateDiagnosisCodesDisplay(modalId);
+              });
+            } else {
+              // No IDs, just use codes directly
+              selectedDiagnosisCodes[modalId] = codesWithoutIds.map(item => ({
+                id: null,
+                code: item.code,
+                description: ''
+              }));
+              updateDiagnosisCodesDisplay(modalId);
+            }
+          }
+          
+          // Populate service lines if they exist, otherwise add one empty service line
+          const serviceLinesContainer = document.getElementById(modalId + 'ServiceLines');
+          if (serviceLinesContainer) {
+            serviceLinesContainer.innerHTML = '';
+            if (payload.service_LinesObjectWithoutID && Array.isArray(payload.service_LinesObjectWithoutID) && payload.service_LinesObjectWithoutID.length > 0) {
+              payload.service_LinesObjectWithoutID.forEach((line, index) => {
+                addServiceLine(modalId, line, index);
+              });
+            } else {
+              // Add one empty service line by default
+              addServiceLine(modalId, {}, 0);
+            }
+          }
+          
+          // Set up date sync after loading data
+          setTimeout(() => {
+            setupServiceLineDateSync(modalId);
+          }, 200);
+        }
+      } else {
+        if (error) error.classList.remove('hidden');
+        const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+        if (errorMessage) errorMessage.textContent = data.error || 'Failed to load data';
+      }
+    })
+    .catch(error => {
+      const loading = document.getElementById(modalId + 'Loading');
+      const errorDiv = document.getElementById(modalId + 'Error');
+      const errorMessage = document.getElementById(modalId + 'ErrorMessage');
+      
+      if (loading) loading.classList.add('hidden');
+      if (errorDiv) errorDiv.classList.remove('hidden');
+      if (errorMessage) errorMessage.textContent = 'Error: ' + error.message;
+    });
+  }
+
+  // Global functions for diagnosis code multi-select search
+  let diagnosisSearchTimeouts = {};
+  let selectedDiagnosisCodes = {}; // Store selected codes per modal: { modalId: [{id, code, description}] }
+  
+  function showDiagnosisCodeDropdown(modalId) {
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    if (!resultsDiv) return;
+    
+    resultsDiv.classList.remove('hidden');
+    
+    // Load initial list if empty
+    if (resultsDiv.children.length <= 1) {
+      searchDiagnosisCodes(modalId, '');
+    }
+  }
+
+  function searchDiagnosisCodes(modalId, query) {
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    const modalElement = document.getElementById(modalId);
+    if (!resultsDiv || !modalElement) return;
+    
+    const searchUrl = modalElement.getAttribute('data-diagnosis-search-url');
+    if (!searchUrl) return;
+    
+    // Clear previous timeout
+    if (diagnosisSearchTimeouts[modalId]) {
+      clearTimeout(diagnosisSearchTimeouts[modalId]);
+    }
+    
+    // Debounce search
+    diagnosisSearchTimeouts[modalId] = setTimeout(() => {
+      // Show loading state
+      resultsDiv.classList.remove('hidden');
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Searching...</div>';
+      
+      const url = searchUrl + '?q=' + encodeURIComponent(query);
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.results) {
+          displayDiagnosisCodeResults(resultsDiv, data.results, modalId);
+        } else {
+          resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No diagnosis codes found</div>';
+        }
+      })
+      .catch(error => {
+        console.error('Error searching diagnosis codes:', error);
+        resultsDiv.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching diagnosis codes</div>';
+      });
+    }, query.length > 0 ? 300 : 0);
+  }
+
+  function displayDiagnosisCodeResults(resultsDiv, results, modalId) {
+    if (results.length === 0) {
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No diagnosis codes found</div>';
+      resultsDiv.classList.remove('hidden');
+      return;
+    }
+
+    // Get already selected codes for this modal
+    const selected = selectedDiagnosisCodes[modalId] || [];
+    const selectedIds = selected.map(s => s.id);
+
+    const html = results.map(result => {
+      const code = result.code || 'N/A';
+      const description = result.description || 'No description';
+      const isSelected = selectedIds.includes(result.id);
+      
+      return `
+      <div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 diagnosis-code-option transition-colors ${isSelected ? 'bg-indigo-100' : ''}"
+           data-code-id="${result.id}"
+           data-code="${code}"
+           data-description="${description}"
+           onclick="selectDiagnosisCode('${modalId}', ${result.id}, '${code.replace(/'/g, "\\'")}', '${description.replace(/'/g, "\\'")}')">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="font-medium text-sm text-gray-900">${code} ${isSelected ? '<span class="text-xs text-green-600">(Selected)</span>' : ''}</div>
+            <div class="text-xs text-gray-500 mt-0.5">${description}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    resultsDiv.innerHTML = '<div class="p-2 border-b border-gray-200"><div class="text-xs text-gray-500">Select diagnosis codes (up to 4):</div></div>' + html;
+    resultsDiv.classList.remove('hidden');
+  }
+
+  function selectDiagnosisCode(modalId, diagnosisCodeId, code, description) {
+    // Initialize array if it doesn't exist
+    if (!selectedDiagnosisCodes[modalId]) {
+      selectedDiagnosisCodes[modalId] = [];
+    }
+    
+    const selected = selectedDiagnosisCodes[modalId];
+    const existingIndex = selected.findIndex(s => s.id === diagnosisCodeId);
+    
+    if (existingIndex >= 0) {
+      // Remove if already selected
+      selected.splice(existingIndex, 1);
+    } else {
+      // Add if not already selected and under limit
+      if (selected.length < 4) {
+        selected.push({ id: diagnosisCodeId, code: code, description: description });
+      } else {
+        alert('You can only select up to 4 diagnosis codes.');
+        return;
+      }
+    }
+    
+    // Update UI
+    updateDiagnosisCodesDisplay(modalId);
+    
+    // Clear search input
+    const searchInput = document.getElementById(modalId + 'DiagnosisCodesInput');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    
+    // Hide dropdown
+    const resultsDiv = document.getElementById('diagnosis_' + modalId + '_results');
+    if (resultsDiv) {
+      resultsDiv.classList.add('hidden');
+    }
+  }
+
+  function updateDiagnosisCodesDisplay(modalId) {
+    const container = document.getElementById(modalId + 'SelectedDiagnosisCodes');
+    const hiddenInputsContainer = document.getElementById(modalId + 'DiagnosisHiddenInputs');
+    if (!container || !hiddenInputsContainer) return;
+    
+    const selected = selectedDiagnosisCodes[modalId] || [];
+    
+    // Update visible chips
+    if (selected.length === 0) {
+      container.innerHTML = '<span class="text-xs text-gray-500">No diagnosis codes selected</span>';
+    } else {
+      container.innerHTML = selected.map((item, index) => {
+        const displayText = item.description ? `${item.code} - ${item.description}` : item.code;
+        return `
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+            ${displayText}
+            <button type="button" 
+                    onclick="removeDiagnosisCodeByIndex('${modalId}', ${index})" 
+                    class="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-600">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </span>
+        `;
+      }).join('');
+    }
+    
+    // Update hidden inputs for form submission
+    hiddenInputsContainer.innerHTML = selected.map((item, index) => `
+      <input type="hidden" name="claim[ClaDiagnosis${index + 1}]" value="${item.code}">
+      <input type="hidden" name="claim[diagnosis_${index + 1}_id]" value="${item.id || ''}">
+    `).join('');
+  }
+
+  function removeDiagnosisCodeByIndex(modalId, index) {
+    if (!selectedDiagnosisCodes[modalId]) return;
+    
+    const selected = selectedDiagnosisCodes[modalId];
+    if (index >= 0 && index < selected.length) {
+      selected.splice(index, 1);
+      updateDiagnosisCodesDisplay(modalId);
+    }
+  }
+
+  function addServiceLine(modalId, lineData, index) {
+    modalId = modalId || 'ezclaimModal';
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (!container) return;
+    
+    // If index is not provided, use the current number of children
+    if (index === undefined) {
+      index = container.children.length;
+    }
+    
+    // Get service dates from top section if not provided in lineData
+    const topDateFrom = document.getElementById(modalId + 'SrvDateFrom');
+    const topDateTo = document.getElementById(modalId + 'SrvDateTo');
+    const serviceDateFrom = lineData?.SrvDateFrom || (topDateFrom ? topDateFrom.value : '');
+    const serviceDateTo = lineData?.SrvDateTo || (topDateTo ? topDateTo.value : '');
+    
+    const lineId = modalId + 'ServiceLine' + Date.now() + '_' + index;
+    const modalElement = document.getElementById(modalId);
+    const searchUrl = modalElement ? modalElement.getAttribute('data-search-url') || '' : '';
+    
+    const lineHtml = `
+      <div id="${lineId}" class="bg-gray-50 border border-gray-200 rounded-md p-4" data-line-index="${index}">
+        <div class="flex items-center justify-between mb-3">
+          <h5 class="text-sm font-medium text-gray-700">Service Line <span class="line-number">${index + 1}</span></h5>
+          <button type="button" onclick="removeServiceLine('${lineId}', '${modalId}')" class="text-red-600 hover:text-red-700 text-sm font-medium">
+            Remove
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+            <input type="date" 
+                   id="${lineId}SrvDateFrom"
+                   name="claim[service_LinesObjectWithoutID][${index}][SrvDateFrom]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm service-line-date" 
+                   value="${serviceDateFrom}"
+                   data-line-id="${lineId}"
+                   onchange="this.dataset.manuallyEdited = 'true'">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+            <input type="date" 
+                   id="${lineId}SrvDateTo"
+                   name="claim[service_LinesObjectWithoutID][${index}][SrvDateTo]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm service-line-date" 
+                   value="${serviceDateTo}"
+                   data-line-id="${lineId}"
+                   onchange="this.dataset.manuallyEdited = 'true'">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Procedure Code</label>
+            <div class="relative">
+              <div class="relative">
+                <input type="text" 
+                       id="${lineId}ProcedureCode" 
+                       name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureCode]" 
+                       class="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 text-sm procedure-code-search" 
+                       value="${lineData?.SrvProcedureCode || ''}"
+                       placeholder="Type to search procedure codes..."
+                       autocomplete="off"
+                       data-line-id="${lineId}"
+                       data-search-url="${searchUrl || ''}"
+                       onfocus="showProcedureCodeDropdown('${lineId}', '${searchUrl}')"
+                       oninput="searchProcedureCodes('${lineId}', '${searchUrl}', this.value)"
+                       onclick="showProcedureCodeDropdown('${lineId}', '${searchUrl}')">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              <input type="hidden" id="${lineId}ProcedureCodeId" name="claim[service_LinesObjectWithoutID][${index}][procedure_code_id]">
+              <div id="procedure_code_${lineId}_results" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-64 overflow-y-auto overscroll-contain" style="max-height: 16rem;">
+                <div class="p-2 border-b border-gray-200">
+                  <div class="text-xs text-gray-500">Type to search procedure codes...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Unit Price</label>
+            <div id="procedure_code_${lineId}_unit_price">
+              <input type="number" 
+                     id="${lineId}UnitPrice" 
+                     name="claim[service_LinesObjectWithoutID][${index}][unit_price]" 
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" 
+                     value="${lineData?.unit_price || ''}" 
+                     step="0.01"
+                     readonly
+                     placeholder="Auto-populated from fee schedule"
+                     data-pricing-rule="${lineData?.pricing_rule || 'per_unit'}">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" id="${lineId}UnitsLabel">Procedure Units</label>
+            <input type="number" 
+                   id="${lineId}Units" 
+                   name="claim[service_LinesObjectWithoutID][${index}][SrvProcedureUnits]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" 
+                   value="${lineData?.SrvProcedureUnits || ''}" 
+                   step="0.25"
+                   min="0.25"
+                   placeholder="Enter units (1 unit = 15 mins)"
+                   oninput="calculateTotalCharges('${lineId}')">
+            <p class="mt-1 text-xs text-gray-500" id="${lineId}UnitsHelp">1 unit = 15 minutes</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Total Charges</label>
+            <input type="number" 
+                   id="${lineId}TotalCharges" 
+                   name="claim[service_LinesObjectWithoutID][${index}][total_charges]" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" 
+                   value="${lineData?.total_charges || ''}" 
+                   step="0.01"
+                   readonly
+                   placeholder="Unit Price × Units">
+          </div>
+        </div>
+      </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', lineHtml);
+    reindexServiceLines(modalId);
+    
+    // Initialize total charges calculation
+    setTimeout(() => {
+      const unitPriceInput = document.getElementById(lineId + 'UnitPrice');
+      const unitsInput = document.getElementById(lineId + 'Units');
+      const totalChargesInput = document.getElementById(lineId + 'TotalCharges');
+      
+      if (unitPriceInput && unitsInput && totalChargesInput) {
+        unitsInput.addEventListener('input', function() {
+          calculateTotalCharges(lineId);
+        });
+        if (lineData?.unit_price && lineData?.SrvProcedureUnits) {
+          calculateTotalCharges(lineId);
+        }
+      }
+      
+      // Add event listeners to sync with top section dates
+      setupServiceLineDateSync(modalId);
+    }, 100);
+  }
+
+  function setupServiceLineDateSync(modalId) {
+    const topDateFrom = document.getElementById(modalId + 'SrvDateFrom');
+    const topDateTo = document.getElementById(modalId + 'SrvDateTo');
+    
+    if (!topDateFrom || !topDateTo) return;
+    
+    // Store original values to detect changes
+    const originalDateFrom = topDateFrom.value;
+    const originalDateTo = topDateTo.value;
+    
+    // Remove existing listeners by cloning (to avoid duplicates)
+    if (!topDateFrom.dataset.syncListenerAdded) {
+      topDateFrom.addEventListener('change', function() {
+        syncServiceLineDates(modalId, 'SrvDateFrom', this.value);
+      });
+      topDateFrom.dataset.syncListenerAdded = 'true';
+    }
+    
+    if (!topDateTo.dataset.syncListenerAdded) {
+      topDateTo.addEventListener('change', function() {
+        syncServiceLineDates(modalId, 'SrvDateTo', this.value);
+      });
+      topDateTo.dataset.syncListenerAdded = 'true';
+    }
+    
+    // Also sync when service line date fields are manually changed (to track manual edits)
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (container) {
+      container.querySelectorAll('.service-line-date').forEach(input => {
+        if (!input.dataset.syncListenerAdded) {
+          input.addEventListener('change', function() {
+            // Mark as manually edited
+            this.dataset.manuallyEdited = 'true';
+          });
+          input.dataset.syncListenerAdded = 'true';
+        }
+      });
+    }
+  }
+
+  function syncServiceLineDates(modalId, fieldName, value) {
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (!container) return;
+    
+    // Update all service line date fields that haven't been manually edited
+    const dateInputs = container.querySelectorAll(`input[name*="[${fieldName}]"]`);
+    dateInputs.forEach(input => {
+      // Only update if not manually edited
+      if (input.dataset.manuallyEdited !== 'true') {
+        input.value = value;
+      }
+    });
+  }
+
+  // Global functions for procedure code search with Turbo Streams
+  let searchTimeouts = {};
+  
+  function showProcedureCodeDropdown(lineId, searchUrl) {
+    const resultsDiv = document.getElementById('procedure_code_' + lineId + '_results');
+    if (!resultsDiv) return;
+    
+    resultsDiv.classList.remove('hidden');
+    
+    // Load initial list if empty
+    if (resultsDiv.children.length <= 1) {
+      searchProcedureCodes(lineId, searchUrl, '');
+    }
+  }
+
+  function searchProcedureCodes(lineId, searchUrl, query) {
+    const resultsDiv = document.getElementById('procedure_code_' + lineId + '_results');
+    if (!resultsDiv || !searchUrl) return;
+    
+    // Clear previous timeout
+    if (searchTimeouts[lineId]) {
+      clearTimeout(searchTimeouts[lineId]);
+    }
+    
+    // Debounce search
+    searchTimeouts[lineId] = setTimeout(() => {
+      // Show loading state
+      resultsDiv.classList.remove('hidden');
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Searching...</div>';
+      
+      // Use Turbo Stream for search
+      const url = searchUrl + '?q=' + encodeURIComponent(query) + '&line_id=' + encodeURIComponent(lineId);
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/vnd.turbo-stream.html',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => {
+        if (response.headers.get('Content-Type')?.includes('turbo-stream')) {
+          return response.text();
+        } else {
+          return response.json().then(data => {
+            // Fallback to JSON if Turbo Stream not available
+            if (data.success && data.results) {
+              displayProcedureCodeResultsJSON(resultsDiv, data.results, lineId, searchUrl);
+            }
+            return null;
+          });
+        }
+      })
+      .then(html => {
+        if (html) {
+          // Turbo will handle the stream update automatically
+          Turbo.renderStreamMessage(html);
+        }
+      })
+      .catch(error => {
+        console.error('Error searching procedure codes:', error);
+        resultsDiv.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching procedure codes</div>';
+      });
+    }, query.length > 0 ? 300 : 0);
+  }
+
+  function displayProcedureCodeResultsJSON(resultsDiv, results, lineId, searchUrl) {
+    if (results.length === 0) {
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No procedure codes found</div>';
+      resultsDiv.classList.remove('hidden');
+      return;
+    }
+
+    const html = results.map(result => {
+      const code = result.code || 'N/A';
+      const description = result.description || 'No description';
+      const codeType = result.code_type || null;
+      const codeTypeClass = codeType === 'cpt' ? 'bg-blue-100 text-blue-800' : 
+                           codeType === 'hcpcs' ? 'bg-purple-100 text-purple-800' : 
+                           'bg-gray-100 text-gray-800';
+      const codeTypeDisplay = codeType ? codeType.toUpperCase() : 'N/A';
+      
+      return `
+      <div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 procedure-code-option transition-colors"
+           data-code-id="${result.id}"
+           data-code="${code}"
+           data-description="${description}"
+           onclick="selectProcedureCode('${lineId}', ${result.id}, '${code.replace(/'/g, "\\'")}', '${description.replace(/'/g, "\\'")}', '${searchUrl}')">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="font-medium text-sm text-gray-900">${code}</div>
+            <div class="text-xs text-gray-500 mt-0.5">${description}</div>
+          </div>
+          <div class="ml-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${codeTypeClass}">
+              ${codeTypeDisplay}
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    resultsDiv.innerHTML = '<div class="p-2 border-b border-gray-200"><div class="text-xs text-gray-500">Select a procedure code:</div></div>' + html;
+    resultsDiv.classList.remove('hidden');
+  }
+
+  function selectProcedureCode(lineId, procedureCodeId, code, description, searchUrl) {
+    const searchInput = document.getElementById(lineId + 'ProcedureCode');
+    const codeIdInput = document.getElementById(lineId + 'ProcedureCodeId');
+    const resultsDiv = document.getElementById('procedure_code_' + lineId + '_results');
+    const unitPriceInput = document.getElementById(lineId + 'UnitPrice');
+    
+    if (searchInput) searchInput.value = code;
+    if (codeIdInput) codeIdInput.value = procedureCodeId;
+    if (resultsDiv) resultsDiv.classList.add('hidden');
+    
+    // Show loading state
+    if (unitPriceInput) {
+      unitPriceInput.value = '';
+      unitPriceInput.placeholder = 'Loading pricing...';
+    }
+    
+    // Fetch pricing - try JSON first for reliability
+    const url = searchUrl + '?procedure_code_id=' + encodeURIComponent(procedureCodeId) + '&line_id=' + encodeURIComponent(lineId);
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      console.log('Pricing response status:', response.status);
+      console.log('Pricing response content-type:', response.headers.get('Content-Type'));
+      
+      if (!response.ok) {
+        throw new Error('Response not OK: ' + response.status);
+      }
+      
+      return response.json().then(data => {
+        console.log('Pricing data received:', data);
+        
+        if (data.success && data.unit_price !== undefined && unitPriceInput) {
+          unitPriceInput.value = data.unit_price.toFixed(2);
+          unitPriceInput.placeholder = 'Auto-populated from fee schedule';
+          
+          // Store pricing rule for calculation
+          if (data.pricing_rule) {
+            unitPriceInput.setAttribute('data-pricing-rule', data.pricing_rule);
+          }
+          
+          // Update units label based on pricing rule
+          updateUnitsLabelForPricingRule(lineId, data.pricing_rule);
+          
+          calculateTotalCharges(lineId);
+          console.log('Unit price updated to:', data.unit_price, 'Pricing rule:', data.pricing_rule);
+        } else {
+          unitPriceInput.value = '';
+          unitPriceInput.placeholder = 'Pricing not found';
+          const errorMsg = data.error || 'Unknown error';
+          console.error('Pricing error:', errorMsg);
+          alert('Pricing not found for this procedure code: ' + errorMsg);
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching pricing:', error);
+      if (unitPriceInput) {
+        unitPriceInput.value = '';
+        unitPriceInput.placeholder = 'Error loading pricing';
+      }
+      alert('Error fetching pricing: ' + error.message);
+    });
+  }
+
+  function updateUnitsLabelForPricingRule(lineId, pricingRule) {
+    const unitsLabel = document.getElementById(lineId + 'UnitsLabel');
+    const unitsHelp = document.getElementById(lineId + 'UnitsHelp');
+    const unitsInput = document.getElementById(lineId + 'Units');
+    
+    if (!unitsLabel || !unitsHelp || !unitsInput) return;
+    
+    switch(pricingRule) {
+      case 'per_hour':
+      case 'hourly':
+        unitsLabel.textContent = 'Units (15-min increments)';
+        unitsHelp.textContent = 'Enter units (1 unit = 15 minutes, 4 units = 1 hour). Price is per hour.';
+        unitsInput.step = '0.25'; // 15 minute increments
+        unitsInput.min = '0.25';
+        break;
+      case 'per_minute':
+        unitsLabel.textContent = 'Minutes';
+        unitsHelp.textContent = 'Enter minutes';
+        unitsInput.step = '1';
+        unitsInput.min = '1';
+        break;
+      case 'per_visit':
+      case 'per_procedure':
+        unitsLabel.textContent = 'Units';
+        unitsHelp.textContent = 'Enter number of visits/procedures';
+        unitsInput.step = '1';
+        unitsInput.min = '1';
+        break;
+      case 'per_unit':
+      default:
+        unitsLabel.textContent = 'Units';
+        unitsHelp.textContent = '1 unit = 15 minutes';
+        unitsInput.step = '0.25'; // 15 minute increments
+        unitsInput.min = '0.25';
+        break;
+    }
+  }
+
+  function calculateTotalCharges(lineId) {
+    const unitPriceInput = document.getElementById(lineId + 'UnitPrice');
+    const unitsInput = document.getElementById(lineId + 'Units');
+    const totalChargesInput = document.getElementById(lineId + 'TotalCharges');
+    
+    if (unitPriceInput && unitsInput && totalChargesInput) {
+      const unitPrice = parseFloat(unitPriceInput.value) || 0;
+      const units = parseFloat(unitsInput.value) || 0;
+      const pricingRule = unitPriceInput.getAttribute('data-pricing-rule') || 'per_unit';
+      
+      let total = 0;
+      
+      // Calculate based on pricing rule
+      switch(pricingRule) {
+        case 'per_hour':
+        case 'hourly':
+          // If unit_price is per hour, convert units (15-min increments) to hours
+          // 1 unit = 15 minutes = 0.25 hours
+          // So: units * 0.25 = hours, then hours * unit_price = total
+          const hours = units * 0.25; // Convert 15-min units to hours
+          total = unitPrice * hours;
+          break;
+        case 'per_minute':
+          // If unit_price is per minute, multiply by minutes
+          total = unitPrice * units;
+          break;
+        case 'per_visit':
+        case 'per_procedure':
+          // Flat rate per visit/procedure
+          total = unitPrice * units;
+          break;
+        case 'per_unit':
+        default:
+          // Standard calculation: unit_price * units
+          // If unit_price is per 15-min unit, multiply directly
+          total = unitPrice * units;
+          break;
+      }
+      
+      totalChargesInput.value = total > 0 ? total.toFixed(2) : '';
+    }
+  }
+
+  function removeServiceLine(lineId, modalId) {
+    const lineElement = document.getElementById(lineId);
+    if (lineElement) {
+      lineElement.remove();
+      reindexServiceLines(modalId);
+    }
+  }
+
+  function reindexServiceLines(modalId) {
+    const container = document.getElementById(modalId + 'ServiceLines');
+    if (!container) return;
+    
+    Array.from(container.children).forEach((child, index) => {
+      // Update line number display
+      const lineNumber = child.querySelector('.line-number');
+      if (lineNumber) {
+        lineNumber.textContent = index + 1;
+      }
+      
+      // Update data attribute
+      child.setAttribute('data-line-index', index);
+      
+      // Update all input names to use new index
+      const inputs = child.querySelectorAll('input');
+      inputs.forEach(input => {
+        const name = input.getAttribute('name');
+        if (name) {
+          const match = name.match(/^claim\[service_LinesObjectWithoutID\]\[(\d+)\]\[(\w+)\]$/);
+          if (match) {
+            input.setAttribute('name', `claim[service_LinesObjectWithoutID][${index}][${match[2]}]`);
+          }
+        }
+      });
+    });
+  }
+
+  function submitClaim(modalId, submitUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const form = document.getElementById(modalId + 'Form');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    const formData = new FormData(form);
+    const data = {};
+    
+    // Build the claim data object
+    data.ClaPatFID = formData.get('claim[ClaPatFID]') || '';
+    data.claRenderingPhyFID = formData.get('claim[claRenderingPhyFID]') || '';
+    
+    // Get diagnosis codes from selectedDiagnosisCodes array
+    const selectedDiagnoses = selectedDiagnosisCodes[modalId] || [];
+    data.ClaDiagnosis1 = selectedDiagnoses[0]?.code || '';
+    data.ClaDiagnosis2 = selectedDiagnoses[1]?.code || '';
+    data.ClaDiagnosis3 = selectedDiagnoses[2]?.code || '';
+    data.ClaDiagnosis4 = selectedDiagnoses[3]?.code || '';
+    
+    data.ClaSubmissionMethod = formData.get('claim[ClaSubmissionMethod]') || '';
+    data.claBillingPhyFID = formData.get('claim[claBillingPhyFID]') || '';
+    data.SrvDateFrom = formData.get('claim[SrvDateFrom]') || '';
+    data.SrvDateTo = formData.get('claim[SrvDateTo]') || '';
+    
+    // Build service lines array
+    const serviceLinesMap = new Map();
+    formData.forEach((value, key) => {
+      const match = key.match(/^claim\[service_LinesObjectWithoutID\]\[(\d+)\]\[(\w+)\]$/);
+      if (match) {
+        const index = parseInt(match[1]);
+        const field = match[2];
+        if (!serviceLinesMap.has(index)) {
+          serviceLinesMap.set(index, {});
+        }
+        const line = serviceLinesMap.get(index);
+        line[field] = value;
+      }
+    });
+    
+    // Convert map to array and filter out empty service lines
+    data.service_LinesObjectWithoutID = Array.from(serviceLinesMap.values())
+      .filter(line => line.SrvProcedureCode || line.SrvDateFrom || line.SrvDateTo || line.SrvProcedureUnits)
+      .map(line => ({
+        SrvDateFrom: line.SrvDateFrom || '',
+        SrvDateTo: line.SrvDateTo || '',
+        SrvProcedureCode: line.SrvProcedureCode || '',
+        SrvProcedureUnits: line.SrvProcedureUnits || ''
+      }));
+    
+    fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({ claim: data }),
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to submit to EZClaim');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        alert('Claim successfully submitted to EZClaim!');
+        closeEzclaimModal(modalId);
+        window.location.reload();
+      } else {
+        alert('Error: ' + (data.error || 'Failed to submit to EZClaim'));
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error.message);
+    })
+    .finally(() => {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    });
+  }
+
+  function submitClaimInsured(modalId, submitUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const form = document.getElementById(modalId + 'Form');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => {
+      data[key] = value;
+    });
+    
+    fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({ claim_insured: data }),
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to submit to EZClaim');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Redirect on success
+        window.location.href = data.redirect_url || window.location.href;
+      } else {
+        alert('Failed to submit to EZClaim: ' + (data.error || 'Unknown error'));
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error.message);
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    });
+  }
+
+  function submitToEzclaim(modalId, submitUrl) {
+    modalId = modalId || 'ezclaimModal';
+    const submitButton = event.target;
+    const originalText = submitButton.textContent;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin'
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to submit to EZClaim');
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Show success message and reload page
+        window.location.href = data.redirect_url || window.location.href;
+      } else {
+        // Show error
+        alert('Failed to submit to EZClaim: ' + (data.error || 'Unknown error'));
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error.message);
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    });
+  }
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      // Close any visible EZClaim modal
+      const modals = document.querySelectorAll('[id$="ezclaimModal"]:not(.hidden)');
+      modals.forEach(modal => {
+        const modalId = modal.id;
+        closeEzclaimModal(modalId);
+      });
+      
+      // Close any open procedure code dropdowns
+      document.querySelectorAll('[id^="procedure_code_"][id$="_results"]:not(.hidden)').forEach(dropdown => {
+        dropdown.classList.add('hidden');
+      });
+    }
+  });
+
+  // Close procedure code dropdowns when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.procedure-code-search') && !event.target.closest('[id^="procedure_code_"][id$="_results"]')) {
+      document.querySelectorAll('[id^="procedure_code_"][id$="_results"]:not(.hidden)').forEach(dropdown => {
+        dropdown.classList.add('hidden');
+      });
+    }
+    
+    // Close diagnosis code dropdowns when clicking outside
+    if (!event.target.closest('.diagnosis-code-search') && !event.target.closest('[id^="diagnosis_"][id$="_results"]')) {
+      document.querySelectorAll('[id^="diagnosis_"][id$="_results"]:not(.hidden)').forEach(dropdown => {
+        dropdown.classList.add('hidden');
+      });
+    }
+  });
+</script>
+

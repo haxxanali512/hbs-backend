@@ -181,12 +181,12 @@
           </li>
         <% end %>
 
-        <% if current_user.permissions_for("admin", "email_template_keys", "index") %>
+        <% if current_user.permissions_for("admin", "data_exports_imports", "index") %>
           <li>
-            <% email_templates_active = controller_path.in?(%w[admin/email_template_keys admin/email_templates]) %>
-            <%= link_to admin_email_template_keys_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{email_templates_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{email_templates_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10M4 18h10"/></svg>
-              <span>Email Templates</span>
+            <% data_exports_imports_active = controller_path == 'admin/data_exports_imports' %>
+            <%= link_to admin_data_exports_imports_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{data_exports_imports_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{data_exports_imports_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+              <span>Data Export/Import</span>
             <% end %>
           </li>
         <% end %>
@@ -335,6 +335,10 @@
               <span>Patients</span>
             <% end %>
           </li>
+        <% end %>
+
+         <% if current_user.permissions_for("tenant", "claims", "index") %>
+          <%# Claims link hidden per request (tenant claims index not required) %>
         <% end %>
 
         <% if current_user.permissions_for("tenant", "org_accepted_plans", "index") %>

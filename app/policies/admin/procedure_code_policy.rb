@@ -27,6 +27,10 @@ class Admin::ProcedureCodePolicy < ApplicationPolicy
     accessible?("admin", "procedure_codes", "destroy")
   end
 
+  def push_to_ezclaim?
+    create?
+  end
+
   def toggle_status?
     accessible?("admin", "procedure_codes", "update")
   end

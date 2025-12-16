@@ -3,9 +3,12 @@ class ApplicationController < ActionController::Base
   include Pagy::Backend
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+
+  # Catch 500-level errors and send email notifications
+  rescue_from StandardError, with: :handle_server_error
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
-  around_action :set_tenant_context, unless: :devise_controller?
+  around_action :set_tenant_context, unless: -> { devise_controller? || controller_name == "notifications" }
   before_action :has_access?, unless: :devise_controller?
   helper_method :current_organization
 
@@ -14,6 +17,31 @@ class ApplicationController < ActionController::Base
   def user_not_authorized
     flash[:alert] = "You are not authorized to perform this action."
     redirect_to request.referer || tenant_dashboard_path
+  end
+
+  def handle_server_error(exception)
+    # Skip email notification in development if showing local errors
+    unless Rails.env.development? && config.consider_all_requests_local
+      # Send error notification email
+      ErrorNotificationService.notify(
+        exception,
+        request: request,
+        context: {
+          user_id: current_user&.id,
+          organization_id: current_organization&.id
+        }
+      )
+    end
+
+    # Log the error
+    Rails.logger.error "Server Error: #{exception.class.name} - #{exception.message}"
+    Rails.logger.error exception.backtrace.join("\n")
+
+    # Render error response
+    respond_to do |format|
+      format.html { render plain: "Internal Server Error", status: :internal_server_error }
+      format.json { render json: { error: "Internal server error" }, status: :internal_server_error }
+    end
   end
 
   def configure_permitted_parameters
@@ -29,7 +57,7 @@ class ApplicationController < ActionController::Base
   end
 
   def has_access?
-    return if [ "sessions", "passwords", "health", "invitations", "stripe", "gocardless" ].include?(controller_name)
+    return if [ "sessions", "passwords", "health", "invitations", "stripe", "gocardless", "notifications" ].include?(controller_name)
 
     authorize current_user, policy_class: "#{controller_path.classify}Policy".constantize
   end

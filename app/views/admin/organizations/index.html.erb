@@ -46,6 +46,17 @@
       }
     },
     {
+      label: 'EZClaim',
+      render: ->(org) {
+        setting = org.organization_setting
+        if setting&.ezclaim_enabled?
+          raw '<span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700">Enabled</span>'
+        else
+          raw '<span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-gray-50 text-gray-700">Not configured</span>'
+        end
+      }
+    },
+    {
       label: 'Status',
       render: ->(org) {
         status_classes = case org.activation_status
@@ -77,8 +88,9 @@
           actions << link_to(suspend_tenant_admin_organization_path(org), method: :post, title: 'Suspend', class: 'inline-flex items-center text-amber-600 hover:text-amber-800', data: { confirm: "Are you sure you want to suspend this organization?" }) do
             raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"/></svg><span class="sr-only">Suspend</span>'
           end
-        else
-          actions << link_to(activate_tenant_admin_organization_path(org), method: :post, title: 'Activate', class: 'inline-flex items-center text-green-600 hover:text-green-800', data: { confirm: "Are you sure you want to activate this organization?" }) do
+        elsif org.pending?
+          # Admin can activate only from pending (skip all steps)
+          actions << link_to(activate_tenant_admin_organization_path(org), method: :post, title: 'Activate', class: 'inline-flex items-center text-green-600 hover:text-green-800', data: { confirm: "Are you sure you want to activate this organization? This will skip all activation steps." }) do
             raw '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="sr-only">Activate</span>'
           end
         end
@@ -101,7 +113,7 @@
         <%= pagination_info(@pagy) %>
       </div>
       <div>
-        <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+        <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
       </div>
     </div>
   <% end %>

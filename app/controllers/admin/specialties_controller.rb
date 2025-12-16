@@ -82,7 +82,6 @@ class Admin::SpecialtiesController < Admin::BaseController
 
   def update_allowed_codes
     @specialty = Specialty.find(params[:id])
-    authorize @specialty
     procedure_code_ids = params[:specialty][:procedure_code_ids] || []
 
     if @specialty.update(procedure_code_ids: procedure_code_ids)
@@ -94,8 +93,7 @@ class Admin::SpecialtiesController < Admin::BaseController
 
   def list_providers
     @specialty = Specialty.find(params[:id])
-    authorize @specialty
-    @providers = @specialty.providers.includes(:organization, :user)
+    @providers = @specialty.providers.includes(:organizations, :user)
                           .order(:first_name, :last_name)
 
     @pagy, @providers = pagy(@providers, items: 20)

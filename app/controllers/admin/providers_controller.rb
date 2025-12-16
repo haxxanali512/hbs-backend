@@ -1,4 +1,9 @@
 class Admin::ProvidersController < Admin::BaseController
+  include Admin::Concerns::EzclaimIntegration
+
+  # Alias the concern method before we override it
+  alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
+
   before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reject, :suspend, :reactivate, :resubmit ]
 
   def index
@@ -41,6 +46,11 @@ class Admin::ProvidersController < Admin::BaseController
   def create
     @provider = Provider.new(provider_params)
 
+    # Ensure status defaults to 'draft' if not provided or invalid
+    if @provider.status.blank? || !Provider.statuses.key?(@provider.status)
+      @provider.status = "draft"
+    end
+
     if @provider.save
       redirect_to admin_provider_path(@provider), notice: "Provider created successfully."
     else
@@ -75,6 +85,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def approve
     if @provider.approve!
+      notify_organizations(:notify_provider_approved)
       redirect_to admin_provider_path(@provider), notice: "Provider approved successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to approve provider."
@@ -83,6 +94,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def reject
     if @provider.reject!
+      notify_organizations(:notify_provider_rejected)
       redirect_to admin_provider_path(@provider), notice: "Provider rejected successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to reject provider."
@@ -91,6 +103,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def suspend
     if @provider.suspend!
+      notify_organizations(:notify_provider_suspended)
       redirect_to admin_provider_path(@provider), notice: "Provider suspended successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to suspend provider."
@@ -99,6 +112,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def reactivate
     if @provider.reactivate!
+      notify_organizations(:notify_provider_approved)
       redirect_to admin_provider_path(@provider), notice: "Provider reactivated successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to reactivate provider."
@@ -151,10 +165,58 @@ class Admin::ProvidersController < Admin::BaseController
     end
   end
 
+  def fetch_from_ezclaim
+    fetch_from_ezclaim_concern(resource_type: :providers, service_method: :get_providers)
+  end
+
+  def save_from_ezclaim
+    perform_ezclaim_save(
+      model_class: Provider,
+      data_key: :providers,
+      mapping_proc: ->(provider_data) {
+        # Find or initialize by NPI (most unique identifier)
+        npi = provider_data["npi"] || provider_data["provider_id"] || provider_data["id"]
+        specialty_id = map_specialty_from_ezclaim(provider_data["specialty"] || provider_data["specialty_id"])
+
+        # Skip if no specialty found (Provider requires specialty_id)
+        unless specialty_id
+          return {
+            find_by: {},
+            attributes: {},
+            skip: true,
+            skip_reason: "No specialty found. Please set a specialty manually."
+          }
+        end
+
+        {
+          find_by: npi.present? ? { npi: npi } : {
+            first_name: provider_data["first_name"] || provider_data["firstname"] || "",
+            last_name: provider_data["last_name"] || provider_data["lastname"] || ""
+          },
+          attributes: {
+            first_name: provider_data["first_name"] || provider_data["firstname"] || "Unknown",
+            last_name: provider_data["last_name"] || provider_data["lastname"] || "Provider",
+            npi: npi,
+            license_number: provider_data["license_number"] || provider_data["license"] || nil,
+            license_state: provider_data["license_state"] || provider_data["state"] || nil,
+            status: :draft,
+            specialty_id: specialty_id
+          }
+        }
+      }
+    )
+  end
+
   private
 
   def set_provider
     @provider = Provider.find(params[:id])
+  end
+
+  def notify_organizations(notification_method)
+    @provider.organizations.each do |organization|
+      NotificationService.public_send(notification_method, @provider, organization)
+    end
   end
 
   def provider_params
@@ -163,5 +225,18 @@ class Admin::ProvidersController < Admin::BaseController
       :specialty_id, :user_id, :status, :metadata,
       provider_assignments_attributes: [ :id, :organization_id, :role, :active, :_destroy ]
     )
+  end
+
+  def map_specialty_from_ezclaim(ezclaim_specialty)
+    # Try to find specialty by name or code from EZclaim data
+    # If not found, use the first available specialty as default
+    # This is a placeholder - you may want to implement proper mapping
+    if ezclaim_specialty.present?
+      specialty = Specialty.find_by("name ILIKE ?", "%#{ezclaim_specialty}%")
+      return specialty.id if specialty
+    end
+
+    # Default to first specialty if available
+    Specialty.first&.id
   end
 end

@@ -29,120 +29,214 @@
         </div>
       <% end %>
 
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <!-- Stats cards -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                </svg>
+      <% if @current_organization.tier_percentage&.in?([6.0, 7.0, 8.0, 9.0]) %>
+        <!-- Tiered Practice Dashboard (6% / 7% tiers) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Patient and Claim Totals -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Patient and Claim Totals</h2>
+            <dl class="space-y-2 text-sm text-gray-700">
+              <div class="flex justify-between">
+                <dt class="font-medium">Total Patients:</dt>
+                <dd><%= @total_patients || 0 %></dd>
               </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                  <dd class="text-lg font-medium text-gray-900"><%= @total_users %></dd>
-                </dl>
+              <div class="flex justify-between">
+                <dt class="font-medium">Active Patients:</dt>
+                <dd><%= @active_patients || 0 %></dd>
               </div>
-            </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Total Claims:</dt>
+                <dd><%= @total_claims || 0 %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Claims in Process:</dt>
+                <dd><%= @claims_in_process || 0 %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Claims Paid:</dt>
+                <dd><%= @claims_paid || 0 %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Claims Denied:</dt>
+                <dd><%= @claims_denied || 0 %></dd>
+              </div>
+            </dl>
           </div>
-        </div>
 
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                </svg>
+          <!-- Revenue -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Revenue</h2>
+            <dl class="space-y-2 text-sm text-gray-700">
+              <div class="flex justify-between">
+                <dt class="font-medium">Total Paid (Lifetime):</dt>
+                <dd>$<%= number_with_precision(@total_paid_lifetime || 0, precision: 0, delimiter: ',') %></dd>
               </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 truncate">Active Organizations</dt>
-                  <dd class="text-lg font-medium text-gray-900"><%= @active_organizations %></dd>
-                </dl>
+              <div class="flex justify-between">
+                <dt class="font-medium">Year-to-Date Paid:</dt>
+                <dd>$<%= number_with_precision(@year_to_date_paid || 0, precision: 0, delimiter: ',') %></dd>
               </div>
-            </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Last 30 Days Paid:</dt>
+                <dd>$<%= number_with_precision(@last_30_days_paid || 0, precision: 0, delimiter: ',') %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Last 7 Days Paid:</dt>
+                <dd>$<%= number_with_precision(@last_7_days_paid || 0, precision: 0, delimiter: ',') %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Est. Outstanding A/R $</dt>
+                <dd>$<%= number_with_precision(@est_outstanding_ar || 0, precision: 0, delimiter: ',') %></dd>
+              </div>
+            </dl>
           </div>
-        </div>
 
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                </svg>
+          <!-- Upcoming Expirations -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Upcoming Expirations</h2>
+            <dl class="space-y-2 text-sm text-gray-700">
+              <div class="flex justify-between">
+                <dt class="font-medium">Expiring Prescriptions:</dt>
+                <dd class="text-blue-600 font-semibold"><%= @expiring_prescriptions_count || 0 %></dd>
               </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 truncate">Pending Billings</dt>
-                  <dd class="text-lg font-medium text-gray-900"><%= @pending_billings %></dd>
-                </dl>
+              <div class="flex justify-between">
+                <dt class="font-medium">Visit Caps Approaching:</dt>
+                <dd class="text-blue-600 font-semibold"><%= @visit_caps_approaching_count || 0 %></dd>
               </div>
-            </div>
+              <div class="flex justify-between">
+                <dt class="font-medium">Auth Expirations:</dt>
+                <dd class="text-blue-600 font-semibold"><%= @auth_expirations_count || 0 %></dd>
+              </div>
+            </dl>
           </div>
         </div>
+        <% if @current_organization.tier_percentage&.in?([8.0, 9.0]) %>
+          <!-- Advanced sections for 8% / 9% tiers -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Claim Age Summaries -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">Claim Age Summaries</h2>
+              <dl class="space-y-2 text-sm text-gray-700">
+                <div class="flex justify-between">
+                  <dt class="font-medium">0–30 Days:</dt>
+                  <dd><%= @claim_age_0_30 || 0 %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">31–60 Days:</dt>
+                  <dd><%= @claim_age_31_60 || 0 %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">61–90 Days:</dt>
+                  <dd><%= @claim_age_61_90 || 0 %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">91–120 Days:</dt>
+                  <dd><%= @claim_age_91_120 || 0 %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">120+ Days:</dt>
+                  <dd><%= @claim_age_120_plus || 0 %></dd>
+                </div>
+              </dl>
+            </div>
 
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                </svg>
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 truncate">Growth Rate</dt>
-                  <dd class="text-lg font-medium text-gray-900"><%= @organizations_growth %>%</dd>
-                </dl>
-              </div>
+            <!-- Averages & Projections -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">Averages &amp; Projections</h2>
+              <dl class="space-y-2 text-sm text-gray-700">
+                <div class="flex justify-between">
+                  <dt class="font-medium">Avg Revenue Per Visit:</dt>
+                  <dd>$<%= number_with_precision(@avg_revenue_per_visit || 0, precision: 0, delimiter: ',') %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Avg Revenue Per Provider:</dt>
+                  <dd>$<%= number_with_precision(@avg_revenue_per_provider || 0, precision: 0, delimiter: ',') %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Avg Monthly Revenue:</dt>
+                  <dd>$<%= number_with_precision(@avg_monthly_revenue || 0, precision: 0, delimiter: ',') %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Visits Per Month:</dt>
+                  <dd><%= number_with_precision(@visits_per_month || 0, precision: 0, delimiter: ',') %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Avg Days to Payment:</dt>
+                  <dd><%= @avg_days_to_payment || 0 %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Projected 30-Day Revenue:</dt>
+                  <dd>$<%= number_with_precision(@projected_30_day_revenue || 0, precision: 0, delimiter: ',') %></dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Projected 90-Day Revenue:</dt>
+                  <dd>$<%= number_with_precision(@projected_90_day_revenue || 0, precision: 0, delimiter: ',') %></dd>
+                </div>
+              </dl>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Recent activity -->
-      <div class="mt-8">
-        <div class="bg-white shadow rounded-lg">
-          <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Recent Activity</h3>
+            <!-- Claim Percentages -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">Claim Percentages</h2>
+              <dl class="space-y-2 text-sm text-gray-700">
+                <div class="flex justify-between">
+                  <dt class="font-medium">Paid Claim Rate:</dt>
+                  <dd><%= @paid_claim_rate || 0 %>% (This Month)</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Denial Rate:</dt>
+                  <dd><%= @denial_rate || 0 %>% (This Month)</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="font-medium">Outstanding %:</dt>
+                  <dd><%= @outstanding_percent || 0 %>% (This Month)</dd>
+                </div>
+              </dl>
+            </div>
           </div>
-          <div class="px-6 py-4">
-            <div class="space-y-4">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                    </svg>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-gray-900">New user registered</p>
-                  <p class="text-sm text-gray-500">2 minutes ago</p>
-                </div>
+
+          <!-- Previous 7 Day Lookback -->
+          <div class="mt-4">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Previous 7 Day Lookback</h2>
               </div>
-              
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-gray-900">Organization activated</p>
-                  <p class="text-sm text-gray-500">1 hour ago</p>
-                </div>
+              <div class="px-6 py-4 overflow-x-auto">
+                <% if @recent_payments_7d&.any? %>
+                  <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Paid Date</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Service Type</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Service Date</th>
+                        <th class="px-4 py-2 text-right font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      <% @recent_payments_7d.each do |payment| %>
+                        <% pa = payment.payment_applications.first %>
+                        <% claim = pa&.claim %>
+                        <% enc = claim&.encounter %>
+                        <% patient = enc&.patient %>
+                        <% service_type = enc&.specialty&.name || pa&.claim_line&.procedure_code&.description || "N/A" %>
+                        <tr>
+                          <td class="px-4 py-2 whitespace-nowrap"><%= (payment.payment_date || payment.created_at)&.strftime("%m/%d/%Y") %></td>
+                          <td class="px-4 py-2 whitespace-nowrap"><%= patient&.full_name || "N/A" %></td>
+                          <td class="px-4 py-2 whitespace-nowrap"><%= service_type %></td>
+                          <td class="px-4 py-2 whitespace-nowrap"><%= enc&.date_of_service&.strftime("%m/%d/%Y") || "N/A" %></td>
+                          <td class="px-4 py-2 whitespace-nowrap text-right">$<%= number_with_precision((payment.amount_total || payment.amount || 0), precision: 2, delimiter: ',') %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                <% else %>
+                  <p class="text-sm text-gray-500">No payments in the last 7 days.</p>
+                <% end %>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        <% end %>
+      <% end %>
     </div>
   </div>
 </div>

@@ -90,18 +90,22 @@
       <!-- Current Step Actions -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <% case @organization.activation_status %>
-        <% when 'pending', 'compliance_setup' %>
+        <% when 'pending' %>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Ready to get started?</h3>
-          <p class="text-gray-600 mb-6">Let's begin by setting up your compliance information.</p>
+          <p class="text-gray-600 mb-6">Let's begin by setting up your compliance information (GSA/BAA agreements).</p>
           <%= link_to "Start Compliance Setup", tenant_activation_compliance_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
-        <% when 'billing_setup' %>
+        <% when 'compliance_setup' %>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Next: Billing Setup</h3>
-          <p class="text-gray-600 mb-6">Complete your compliance setup to continue with billing.</p>
+          <p class="text-gray-600 mb-6">Set up your payment method to continue.</p>
           <%= link_to "Continue to Billing", tenant_activation_billing_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
-        <% when 'document_signing' %>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Next: Document Signing</h3>
-          <p class="text-gray-600 mb-6">Complete your document signing to finalize your organization activation.</p>
-          <%= link_to "Continue to Document Signing", tenant_activation_document_signing_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+        <% when 'billing_setup' %>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Next: Terms & Conditions</h3>
+          <p class="text-gray-600 mb-6">Accept the Terms of Use and Privacy Policy to continue.</p>
+          <%= link_to "Continue to Terms & Conditions", tenant_activation_documents_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+        <% when 'terms_agreement' %>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">🎉 Ready to Activate!</h3>
+          <p class="text-gray-600 mb-6">All steps completed. Activate your organization to get started.</p>
+          <%= link_to "Activate Organization", tenant_activation_complete_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" %>
         <% end %>
       </div>
     </div>

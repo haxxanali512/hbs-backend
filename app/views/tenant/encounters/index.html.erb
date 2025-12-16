@@ -79,15 +79,19 @@
                       <%= link_to "Edit", edit_tenant_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" if !encounter.cascaded? %>
                       
                       <% if encounter.can_be_confirmed? && !encounter.completed_confirmed? %>
-                        <%= link_to "Confirm", confirm_completed_tenant_encounter_path(encounter), method: :post,
+                        <%= button_to "Confirm", confirm_completed_tenant_encounter_path(encounter),
+                            method: :post,
+                            form: { class: "inline-block" },
                             class: "text-green-600 hover:text-green-800",
-                            data: { confirm: "This will generate billing documents. Continue?" } %>
+                            data: { turbo_confirm: "This will generate billing documents. Continue?" } %>
                       <% end %>
                       
                       <% if encounter.can_be_cancelled? %>
-                        <%= link_to "Cancel", cancel_tenant_encounter_path(encounter), method: :post,
+                        <%= button_to "Cancel", cancel_tenant_encounter_path(encounter),
+                            method: :post,
+                            form: { class: "inline-block" },
                             class: "text-red-600 hover:text-red-800",
-                            data: { confirm: "Are you sure you want to cancel this encounter?" } %>
+                            data: { turbo_confirm: "Are you sure you want to cancel this encounter?" } %>
                       <% end %>
                     </div>
                   </td>

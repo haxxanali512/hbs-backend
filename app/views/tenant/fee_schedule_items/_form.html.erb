@@ -10,22 +10,14 @@
     </div>
   <% end %>
 
-  <%= form_with(model: [@fee_schedule, @fee_schedule_item], local: true, class: "space-y-6") do |f| %>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <%= f.label :procedure_code_id, "Procedure Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :procedure_code_id, 
-            options_from_collection_for_select(@procedure_codes, :id, :code, @fee_schedule_item.procedure_code_id),
-            { prompt: "Select Procedure Code" },
-            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+  <%= form_with(model: @fee_schedule_item, url: (@fee_schedule_item.persisted? ? tenant_fee_schedule_fee_schedule_item_path(@fee_schedule, @fee_schedule_item) : tenant_fee_schedule_fee_schedule_items_path(@fee_schedule)), local: true, class: "space-y-6") do |f| %>
+    <div class="space-y-2">
+      <div class="text-sm text-gray-700">
+        <span class="font-medium">Procedure Code:</span>
+        <span class="font-mono"><%= @fee_schedule_item.procedure_code&.code %></span>
       </div>
-
-      <div>
-        <%= f.label :pricing_rule, class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :pricing_rule, 
-            [["Per Unit", "per_unit"], ["Per Minute", "per_minute"], ["Per Hour", "per_hour"], ["Per Visit", "per_visit"], ["Per Procedure", "per_procedure"]],
-            { selected: @fee_schedule_item.pricing_rule || 'per_unit' },
-            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+      <div class="text-sm text-gray-600">
+        <%= @fee_schedule_item.procedure_code&.description %>
       </div>
     </div>
 
@@ -43,16 +35,6 @@
       </div>
     </div>
 
-    <% if @fee_schedule_item.persisted? %>
-      <div>
-        <%= f.label :active, class: "flex items-center" do %>
-          <%= f.check_box :active, class: "mr-2" %>
-          <span class="text-sm font-medium text-gray-700">Active</span>
-        <% end %>
-        <p class="mt-1 text-sm text-gray-500">Inactive items are hidden from pricing calculations</p>
-      </div>
-    <% end %>
-
     <div class="flex justify-end space-x-3">
       <%= link_to "Cancel", 
           (@fee_schedule_item.persisted? ? tenant_fee_schedule_fee_schedule_item_path(@fee_schedule, @fee_schedule_item) : tenant_fee_schedule_fee_schedule_items_path(@fee_schedule)),
@@ -62,3 +44,28 @@
     </div>
   <% end %>
 </div>
+
+<script>
+  (function() {
+    const procedureCodeSelect = document.getElementById('procedure_code_select');
+    const warningDiv = document.getElementById('existing_item_warning');
+    
+    if (procedureCodeSelect && warningDiv) {
+      const existingItems = JSON.parse(procedureCodeSelect.dataset.existingItems || '{}');
+      
+      procedureCodeSelect.addEventListener('change', function() {
+        const selectedCodeId = this.value;
+        if (selectedCodeId && existingItems[selectedCodeId]) {
+          warningDiv.classList.remove('hidden');
+        } else {
+          warningDiv.classList.add('hidden');
+        }
+      });
+      
+      // Show warning on page load if a code is pre-selected
+      if (procedureCodeSelect.value && existingItems[procedureCodeSelect.value]) {
+        warningDiv.classList.remove('hidden');
+      }
+    }
+  })();
+</script>

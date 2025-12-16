@@ -16,6 +16,10 @@ module Admin
       accessible?("admin", "users", "create")
     end
 
+    def edit?
+      accessible?("admin", "users", "update")
+    end
+
     def update?
       accessible?("admin", "users", "update")
     end
@@ -34,6 +38,11 @@ module Admin
 
     def reset_password?
       accessible?("admin", "users", "update")
+    end
+
+    def masquerade?
+      # Only allow admins to masquerade as tenant users
+      user.hbs_user? && !record.hbs_user?
     end
 
     class Scope < ApplicationPolicy::Scope

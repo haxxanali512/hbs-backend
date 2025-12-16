@@ -23,6 +23,14 @@ class Admin::EncounterPolicy < ApplicationPolicy
     update?
   end
 
+  def fetch_from_ezclaim?
+    accessible?("admin", "encounters", "create")
+  end
+
+  def save_from_ezclaim?
+    accessible?("admin", "encounters", "create")
+  end
+
   def destroy?
     accessible?("admin", "encounters", "destroy")
   end
@@ -37,6 +45,22 @@ class Admin::EncounterPolicy < ApplicationPolicy
 
   def request_correction?
     accessible?("admin", "encounters", "request_correction")
+  end
+
+  def submit_for_billing?
+    accessible?("admin", "encounters", "submit_for_billing")
+  end
+
+  def billing_data?
+    submit_for_billing?
+  end
+
+  def procedure_codes_search?
+    submit_for_billing?
+  end
+
+  def diagnosis_codes_search?
+    submit_for_billing?
   end
 
   class Scope < Scope

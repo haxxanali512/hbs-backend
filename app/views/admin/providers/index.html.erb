@@ -7,7 +7,8 @@
           <h1 class="text-3xl font-bold text-gray-900">Provider Management</h1>
           <p class="mt-2 text-gray-600">Manage all providers across organizations</p>
         </div>
-        <div>
+        <div class="flex space-x-3">
+          <%# Pull from EZClaim (disabled per request) %>
           <%= link_to "New Provider", new_admin_provider_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
         </div>
       </div>
@@ -162,7 +163,7 @@
               <%= pagination_info(@pagy) %>
             </div>
             <div>
-              <%= pagy_nav(@pagy) if @pagy.pages > 1 %>
+              <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
             </div>
           </div>
         </div>
@@ -201,3 +202,12 @@
     });
   });
 </script>
+
+<!-- EZClaim Providers Modal -->
+<%= render "shared/ezclaim_import_modal", 
+    modal_id: "ezclaimProvidersModal",
+    resource_type: "provider",
+    resource_name: "Providers",
+    fetch_url: fetch_from_ezclaim_admin_providers_path,
+    save_url: save_from_ezclaim_admin_providers_path,
+    display_columns: [:first_name, :last_name, :npi, :provider_id, :specialty] %>

@@ -1,11 +1,15 @@
+require "securerandom"
+require "digest"
+
 class FileProcessingJob < ApplicationJob
   queue_as :default
 
-  # Configuration for API format
-  API_FORMAT = ENV.fetch("API_FORMAT", "csv").downcase # "json" or "csv"
 
-  def perform(file_path, file_type, job_id)
+  def perform(file_path, file_type, job_id = nil)
+    job_id ||= SecureRandom.uuid
     Rails.logger.info "Starting file processing for #{file_path} (Job ID: #{job_id})"
+    @errors = []
+    @line_number = 1
 
     # Check if file exists
     unless File.exist?(file_path)
@@ -32,12 +36,13 @@ class FileProcessingJob < ApplicationJob
       grouped_payments = process_payment_grouping(@valid_records)
       Rails.logger.info "Processed #{grouped_payments.length} grouped payment records"
 
-      # Save CSV file to public folder
-      csv_file_path = save_csv_to_public_folder(grouped_payments, job_id)
+      # Save CSV file to public folder (for reference/export)
+      save_csv_to_public_folder(grouped_payments, job_id)
 
-      # Send data to API and save to database
-      save_grouped_payments(grouped_payments, job_id, csv_file_path)
+      # Save payment records to database
+      save_grouped_payments(grouped_payments, job_id)
     end
+      write_error_csv(job_id) if @errors.any?
 
     rescue => e
       Rails.logger.error "File processing failed for Job ID: #{job_id}: #{e.message}"
@@ -68,6 +73,7 @@ class FileProcessingJob < ApplicationJob
 
     CSV.foreach(file_path, headers: true) do |row|
       total_rows += 1
+      @line_number = total_rows + 1 # +1 to account for header row
 
       # Process each row here
       # Example: Create records, validate data, etc.
@@ -100,6 +106,7 @@ class FileProcessingJob < ApplicationJob
 
       (2..total_rows).each do |row_num|
         row_data = Hash[headers.zip(sheet.row(row_num))]
+      @line_number = row_num
 
         # Process each row here
         # Example: Create records, validate data, etc.
@@ -124,13 +131,6 @@ class FileProcessingJob < ApplicationJob
     if defined?(CSV) && row_data.is_a?(CSV::Row)
       row_data = row_data.to_h
     end
-    # Implement your specific data processing logic here
-    # This is where you would:
-    # - Validate the data
-    # - Transform the data
-    # - Save to database
-    # - Send notifications
-    # - etc.
 
     # Format Remit Patient Name if present
     if row_data["Remit Patient Name"].present?
@@ -139,15 +139,252 @@ class FileProcessingJob < ApplicationJob
       Rails.logger.debug "Formatted patient name: #{formatted_name}"
     end
 
-    # Store the row for later grouping and processing
+    normalized = normalize_row(row_data)
+
+    # Step 1: Patient Matching (exact first, then fuzzy)
+    patient_result = match_patient_xano_style(normalized)
+    if patient_result[:success] == false
+      record_error(patient_result[:error], normalized, patient_result[:suggested_fix])
+      return
+    end
+    patient = patient_result[:patient]
+
+    # Step 2: Encounter Date Validation
+    encounter_date = normalized["Remit Service From Date"]
+    if encounter_date.nil?
+      record_error("Encounter Date is Required", normalized, "Provide service date")
+      return
+    end
+
+    # Check if service start != service end (both present)
+    service_from = normalized["Remit Service From Date"]
+    service_to = normalized["Remit Service to Date"]
+    if service_from.present? && service_to.present? && service_from != service_to
+      record_error("Service Start Date is different than Service End Date, Flagged!", normalized, "Verify service dates match")
+      return
+    end
+
+    # Step 3: Encounter Matching
+    encounter = match_encounter_xano_style(patient, encounter_date, normalized)
+    if encounter.nil?
+      return # Error already recorded
+    end
+
+    # Step 4: Procedure Code Validation
+    procedure_code = normalized["Service Line Procedure Code"]
+    if procedure_code.blank?
+      record_error("Missing Procedure Code.", normalized, "Provide procedure code")
+      return
+    end
+
+    procedure_code_record = ProcedureCode.where(code: procedure_code.to_s.strip).first
+    if procedure_code_record.nil?
+      record_error("Procedure code does not match,", normalized, "Verify procedure code exists")
+      return
+    end
+
+    # Step 5: Organization Lookup
+    organization_name = clean_organization_name(normalized["Remit Account"])
+    organization = Organization.where("LOWER(name) = ?", organization_name.downcase).first if organization_name.present?
+    if organization.nil?
+      record_error("Organization not found, flagged!", normalized, "Verify organization name")
+      return
+    end
+
+    # Step 6: Build and save payment
+    # Add metadata to normalized row for grouping
+    normalized["owned_by"] = organization.id
+    normalized["encounter_id"] = encounter.id
+    normalized["procedure_code_id"] = procedure_code_record.id
+    normalized["user_id"] = nil # Will be set from job context if available
+
+    # Store valid record for grouping
     @valid_records ||= []
-    @valid_records << row_data
+    @valid_records << normalized
 
-    # Example processing (replace with your actual logic):
-    Rails.logger.debug "Processing row for Job ID: #{job_id} - #{row_data.inspect}"
+    Rails.logger.debug "Row processed successfully for Job ID: #{job_id} - Patient: #{patient.full_name}, Encounter: #{encounter.id}"
+  end
 
-    # Simulate some processing time
-    sleep(0.001) # Remove this in production
+  def normalize_row(row)
+    row.transform_values do |v|
+      v.is_a?(String) ? v.strip : v
+    end.tap do |normalized|
+      normalized["Remit Patient Name"] = normalize_name(normalized["Remit Patient Name"])
+      normalized["Remit Service From Date"] = parse_date(normalized["Remit Service From Date"])
+      normalized["Remit Service to Date"] = parse_date(normalized["Remit Service to Date"])
+      normalized["Remit Received Date"] = parse_date(normalized["Remit Received Date"])
+    end
+  end
+
+  def match_patient_xano_style(row)
+    raw_name = row["Remit Patient Name"].presence
+    unless raw_name
+      return {
+        success: false,
+        error: "Patient name missing",
+        suggested_fix: "Provide patient name"
+      }
+    end
+
+    input_name = raw_name.strip
+    normalized_input = normalize_name(input_name)
+
+    # Get all patients with their full names
+    all_patients = Patient.kept.select(:id, :first_name, :last_name)
+
+    # Build matches with exact and fuzzy flags
+    matches = all_patients.map do |p|
+      full_name = p.full_name
+      normalized_full = normalize_name(full_name)
+
+      {
+        patient: p,
+        full_name: full_name,
+        normalized: normalized_full,
+        exact_match: normalized_full == normalized_input,
+        fuzzy_match: fuzzy_match_similarity(normalized_full, normalized_input, 0.85)
+      }
+    end
+
+    # Find exact matches
+    exact_matches = matches.select { |m| m[:exact_match] }
+
+    if exact_matches.count == 1
+      return {
+        success: true,
+        patient: exact_matches.first[:patient],
+        error: "Exact Match found"
+      }
+    elsif exact_matches.count > 1
+      return {
+        success: false,
+        error: "More than one patient found with the exact same name",
+        suggested_fix: "Select correct patient: #{exact_matches.map { |m| "#{m[:patient].id}-#{m[:full_name]}" }.join('; ')}"
+      }
+    end
+
+    # Find fuzzy matches (excluding exact matches)
+    fuzzy_matches = matches.select { |m| m[:fuzzy_match] && !m[:exact_match] }
+
+    if fuzzy_matches.count > 0
+      {
+        success: false,
+        error: "Fuzzy match found (spacing/typo/duplication)",
+        suggested_fix: "Select correct patient: #{fuzzy_matches.map { |m| "#{m[:patient].id}-#{m[:full_name]}" }.join('; ')}"
+      }
+    else
+      {
+        success: false,
+        error: "No matching patient found",
+        suggested_fix: "Verify spelling or add patient"
+      }
+    end
+  end
+
+  def match_encounter_xano_style(patient, encounter_date, row)
+    scope = Encounter.kept.where(patient_id: patient.id, date_of_service: encounter_date)
+
+    if scope.count == 1
+      encounter = scope.first
+      # Update encounter status to "Finalized" (matching Xano logic)
+      encounter.update(status: :completed_confirmed) if encounter.respond_to?(:status)
+      encounter
+    elsif scope.count > 1
+      record_error("Encounter not found", row, "Multiple encounters found for this date - manual review required")
+      nil
+    else
+      record_error("Encounter not found", row, "Verify encounter date matches patient record")
+      nil
+    end
+  end
+
+  def fuzzy_match_similarity(str1, str2, threshold = 0.85)
+    return false if str1.blank? || str2.blank?
+
+    distance = levenshtein_distance(str1, str2)
+    max_length = [ str1.length, str2.length ].max
+    return false if max_length == 0
+
+    similarity = 1.0 - (distance.to_f / max_length)
+    similarity >= threshold
+  end
+
+  def record_error(reason, row, suggested_fix = nil)
+    @errors << {
+      line_number: @line_number,
+      reason: reason,
+      suggested_fix: suggested_fix,
+      row: row
+    }
+  end
+
+  def processing_sample_headers
+    [
+      "Remit Account",
+      "Remit Patient Name",
+      "Remit Service From Date",
+      "Remit Service to Date",
+      "Remit Received Date",
+      "Service Line Procedure Code",
+      "Service Line Adjustment CARC",
+      "Service Line Total Paid Amount",
+      "Remit Total Paid Amount"
+    ]
+  end
+
+  def write_error_csv(job_id)
+    headers = [ "Line Number", "Error Reason", "Suggested Fix" ] + processing_sample_headers
+    csv_content = CSV.generate do |csv|
+      csv << headers
+      @errors.each do |err|
+        row = err[:row] || {}
+        csv << [
+          err[:line_number],
+          err[:reason],
+          err[:suggested_fix]
+        ] + processing_sample_headers.map { |h| row[h] }
+      end
+    end
+
+    public_dir = Rails.root.join("public", "exports")
+    FileUtils.mkdir_p(public_dir)
+    path = public_dir.join("errors_#{job_id}.csv")
+    File.write(path, csv_content)
+    Rails.logger.info "Error sheet written to #{path}"
+    path.to_s
+  end
+
+  def normalize_name(name)
+    return nil if name.blank?
+    name.to_s.strip.downcase.squeeze(" ")
+  end
+
+  def parse_date(value)
+    return nil if value.blank?
+    Date.parse(value.to_s) rescue nil
+  end
+
+  def levenshtein_distance(str1, str2)
+    a = str1.to_s
+    b = str2.to_s
+    m = a.length
+    n = b.length
+    return n if m == 0
+    return m if n == 0
+    d = Array.new(m+1) { Array.new(n+1) }
+    (0..m).each { |i| d[i][0] = i }
+    (0..n).each { |j| d[0][j] = j }
+    (1..m).each do |i|
+      (1..n).each do |j|
+        cost = a[i-1] == b[j-1] ? 0 : 1
+        d[i][j] = [
+          d[i-1][j] + 1,
+          d[i][j-1] + 1,
+          d[i-1][j-1] + cost
+        ].min
+      end
+    end
+    d[m][n]
   end
 
   def format_patient_name(input)
@@ -189,8 +426,6 @@ class FileProcessingJob < ApplicationJob
     }
 
     # Valid CARC codes that should be processed
-    valid_carc_codes = [ "242", "2", "1", "0" ]
-
     # Group records by their key fields - only group if CARC is "2" or "242" (PAID)
     grouped = {}
     individual_records = []
@@ -304,7 +539,11 @@ class FileProcessingJob < ApplicationJob
         Date_Processed: entry[:Date_Processed],
         Date_Logged: entry[:Date_Logged],
         procedure_code: entry[:procedure_code],
-        payment_status: payment_status
+        payment_status: payment_status,
+        encounter_id: entry[:encounter_id],
+        procedure_code_id: entry[:procedure_code_id],
+        owned_by: entry[:owned_by],
+        user_id: entry[:user_id]
       }
     end
 
@@ -335,7 +574,11 @@ class FileProcessingJob < ApplicationJob
         Date_Processed: entry[:Date_Processed],
         Date_Logged: entry[:Date_Logged],
         procedure_code: entry[:procedure_code],
-        payment_status: payment_status
+        payment_status: payment_status,
+        encounter_id: entry[:encounter_id],
+        procedure_code_id: entry[:procedure_code_id],
+        owned_by: entry[:owned_by],
+        user_id: entry[:user_id]
       }
     end
 
@@ -390,75 +633,97 @@ class FileProcessingJob < ApplicationJob
     "/exports/#{csv_filename}"
   end
 
-  def save_grouped_payments(grouped_payments, job_id, csv_file_path = nil)
-    Rails.logger.info "Sending #{grouped_payments.length} grouped payment records to API for Job ID: #{job_id}"
+  def save_grouped_payments(grouped_payments, job_id)
+    Rails.logger.info "Creating #{grouped_payments.length} payment records in database for Job ID: #{job_id}"
 
-    # Log the first few records for debugging
-    grouped_payments.first(3).each_with_index do |payment, index|
-      Rails.logger.debug "Payment #{index + 1}: #{payment[:patient]} - #{payment[:payment_status]} - $#{payment[:Amount]}"
-    end
+    created_count = 0
+    error_count = 0
 
-    begin
-      # Send data to the API based on configuration
-      if API_FORMAT == "csv"
-        send_csv_to_api(grouped_payments, job_id, csv_file_path)
-      else
-        send_to_api(grouped_payments, job_id, csv_file_path)
+    grouped_payments.each do |payment_data|
+      begin
+        # Get encounter to get organization_id
+        encounter = Encounter.find_by(id: payment_data[:encounter_id])
+        unless encounter
+          Rails.logger.warn "Encounter not found for ID: #{payment_data[:encounter_id]}"
+          error_count += 1
+          next
+        end
+
+        # Determine payment_status from CARC codes
+        carc_codes = payment_data[:carc].to_s.split(", ").map(&:strip).reject(&:blank?)
+        payment_status = map_carc_to_payment_status(carc_codes)
+
+        # Build notes with CARC codes and payment status info
+        notes_parts = []
+        notes_parts << "CARC Codes: #{carc_codes.join(', ')}" if carc_codes.any?
+        notes_parts << "Payment Status: #{payment_data[:payment_status]}" if payment_data[:payment_status].present?
+        notes = notes_parts.join(" | ")
+
+        # Build payment record (matching Xano payment_line structure)
+        # Note: invoice_id is optional for remit-based payments
+        payment = Payment.new(
+          invoice_id: nil, # Remit-based payments don't require invoice
+          organization_id: payment_data[:owned_by] || encounter.organization_id,
+          payer_id: nil, # Not provided in file
+          payment_date: payment_data[:Date_Processed] || payment_data[:Date_Logged],
+          amount_total: payment_data[:Amount] || 0.0,
+          remit_reference: payment_data[:organization] || "UNKNOWN",
+          source_hash: Digest::SHA256.hexdigest("#{job_id}|#{payment_data[:encounter_id]}|#{payment_data[:procedure_code_id]}|#{payment_data[:Date_Processed]}|#{payment_data[:Amount]}"),
+          payment_status: payment_status,
+          payment_method: :manual,
+          processed_by_user_id: payment_data[:user_id],
+          notes: notes
+        )
+
+        if payment.save
+          created_count += 1
+          Rails.logger.debug "Payment created: ID #{payment.id} - Amount: $#{payment.amount_total} - Status: #{payment.payment_status} - CARC: #{carc_codes.join(', ')}"
+
+          # Update encounter status to "Finalized" only if payment succeeded (matching Xano logic)
+          if payment_status == :succeeded && encounter.respond_to?(:status) && encounter.status != "completed_confirmed"
+            encounter.update(status: :completed_confirmed)
+            Rails.logger.debug "Encounter #{encounter.id} status updated to finalized"
+          end
+        else
+          error_count += 1
+          Rails.logger.error "Failed to create payment: #{payment.errors.full_messages.join(', ')}"
+        end
+      rescue => e
+        error_count += 1
+        Rails.logger.error "Error creating payment: #{e.message}"
+        Rails.logger.error e.backtrace.first(5).join("\n")
       end
-      Rails.logger.info "Successfully sent payment data to API for Job ID: #{job_id}"
-    rescue => e
-      Rails.logger.error "Failed to send payment data to API for Job ID: #{job_id}: #{e.message}"
-      raise e
     end
+
+    Rails.logger.info "Payment creation completed: #{created_count} created, #{error_count} errors for Job ID: #{job_id}"
   end
 
-  def send_to_api(payment_data, job_id, csv_file_path = nil)
-    api_url = "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/payment/upload_payment"
+  def map_carc_to_payment_status(carc_codes)
+    # CARC code mapping to Payment status enum:
+    # "2" or "242" → :succeeded (paid)
+    # "1" → :pending (deductible - payment still pending)
+    # "0" → :failed (denial)
+    # Unknown/missing → :pending (default)
 
-    # Prepare the payload
-    payload = {
-      job_id: job_id,
-      processed_at: Time.current.iso8601,
-      record_count: payment_data.length,
-      data: payment_data
-    }
+    return :pending if carc_codes.empty?
 
-    # Add CSV file path if available
-    if csv_file_path.present?
-      payload[:csv_file_path] = csv_file_path
-      # Generate download URL - use relative path if host is not configured
-      begin
-        payload[:csv_download_url] = "#{Rails.application.routes.url_helpers.root_url.chomp('/')}#{csv_file_path}"
-      rescue => e
-        Rails.logger.warn "Could not generate full URL, using relative path: #{e.message}"
-        payload[:csv_download_url] = csv_file_path
-      end
+    # Check for paid status (highest priority)
+    if carc_codes.any? { |code| [ "2", "242" ].include?(code) }
+      return :succeeded
     end
 
-    Rails.logger.info "Sending #{payment_data.length} records to API: #{api_url}"
-    Rails.logger.info "Sending payload: #{payload}"
-
-    # Make HTTP request
-    response = HTTParty.post(
-      api_url,
-      body: payload.to_json,
-      headers: {
-        "Content-Type" => "application/json",
-        "Accept" => "application/json"
-      },
-      timeout: 30
-    )
-
-    if response.success?
-      Rails.logger.info "API response: #{response.code} - #{response.message}"
-      Rails.logger.debug "API response body: #{response.body}" if response.body.present?
-    else
-      Rails.logger.error "API request failed: #{response.code} - #{response.message}"
-      Rails.logger.error "API response body: #{response.body}" if response.body.present?
-      raise "API request failed with status #{response.code}: #{response.message}"
+    # Check for denial
+    if carc_codes.include?("0")
+      return :failed
     end
 
-    response
+    # Check for deductible
+    if carc_codes.include?("1")
+      return :pending
+    end
+
+    # Default to pending for unknown CARC codes
+    :pending
   end
 
   def generate_csv_data(payment_data)
@@ -479,42 +744,5 @@ class FileProcessingJob < ApplicationJob
     end
 
     csv_content
-  end
-
-  def send_csv_to_api(payment_data, job_id, csv_file_path = nil)
-    api_url = "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/payment/upload_payment"
-
-    # Generate CSV data and save to temporary file
-    csv_content = generate_csv_data(payment_data)
-    temp_file = Tempfile.new([ "payment_data", ".csv" ])
-    temp_file.write(csv_content)
-    temp_file.rewind
-    Rails.logger.info "Uploading #{payment_data.length} records as CSV file to API: #{api_url}"
-
-    begin
-      # Make HTTP request with file upload
-      response = HTTParty.post(
-        api_url,
-        body: {
-          file: File.open(temp_file.path, "rb")
-        },
-        timeout: 30
-      )
-
-      if response.success?
-        Rails.logger.info "CSV file uploaded successfully to API: #{response.code} - #{response.message}"
-        Rails.logger.debug "API response body: #{response.body}" if response.body.present?
-      else
-        Rails.logger.error "CSV file upload failed: #{response.code} - #{response.message}"
-        Rails.logger.error "API response body: #{response.body}" if response.body.present?
-        raise "API request failed with status #{response.code}: #{response.message}"
-      end
-
-      response
-    ensure
-      # Clean up temporary file
-      temp_file.close
-      temp_file.unlink
-    end
   end
 end

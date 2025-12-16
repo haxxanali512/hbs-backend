@@ -3,10 +3,12 @@ class Tenant::ProcedureCodesController < Tenant::BaseController
   before_action :set_procedure_code, only: [ :show ]
 
   def index
-    @procedure_codes = ProcedureCode.kept
-                                   .active
-                                   .includes(:specialties)
-                                   .order(:code_type, :code)
+    @procedure_codes = @current_organization
+      .unlocked_procedure_codes
+      .kept
+      .active
+      .includes(:specialties)
+      .order(:code_type, :code)
 
     # Apply filters
     @procedure_codes = @procedure_codes.search(params[:search]) if params[:search].present?
@@ -29,5 +31,8 @@ class Tenant::ProcedureCodesController < Tenant::BaseController
 
   def set_procedure_code
     @procedure_code = ProcedureCode.kept.active.find(params[:id])
+    unless @current_organization.procedure_code_unlocked?(@procedure_code.id)
+      redirect_to tenant_procedure_codes_path, alert: "Procedure code is not available for your specialties."
+    end
   end
 end

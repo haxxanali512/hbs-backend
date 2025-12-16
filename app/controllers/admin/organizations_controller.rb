@@ -13,6 +13,7 @@ class Admin::OrganizationsController < Admin::BaseController
   def new
     @organization = Organization.new
     @users = User.all.order(:first_name, :last_name)
+    @organization.build_organization_setting unless @organization.organization_setting
   end
 
   def create
@@ -20,6 +21,7 @@ class Admin::OrganizationsController < Admin::BaseController
 
     if @organization.save
       @organization.add_member(@organization.owner, nil)
+      NotificationService.notify_organization_created(@organization)
 
       redirect_to admin_organization_path(@organization),
                   notice: "Organization created successfully. The owner (#{@organization.owner.email}) must complete activation at #{@organization.subdomain}.localhost:3000"
@@ -32,10 +34,13 @@ class Admin::OrganizationsController < Admin::BaseController
 
   def edit
     @users = User.all.order(:first_name, :last_name)
+    @organization.build_organization_setting unless @organization.organization_setting
   end
 
   def update
+    changes = @organization.changes
     if @organization.update(organization_params)
+      NotificationService.notify_organization_updated(@organization, changes)
       redirect_to admin_organization_path(@organization), notice: "Organization was successfully updated."
     else
       @users = User.all.order(:first_name, :last_name)
@@ -44,16 +49,25 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def destroy
+    organization_name = @organization.name
+    owner_email = @organization.owner.email
     @organization.discard
+    NotificationService.notify_organization_deleted(organization_name, owner_email)
     redirect_to admin_organizations_path, notice: "Organization was successfully deleted."
   end
 
   def activate_tenant
-    @organization.activate!
-    redirect_to admin_organization_path(@organization), notice: "Organization activated successfully."
+    if @organization.may_activate?
+      @organization.activate!
+      redirect_to admin_organization_path(@organization), notice: "Organization activated successfully (skipped all activation steps)."
+    else
+      redirect_to admin_organization_path(@organization), alert: "Cannot activate organization. Only organizations in Pending state can be directly activated by admin."
+    end
   end
 
   def suspend_tenant
+    @organization.update(activation_status: :pending)
+    NotificationService.notify_organization_suspended(@organization)
     redirect_to admin_organization_path(@organization), notice: "Organization suspended successfully."
   end
 
@@ -64,6 +78,18 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def organization_params
-    params.require(:organization).permit(:name, :subdomain, :tier, :owner_id)
+    params.require(:organization).permit(
+      :name,
+      :subdomain,
+      :tier,
+      :owner_id,
+      organization_setting_attributes: [
+        :id,
+        :ezclaim_enabled,
+        :ezclaim_api_token,
+        :ezclaim_api_url,
+        :ezclaim_api_version
+      ]
+    )
   end
 end

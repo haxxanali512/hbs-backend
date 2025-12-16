@@ -22,8 +22,6 @@ class Tenant::ActivationController < Tenant::BaseController
     end
 
     if @billing.update(billing_attributes)
-      # @current_organization.setup_billing!
-
       if @billing.active?
         onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
 
@@ -74,9 +72,9 @@ class Tenant::ActivationController < Tenant::BaseController
     @compliance = @organization.organization_compliance || @organization.build_organization_compliance
 
     if @compliance.update(terms_of_use: true, privacy_policy_accepted: true)
-      @organization.documents_signing_complete!
+      @organization.terms_agreement_complete!
 
-      redirect_to tenant_activation_billing_path, notice: "Documents signed ✅"
+      redirect_to tenant_activation_complete_path, notice: "Terms & Conditions accepted ✅"
     else
       @compliance = @organization.organization_compliance || @organization.build_organization_compliance
       render :document_signing
@@ -88,7 +86,7 @@ class Tenant::ActivationController < Tenant::BaseController
 
     OrganizationMailer.activation_completed(@organization).deliver_now
 
-    redirect_to root_path, notice: "🎉 Your organization is now active!"
+    redirect_to tenant_dashboard_path, notice: "🎉 Your organization is now active!"
   end
 
   def activation_complete
@@ -208,11 +206,12 @@ class Tenant::ActivationController < Tenant::BaseController
   def build_activation_steps(organization)
     status_value = organization.activation_status_before_type_cast
 
+    # Flow: pending → compliance_setup → billing_setup → terms_agreement → activated
     steps_definitions = [
       { name: "Organization Created", key: :pending },
       { name: "Compliance Setup", key: :compliance_setup },
       { name: "Billing Setup", key: :billing_setup },
-      { name: "Document Signing", key: :document_signing },
+      { name: "Terms & Conditions", key: :terms_agreement },
       { name: "Activation Complete", key: :activated }
     ]
 
@@ -239,21 +238,24 @@ class Tenant::ActivationController < Tenant::BaseController
 
   def set_organization
     @organization = current_user.organizations.first
-    redirect_to root_path, alert: "No organization found" unless @organization
+    redirect_to tenant_dashboard_path, alert: "No organization found" unless @organization
   rescue
-    redirect_to root_path, alert: "No organization found"
+    redirect_to tenant_dashboard_path, alert: "No organization found"
   end
 
   def check_activation_status
+    # Flow: pending → compliance_setup → billing_setup → terms_agreement → activated
     case @organization.activation_status
     when "pending"
       redirect_to tenant_activation_compliance_path unless action_name == "index" || action_name == "compliance_setup" || action_name == "update_compliance" || action_name == "send_agreement" || action_name == "check_docusign_status"
+    when "compliance_setup"
+      redirect_to tenant_activation_billing_path unless action_name == "index" || action_name == "billing_setup" || action_name == "update_billing" || action_name == "stripe_card" || action_name == "save_stripe_card" || action_name == "manual_payment"
     when "billing_setup"
-      redirect_to tenant_activation_billing_path unless action_name == "update_billing" || action_name == "billing_setup"
-    when "document_signing"
-      redirect_to tenant_activation_documents_path unless action_name == "complete_document_signing" || action_name == "document_signing"
+      redirect_to tenant_activation_documents_path unless action_name == "index" || action_name == "document_signing" || action_name == "complete_document_signing"
+    when "terms_agreement"
+      redirect_to tenant_activation_complete_path unless action_name == "index" || action_name == "activation_complete" || action_name == "activate"
     when "activated"
-      redirect_to tenant_dashboard_path unless action_name == "activate" || action_name == "send_agreement"
+      redirect_to tenant_dashboard_path unless action_name == "activate"
     end
   end
 

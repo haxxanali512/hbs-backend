@@ -1,31 +1,108 @@
 class Tenant::SpecialtiesController < Tenant::BaseController
-  before_action :authenticate_user!
-  before_action :set_current_organization
-  after_action :verify_authorized, except: [ :index ]
+  before_action :set_specialty, only: [ :show, :edit, :update, :destroy ]
 
   def index
-    @specialties = Specialty.kept.active.includes(:procedure_codes)
+    @specialties = Specialty.kept.includes(:procedure_codes)
                             .order(:name)
 
     # Apply filters
     @specialties = @specialties.search(params[:search]) if params[:search].present?
     @specialties = @specialties.by_name(params[:name]) if params[:name].present?
+    @specialties = @specialties.where(status: params[:status]) if params[:status].present?
 
     @pagy, @specialties = pagy(@specialties, items: 20)
   end
 
   def show
-    @specialty = Specialty.kept.active.find(params[:id])
-    authorize @specialty
     @providers = @current_organization.providers.kept.where(specialty: @specialty)
                                      .includes(:user)
                                      .order(:first_name, :last_name)
   end
 
+  def new
+    @specialty = Specialty.new
+    @procedure_codes = ProcedureCode.kept.active.order(:code)
+  end
+
+  def create
+    @specialty = Specialty.new(specialty_params)
+
+    if @specialty.save
+      # Handle procedure code assignments (allow from all active procedure codes)
+      if params[:specialty][:procedure_code_ids].present?
+        allowed_code_ids = ProcedureCode.kept.active.pluck(:id)
+        selected_code_ids = params[:specialty][:procedure_code_ids].map(&:to_i) & allowed_code_ids
+        @specialty.procedure_code_ids = selected_code_ids
+      end
+
+      # Automatically assign specialty to organization's fee schedule
+      fee_schedule = @current_organization.get_or_create_fee_schedule
+      unless fee_schedule.specialties.include?(@specialty)
+        fee_schedule.specialties << @specialty
+      end
+
+      # Automatically unlock procedure codes for this specialty
+      if @specialty.active?
+        FeeScheduleUnlockService.unlock_procedure_codes_for_organization(@current_organization, @specialty)
+      end
+
+      redirect_to tenant_specialty_path(@specialty), notice: "Specialty created successfully and assigned to your organization."
+    else
+      @procedure_codes = ProcedureCode.kept.active.order(:code)
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def edit
+    @procedure_codes = ProcedureCode.kept.active.order(:code)
+  end
+
+  def update
+    if @specialty.update(specialty_params)
+      # Handle procedure code assignments (allow from all active procedure codes)
+      if params[:specialty][:procedure_code_ids].present?
+        allowed_code_ids = ProcedureCode.kept.active.pluck(:id)
+        selected_code_ids = params[:specialty][:procedure_code_ids].map(&:to_i) & allowed_code_ids
+        @specialty.procedure_code_ids = selected_code_ids
+      end
+
+      # Ensure specialty is assigned to organization's fee schedule
+      fee_schedule = @current_organization.get_or_create_fee_schedule
+      unless fee_schedule.specialties.include?(@specialty)
+        fee_schedule.specialties << @specialty
+      end
+
+      # Update unlocked procedure codes if specialty is active
+      if @specialty.active?
+        FeeScheduleUnlockService.unlock_procedure_codes_for_organization(@current_organization, @specialty)
+      else
+        # If specialty is retired, check and deactivate codes
+        FeeScheduleUnlockService.check_and_deactivate_unlocked_codes(@current_organization)
+      end
+
+      redirect_to tenant_specialty_path(@specialty), notice: "Specialty updated successfully."
+    else
+      @procedure_codes = ProcedureCode.kept.active.order(:code)
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    if @specialty.can_be_deleted?
+      @specialty.discard
+      redirect_to tenant_specialties_path, notice: "Specialty deleted successfully."
+    else
+      redirect_to tenant_specialty_path(@specialty), alert: "Cannot delete specialty with assigned providers."
+    end
+  end
+
   private
 
-  def set_current_organization
-    @current_organization = current_user.organizations.find_by(subdomain: request.subdomain)
-    redirect_to root_path, alert: "Organization not found" unless @current_organization
+  def set_specialty
+    @specialty = Specialty.kept.find(params[:id])
+  end
+
+  def specialty_params
+    params.require(:specialty).permit(:name, :description, :status, procedure_code_ids: [])
   end
 end

@@ -22,5 +22,3 @@ class Tenant::ClaimLinePolicy < ApplicationPolicy
     end
   end
 end
-
-

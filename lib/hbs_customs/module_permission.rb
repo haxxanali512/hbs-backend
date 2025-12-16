@@ -56,7 +56,7 @@ module HbsCustoms
           stripe: { setup_intent: false, confirm_card: false },
           gocardless: { create_redirect_flow: false },
           providers: DEFAULT_CRUD.except(:destroy),
-          specialties: DEFAULT_CRUD,
+          specialties: DEFAULT_CRUD.except(:destroy),
           diagnosis_codes: DEFAULT_CRUD.merge(request: false),
           fee_schedules: DEFAULT_CRUD,
           fee_schedule_items: DEFAULT_CRUD,
@@ -64,16 +64,16 @@ module HbsCustoms
           organization_locations: DEFAULT_CRUD_WITH_STATE,
           appointments: DEFAULT_CRUD_WITH_STATE,
           organization_settings: { show: false, edit: false, update: false },
-          encounters: DEFAULT_CRUD_WITH_WORKFLOW,
+          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(submit_for_billing: false),
           encounter_comments: { index: false, create: false, redact: false },
           provider_notes: DEFAULT_CRUD,
           patients: DEFAULT_CRUD,
           org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false),
           patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),
-          claims: DEFAULT_CRUD.merge(validate: false, submit: false, post_adjudication: false, void: false, reverse: false, close: false),
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
           support_tickets: DEFAULT_CRUD.except(:destroy),
-          support_ticket_comments: DEFAULT_CRUD.except(:destroy)
+          support_ticket_comments: DEFAULT_CRUD.except(:destroy),
+          claims: DEFAULT_CRUD.merge(claim_insured_data: false, submit_claim_insured: false, claim_data: false, submit_claim: false)
         }.freeze
       end
 
@@ -81,7 +81,7 @@ module HbsCustoms
         {
           dashboard: { index: false },
           organizations: DEFAULT_CRUD,
-          users: DEFAULT_CRUD,
+          users: DEFAULT_CRUD.merge(masquerade: false),
           roles: DEFAULT_CRUD,
           organization_billings: DEFAULT_CRUD,
           invoices: DEFAULT_CRUD,
@@ -96,7 +96,7 @@ module HbsCustoms
           organization_locations: DEFAULT_CRUD_WITH_STATE.except(:create),
           appointments: DEFAULT_CRUD_WITH_STATE.except(:create, :destroy),
           audits: { index: false, show: false, model_audits: false },
-          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false),
+          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false, submit_for_billing: false),
           encounter_comments: DEFAULT_CRUD.merge(redact: false),
           provider_notes: DEFAULT_CRUD,
           patients: DEFAULT_CRUD,
@@ -114,6 +114,7 @@ module HbsCustoms
           support_ticket_comments: DEFAULT_CRUD.except(:destroy).merge(redact: false),
           email_template_keys: DEFAULT_CRUD,
           email_templates: DEFAULT_CRUD
+          data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false, upload_processing_file: false)
         }.freeze
       end
 

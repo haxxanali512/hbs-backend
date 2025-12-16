@@ -3,18 +3,16 @@ class Admin::FeeSchedulesController < Admin::BaseController
 
   def index
     @fee_schedules = OrganizationFeeSchedule.kept
-                                           .includes(:organization, :provider, :organization_fee_schedule_items)
-                                           .order(:organization_id, :provider_id)
+                                           .includes(:organization, :specialty, :organization_fee_schedule_items)
+                                           .order(:organization_id)
 
     # Apply filters
     @fee_schedules = @fee_schedules.where(organization_id: params[:organization_id]) if params[:organization_id].present?
-    @fee_schedules = @fee_schedules.where(provider_id: params[:provider_id]) if params[:provider_id].present?
     @fee_schedules = @fee_schedules.where(locked: params[:locked] == "true") if params[:locked].present?
     @fee_schedules = @fee_schedules.where(currency: params[:currency]) if params[:currency].present?
 
     @pagy, @fee_schedules = pagy(@fee_schedules, items: 20)
     @organizations = Organization.kept.order(:name)
-    @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
   end
 
   def show
@@ -27,7 +25,7 @@ class Admin::FeeSchedulesController < Admin::BaseController
   def new
     @fee_schedule = OrganizationFeeSchedule.new
     @organizations = Organization.kept.order(:name)
-    @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
+    @specialties = Specialty.active.order(:name)
   end
 
   def create
@@ -37,14 +35,14 @@ class Admin::FeeSchedulesController < Admin::BaseController
       redirect_to admin_fee_schedule_path(@fee_schedule), notice: "Fee schedule created successfully."
     else
       @organizations = Organization.kept.order(:name)
-      @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
+      @specialties = Specialty.active.order(:name)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     @organizations = Organization.kept.order(:name)
-    @providers = Provider.kept.includes(:organizations).order(:first_name, :last_name)
+    @specialties = Specialty.active.order(:name)
   end
 
   def update
@@ -52,7 +50,7 @@ class Admin::FeeSchedulesController < Admin::BaseController
       redirect_to admin_fee_schedule_path(@fee_schedule), notice: "Fee schedule updated successfully."
     else
       @organizations = Organization.kept.order(:name)
-      @providers = @fee_schedule.organization.providers.kept.order(:first_name, :last_name)
+      @specialties = Specialty.active.order(:name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -89,7 +87,7 @@ class Admin::FeeSchedulesController < Admin::BaseController
 
   def fee_schedule_params
     params.require(:organization_fee_schedule).permit(
-      :organization_id, :provider_id, :name, :currency, :notes, :locked
+      :organization_id, :specialty_id, :name, :currency, :notes, :locked
     )
   end
 end
