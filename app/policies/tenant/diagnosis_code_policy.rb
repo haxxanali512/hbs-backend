@@ -11,6 +11,10 @@ class Tenant::DiagnosisCodePolicy < ApplicationPolicy
     accessible?("tenant", "diagnosis_codes", "request")
   end
 
+  def search?
+    index?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       scope.active

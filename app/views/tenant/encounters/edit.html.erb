@@ -17,6 +17,11 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <%= render "form", encounter: @encounter %>
     </div>
+
+    <!-- Clinical Documentation Section -->
+    <div class="mt-6">
+      <%= render "shared/clinical_documentation", encounter: @encounter, clinical_documentations: @clinical_documentations, clinical_documentation: @clinical_documentation, namespace: "tenant" %>
+    </div>
   </div>
 </div>
 

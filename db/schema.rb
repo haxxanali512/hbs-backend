@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_16_120000) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_16_120001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -145,6 +145,33 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_16_120000) do
     t.index ["patient_insurance_coverage_id"], name: "index_claims_on_patient_insurance_coverage_id"
     t.index ["provider_id"], name: "index_claims_on_provider_id"
     t.index ["specialty_id"], name: "index_claims_on_specialty_id"
+  end
+
+  create_table "clinical_documentations", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.bigint "encounter_id", null: false
+    t.bigint "patient_id", null: false
+    t.bigint "author_provider_id", null: false
+    t.bigint "signed_by_provider_id"
+    t.bigint "cosigner_provider_id"
+    t.integer "document_type", null: false
+    t.jsonb "content_json", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "version_seq", default: 1, null: false
+    t.datetime "signed_at"
+    t.datetime "cosigned_at"
+    t.jsonb "section_locks"
+    t.jsonb "assist_provenance"
+    t.text "attestation_text"
+    t.string "signature_hash", limit: 64
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_provider_id"], name: "index_clinical_documentations_on_author_provider_id"
+    t.index ["cosigner_provider_id"], name: "index_clinical_documentations_on_cosigner_provider_id"
+    t.index ["encounter_id"], name: "index_clinical_documentations_on_encounter_id"
+    t.index ["organization_id"], name: "index_clinical_documentations_on_organization_id"
+    t.index ["patient_id"], name: "index_clinical_documentations_on_patient_id"
+    t.index ["signed_by_provider_id"], name: "index_clinical_documentations_on_signed_by_provider_id"
   end
 
   create_table "denial_items", force: :cascade do |t|
@@ -1018,6 +1045,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_16_120000) do
   add_foreign_key "claims", "patients"
   add_foreign_key "claims", "providers"
   add_foreign_key "claims", "specialties"
+  add_foreign_key "clinical_documentations", "encounters"
+  add_foreign_key "clinical_documentations", "organizations"
+  add_foreign_key "clinical_documentations", "patients"
+  add_foreign_key "clinical_documentations", "providers", column: "author_provider_id"
+  add_foreign_key "clinical_documentations", "providers", column: "cosigner_provider_id"
+  add_foreign_key "clinical_documentations", "providers", column: "signed_by_provider_id"
   add_foreign_key "denial_items", "claim_lines"
   add_foreign_key "denial_items", "denials"
   add_foreign_key "denials", "claim_submissions", column: "source_submission_id"

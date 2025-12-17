@@ -221,6 +221,9 @@ Rails.application.routes.draw do
       end
 
       resources :diagnosis_codes do
+        collection do
+          get :search
+        end
         member do
           post :retire
           post :activate
@@ -242,6 +245,18 @@ Rails.application.routes.draw do
           get :procedure_codes_search
           get :diagnosis_codes_search
           post :submit_for_billing
+        end
+        resources :clinical_documentations, except: [ :show ] do
+          collection do
+            post :attach_document
+          end
+          member do
+            post :sign
+            post :cosign
+            post :amend
+            post :void_readonly
+            get :export_pdf
+          end
         end
         resources :encounter_comments, only: [ :index, :create ] do
           member do
@@ -375,6 +390,9 @@ Rails.application.routes.draw do
         resources :procedure_codes, only: [ :index, :show ]
 
         resources :diagnosis_codes, only: [ :index, :show ] do
+          collection do
+            get :search
+          end
           member do
             post :request_review
           end
@@ -398,6 +416,18 @@ Rails.application.routes.draw do
             get :procedure_codes_search
             get :diagnosis_codes_search
             post :submit_for_billing
+          end
+          resources :clinical_documentations, except: [ :show ] do
+            collection do
+              post :attach_document
+            end
+            member do
+              post :sign
+              post :cosign
+              post :amend
+              post :void_readonly
+              get :export_pdf
+            end
           end
           resources :encounter_comments, only: [ :index, :create ]
           resources :provider_notes, except: [ :show ]

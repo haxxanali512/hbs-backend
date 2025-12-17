@@ -186,6 +186,19 @@ class Organization < ApplicationRecord
     ).distinct
   end
 
+  # Clinical Documentation Policy Methods
+  def requires_cosign_for_document_type?(document_type)
+    # Check organization settings or payer policy
+    # For now, return false - can be extended with organization_setting
+    organization_setting&.requires_cosign_for_document_type?(document_type) || false
+  end
+
+  def requires_attestation_for_document_type?(document_type)
+    # Check organization settings or payer policy
+    # For now, return false - can be extended with organization_setting
+    organization_setting&.requires_attestation_for_document_type?(document_type) || false
+  end
+
   def invite_owner
     return if owner.nil?
     return if owner.invitation_sent_at.present? # Already invited

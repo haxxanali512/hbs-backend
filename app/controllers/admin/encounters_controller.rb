@@ -21,12 +21,31 @@ class Admin::EncountersController < Admin::BaseController
     if current_user
       EncounterCommentSeen.mark_as_seen(@encounter.id, current_user.id)
     end
+
+    # Load clinical documentation
+    @clinical_documentations = @encounter.clinical_documentations.order(version_seq: :desc)
+    @clinical_documentation = @clinical_documentations.draft.first || @encounter.clinical_documentations.build(
+      organization: @encounter.organization,
+      patient: @encounter.patient,
+      author_provider: @encounter.provider
+    )
   end
 
-  def edit; end
+  def edit
+    # Load clinical documentation
+    @clinical_documentations = @encounter.clinical_documentations.order(version_seq: :desc)
+    @clinical_documentation = @clinical_documentations.draft.first || @encounter.clinical_documentations.build(
+      organization: @encounter.organization,
+      patient: @encounter.patient,
+      author_provider: @encounter.provider
+    )
+  end
 
   def update
     if @encounter.update(encounter_params)
+      # Handle clinical documentation attachments
+      process_clinical_documentation_attachments if params.dig(:encounter, :clinical_documentations_attributes).present?
+
       redirect_to admin_encounter_path(@encounter), notice: "Encounter updated successfully."
     else
       render :edit, status: :unprocessable_entity
@@ -242,9 +261,64 @@ class Admin::EncountersController < Admin::BaseController
       :specialty_id,
       :date_of_service,
       :billing_channel,
-      :notes,
       :display_status,
-      diagnosis_code_ids: []
+      diagnosis_code_ids: [],
+      clinical_documentations_attributes: [
+        :id,
+        :document_type,
+        :content_json,
+        :organization_id,
+        :patient_id,
+        :author_provider_id,
+        :status,
+        :attestation_text,
+        :section_locks,
+        :_destroy,
+        :_attachment_mode,
+        :_attachment_title,
+        :_attachment_description,
+        _attachment_file: []
+      ]
     )
+  end
+
+  def process_clinical_documentation_attachments
+    return unless @encounter.persisted?
+
+    # Process each clinical documentation that was created via nested attributes
+    clinical_docs_attrs = params.dig(:encounter, :clinical_documentations_attributes) || {}
+
+    clinical_docs_attrs.each do |index, attrs|
+      next unless attrs[:_attachment_mode] == "true" && attrs[:_attachment_file].present?
+
+      # Find the created clinical documentation
+      doc = @encounter.clinical_documentations.find_by(
+        document_type: attrs[:document_type],
+        status: "draft"
+      )
+
+      next unless doc
+
+      file = attrs[:_attachment_file]
+      title = attrs[:_attachment_title].presence || file.original_filename
+      description = attrs[:_attachment_description]
+
+      # Upload document using DocumentUploadService
+      result = DocumentUploadService.new(
+        documentable: doc,
+        uploaded_by: current_user,
+        organization: @encounter.organization,
+        params: {
+          file: file,
+          title: title,
+          document_type: "clinical_documentation",
+          description: description
+        }
+      ).call
+
+      unless result[:success]
+        Rails.logger.error "Failed to upload clinical documentation attachment: #{result[:error]}"
+      end
+    end
   end
 end

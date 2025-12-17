@@ -54,12 +54,28 @@ class Tenant::EncountersController < Tenant::BaseController
     if current_user
       EncounterCommentSeen.mark_as_seen(@encounter.id, current_user.id)
     end
+
+    # Load clinical documentation
+    @clinical_documentations = @encounter.clinical_documentations.order(version_seq: :desc)
+    @clinical_documentation = @clinical_documentations.draft.first || @encounter.clinical_documentations.build(
+      organization: @encounter.organization,
+      patient: @encounter.patient,
+      author_provider: @encounter.provider
+    )
   end
 
   def new
     @encounter = @current_organization.encounters.build
     @encounter.date_of_service = Date.current
     @encounter.billing_channel = :insurance
+
+    # Initialize clinical documentation for new encounter
+    @clinical_documentations = []
+    @clinical_documentation = @encounter.clinical_documentations.build(
+      organization: @current_organization,
+      patient: nil, # Will be set when patient is selected
+      author_provider: nil # Will be set when provider is selected
+    )
   end
 
   def create
@@ -67,6 +83,9 @@ class Tenant::EncountersController < Tenant::BaseController
     @encounter.confirmed_by = current_user if params[:confirm_now]
 
     if @encounter.save
+      # Handle clinical documentation attachments
+      process_clinical_documentation_attachments if params.dig(:encounter, :clinical_documentations_attributes).present?
+
       # Handle document uploads
       upload_documents if params.dig(:encounter, :documents).present?
 
@@ -75,14 +94,33 @@ class Tenant::EncountersController < Tenant::BaseController
       end
       redirect_to tenant_encounter_path(@encounter), notice: "Encounter created successfully."
     else
+      # Re-initialize variables for form re-render
+      @clinical_documentations = []
+      @clinical_documentation = @encounter.clinical_documentations.build(
+        organization: @current_organization,
+        patient: nil,
+        author_provider: nil
+      )
+      load_form_options
       render :new, status: :unprocessable_entity
     end
   end
 
-  def edit; end
+  def edit
+    # Load clinical documentation
+    @clinical_documentations = @encounter.clinical_documentations.order(version_seq: :desc)
+    @clinical_documentation = @clinical_documentations.draft.first || @encounter.clinical_documentations.build(
+      organization: @encounter.organization,
+      patient: @encounter.patient,
+      author_provider: @encounter.provider
+    )
+  end
 
   def update
     if @encounter.update(encounter_params)
+      # Handle clinical documentation attachments
+      process_clinical_documentation_attachments if params.dig(:encounter, :clinical_documentations_attributes).present?
+
       # Handle document uploads
       upload_documents if params.dig(:encounter, :documents).present?
 
@@ -319,9 +357,64 @@ class Tenant::EncountersController < Tenant::BaseController
       :specialty_id,
       :date_of_service,
       :billing_channel,
-      :notes,
-      diagnosis_code_ids: []
+      diagnosis_code_ids: [],
+      clinical_documentations_attributes: [
+        :id,
+        :document_type,
+        :content_json,
+        :organization_id,
+        :patient_id,
+        :author_provider_id,
+        :status,
+        :attestation_text,
+        :section_locks,
+        :_destroy,
+        :_attachment_mode,
+        :_attachment_title,
+        :_attachment_description,
+        _attachment_file: []
+      ]
     )
+  end
+
+  def process_clinical_documentation_attachments
+    return unless @encounter.persisted?
+
+    # Process each clinical documentation that was created via nested attributes
+    clinical_docs_attrs = params.dig(:encounter, :clinical_documentations_attributes) || {}
+
+    clinical_docs_attrs.each do |index, attrs|
+      next unless attrs[:_attachment_mode] == "true" && attrs[:_attachment_file].present?
+
+      # Find the created clinical documentation
+      doc = @encounter.clinical_documentations.find_by(
+        document_type: attrs[:document_type],
+        status: "draft"
+      )
+
+      next unless doc
+
+      file = attrs[:_attachment_file]
+      title = attrs[:_attachment_title].presence || file.original_filename
+      description = attrs[:_attachment_description]
+
+      # Upload document using DocumentUploadService
+      result = DocumentUploadService.new(
+        documentable: doc,
+        uploaded_by: current_user,
+        organization: @encounter.organization,
+        params: {
+          file: file,
+          title: title,
+          document_type: "clinical_documentation",
+          description: description
+        }
+      ).call
+
+      unless result[:success]
+        Rails.logger.error "Failed to upload clinical documentation attachment: #{result[:error]}"
+      end
+    end
   end
 
   def upload_documents
@@ -338,7 +431,7 @@ class Tenant::EncountersController < Tenant::BaseController
         params: {
           file: file,
           title: file.original_filename,
-          document_type: params[:document_type] || "clinical_notes",
+          document_type: params[:document_type] || "supporting",
           description: "Uploaded with encounter creation"
         }
       ).call

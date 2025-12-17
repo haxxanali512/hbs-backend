@@ -20,19 +20,20 @@ class Encounter < ApplicationRecord
 
   # has_one (mutually exclusive primary items)
   # has_one :patient_invoice, as: :invoiceable # Placeholder
-  has_one :primary_clinical_documentation, -> { where(is_primary: true) }, class_name: "ClinicalDocumentation"
+  has_one :primary_clinical_documentation, -> { where(status: :signed).order(version_seq: :desc) }, class_name: "ClinicalDocumentation"
 
   # has_many
   has_many :encounter_diagnosis_codes, dependent: :destroy
   has_many :diagnosis_codes, through: :encounter_diagnosis_codes
   # has_many :encounter_procedure_items, dependent: :destroy
-  # has_many :clinical_documentations, as: :documentable, dependent: :restrict_with_error
+  has_many :clinical_documentations, dependent: :restrict_with_error
   has_many :encounter_comments, dependent: :destroy
   has_many :encounter_comment_seens, dependent: :destroy
   has_many :provider_notes, dependent: :destroy
   # has_many :encounter_tasks, dependent: :destroy
   has_many :documents, as: :documentable, dependent: :destroy
 
+  accepts_nested_attributes_for :clinical_documentations, allow_destroy: true, reject_if: :reject_clinical_documentation?
   # ===========================================================
   # ENUMS
   # ===========================================================
@@ -384,5 +385,17 @@ class Encounter < ApplicationRecord
     elsif self_pay?
       Rails.logger.info "Event: encounter.patient_invoice_created for encounter #{id}"
     end
+  end
+
+  private
+
+  def reject_clinical_documentation?(attributes)
+    # Reject if no attachment file is provided and no content_json
+    attachment_file = attributes["_attachment_file"]
+    has_attachment = attachment_file.present? && !(attachment_file.is_a?(Array) && attachment_file.all?(&:blank?))
+    has_content = attributes["content_json"].present?
+
+    # Reject if neither attachment nor content is provided
+    !has_attachment && !has_content
   end
 end

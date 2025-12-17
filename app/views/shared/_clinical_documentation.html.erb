@@ -1,0 +1,463 @@
+<% 
+  f = local_assigns[:f]
+  encounter = local_assigns[:encounter]
+  clinical_documentations = local_assigns[:clinical_documentations] || (encounter.persisted? ? encounter.clinical_documentations.order(version_seq: :desc) : [])
+  clinical_documentation = local_assigns[:clinical_documentation] || encounter.clinical_documentations.build(
+    organization: encounter.organization || @current_organization,
+    patient: encounter.patient,
+    author_provider: encounter.provider
+  )
+  namespace = local_assigns[:namespace] || "tenant"
+  use_nested_attributes = f.present?
+  
+  # Prepare values for JavaScript
+  org_id = encounter.organization_id || (@current_organization&.id rescue nil) || nil
+  patient_id = encounter.patient_id || nil
+  provider_id = encounter.provider_id || nil
+%>
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-medium text-gray-900">Clinical Documentation</h2>
+    <% if !encounter.cascaded? && (encounter.persisted? || encounter.new_record?) %>
+      <div class="flex space-x-2">
+        <button type="button" 
+                onclick="showCreateClinicalDocForm()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">
+          Create Documentation
+        </button>
+        <button type="button" 
+                onclick="showAttachClinicalDocForm()"
+                class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">
+          Attach Document
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Existing Clinical Documentation (only show if persisted) -->
+  <% if encounter.persisted? && clinical_documentations.any? %>
+    <div class="space-y-4 mb-6">
+      <% clinical_documentations.each do |doc| %>
+        <div class="border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-3">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= doc.draft? ? 'bg-yellow-100 text-yellow-800' : doc.signed? ? 'bg-green-100 text-green-800' : doc.voided_readonly? ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800' %>">
+                <%= doc.status.humanize %>
+              </span>
+              <span class="text-sm font-medium text-gray-900"><%= doc.document_type.humanize %></span>
+              <% if doc.version_seq > 1 %>
+                <span class="text-xs text-gray-500">v<%= doc.version_seq %></span>
+              <% end %>
+            </div>
+            <div class="flex items-center space-x-2">
+              <% if doc.document&.primary_attachment %>
+                <% attachment = doc.document.primary_attachment %>
+                <%= link_to "View PDF", attachment.file_path, target: "_blank", class: "text-sm text-blue-600 hover:text-blue-800" %>
+              <% elsif doc.signed? && doc.rendered_pdf_document %>
+                <%= link_to "View PDF", doc.rendered_pdf_document.file_path, target: "_blank", class: "text-sm text-blue-600 hover:text-blue-800" %>
+              <% end %>
+            </div>
+          </div>
+          
+          <div class="text-sm text-gray-600 space-y-1">
+            <p><strong>Author:</strong> <%= doc.author_provider&.full_name || "N/A" %></p>
+            <% if doc.signed? %>
+              <p><strong>Signed:</strong> <%= doc.signed_at&.strftime("%B %d, %Y at %I:%M %p") %> by <%= doc.signed_by_provider&.full_name %></p>
+            <% end %>
+            <p><strong>Created:</strong> <%= doc.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+          </div>
+
+          <!-- Content Preview -->
+          <% if doc.content_json.present? %>
+            <% if doc.content_json["source"] == "attached_document" %>
+              <div class="mt-3 pt-3 border-t border-gray-200">
+                <div class="text-sm text-gray-700">
+                  <p><strong>Attached Document:</strong> <%= doc.content_json["file_name"] %></p>
+                </div>
+              </div>
+            <% elsif doc.content_json["sections"].present? %>
+              <div class="mt-3 pt-3 border-t border-gray-200">
+                <div class="text-sm text-gray-700 space-y-2">
+                  <% doc.content_json["sections"].first(3).each do |section| %>
+                    <div>
+                      <strong class="text-gray-900"><%= section["name"] %>:</strong>
+                      <span class="text-gray-600"><%= truncate(section["content"], length: 100) %></span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% elsif encounter.persisted? %>
+    <p class="text-sm text-gray-500 mb-4">No clinical documentation created yet.</p>
+  <% end %>
+
+  <!-- Nested Attributes Container for New Clinical Documentation -->
+  <div id="nestedClinicalDocsContainer" class="space-y-4"></div>
+
+  <!-- Create Documentation Form (for nested attributes) -->
+  <div id="createClinicalDocForm" class="hidden border border-gray-200 rounded-lg p-4 bg-gray-50 mt-4">
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
+        <select id="newClinicalDocType" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" formnovalidate>
+          <option value="">Select document type</option>
+          <option value="soap_note">SOAP Note</option>
+          <option value="progress_note">Progress Note</option>
+          <option value="initial_eval">Initial Evaluation</option>
+          <option value="treatment_plan">Treatment Plan</option>
+          <option value="discharge_summary">Discharge Summary</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Document Content</label>
+        <p class="text-xs text-gray-500 mb-2">Add sections to build your clinical documentation.</p>
+        <div id="clinicalDocSections" class="space-y-3 mb-3"></div>
+        <button type="button" onclick="addClinicalDocSection()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+          + Add Section
+        </button>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        <button type="button" 
+                onclick="hideClinicalDocForms()"
+                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="button" 
+                onclick="addClinicalDocToForm()"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+          Add to Form
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attach Document Form (for nested attributes) -->
+  <div id="attachClinicalDocForm" class="hidden border border-gray-200 rounded-lg p-4 bg-gray-50 mt-4">
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
+        <select id="attachClinicalDocType" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" formnovalidate>
+          <option value="">Select document type</option>
+          <option value="soap_note">SOAP Note</option>
+          <option value="progress_note">Progress Note</option>
+          <option value="initial_eval">Initial Evaluation</option>
+          <option value="treatment_plan">Treatment Plan</option>
+          <option value="discharge_summary">Discharge Summary</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">PDF Document</label>
+        <input type="file" 
+               id="attachClinicalDocFile"
+               accept="application/pdf"
+               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+               formnovalidate>
+        <p class="mt-1 text-xs text-gray-500">PDF files only. Max 25MB.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+        <input type="text" 
+               id="attachClinicalDocTitle"
+               placeholder="e.g., Clinical Documentation<%= encounter.patient ? " - #{encounter.patient.full_name}" : "" %>"
+               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+        <textarea id="attachClinicalDocDescription"
+                  rows="3"
+                  placeholder="Optional description of the document"
+                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        <button type="button" 
+                onclick="hideClinicalDocForms()"
+                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="button" 
+                onclick="addAttachedDocToForm()"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+          Add to Form
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let clinicalDocCounter = 0;
+  let clinicalDocSections = {};
+
+  function addClinicalDocSection() {
+    const container = document.getElementById('clinicalDocSections');
+    const sectionId = 'section_' + Date.now();
+    const sectionHtml = `
+      <div class="section-item border border-gray-300 rounded-md p-3 bg-white" data-section-id="${sectionId}">
+        <div class="flex items-center justify-between mb-2">
+          <input type="text" 
+                 placeholder="Section name (e.g., Subjective, Objective, Assessment, Plan)"
+                 class="section-name flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm mr-2">
+          <button type="button" onclick="removeClinicalDocSection('${sectionId}')" class="text-red-600 hover:text-red-800 text-sm">Remove</button>
+        </div>
+        <textarea placeholder="Enter section content..."
+                  rows="4"
+                  class="section-content w-full border border-gray-300 rounded-md px-3 py-2 text-sm"></textarea>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', sectionHtml);
+  }
+
+  function removeClinicalDocSection(sectionId) {
+    document.querySelector(`[data-section-id="${sectionId}"]`).remove();
+  }
+
+  function addClinicalDocToForm() {
+    const docType = document.getElementById('newClinicalDocType').value;
+    if (!docType) {
+      alert('Please select a document type');
+      return;
+    }
+
+    const sections = [];
+    const sectionItems = document.querySelectorAll('#clinicalDocSections .section-item');
+    sectionItems.forEach(item => {
+      const name = item.querySelector('.section-name').value.trim();
+      const content = item.querySelector('.section-content').value.trim();
+      if (name && content) {
+        sections.push({ name: name, content: content });
+      }
+    });
+
+    if (sections.length === 0) {
+      alert('Please add at least one section');
+      return;
+    }
+
+    const index = clinicalDocCounter++;
+    const contentJson = JSON.stringify({ sections: sections });
+    const orgId = <%= org_id.to_json %>;
+    const patientId = <%= patient_id.to_json %>;
+    const providerId = <%= provider_id.to_json %>;
+    
+    const container = document.getElementById('nestedClinicalDocsContainer');
+    const docDiv = document.createElement('div');
+    docDiv.className = 'nested-clinical-doc border border-blue-200 rounded-lg p-4 bg-blue-50';
+    docDiv.setAttribute('data-doc-index', index);
+    
+    docDiv.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-sm font-medium text-gray-900">${docType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+          <span class="text-xs text-gray-500">(${sections.length} section${sections.length !== 1 ? 's' : ''})</span>
+        </div>
+        <button type="button" onclick="removeClinicalDocFromForm(${index})" class="text-red-600 hover:text-red-800 text-sm">Remove</button>
+      </div>
+    `;
+    
+    // Create nested attribute fields
+    const fieldsContainer = document.createElement('div');
+    fieldsContainer.style.display = 'none';
+    
+    const fieldNames = [
+      { name: 'document_type', value: docType },
+      { name: 'content_json', value: contentJson },
+      { name: 'organization_id', value: orgId },
+      { name: 'patient_id', value: patientId },
+      { name: 'author_provider_id', value: providerId },
+      { name: 'status', value: 'draft' }
+    ];
+    
+    fieldNames.forEach(field => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = `encounter[clinical_documentations_attributes][${index}][${field.name}]`;
+      input.value = field.value;
+      fieldsContainer.appendChild(input);
+    });
+    
+    docDiv.appendChild(fieldsContainer);
+    container.appendChild(docDiv);
+    
+    // Reset form
+    document.getElementById('newClinicalDocType').value = '';
+    document.getElementById('clinicalDocSections').innerHTML = '';
+    hideClinicalDocForms();
+  }
+
+  function addAttachedDocToForm() {
+    const docType = document.getElementById('attachClinicalDocType').value;
+    const fileInput = document.getElementById('attachClinicalDocFile');
+    const title = document.getElementById('attachClinicalDocTitle').value;
+    const description = document.getElementById('attachClinicalDocDescription').value;
+
+    if (!docType) {
+      alert('Please select a document type');
+      return;
+    }
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+      alert('Please select a PDF file');
+      return;
+    }
+
+    const file = fileInput.files[0];
+    if (file.type !== 'application/pdf') {
+      alert('Please select a PDF file');
+      return;
+    }
+
+    const index = clinicalDocCounter++;
+    const contentJson = JSON.stringify({
+      source: 'attached_document',
+      file_name: file.name,
+      file_size: file.size,
+      title: title,
+      description: description
+    });
+    const orgId = <%= org_id.to_json %>;
+    const patientId = <%= patient_id.to_json %>;
+    const providerId = <%= provider_id.to_json %>;
+    
+    const container = document.getElementById('nestedClinicalDocsContainer');
+    const docDiv = document.createElement('div');
+    docDiv.className = 'nested-clinical-doc border border-green-200 rounded-lg p-4 bg-green-50';
+    docDiv.setAttribute('data-doc-index', index);
+    
+    docDiv.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-sm font-medium text-gray-900">${docType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} (Attached)</span>
+          <span class="text-xs text-gray-500">${file.name}</span>
+        </div>
+        <button type="button" onclick="removeClinicalDocFromForm(${index})" class="text-red-600 hover:text-red-800 text-sm">Remove</button>
+      </div>
+    `;
+    
+    // Create nested attribute fields
+    const fieldsContainer = document.createElement('div');
+    fieldsContainer.style.display = 'none';
+    
+    const fieldNames = [
+      { name: 'document_type', value: docType },
+      { name: 'content_json', value: contentJson },
+      { name: 'organization_id', value: orgId },
+      { name: 'patient_id', value: patientId },
+      { name: 'author_provider_id', value: providerId },
+      { name: 'status', value: 'draft' },
+      { name: '_attachment_mode', value: 'true' },
+      { name: '_attachment_title', value: title },
+      { name: '_attachment_description', value: description }
+    ];
+    
+    fieldNames.forEach(field => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = `encounter[clinical_documentations_attributes][${index}][${field.name}]`;
+      input.value = field.value;
+      fieldsContainer.appendChild(input);
+    });
+    
+    // Add file input
+    const fileInputField = document.createElement('input');
+    fileInputField.type = 'file';
+    fileInputField.name = `encounter[clinical_documentations_attributes][${index}][_attachment_file]`;
+    fileInputField.accept = 'application/pdf';
+    fileInputField.style.display = 'none';
+    
+    // Create a FileList with the selected file
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    fileInputField.files = dataTransfer.files;
+    
+    fieldsContainer.appendChild(fileInputField);
+    docDiv.appendChild(fieldsContainer);
+    container.appendChild(docDiv);
+    
+    // Reset form
+    document.getElementById('attachClinicalDocType').value = '';
+    document.getElementById('attachClinicalDocFile').value = '';
+    document.getElementById('attachClinicalDocTitle').value = '';
+    document.getElementById('attachClinicalDocDescription').value = '';
+    hideClinicalDocForms();
+  }
+
+  function removeClinicalDocFromForm(index) {
+    document.querySelector(`[data-doc-index="${index}"]`).remove();
+  }
+
+  function showCreateClinicalDocForm() {
+    hideClinicalDocForms();
+    const form = document.getElementById('createClinicalDocForm');
+    form.classList.remove('hidden');
+    // Re-enable fields when showing the form
+    const select = form.querySelector('#newClinicalDocType');
+    if (select) select.disabled = false;
+    const sections = form.querySelectorAll('.section-name, .section-content');
+    sections.forEach(field => field.disabled = false);
+  }
+
+  function showAttachClinicalDocForm() {
+    hideClinicalDocForms();
+    const form = document.getElementById('attachClinicalDocForm');
+    form.classList.remove('hidden');
+    // Re-enable fields when showing the form
+    const select = form.querySelector('#attachClinicalDocType');
+    const fileInput = form.querySelector('#attachClinicalDocFile');
+    const titleInput = form.querySelector('#attachClinicalDocTitle');
+    const descInput = form.querySelector('#attachClinicalDocDescription');
+    if (select) select.disabled = false;
+    if (fileInput) fileInput.disabled = false;
+    if (titleInput) titleInput.disabled = false;
+    if (descInput) descInput.disabled = false;
+  }
+
+  function hideClinicalDocForms() {
+    document.getElementById('createClinicalDocForm').classList.add('hidden');
+    document.getElementById('attachClinicalDocForm').classList.add('hidden');
+  }
+
+  // Disable validation on hidden form fields to prevent browser validation errors
+  document.addEventListener('DOMContentLoaded', function() {
+    const encounterForm = document.querySelector('form[action*="encounters"]');
+    if (encounterForm) {
+      encounterForm.addEventListener('submit', function(e) {
+        // Disable hidden clinical doc form fields so they don't participate in validation
+        const createForm = document.getElementById('createClinicalDocForm');
+        const attachForm = document.getElementById('attachClinicalDocForm');
+        
+        if (createForm && createForm.classList.contains('hidden')) {
+          const select = createForm.querySelector('#newClinicalDocType');
+          if (select) {
+            select.disabled = true;
+          }
+          const sections = createForm.querySelectorAll('.section-name, .section-content');
+          sections.forEach(field => field.disabled = true);
+        }
+        
+        if (attachForm && attachForm.classList.contains('hidden')) {
+          const select = attachForm.querySelector('#attachClinicalDocType');
+          const fileInput = attachForm.querySelector('#attachClinicalDocFile');
+          const titleInput = attachForm.querySelector('#attachClinicalDocTitle');
+          const descInput = attachForm.querySelector('#attachClinicalDocDescription');
+          if (select) select.disabled = true;
+          if (fileInput) fileInput.disabled = true;
+          if (titleInput) titleInput.disabled = true;
+          if (descInput) descInput.disabled = true;
+        }
+      });
+    }
+  });
+</script>

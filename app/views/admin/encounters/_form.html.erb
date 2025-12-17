@@ -96,14 +96,65 @@
     </div>
   </div>
 
-  <!-- Notes -->
-  <div class="space-y-4">
-    <h3 class="text-lg font-medium text-gray-900">Notes</h3>
+  <!-- Diagnosis Codes -->
+  <div class="space-y-4 mt-6">
+    <h3 class="text-lg font-medium text-gray-900">Diagnosis Codes</h3>
     
-    <div>
-      <%= f.label :notes, "Clinical Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_area :notes, rows: 4, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    <div class="relative">
+      <%= f.label :diagnosis_code_ids, "Diagnosis Codes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <div class="relative">
+        <input type="text" 
+               id="encounterDiagnosisCodesInput" 
+               class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm diagnosis-code-search" 
+               placeholder="Type to search and select diagnosis codes..."
+               autocomplete="off"
+               onfocus="showDiagnosisCodeDropdown('encounter')"
+               oninput="searchDiagnosisCodes('encounter', this.value)"
+               onclick="showDiagnosisCodeDropdown('encounter')">
+        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+      <!-- Dropdown results -->
+      <div id="diagnosis_encounter_results" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-64 overflow-y-auto overscroll-contain" style="max-height: 16rem;">
+      </div>
+      <!-- Selected diagnosis codes display -->
+      <div id="encounterSelectedDiagnosisCodes" class="mt-2 flex flex-wrap gap-2">
+        <% if @encounter.diagnosis_codes.any? %>
+          <% @encounter.diagnosis_codes.each do |dc| %>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" data-code-id="<%= dc.id %>">
+              <%= dc.code %> - <%= truncate(dc.description, length: 30) %>
+              <button type="button" onclick="removeDiagnosisCode('encounter', <%= dc.id %>, '<%= dc.code %>', '<%= dc.description.gsub("'", "\\'") %>')" class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
+            </span>
+          <% end %>
+        <% end %>
+      </div>
+      <!-- Hidden inputs for form submission -->
+      <div id="encounterDiagnosisHiddenInputs">
+        <% if @encounter.diagnosis_codes.any? %>
+          <% @encounter.diagnosis_codes.each_with_index do |dc, index| %>
+            <input type="hidden" name="encounter[diagnosis_code_ids][]" value="<%= dc.id %>" id="encounterDiagnosisHidden<%= dc.id %>">
+          <% end %>
+        <% end %>
+      </div>
+      <p class="mt-1 text-sm text-gray-500">At least one diagnosis code is required</p>
     </div>
+  </div>
+
+  <!-- Clinical Documentation Section -->
+  <div class="mt-6">
+    <%= render "shared/clinical_documentation", 
+        f: f,
+        encounter: @encounter, 
+        clinical_documentations: @clinical_documentations || [], 
+        clinical_documentation: @clinical_documentation || @encounter.clinical_documentations.build(
+          organization: @encounter.organization,
+          patient: @encounter.patient,
+          author_provider: @encounter.provider
+        ), 
+        namespace: "admin" %>
   </div>
 
   <!-- Form Actions -->
@@ -112,4 +163,204 @@
     <%= f.submit "Update Encounter", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
   </div>
 <% end %>
+
+<script>
+  // Initialize selected diagnosis codes from existing values
+  // Use window scope to prevent re-declaration errors with Turbo
+  if (typeof window.selectedDiagnosisCodes === 'undefined') {
+    window.selectedDiagnosisCodes = { encounter: [] };
+  }
+  <% if @encounter.diagnosis_codes.any? %>
+    if (!window.selectedDiagnosisCodes.encounter || window.selectedDiagnosisCodes.encounter.length === 0) {
+      window.selectedDiagnosisCodes.encounter = [
+        <% @encounter.diagnosis_codes.each do |dc| %>
+          { id: <%= dc.id %>, code: '<%= dc.code.gsub("'", "\\'") %>', description: '<%= dc.description.gsub("'", "\\'") %>' },
+        <% end %>
+      ];
+    }
+  <% end %>
+
+  if (typeof window.diagnosisSearchTimeouts === 'undefined') {
+    window.diagnosisSearchTimeouts = {};
+  }
+  
+  // Create local references for easier access
+  const selectedDiagnosisCodes = window.selectedDiagnosisCodes;
+  const diagnosisSearchTimeouts = window.diagnosisSearchTimeouts;
+
+  function showDiagnosisCodeDropdown(formId) {
+    const resultsDiv = document.getElementById('diagnosis_' + formId + '_results');
+    if (!resultsDiv) return;
+    
+    resultsDiv.classList.remove('hidden');
+    
+    // Load initial list if empty
+    if (resultsDiv.children.length <= 1) {
+      searchDiagnosisCodes(formId, '');
+    }
+  }
+
+  function searchDiagnosisCodes(formId, query) {
+    const resultsDiv = document.getElementById('diagnosis_' + formId + '_results');
+    if (!resultsDiv) return;
+    
+    const searchUrl = '<%= search_admin_diagnosis_codes_path %>';
+    if (!searchUrl) return;
+    
+    // Clear previous timeout
+    if (diagnosisSearchTimeouts[formId]) {
+      clearTimeout(diagnosisSearchTimeouts[formId]);
+    }
+    
+    // Debounce search
+    diagnosisSearchTimeouts[formId] = setTimeout(() => {
+      // Show loading state
+      resultsDiv.classList.remove('hidden');
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Searching...</div>';
+      
+      const url = searchUrl + '?q=' + encodeURIComponent(query);
+      
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.results) {
+          displayDiagnosisCodeResults(resultsDiv, data.results, formId);
+        } else {
+          resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No diagnosis codes found</div>';
+        }
+      })
+      .catch(error => {
+        console.error('Error searching diagnosis codes:', error);
+        resultsDiv.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching diagnosis codes</div>';
+      });
+    }, query.length > 0 ? 300 : 0);
+  }
+
+  function displayDiagnosisCodeResults(resultsDiv, results, formId) {
+    if (results.length === 0) {
+      resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No diagnosis codes found</div>';
+      resultsDiv.classList.remove('hidden');
+      return;
+    }
+
+    // Get already selected codes
+    const selected = selectedDiagnosisCodes[formId] || [];
+    const selectedIds = selected.map(s => s.id);
+
+    const html = results.map(result => {
+      const code = result.code || 'N/A';
+      const description = result.description || 'No description';
+      const isSelected = selectedIds.includes(result.id);
+      
+      return `
+      <div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 diagnosis-code-option transition-colors ${isSelected ? 'bg-indigo-100' : ''}"
+           data-code-id="${result.id}"
+           data-code="${code}"
+           data-description="${description}"
+           onclick="selectDiagnosisCode('${formId}', ${result.id}, '${code.replace(/'/g, "\\'")}', '${description.replace(/'/g, "\\'")}')">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="font-medium text-sm text-gray-900">${code} ${isSelected ? '<span class="text-xs text-green-600">(Selected)</span>' : ''}</div>
+            <div class="text-xs text-gray-500 mt-0.5">${description}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    resultsDiv.innerHTML = '<div class="p-2 border-b border-gray-200"><div class="text-xs text-gray-500">Select diagnosis codes:</div></div>' + html;
+    resultsDiv.classList.remove('hidden');
+  }
+
+  function selectDiagnosisCode(formId, diagnosisCodeId, code, description) {
+    // Initialize array if it doesn't exist
+    if (!selectedDiagnosisCodes[formId]) {
+      selectedDiagnosisCodes[formId] = [];
+    }
+    
+    const selected = selectedDiagnosisCodes[formId];
+    const existingIndex = selected.findIndex(s => s.id === diagnosisCodeId);
+    
+    if (existingIndex >= 0) {
+      // Remove if already selected
+      selected.splice(existingIndex, 1);
+    } else {
+      // Add if not already selected
+      selected.push({ id: diagnosisCodeId, code: code, description: description });
+    }
+    
+    // Update UI
+    updateDiagnosisCodesDisplay(formId);
+    
+    // Clear search input
+    const searchInput = document.getElementById(formId + 'DiagnosisCodesInput');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    
+    // Hide dropdown
+    const resultsDiv = document.getElementById('diagnosis_' + formId + '_results');
+    if (resultsDiv) {
+      resultsDiv.classList.add('hidden');
+    }
+  }
+
+  function updateDiagnosisCodesDisplay(formId) {
+    const container = document.getElementById(formId + 'SelectedDiagnosisCodes');
+    const hiddenInputsContainer = document.getElementById(formId + 'DiagnosisHiddenInputs');
+    if (!container || !hiddenInputsContainer) return;
+    
+    const selected = selectedDiagnosisCodes[formId] || [];
+    
+    // Update visible chips
+    if (selected.length === 0) {
+      container.innerHTML = '';
+    } else {
+      container.innerHTML = selected.map((item) => {
+        const displayText = item.description ? `${item.code} - ${item.description.length > 30 ? item.description.substring(0, 30) + '...' : item.description}` : item.code;
+        return `
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" data-code-id="${item.id}">
+            ${displayText}
+            <button type="button" 
+                    onclick="removeDiagnosisCode('${formId}', ${item.id}, '${item.code.replace(/'/g, "\\'")}', '${item.description.replace(/'/g, "\\'")}')" 
+                    class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
+          </span>
+        `;
+      }).join('');
+    }
+    
+    // Update hidden inputs for form submission
+    hiddenInputsContainer.innerHTML = selected.map((item) => `
+      <input type="hidden" name="encounter[diagnosis_code_ids][]" value="${item.id}" id="${formId}DiagnosisHidden${item.id}">
+    `).join('');
+  }
+
+  function removeDiagnosisCode(formId, diagnosisCodeId, code, description) {
+    if (!selectedDiagnosisCodes[formId]) return;
+    
+    const selected = selectedDiagnosisCodes[formId];
+    const index = selected.findIndex(s => s.id === diagnosisCodeId);
+    if (index >= 0) {
+      selected.splice(index, 1);
+      updateDiagnosisCodesDisplay(formId);
+    }
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.diagnosis-code-search') && !event.target.closest('[id^="diagnosis_"][id$="_results"]')) {
+      const resultsDiv = document.getElementById('diagnosis_encounter_results');
+      if (resultsDiv) {
+        resultsDiv.classList.add('hidden');
+      }
+    }
+  });
+</script>
 

@@ -84,13 +84,8 @@
           <% end %>
         </div>
 
-        <!-- Notes -->
-        <% if @encounter.notes.present? %>
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Clinical Notes</h2>
-            <p class="text-sm text-gray-900 whitespace-pre-wrap"><%= @encounter.notes %></p>
-          </div>
-        <% end %>
+        <!-- Clinical Documentation Section -->
+        <%= render "shared/clinical_documentation", encounter: @encounter, clinical_documentations: @clinical_documentations, clinical_documentation: @clinical_documentation, namespace: "admin" %>
 
         <!-- Provider Notes Section -->
         <%= render "shared/provider_notes", namespace: "admin" %>
