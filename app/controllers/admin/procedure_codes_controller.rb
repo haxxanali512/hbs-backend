@@ -123,7 +123,8 @@ class Admin::ProcedureCodesController < Admin::BaseController
       procedure_code_rule_attributes: [
         :id,
         :time_based,
-        :pricing_type
+        :pricing_type,
+        :special_rules_text
       ]
     )
   end

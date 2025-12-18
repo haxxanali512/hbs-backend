@@ -4,6 +4,16 @@ class ProcedureCodeRule < ApplicationRecord
   validates :procedure_code_id, uniqueness: true
   validates :pricing_type, inclusion: { in: %w[per_unit per_procedure] }, allow_nil: true
 
+  # Convenience accessor for editing special rules as text in the admin UI
+  # One rule per line; persisted as an array in special_rules JSONB
+  def special_rules_text
+    parse_special_rules.join("\n")
+  end
+
+  def special_rules_text=(value)
+    self.special_rules = value.to_s.split(/\r?\n/).map(&:strip).reject(&:blank?)
+  end
+
   # Parse special rules from JSON array
   def parse_special_rules
     return [] unless special_rules.is_a?(Array)
