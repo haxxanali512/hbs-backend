@@ -229,7 +229,7 @@ Rails.application.routes.draw do
 
       resources :appointments, only: [ :index, :show, :edit, :update, :destroy ]
 
-      resources :encounters, only: [ :index, :show, :edit, :update, :destroy ] do
+      resources :encounters do
         collection do
           get :fetch_from_ezclaim
           post :save_from_ezclaim
@@ -372,9 +372,16 @@ Rails.application.routes.draw do
           resources :fee_schedule_items, only: [ :update ]
         end
 
-        resources :procedure_codes, only: [ :index, :show ]
+        resources :procedure_codes, only: [ :index, :show ] do
+          collection do
+            get :search
+          end
+        end
 
         resources :diagnosis_codes, only: [ :index, :show ] do
+          collection do
+            get :search
+          end
           member do
             post :request_review
           end
@@ -389,8 +396,13 @@ Rails.application.routes.draw do
         end
 
         resources :encounters do
+          collection do
+            get :workflow
+            post :submit_queued
+          end
           member do
-            post :confirm_completed
+            post :mark_reviewed
+            post :mark_ready_to_submit
             post :cancel
             post :request_correction
             post :attach_document

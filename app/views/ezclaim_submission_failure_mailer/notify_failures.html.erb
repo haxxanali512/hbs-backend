@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h2>EZClaim Submission Failures</h2>
+
+    <p>
+      The following encounters failed to submit to EZClaim for <strong><%= @organization.name %></strong>:
+    </p>
+
+    <h3>Failed Submissions (<%= @results[:failed].count %>)</h3>
+    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+      <thead>
+        <tr style="background-color: #f3f4f6;">
+          <th>Encounter ID</th>
+          <th>Patient Name</th>
+          <th>Date of Service</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @results[:failed].each do |failure| %>
+          <tr>
+            <td><%= failure[:encounter_id] %></td>
+            <td><%= failure[:patient_name] %></td>
+            <td><%= failure[:date_of_service]&.strftime("%m/%d/%Y") %></td>
+            <td style="color: #dc2626;">
+              <%= failure[:error] %>
+              <% if failure[:backtrace] %>
+                <br><br>
+                <strong>Backtrace:</strong><br>
+                <pre style="font-size: 11px; color: #666;"><%= failure[:backtrace].join("\n") %></pre>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @results[:successful].any? %>
+      <h3>Successful Submissions (<%= @results[:successful].count %>)</h3>
+      <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+        <thead>
+          <tr style="background-color: #f0fdf4;">
+            <th>Encounter ID</th>
+            <th>Patient Name</th>
+            <th>Date of Service</th>
+            <th>Claim ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @results[:successful].each do |success| %>
+            <tr>
+              <td><%= success[:encounter_id] %></td>
+              <td><%= success[:patient_name] %></td>
+              <td><%= success[:date_of_service]&.strftime("%m/%d/%Y") %></td>
+              <td><%= success[:claim_id] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+
+    <p style="margin-top: 20px; color: #666; font-size: 12px;">
+      This is an automated notification from the HBS Data Processing system.
+    </p>
+  </body>
+</html>
+

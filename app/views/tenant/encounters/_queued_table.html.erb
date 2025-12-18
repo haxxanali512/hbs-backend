@@ -1,0 +1,84 @@
+<div class="overflow-x-auto">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+          <input type="checkbox"
+                 id="select_all_queued"
+                 data-workflow-queued-target="selectAll">
+        </th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedure Codes</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnosis Codes</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200" data-workflow-queued-target="tableBody">
+      <% if queued_encounters.present? %>
+        <% queued_encounters.each do |enc| %>
+          <tr class="hover:bg-gray-50 cursor-pointer" 
+              data-encounter-id="<%= enc.id %>"
+              onclick="handleRowClick(event, <%= enc.id %>)">
+            <td class="px-4 py-3 whitespace-nowrap" onclick="event.stopPropagation()">
+              <input type="checkbox"
+                     name="encounter_ids[]"
+                     value="<%= enc.id %>"
+                     class="queued-encounter-checkbox"
+                     data-workflow-queued-target="checkbox"
+                     onclick="event.stopPropagation()">
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+              <%= enc.patient.full_name %>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+              <%= enc.provider.full_name %>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+              <%= enc.date_of_service.strftime("%m/%d/%Y") %>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+              <% 
+                # Get procedure codes from encounter_procedure_items (preferred) or claim lines (fallback)
+                procedure_codes = enc.all_procedure_codes
+              %>
+              <% if procedure_codes.any? %>
+                <% procedure_codes.each do |proc_code| %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 mr-1 mb-1">
+                    <%= proc_code.code %>
+                  </span>
+                <% end %>
+              <% else %>
+                <span class="text-xs text-gray-400">No procedure codes</span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+              <% enc.diagnosis_codes&.each do |dc| %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 mr-1 mb-1">
+                  <%= dc.code %>
+                </span>
+              <% end %>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium" onclick="event.stopPropagation()">
+              <div class="flex space-x-2">
+                <%= link_to "View", tenant_encounter_path(enc), class: "text-blue-600 hover:text-blue-800" %>
+                <% unless enc.cascaded? %>
+                  <%= link_to "Edit", edit_tenant_encounter_path(enc), class: "text-indigo-600 hover:text-indigo-800" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr>
+          <td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500">
+            No encounters ready to submit yet. Create encounters using the form above.
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+

@@ -37,10 +37,19 @@ class ApplicationController < ActionController::Base
     Rails.logger.error "Server Error: #{exception.class.name} - #{exception.message}"
     Rails.logger.error exception.backtrace.join("\n")
 
-    # Render error response
-    respond_to do |format|
-      format.html { render plain: "Internal Server Error", status: :internal_server_error }
-      format.json { render json: { error: "Internal server error" }, status: :internal_server_error }
+    # Render error response only if response hasn't been committed
+    return if response.committed?
+
+    # Check if respond_to was already called by checking if format is set
+    if request.format.html?
+      render plain: "Internal Server Error", status: :internal_server_error
+    elsif request.format.json?
+      render json: { error: "Internal server error" }, status: :internal_server_error
+    elsif request.format.turbo_stream?
+      render plain: "Internal Server Error", status: :internal_server_error
+    else
+      # Default to HTML if format is not set
+      render plain: "Internal Server Error", status: :internal_server_error
     end
   end
 

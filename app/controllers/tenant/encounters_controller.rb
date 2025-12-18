@@ -1,52 +1,18 @@
 class Tenant::EncountersController < Tenant::BaseController
   include ProcedureCodeSearch
+  include Tenant::Concerns::EncounterIndexConcern
   before_action :set_current_organization
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :confirm_completed, :cancel, :request_correction, :attach_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing ]
-  before_action :load_form_options, only: [ :index, :new, :create, :edit, :update ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing ]
+  before_action :load_form_options, only: [ :index, :new, :create, :edit, :update, :workflow ]
 
   def index
-    @encounters = @current_organization.encounters.includes(:patient, :provider, :specialty, :organization_location, :appointment).kept
+    build_encounters_index
+    @show_queued_only = params[:submitted_filter] == "queued"
 
-    # Filtering
-    @encounters = @encounters.by_status(params[:status]) if params[:status].present?
-    @encounters = @encounters.by_provider(params[:provider_id]) if params[:provider_id].present?
-    @encounters = @encounters.by_patient(params[:patient_id]) if params[:patient_id].present?
-    @encounters = @encounters.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
-    @encounters = @encounters.by_billing_channel(params[:billing_channel]) if params[:billing_channel].present?
-
-    if params[:cascaded_filter] == "cascaded"
-      @encounters = @encounters.cascaded
-    elsif params[:cascaded_filter] == "not_cascaded"
-      @encounters = @encounters.not_cascaded
+    respond_to do |format|
+      format.html
+      format.turbo_stream
     end
-
-    # Date range filter
-    if params[:date_from].present? && params[:date_to].present?
-      @encounters = @encounters.where(
-        "date_of_service >= ? AND date_of_service <= ?",
-        params[:date_from],
-        params[:date_to]
-      )
-    elsif params[:date_from].present?
-      @encounters = @encounters.where("date_of_service >= ?", params[:date_from])
-    elsif params[:date_to].present?
-      @encounters = @encounters.where("date_of_service <= ?", params[:date_to])
-    end
-
-    # Sorting
-    case params[:sort]
-    when "date_desc"
-      @encounters = @encounters.order(date_of_service: :desc)
-    when "date_asc"
-      @encounters = @encounters.order(date_of_service: :asc)
-    when "status"
-      @encounters = @encounters.order(status: :asc)
-    else
-      @encounters = @encounters.recent
-    end
-
-    # Pagination
-    @pagy, @encounters = pagy(@encounters, items: 20)
   end
 
   def show
@@ -57,38 +23,149 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   def new
-    @encounter = @current_organization.encounters.build
-    @encounter.date_of_service = Date.current
-    @encounter.billing_channel = :insurance
+    redirect_to workflow_tenant_encounters_path
   end
 
   def create
     @encounter = @current_organization.encounters.build(encounter_params)
-    @encounter.confirmed_by = current_user if params[:confirm_now]
 
     if @encounter.save
-      # Handle document uploads
-      upload_documents if params.dig(:encounter, :documents).present?
-
-      if params[:confirm_now] && @encounter.can_be_confirmed?
-        @encounter.confirm_completed!
+      # Skip review status and mark as ready_to_submit directly
+      # First mark as ready_for_review (required for validation)
+      if @encounter.may_mark_ready_for_review?
+        @encounter.mark_ready_for_review!
+        # Then immediately mark as reviewed
+        if @encounter.may_mark_reviewed?
+          @encounter.mark_reviewed!
+          # Finally mark as ready to submit
+          @encounter.mark_ready_to_submit! if @encounter.may_mark_ready_to_submit?
+        end
       end
-      redirect_to tenant_encounter_path(@encounter), notice: "Encounter created successfully."
+      load_workflow_collections
+
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: [
+            turbo_stream.replace(
+              "prepare_encounter_frame",
+              partial: "tenant/encounters/workflow_form",
+              locals: {
+                encounter: @current_organization.encounters.build(date_of_service: Date.current, billing_channel: :insurance),
+                patients: @patients,
+                providers: @providers,
+                specialties: @specialties,
+                locations: @locations,
+                appointments: @appointments,
+                diagnosis_codes: @diagnosis_codes
+              }
+            ),
+            turbo_stream.replace(
+              "queued_encounters_frame",
+              partial: "tenant/encounters/queued_table",
+              locals: { queued_encounters: @queued_encounters }
+            ),
+            turbo_stream.prepend(
+              "flash",
+              partial: "shared/flash_message",
+              locals: {
+                type: :notice,
+                message: "Encounter saved and ready to submit."
+              }
+            )
+          ]
+        end
+        format.html { redirect_to workflow_tenant_encounters_path, notice: "Encounter saved for submission." }
+      end
     else
-      render :new, status: :unprocessable_entity
+      load_workflow_collections
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "prepare_encounter_frame",
+            partial: "tenant/encounters/workflow_form",
+            locals: {
+              encounter: @encounter,
+              patients: @patients,
+              providers: @providers,
+              specialties: @specialties,
+              locations: @locations,
+              appointments: @appointments,
+              diagnosis_codes: @diagnosis_codes
+            }
+          )
+        end
+        format.html { render :workflow, status: :unprocessable_entity }
+      end
     end
   end
 
-  def edit; end
+  def edit
+    # Populate virtual attributes for the form
+    @encounter.diagnosis_code_ids = @encounter.diagnosis_codes.pluck(:id)
+    @encounter.procedure_code_ids = @encounter.encounter_procedure_items.pluck(:procedure_code_id)
+    @encounter.primary_procedure_code_id = @encounter.encounter_procedure_items.primary.first&.procedure_code_id
+  end
 
   def update
     if @encounter.update(encounter_params)
       # Handle document uploads
       upload_documents if params.dig(:encounter, :documents).present?
 
-      redirect_to tenant_encounter_path(@encounter), notice: "Encounter updated successfully."
+      # Ensure encounter is still ready_to_submit after update
+      if @encounter.ready_for_review? && @encounter.may_mark_reviewed?
+        @encounter.mark_reviewed!
+        @encounter.mark_ready_to_submit! if @encounter.may_mark_ready_to_submit?
+      elsif @encounter.reviewed? && @encounter.may_mark_ready_to_submit?
+        @encounter.mark_ready_to_submit!
+      end
+
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: [
+            turbo_stream.replace(
+              "prepare_encounter_frame",
+              partial: "tenant/encounters/workflow_form",
+              locals: {
+                encounter: @encounter,
+                patients: @patients,
+                providers: @providers,
+                specialties: @specialties,
+                locations: @locations,
+                appointments: @appointments,
+                diagnosis_codes: @diagnosis_codes
+              }
+            ),
+            turbo_stream.prepend(
+              "flash",
+              partial: "shared/flash_message",
+              locals: {
+                type: :notice,
+                message: "Encounter updated successfully."
+              }
+            )
+          ]
+        end
+        format.html { redirect_to tenant_encounter_path(@encounter), notice: "Encounter updated successfully." }
+      end
     else
-      render :edit, status: :unprocessable_entity
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "prepare_encounter_frame",
+            partial: "tenant/encounters/workflow_form",
+            locals: {
+              encounter: @encounter,
+              patients: @patients,
+              providers: @providers,
+              specialties: @specialties,
+              locations: @locations,
+              appointments: @appointments,
+              diagnosis_codes: @diagnosis_codes
+            }
+          )
+        end
+        format.html { render :edit, status: :unprocessable_entity }
+      end
     end
   end
 
@@ -100,11 +177,22 @@ class Tenant::EncountersController < Tenant::BaseController
     end
   end
 
-  def confirm_completed
-    @encounter.confirmed_by = current_user
-    return unless @encounter.may_confirm_completed? || @encounter.planned?
-    @encounter.confirm_completed!
-    redirect_to tenant_encounter_path(@encounter), notice: "Encounter confirmed and billing documents generated."
+  def mark_reviewed
+    @encounter.reviewed_by = current_user if @encounter.respond_to?(:reviewed_by=)
+
+    if @encounter.may_mark_reviewed? && @encounter.mark_reviewed!
+      redirect_to tenant_encounter_path(@encounter), notice: "Encounter marked as reviewed."
+    else
+      redirect_to tenant_encounter_path(@encounter), alert: "Failed to mark encounter as reviewed."
+    end
+  end
+
+  def mark_ready_to_submit
+    if @encounter.may_mark_ready_to_submit? && @encounter.mark_ready_to_submit!
+      redirect_to tenant_encounters_path(submitted_filter: "queued"), notice: "Encounter is now ready to be sent to billing."
+    else
+      redirect_to tenant_encounter_path(@encounter), alert: "Failed to mark encounter as ready to submit."
+    end
   end
 
   def cancel
@@ -112,6 +200,89 @@ class Tenant::EncountersController < Tenant::BaseController
       redirect_to tenant_encounter_path(@encounter), notice: "Encounter cancelled successfully."
     else
       redirect_to tenant_encounter_path(@encounter), alert: "Failed to cancel encounter."
+    end
+  end
+
+  def workflow
+    @encounter = @current_organization.encounters.build(
+      date_of_service: Date.current,
+      billing_channel: :insurance
+    )
+    load_workflow_collections
+  end
+
+  def load_workflow_collections
+    # Show encounters that are ready to submit (ready_to_submit but not yet cascaded)
+    @queued_encounters = @current_organization.encounters
+                                             .kept
+                                             .where(status: :ready_to_submit)
+                                             .where(cascaded: false)
+                                             .includes(:patient, :provider, :diagnosis_codes, :encounter_procedure_items, :procedure_codes, claim: { claim_lines: :procedure_code })
+                                             .order(created_at: :desc)
+  end
+
+
+  def submit_queued
+    # Handle both array and comma-separated string formats
+    encounter_ids = if params[:encounter_ids].is_a?(Array)
+      params[:encounter_ids].reject(&:blank?)
+    elsif params[:encounter_ids].is_a?(String)
+      params[:encounter_ids].split(",").reject(&:blank?)
+    else
+      []
+    end
+
+    if encounter_ids.empty?
+      redirect_to tenant_encounters_path(submitted_filter: "queued"), alert: "Please select at least one encounter to submit."
+      return
+    end
+
+    # Validate that all encounters belong to the current organization and are ready to submit
+    # Only ready_to_submit encounters that haven't been cascaded can be submitted
+    valid_encounters = @current_organization.encounters
+                                            .where(id: encounter_ids)
+                                            .where(status: :ready_to_submit)
+                                            .not_cascaded
+
+    if valid_encounters.count != encounter_ids.count
+      redirect_to tenant_encounters_path(submitted_filter: "queued"), alert: "Some selected encounters are not valid for submission."
+      return
+    end
+
+    # Queue the job to process submissions
+    QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
+
+    respond_to do |format|
+      format.html do
+        redirect_to tenant_encounters_path(submitted_filter: "queued"),
+                    notice: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
+      end
+      format.turbo_stream do
+        # Set queued filter to reload the queued encounters
+        params[:submitted_filter] = "queued"
+        build_encounters_index
+        @show_queued_only = true
+        render turbo_stream: [
+          turbo_stream.replace(
+            "encounters_table_frame",
+            partial: "tenant/encounters/table",
+            locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }
+          ),
+          turbo_stream.replace(
+            "send_for_billing_section",
+            partial: "tenant/encounters/send_for_billing_button",
+            locals: { encounters: @encounters }
+          ),
+          turbo_stream.prepend(
+            "flash",
+            partial: "shared/flash_message",
+            locals: {
+              type: :notice,
+              message: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
+            }
+          )
+        ]
+      end
     end
   end
 
@@ -292,7 +463,10 @@ class Tenant::EncountersController < Tenant::BaseController
   private
 
   def set_encounter
-    @encounter = @current_organization.encounters.kept.find(params[:id])
+    @encounter = @current_organization.encounters
+                                      .kept
+                                      .includes(:patient, :provider, :specialty, :diagnosis_codes, :encounter_procedure_items, :procedure_codes)
+                                      .find(params[:id])
   end
 
   def load_form_options
@@ -310,6 +484,7 @@ class Tenant::EncountersController < Tenant::BaseController
     end
   end
 
+
   def encounter_params
     params.require(:encounter).permit(
       :organization_location_id,
@@ -320,7 +495,10 @@ class Tenant::EncountersController < Tenant::BaseController
       :date_of_service,
       :billing_channel,
       :notes,
-      diagnosis_code_ids: []
+      :primary_procedure_code_id,
+      :duration_minutes,
+      diagnosis_code_ids: [],
+      procedure_code_ids: []
     )
   end
 

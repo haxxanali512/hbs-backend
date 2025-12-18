@@ -30,12 +30,20 @@
         </div>
 
         <div class="flex space-x-2">
-          <% if @encounter.can_be_confirmed? && !@encounter.completed_confirmed? %>
-            <%= button_to "Confirm Completed", confirm_completed_tenant_encounter_path(@encounter),
+          <% if @encounter.ready_for_review? && @encounter.may_mark_reviewed? %>
+            <%= button_to "Mark as Reviewed", mark_reviewed_tenant_encounter_path(@encounter),
+                method: :post,
+                form: { class: "inline-block" },
+                class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                data: { turbo_confirm: "Mark this encounter as reviewed?" } %>
+          <% end %>
+          
+          <% if @encounter.reviewed? && @encounter.may_mark_ready_to_submit? %>
+            <%= button_to "Mark Ready to Submit", mark_ready_to_submit_tenant_encounter_path(@encounter),
                 method: :post,
                 form: { class: "inline-block" },
                 class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
-                data: { turbo_confirm: "This will generate billing documents. Continue?" } %>
+                data: { turbo_confirm: "Mark this encounter as ready to submit to billing?" } %>
           <% end %>
           
           <% if current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.organization.organization_setting&.ezclaim_enabled? %>
@@ -91,7 +99,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700">Billing Channel</label>
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.insurance? ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
-                <%= @encounter.billing_channel.humanize %>
+                <%= @encounter.billing_channel&.humanize || "N/A" %>
               </span>
             </div>
 

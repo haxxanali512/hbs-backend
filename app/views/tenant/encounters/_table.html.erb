@@ -1,0 +1,187 @@
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <% if show_queued_only %>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+              <input type="checkbox"
+                     data-encounter-selection-target="selectAll">
+            </th>
+          <% end %>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedure Codes</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnosis Codes</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Service</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200" data-encounter-selection-target="tableBody">
+        <% if encounters.present? && encounters.any? %>
+          <% encounters.each do |encounter| %>
+            <tr class="hover:bg-gray-50">
+              <% if show_queued_only %>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <input type="checkbox"
+                         name="encounter_ids[]"
+                         value="<%= encounter.id %>"
+                         data-encounter-selection-target="checkbox">
+                </td>
+              <% end %>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">
+                  <%= encounter.patient.first_name %> <%= encounter.patient.last_name %>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  <%= encounter.provider.full_name %>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">
+                  <% 
+                    # Get procedure codes from encounter_procedure_items (preferred) or claim lines (fallback)
+                    procedure_codes = encounter.all_procedure_codes
+                    
+                    if procedure_codes.any?
+                      displayed_codes = procedure_codes.first(2)
+                      remaining_count = procedure_codes.count - 2
+                  %>
+                    <%= displayed_codes.map(&:code).join(", ") %>
+                    <% if remaining_count > 0 %>
+                      <span class="text-gray-500">, +<%= remaining_count %> more</span>
+                    <% end %>
+                  <% else %>
+                    <span class="text-gray-400">—</span>
+                  <% end %>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">
+                  <% 
+                    diagnosis_codes = encounter.diagnosis_codes.limit(5).to_a
+                    if diagnosis_codes.any?
+                  %>
+                    <%= diagnosis_codes.map(&:code).join(", ") %>
+                  <% else %>
+                    <span class="text-gray-400">—</span>
+                  <% end %>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">
+                  <%= encounter.date_of_service.strftime("%m/%d/%Y") %>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <% 
+                  # Determine status based on whether we're showing submitted encounters
+                  if show_submitted_only && encounter.claim
+                    status = encounter.claim.status
+                    status_label = case status
+                      when "paid_in_full" then "Paid"
+                      when "submitted" then "Submitted"
+                      when "accepted" then "Processing"
+                      when "denied", "rejected" then "Denied"
+                      when "applied_to_deductible" then "Processing"
+                      else status.humanize
+                    end
+                    badge_class = case status
+                      when "paid_in_full" then "bg-green-100 text-green-800"
+                      when "submitted" then "bg-blue-100 text-blue-800"
+                      when "accepted", "applied_to_deductible" then "bg-yellow-100 text-yellow-800"
+                      when "denied", "rejected" then "bg-red-100 text-red-800"
+                      else "bg-gray-100 text-gray-800"
+                    end
+                    icon = case status
+                      when "paid_in_full" then '<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path></svg>'
+                      when "submitted" then '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>'
+                      when "accepted", "applied_to_deductible" then '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+                      when "denied", "rejected" then '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
+                      else ''
+                    end
+                  else
+                    status = encounter.status
+                    status_label = status.humanize
+                    badge_class = encounter.status_badge_color
+                    icon = ''
+                  end
+                %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= badge_class %>">
+                  <% if icon.present? %>
+                    <%= icon.html_safe %>
+                  <% end %>
+                  <%= status_label %>
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div class="flex space-x-2">
+                  <%= link_to "View", tenant_encounter_path(encounter), class: "text-blue-600 hover:text-blue-800" %>
+                  <% unless show_submitted_only %>
+                    <%= link_to "Edit", edit_tenant_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" if !encounter.cascaded? %>
+                    
+                    <% if encounter.ready_for_review? && encounter.may_mark_reviewed? %>
+                      <%= button_to "Mark as Reviewed", mark_reviewed_tenant_encounter_path(encounter),
+                          method: :post,
+                          form: { class: "inline-block" },
+                          class: "text-blue-600 hover:text-blue-800",
+                          data: { turbo_confirm: "Mark this encounter as reviewed?" } %>
+                    <% end %>
+                    
+                    <% if encounter.reviewed? && encounter.may_mark_ready_to_submit? %>
+                      <%= button_to "Mark Ready to Submit", mark_ready_to_submit_tenant_encounter_path(encounter),
+                          method: :post,
+                          form: { class: "inline-block" },
+                          class: "text-green-600 hover:text-green-800",
+                          data: { turbo_confirm: "Mark this encounter as ready to submit to billing?" } %>
+                    <% end %>
+                    
+                    <% if encounter.can_be_cancelled? %>
+                      <%= button_to "Cancel", cancel_tenant_encounter_path(encounter),
+                          method: :post,
+                          form: { class: "inline-block" },
+                          class: "text-red-600 hover:text-red-800",
+                          data: { turbo_confirm: "Are you sure you want to cancel this encounter?" } %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  
+  <% if encounters.empty? %>
+    <div class="text-center py-12">
+      <div class="text-gray-500 text-lg">
+        <% if show_queued_only %>
+          No encounters ready to be sent
+        <% elsif show_submitted_only %>
+          No submitted encounters found
+        <% else %>
+          No encounters found
+        <% end %>
+      </div>
+      <div class="text-gray-400 text-sm mt-2">
+        <% if show_queued_only %>
+          Encounters will appear here after they are saved for submission. Use "Prepare a New Encounter" to create encounters.
+        <% elsif show_submitted_only %>
+          Encounters will appear here after they are submitted to billing.
+        <% else %>
+          Try adjusting your filters or create a new encounter
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- Pagination -->
+<div class="mt-6" id="encounters_pagination">
+  <%== pagination_info(pagy) %>
+</div>
+

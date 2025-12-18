@@ -1,0 +1,4 @@
+<%= turbo_stream.replace "encounters_table_frame" do %>
+  <%= render partial: "tenant/encounters/table", locals: { encounters: @encounters, show_submitted_only: @show_submitted_only, show_queued_only: @show_queued_only, pagy: @pagy } %>
+<% end %>
+

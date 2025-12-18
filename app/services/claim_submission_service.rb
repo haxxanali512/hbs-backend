@@ -111,6 +111,10 @@ class ClaimSubmissionService
     # Get claim lines from existing claim
     claim_lines = encounter.claim&.claim_lines || []
 
+    # If no claim lines exist, return empty array (shouldn't happen in normal flow)
+    # as claims are created with claim_lines in the workflow
+    return [] if claim_lines.empty?
+
     # Build array of service lines
     service_lines = claim_lines.map do |line|
       # Look up pricing from fee schedule using procedure code

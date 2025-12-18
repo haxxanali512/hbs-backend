@@ -25,13 +25,18 @@ class Encounter < ApplicationRecord
   # has_many
   has_many :encounter_diagnosis_codes, dependent: :destroy
   has_many :diagnosis_codes, through: :encounter_diagnosis_codes
-  # has_many :encounter_procedure_items, dependent: :destroy
+  has_many :encounter_procedure_items, dependent: :destroy
+  has_many :procedure_codes, through: :encounter_procedure_items
   # has_many :clinical_documentations, as: :documentable, dependent: :restrict_with_error
   has_many :encounter_comments, dependent: :destroy
   has_many :encounter_comment_seens, dependent: :destroy
   has_many :provider_notes, dependent: :destroy
   # has_many :encounter_tasks, dependent: :destroy
   has_many :documents, as: :documentable, dependent: :destroy
+
+  # Virtual attributes for workflow-based procedure capture
+  attr_accessor :procedure_code_ids, :primary_procedure_code_id, :duration_minutes
+  attr_accessor :diagnosis_code_ids
 
   # ===========================================================
   # ENUMS
@@ -45,8 +50,10 @@ class Encounter < ApplicationRecord
   enum :status, {
     planned: 0,
     ready_for_review: 1,
-    cancelled: 2,
-    completed_confirmed: 3
+    reviewed: 2,
+    ready_to_submit: 3,
+    cancelled: 4,
+    completed_confirmed: 5
   }
 
   enum :display_status, {
@@ -82,6 +89,8 @@ class Encounter < ApplicationRecord
   aasm column: "status", enum: true do
     state :planned, initial: true
     state :ready_for_review
+    state :reviewed
+    state :ready_to_submit
     state :cancelled
     state :completed_confirmed
 
@@ -91,16 +100,24 @@ class Encounter < ApplicationRecord
                   if: :validate_blocking_checks
     end
 
+    event :mark_reviewed do
+      transitions from: :ready_for_review, to: :reviewed
+    end
+
+    event :mark_ready_to_submit do
+      transitions from: :reviewed, to: :ready_to_submit
+    end
+
     event :cancel do
-      transitions from: [ :planned, :ready_for_review ], to: :cancelled,
+      transitions from: [ :planned, :ready_for_review, :reviewed, :ready_to_submit ], to: :cancelled,
                   after: :update_display_status_to_cancelled,
                   if: :can_be_cancelled?
     end
 
     event :confirm_completed do
-      transitions from: [ :ready_for_review, :planned ], to: :completed_confirmed,
-                  after: :handle_cascade_and_snapshots,
-                  if: :can_be_confirmed?
+      # Mark as completed_confirmed when submitted to billing
+      transitions from: :ready_to_submit, to: :completed_confirmed,
+                  after: :handle_cascade_and_snapshots
     end
   end
 
@@ -113,7 +130,7 @@ class Encounter < ApplicationRecord
   validates :patient_id, presence: true
   validates :provider_id, presence: true
   validates :specialty_id, presence: true
-  validates :billing_channel, presence: true
+  # validates :billing_channel, presence: true
 
   # Custom validations
   validate :date_of_service_not_in_future
@@ -125,6 +142,9 @@ class Encounter < ApplicationRecord
   validate :no_post_cascade_modifications
   validate :exactly_one_billing_document
   validate :patient_not_deceased
+  validate :procedure_codes_required_for_submission
+  validate :duration_required_for_price_per_unit
+  validate :procedure_code_rules_compliance
 
   # ===========================================================
   # SCOPES
@@ -147,6 +167,9 @@ class Encounter < ApplicationRecord
   # ===========================================================
 
   before_save :ensure_cascade_fields_locked, if: :cascaded?
+  after_save :associate_diagnosis_codes, if: -> { diagnosis_code_ids.present? }
+  after_save :associate_procedure_codes, if: -> { procedure_code_ids.present? }
+  after_save :create_claim_from_procedure_codes, if: :should_create_claim?
   after_create :fire_encounter_created_event
   after_update :fire_status_updated_event, if: :saved_change_to_status?
 
@@ -188,6 +211,28 @@ class Encounter < ApplicationRecord
     nil
   end
 
+  # Get procedure codes from encounter_procedure_items (preferred) or claim lines (fallback)
+  def all_procedure_codes
+    if encounter_procedure_items.any?
+      encounter_procedure_items.includes(:procedure_code).map(&:procedure_code)
+    elsif claim.present?
+      ProcedureCode.joins(:claim_lines).where(claim_lines: { claim_id: claim.id }).distinct
+    else
+      []
+    end
+  end
+
+  # Legacy method - kept for backward compatibility
+  def procedure_codes
+    if encounter_procedure_items.any?
+      ProcedureCode.joins(:encounter_procedure_items).where(encounter_procedure_items: { encounter_id: id })
+    elsif claim.present?
+      ProcedureCode.joins(:claim_lines).where(claim_lines: { claim_id: claim.id })
+    else
+      ProcedureCode.none
+    end
+  end
+
   def locked_for_correction?
     cascaded? && locked_for_correction == true
   end
@@ -222,27 +267,18 @@ class Encounter < ApplicationRecord
   end
 
   def handle_cascade_and_snapshots
-    return false unless can_be_confirmed?
-
     # Capture snapshots
     capture_coverage_snapshot if insurance?
     capture_pricing_snapshot
 
-    # Cascade to billing document
-    if insurance?
-      generate_claim_and_submission
-    else
-      generate_patient_invoice
-    end
-
-    # Mark as cascaded and lock
+    # Mark as cascaded and lock (encounter has been submitted to billing)
     update!(
       cascaded: true,
       cascaded_at: Time.current,
       confirmed_at: Time.current
     )
 
-    # Update display status
+    # Update display status based on billing channel
     update!(display_status: :claim_generated) if insurance?
     update!(display_status: :invoice_created) if self_pay?
 
@@ -273,15 +309,22 @@ class Encounter < ApplicationRecord
   end
 
   def diagnosis_codes_required
-    if diagnosis_codes.empty?
-      errors.add(:base, "ENC_DX_REQUIRED - At least one diagnosis code is required")
-    else
+    # Check virtual attribute first (for workflow form), then association
+    dx_ids = Array(diagnosis_code_ids).reject(&:blank?)
+
+    if dx_ids.any?
+      # Using virtual attribute from workflow form - validation passes
+      nil
+    elsif diagnosis_codes.any?
       # Check that all diagnosis codes are active
       inactive_codes = diagnosis_codes.where(status: :retired)
       if inactive_codes.any?
         codes_list = inactive_codes.pluck(:code).join(", ")
         errors.add(:base, "DX_CODE_RETIRED - The following diagnosis codes are retired and cannot be newly assigned: #{codes_list}")
       end
+    else
+      # No diagnosis codes provided
+      errors.add(:base, "ENC_DX_REQUIRED - At least one diagnosis code is required")
     end
   end
 
@@ -323,6 +366,55 @@ class Encounter < ApplicationRecord
 
     if patient.is_deceased?
       errors.add(:patient_id, "Cannot create encounters for deceased patients")
+    end
+  end
+
+  def procedure_codes_required_for_submission
+    # Only validate if we're in the workflow (procedure_code_ids is set)
+    # Handle both array and nil cases
+    proc_ids = Array(procedure_code_ids).reject(&:blank?)
+    return if proc_ids.empty? && procedure_code_ids.nil? # Skip if not in workflow mode
+
+    if proc_ids.empty?
+      errors.add(:procedure_code_ids, "At least one procedure code is required")
+    elsif proc_ids.length > 5
+      errors.add(:procedure_code_ids, "Maximum of 5 procedure codes allowed")
+    end
+  end
+
+
+  def procedure_code_rules_compliance
+    # Only validate if we're in the workflow (procedure_code_ids is set) or have procedure codes
+    return unless procedure_code_ids.present? || encounter_procedure_items.any?
+
+    validator = EncounterProcedureCodeValidator.new(self)
+    result = validator.validate
+
+    unless result[:valid]
+      result[:errors].each do |error|
+        errors.add(:base, error)
+      end
+    end
+  end
+
+  def duration_required_for_price_per_unit
+    # Only validate if we're in the workflow and have procedure codes
+    return unless procedure_code_ids.present?
+
+    primary_proc = ProcedureCode.find_by(id: primary_procedure_code_id)
+    return unless primary_proc
+
+    # Get pricing rule from fee schedule
+    pricing_result = FeeSchedulePricingService.resolve_pricing(
+      organization_id,
+      provider_id,
+      primary_proc.id
+    )
+
+    if pricing_result[:success] && pricing_result[:pricing][:pricing_rule] == "price_per_unit"
+      if duration_minutes.blank? || duration_minutes.to_i <= 0
+        errors.add(:duration_minutes, "Duration is required when the primary procedure is priced per unit")
+      end
     end
   end
 
@@ -384,5 +476,127 @@ class Encounter < ApplicationRecord
     elsif self_pay?
       Rails.logger.info "Event: encounter.patient_invoice_created for encounter #{id}"
     end
+  end
+
+  def should_create_claim?
+    # Create claim if we have procedure codes and this is an insurance encounter
+    procedure_code_ids.present? && insurance? && claim.blank?
+  end
+
+  def associate_diagnosis_codes
+    dx_ids = Array(diagnosis_code_ids).reject(&:blank?)
+    return if dx_ids.empty?
+
+    # Clear existing associations
+    encounter_diagnosis_codes.destroy_all
+
+    # Create new associations (limit to 5 as per workflow requirement)
+    dx_ids.first(5).each do |dc_id|
+      encounter_diagnosis_codes.find_or_create_by(diagnosis_code_id: dc_id.to_i)
+    end
+  end
+
+  def associate_procedure_codes
+    proc_ids = Array(procedure_code_ids).reject(&:blank?)
+    return if proc_ids.empty?
+
+    # Clear existing associations
+    encounter_procedure_items.destroy_all
+
+    # Create new associations
+    # Set first one as primary if primary_procedure_code_id is provided, otherwise no primary
+    proc_ids.each do |proc_code_id|
+      is_primary = primary_procedure_code_id.present? && proc_code_id.to_i == primary_procedure_code_id.to_i
+      encounter_procedure_items.find_or_create_by(
+        procedure_code_id: proc_code_id.to_i
+      ) do |item|
+        item.is_primary = is_primary
+      end
+    end
+
+    # Ensure only one primary is set if any primary is specified
+    if primary_procedure_code_id.present?
+      primary_items = encounter_procedure_items.primary
+      if primary_items.count > 1
+        # Keep only the first one as primary
+        primary_items.offset(1).update_all(is_primary: false)
+      end
+    end
+  end
+
+  def create_claim_from_procedure_codes
+    proc_ids = Array(procedure_code_ids).reject(&:blank?)
+    return if proc_ids.empty?
+
+    # Create or find claim
+    claim_record = claim || Claim.create!(
+      organization_id: organization_id,
+      encounter_id: id,
+      patient_id: patient_id,
+      provider_id: provider_id,
+      specialty_id: specialty_id,
+      place_of_service_code: organization_location&.place_of_service_code || "11",
+      status: :generated,
+      generated_at: Time.current
+    )
+
+    # Clear existing claim lines if any
+    claim_record.claim_lines.destroy_all
+
+    # Create claim lines from procedure codes
+    proc_ids.each do |proc_code_id|
+      proc_code = ProcedureCode.find_by(id: proc_code_id.to_i)
+      next unless proc_code
+
+      # Get pricing from fee schedule
+      pricing_result = FeeSchedulePricingService.resolve_pricing(
+        organization_id,
+        provider_id,
+        proc_code.id
+      )
+
+      # Calculate units based on pricing rule
+      # Use the first procedure code's pricing rule if primary is not set
+      primary_proc_id = primary_procedure_code_id.present? ? primary_procedure_code_id.to_i : proc_ids.first.to_i
+      is_primary_proc = proc_code_id.to_i == primary_proc_id
+
+      units = if pricing_result[:success] && pricing_result[:pricing][:pricing_rule] == "price_per_unit" && is_primary_proc
+        # For price_per_unit on primary (or first) procedure, calculate units from duration
+        # Default: 1 unit per 15 minutes (common for therapy codes)
+        duration = duration_minutes.to_i
+        duration > 0 ? (duration / 15.0).ceil : 1
+      else
+        # For flat pricing or non-primary procedures, always 1 unit
+        1
+      end
+
+      # Get unit price from pricing result
+      unit_price = if pricing_result[:success]
+        pricing_result[:pricing][:unit_price].to_f
+      else
+        0.0
+      end
+
+      # Calculate amount billed
+      amount_billed = if pricing_result[:success] && pricing_result[:pricing][:pricing_rule] == "flat"
+        # For flat pricing, amount is just the unit price
+        unit_price
+      else
+        # For price_per_unit, amount is unit_price * units
+        unit_price * units
+      end
+
+      # Create claim line
+      claim_record.claim_lines.create!(
+        procedure_code_id: proc_code.id,
+        units: units,
+        amount_billed: amount_billed,
+        place_of_service_code: organization_location&.place_of_service_code || "11",
+        status: :generated
+      )
+    end
+
+    # Update encounter to reference the claim
+    update_column(:claim_id, claim_record.id) unless claim_id.present?
   end
 end

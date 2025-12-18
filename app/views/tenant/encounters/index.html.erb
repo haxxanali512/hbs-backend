@@ -7,8 +7,10 @@
           <h1 class="text-3xl font-bold text-gray-900">Encounters</h1>
           <p class="mt-2 text-gray-600">Manage patient encounters and billing</p>
         </div>
-        <div>
-          <%= link_to "New Encounter", new_tenant_encounter_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        <div class="space-x-2">
+          <%= link_to "Prepare a New Encounter",
+                      workflow_tenant_encounters_path,
+                      class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
         </div>
       </div>
     </div>
@@ -20,100 +22,106 @@
       @provider_options = @providers
       @patient_options = @patients
       @specialty_options = @specialties
-      @billing_channel_options = @billing_channels
-      @cascaded_options = ["Not Cascaded", "Cascaded"]
+      @cascaded_options = ["Not Cascaded", "Cascaded"] unless @show_submitted_only || @show_queued_only
       @show_date_range = true
+      @encounter_type_options = [["All Encounters", ""], ["Submitted Encounters", "submitted"], ["Ready to be sent", "queued"]]
+      @show_encounter_type_filter = true
+      @show_claim_status_filter = @show_submitted_only
+      @show_queued_only = params[:submitted_filter] == "queued"
     %>
     <%= render "shared/filters" %>
 
-    <!-- Encounters Table -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billing</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cascaded</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <% if @encounters.present? && @encounters.any? %>
-              <% @encounters.each do |encounter| %>
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">
-                      <%= encounter.date_of_service.strftime("%b %d, %Y") %>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">
-                      <%= encounter.patient.first_name %> <%= encounter.patient.last_name %>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">
-                      <%= encounter.provider.full_name %>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.insurance? ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
-                      <%= encounter.billing_channel.humanize %>
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.status_badge_color %>">
-                      <%= encounter.status.humanize %>
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <%= encounter.cascaded? ? "Yes" : "No" %>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div class="flex space-x-2">
-                      <%= link_to "View", tenant_encounter_path(encounter), class: "text-blue-600 hover:text-blue-800" %>
-                      <%= link_to "Edit", edit_tenant_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" if !encounter.cascaded? %>
-                      
-                      <% if encounter.can_be_confirmed? && !encounter.completed_confirmed? %>
-                        <%= button_to "Confirm", confirm_completed_tenant_encounter_path(encounter),
-                            method: :post,
-                            form: { class: "inline-block" },
-                            class: "text-green-600 hover:text-green-800",
-                            data: { turbo_confirm: "This will generate billing documents. Continue?" } %>
-                      <% end %>
-                      
-                      <% if encounter.can_be_cancelled? %>
-                        <%= button_to "Cancel", cancel_tenant_encounter_path(encounter),
-                            method: :post,
-                            form: { class: "inline-block" },
-                            class: "text-red-600 hover:text-red-800",
-                            data: { turbo_confirm: "Are you sure you want to cancel this encounter?" } %>
-                      <% end %>
-                    </div>
-                  </td>
-                </tr>
-              <% end %>
-            <% end %>
-          </tbody>
-        </table>
+    <!-- Send for Billing Button (only shown when queued filter is active) -->
+    <% if @show_queued_only %>
+      <div id="send_for_billing_section">
+        <%= render partial: "tenant/encounters/send_for_billing_button", locals: { encounters: @encounters } %>
       </div>
-      
-      <% if @encounters.empty? %>
-        <div class="text-center py-12">
-          <div class="text-gray-500 text-lg">No encounters found</div>
-          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new encounter</div>
-        </div>
-      <% end %>
-    </div>
+    <% end %>
 
-    <!-- Pagination -->
-    <div class="mt-6">
-      <%== pagination_info(@pagy) %>
+    <!-- Encounters Table -->
+    <div id="encounters_table_frame">
+      <%= render partial: "tenant/encounters/table", locals: { encounters: @encounters, show_submitted_only: @show_submitted_only, show_queued_only: @show_queued_only, pagy: @pagy } %>
     </div>
   </div>
 </div>
+
+<% if @show_queued_only %>
+<script>
+  (function() {
+    function initializeEncounterSelection() {
+      const selectAllCheckbox = document.querySelector('[data-encounter-selection-target="selectAll"]');
+      const submitButton = document.getElementById('submit_queued_button');
+      const encounterIdsInput = document.getElementById('encounter_ids_input');
+      const tableBody = document.querySelector('[data-encounter-selection-target="tableBody"]');
+
+      if (!tableBody) return;
+
+      function updateSubmitState() {
+        const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
+        const hasSelections = checkedBoxes.length > 0;
+        
+        if (submitButton) {
+          submitButton.disabled = !hasSelections;
+        }
+
+        // Update hidden input with selected IDs
+        if (encounterIdsInput) {
+          const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+          encounterIdsInput.value = selectedIds.join(',');
+        }
+      }
+
+      function toggleAll(event) {
+        const checkboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
+        const isChecked = event.target.checked;
+        
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+        });
+        
+        updateSubmitState();
+      }
+
+      // Remove old event listeners by cloning and replacing
+      const newSelectAll = selectAllCheckbox?.cloneNode(true);
+      if (selectAllCheckbox && newSelectAll) {
+        selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
+        newSelectAll.addEventListener('change', toggleAll);
+      }
+
+      // Set up table body change listener
+      tableBody.addEventListener('change', function(event) {
+        if (event.target.name === 'encounter_ids[]') {
+          updateSubmitState();
+          
+          // Update select all checkbox state
+          const selectAll = document.querySelector('[data-encounter-selection-target="selectAll"]');
+          if (selectAll) {
+            const allCheckboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
+            const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
+            selectAll.checked = allCheckboxes.length > 0 && checkedBoxes.length === allCheckboxes.length;
+            selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < allCheckboxes.length;
+          }
+        }
+      });
+
+      // Initialize state
+      updateSubmitState();
+    }
+
+    // Initialize on page load
+    initializeEncounterSelection();
+
+    // Re-initialize on Turbo Stream updates
+    document.addEventListener('turbo:frame-load', function(event) {
+      if (event.target.id === 'encounters_table_frame') {
+        setTimeout(initializeEncounterSelection, 100);
+      }
+    });
+
+    // Also listen for turbo:load for full page loads
+    document.addEventListener('turbo:load', initializeEncounterSelection);
+  })();
+</script>
+<% end %>
 

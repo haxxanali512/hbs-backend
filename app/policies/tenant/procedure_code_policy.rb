@@ -7,6 +7,10 @@ class Tenant::ProcedureCodePolicy < ApplicationPolicy
     accessible?("tenant", "procedure_codes", "show")
   end
 
+  def search?
+    index?
+  end
+
   class Scope < Scope
     def resolve
       scope.active
