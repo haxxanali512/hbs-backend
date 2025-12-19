@@ -18,7 +18,8 @@ module Tenant
           # Show only cascaded encounters with submitted claims
           @current_organization.encounters
                                 .cascaded
-                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :claim, :diagnosis_codes, encounter_procedure_items: :procedure_code, claim: { claim_lines: :procedure_code })
+                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :claim, :diagnosis_codes, claim: { claim_lines: :procedure_code })
+                                .preload(encounter_procedure_items: :procedure_code)
                                 .joins(:claim)
                                 .where(claims: { status: [ :submitted, :accepted, :rejected, :denied, :paid_in_full, :applied_to_deductible ] })
                                 .kept
@@ -28,11 +29,13 @@ module Tenant
                                 .kept
                                 .where(status: :ready_to_submit)
                                 .where(cascaded: false)
-                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, encounter_procedure_items: :procedure_code, claim: { claim_lines: :procedure_code })
+                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, claim: { claim_lines: :procedure_code })
+                                .preload(encounter_procedure_items: :procedure_code)
         else
           # Show all encounters (including ready_to_submit and sent)
           @current_organization.encounters
-                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, encounter_procedure_items: :procedure_code, claim: { claim_lines: :procedure_code })
+                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, claim: { claim_lines: :procedure_code })
+                                .preload(encounter_procedure_items: :procedure_code)
                                 .kept
         end
       end
