@@ -54,8 +54,13 @@
 
 <script>
   (function() {
+    // Avoid double-initialization on Turbo visits
+    if (window._notificationsInitialized) return;
+    window._notificationsInitialized = true;
+
     const button = document.getElementById('notifications-button');
     const dropdown = document.getElementById('notifications-dropdown');
+    const notificationsList = document.getElementById('notifications_list');
     
     if (!button || !dropdown) return;
 
@@ -76,6 +81,169 @@
     // Prevent dropdown from closing when clicking inside it
     dropdown.addEventListener('click', function(e) {
       e.stopPropagation();
+    });
+
+    // Create toast container if it doesn't exist
+    function getOrCreateToastContainer() {
+      let container = document.getElementById('notification_toasts_container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification_toasts_container';
+        container.className = 'fixed bottom-4 left-4 z-50 space-y-3 pointer-events-none';
+        document.body.appendChild(container);
+      }
+      return container;
+    }
+
+    // Play notification sound
+    function playNotificationSound() {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (e) {
+        // Fallback: silent if audio context fails
+        console.debug('Audio notification not available');
+      }
+    }
+
+    // Show toast notification (Facebook-style)
+    function showToastNotification(notification) {
+      const container = getOrCreateToastContainer();
+      
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto max-w-sm w-full bg-white shadow-lg rounded-lg ring-1 ring-black ring-opacity-5 overflow-hidden animate-slide-in-left';
+      toast.style.animation = 'slideInLeft 0.3s ease-out';
+      
+      const notificationUrl = notification.action_url || '#';
+      
+      toast.innerHTML = `
+        <div class="p-4 cursor-pointer hover:bg-gray-50 transition-colors" onclick="window.location.href='${notificationUrl}'">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-indigo-600">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V8.25A6.75 6.75 0 104.5 8.25v1.5a8.967 8.967 0 01-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m7.214 0a24.255 24.255 0 01-7.214 0m7.214 0a3 3 0 11-6 0" />
+                </svg>
+              </div>
+            </div>
+            <div class="ml-3 w-0 flex-1">
+              <p class="text-sm font-medium text-gray-900">${escapeHtml(notification.title)}</p>
+              <p class="mt-1 text-sm text-gray-500 line-clamp-2">${escapeHtml(notification.message)}</p>
+            </div>
+            <div class="ml-4 flex-shrink-0 flex">
+              <button 
+                type="button" 
+                class="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                onclick="event.stopPropagation(); this.closest('.pointer-events-auto').remove()"
+              >
+                <span class="sr-only">Close</span>
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(toast);
+      
+      // Play sound
+      playNotificationSound();
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        toast.style.animation = 'slideOutLeft 0.3s ease-in';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.remove();
+          }
+        }, 300);
+      }, 5000);
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Extract notification data from DOM element
+    function extractNotificationData(element) {
+      // Find title (first p with font-medium class)
+      const titleEl = element.querySelector('p.text-sm.font-medium.text-gray-900');
+      // Find message (p with text-xs and text-gray-600, but not the time one)
+      const messageEl = Array.from(element.querySelectorAll('p.text-xs.text-gray-600')).find(el => 
+        !el.textContent.includes('ago') && !el.textContent.includes('•')
+      );
+      // Extract action URL from onclick attribute
+      const linkEl = element;
+      let actionUrl = '#';
+      if (linkEl && linkEl.getAttribute('onclick')) {
+        const match = linkEl.getAttribute('onclick').match(/window\.location\.href=['"]([^'"]+)['"]/);
+        if (match) actionUrl = match[1];
+      }
+      
+      return {
+        title: titleEl ? titleEl.textContent.trim() : 'New Notification',
+        message: messageEl ? messageEl.textContent.trim() : '',
+        action_url: actionUrl
+      };
+    }
+
+    // Track if page has finished initial load
+    let pageLoaded = false;
+    setTimeout(() => { pageLoaded = true; }, 1000);
+
+    // Watch for new notifications being added to the list
+    if (notificationsList) {
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1 && node.id && node.id.startsWith('notification_')) {
+              // Only show toast for new notifications after page load
+              // This prevents showing toasts for existing notifications on initial page render
+              if (pageLoaded) {
+                // Small delay to ensure DOM is fully rendered
+                setTimeout(() => {
+                  const notificationData = extractNotificationData(node);
+                  if (notificationData.title && notificationData.title !== 'New Notification') {
+                    showToastNotification(notificationData);
+                  }
+                }, 100);
+              }
+            }
+          });
+        });
+      });
+
+      observer.observe(notificationsList, {
+        childList: true,
+        subtree: false
+      });
+    }
+
+    // Also listen for Turbo Stream events
+    document.addEventListener('turbo:before-stream-render', function(event) {
+      const streamAction = event.detail.render;
+      if (streamAction && streamAction.action === 'prepend' && streamAction.target === 'notifications_list') {
+        // A notification is about to be prepended
+        // We'll catch it via MutationObserver, but we can also handle it here if needed
+      }
     });
   })();
 
@@ -103,4 +271,32 @@
     }).catch(error => console.error('Error marking all as read:', error));
   }
 </script>
+
+<style>
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutLeft {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+</style>
 
