@@ -1,12 +1,13 @@
 # Job to submit queued encounters to EZClaim via ClaimSubmissionService
 # Processes encounters in the background and sends failure notifications
 class QueuedEncountersSubmissionJob < ApplicationJob
-  queue_as :default
+  # Use high priority queue for billing submissions
+  queue_as :high_priority
 
   def perform(encounter_ids, organization_id)
     organization = Organization.find(organization_id)
-    # Only process ready_to_submit encounters that haven't been cascaded
-    encounters = organization.encounters.where(id: encounter_ids).where(status: :ready_to_submit).not_cascaded
+    # Process encounters that have been marked as sent but not yet cascaded
+    encounters = organization.encounters.where(id: encounter_ids).where(status: :sent).where(cascaded: false)
 
     results = {
       successful: [],

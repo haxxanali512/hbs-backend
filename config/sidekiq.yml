@@ -5,8 +5,9 @@
 :timeout: 25
 :retry: 5
 
-# Sidekiq will use this queue by default
+# Sidekiq will process queues in order (first = highest priority)
 :queues:
+  - high_priority
   - default
 
 # Redis configuration

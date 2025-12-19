@@ -62,23 +62,28 @@ Rails.application.configure do
   # config.active_job.queue_adapter = :solid_queue
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Email delivery configuration
-  config.action_mailer.delivery_method = :smtp
+  # Email delivery configuration - using letter_opener for now
+  config.action_mailer.delivery_method = :letter_opener
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("HOST", "localhost") }
 
-  # Mailtrap SMTP settings
-  config.action_mailer.smtp_settings = {
-    user_name: "f08f0eb24d9514",
-    password: "f8b601a5a06762",
-    address: "sandbox.smtp.mailtrap.io",
-    host: "sandbox.smtp.mailtrap.io",
-    port: "2525",
-    authentication: :login
+  # Letter opener configuration
+  config.action_mailer.letter_opener_settings = {
+    location: Rails.root.join("tmp", "letter_opener")
   }
+
+  # Mailtrap SMTP settings (commented out - using letter_opener for now)
+  # config.action_mailer.smtp_settings = {
+  #   user_name: "f08f0eb24d9514",
+  #   password: "f8b601a5a06762",
+  #   address: "sandbox.smtp.mailtrap.io",
+  #   host: "sandbox.smtp.mailtrap.io",
+  #   port: "2525",
+  #   authentication: :login
+  # }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
