@@ -27,6 +27,7 @@ config/docusign_private_key.pem
 !/tmp/storage/.keep
 
 /public/assets
+/public/exports/*
 .byebug_history
 
 # Ignore master key for decrypting credentials and more.
