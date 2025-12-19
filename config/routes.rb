@@ -31,9 +31,6 @@ Rails.application.routes.draw do
   require "sidekiq/web"
   mount Sidekiq::Web => "/sidekiq"
 
-  # Letter Opener Web (for viewing emails in production)
-  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.production? || Rails.env.development?
-
   # ===========================================================
   # ADMIN Routes
   # ===========================================================
