@@ -23,15 +23,17 @@ module Tenant
                                 .where(claims: { status: [ :submitted, :accepted, :rejected, :denied, :paid_in_full, :applied_to_deductible ] })
                                 .kept
         elsif @show_queued_only
-          # Show only encounters that are ready to be sent (ready_to_submit but not yet cascaded)
+          # Show only encounters that are ready to be sent (ready_to_submit or sent, but not yet cascaded)
           @current_organization.encounters
                                 .kept
-                                .where(status: :ready_to_submit)
+                                .where(status: [ :ready_to_submit, :sent ])
                                 .where(cascaded: false)
                                 .includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, :encounter_procedure_items, :procedure_codes, claim: { claim_lines: :procedure_code })
         else
-          # Show all encounters
-          @current_organization.encounters.includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, :encounter_procedure_items, :procedure_codes, claim: { claim_lines: :procedure_code }).kept
+          # Show all encounters (including ready_to_submit and sent)
+          @current_organization.encounters
+                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, :encounter_procedure_items, :procedure_codes, claim: { claim_lines: :procedure_code })
+                                .kept
         end
       end
 

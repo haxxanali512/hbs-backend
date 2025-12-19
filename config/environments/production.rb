@@ -76,9 +76,8 @@ Rails.application.configure do
     password: "f8b601a5a06762",
     address: "sandbox.smtp.mailtrap.io",
     host: "sandbox.smtp.mailtrap.io",
-    port: 2525,
-    authentication: :login,
-    enable_starttls_auto: false
+    port: "2525",
+    authentication: :login
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to

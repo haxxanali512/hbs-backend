@@ -53,7 +53,8 @@ class Encounter < ApplicationRecord
     reviewed: 2,
     ready_to_submit: 3,
     cancelled: 4,
-    completed_confirmed: 5
+    completed_confirmed: 5,
+    sent: 6
   }
 
   enum :display_status, {
@@ -93,6 +94,7 @@ class Encounter < ApplicationRecord
     state :ready_to_submit
     state :cancelled
     state :completed_confirmed
+    state :sent
 
     event :mark_ready_for_review do
       transitions from: :planned, to: :ready_for_review,
@@ -112,6 +114,11 @@ class Encounter < ApplicationRecord
       transitions from: [ :planned, :ready_for_review, :reviewed, :ready_to_submit ], to: :cancelled,
                   after: :update_display_status_to_cancelled,
                   if: :can_be_cancelled?
+    end
+
+    event :mark_sent do
+      transitions from: :ready_to_submit, to: :sent,
+                  after: :update_display_status_to_claim_submitted
     end
 
     event :confirm_completed do
@@ -264,6 +271,10 @@ class Encounter < ApplicationRecord
 
   def update_display_status_to_cancelled
     update!(display_status: :error)
+  end
+
+  def update_display_status_to_claim_submitted
+    update!(display_status: :claim_submitted)
   end
 
   def handle_cascade_and_snapshots

@@ -233,7 +233,8 @@ class Tenant::EncountersController < Tenant::BaseController
     end
 
     if encounter_ids.empty?
-      redirect_to tenant_encounters_path(submitted_filter: "queued"), alert: "Please select at least one encounter to submit."
+      flash[:alert] = "Please select at least one encounter to submit."
+      redirect_to tenant_encounters_path
       return
     end
 
@@ -245,45 +246,64 @@ class Tenant::EncountersController < Tenant::BaseController
                                             .not_cascaded
 
     if valid_encounters.count != encounter_ids.count
-      redirect_to tenant_encounters_path(submitted_filter: "queued"), alert: "Some selected encounters are not valid for submission."
+      flash[:alert] = "Some selected encounters are not valid for submission."
+      redirect_to tenant_encounters_path
       return
     end
 
-    # Queue the job to process submissions
-    QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
+    # # Queue the job to process submissions
+    # QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
 
-    respond_to do |format|
-      format.html do
-        redirect_to tenant_encounters_path(submitted_filter: "queued"),
-                    notice: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
-      end
-      format.turbo_stream do
-        # Set queued filter to reload the queued encounters
-        params[:submitted_filter] = "queued"
-        build_encounters_index
-        @show_queued_only = true
-        render turbo_stream: [
-          turbo_stream.replace(
-            "encounters_table_frame",
-            partial: "tenant/encounters/table",
-            locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }
-          ),
-          turbo_stream.replace(
-            "send_for_billing_section",
-            partial: "tenant/encounters/send_for_billing_button",
-            locals: { encounters: @encounters }
-          ),
-          turbo_stream.prepend(
-            "flash",
-            partial: "shared/flash_message",
-            locals: {
-              type: :notice,
-              message: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
-            }
-          )
-        ]
+    # respond_to do |format|
+    #   format.html do
+    #     redirect_to tenant_encounters_path(submitted_filter: "queued"),
+    #                 notice: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
+    #   end
+    #   format.turbo_stream do
+    #     # Set queued filter to reload the queued encounters
+    #     params[:submitted_filter] = "queued"
+    #     build_encounters_index
+    #     @show_queued_only = true
+    #     render turbo_stream: [
+    #       turbo_stream.replace(
+    #         "encounters_table_frame",
+    #         partial: "tenant/encounters/table",
+    #         locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }
+    #       ),
+    #       turbo_stream.replace(
+    #         "send_for_billing_section",
+    #         partial: "tenant/encounters/send_for_billing_button",
+    #         locals: { encounters: @encounters }
+    #       ),
+    #       turbo_stream.prepend(
+    #         "flash",
+    #         partial: "shared/flash_message",
+    #         locals: {
+    #           type: :notice,
+    #           message: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
+    #         }
+    #       )
+    #     ]
+
+    # Mark encounters as sent immediately
+    valid_encounters.each do |encounter|
+      if encounter.may_mark_sent?
+        encounter.mark_sent!
+      else
+        # Fallback: manually update if state machine doesn't allow transition
+        encounter.update!(
+          status: :sent,
+          display_status: :claim_submitted
+        )
       end
     end
+
+    # Queue the job to process submissions in the background
+    QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
+
+    # Redirect to encounters page with success message
+    flash[:notice] = "#{valid_encounters.count} encounter(s) sent for billing."
+    redirect_to tenant_encounters_path
   end
 
   def request_correction
