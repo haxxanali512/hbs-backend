@@ -9,6 +9,7 @@ class ProcedureCode < ApplicationRecord
   has_many :specialties, through: :procedure_codes_specialties
   has_many :organization_fee_schedule_items, dependent: :restrict_with_error
   has_many :claim_lines, dependent: :restrict_with_error
+  has_many :encounter_procedure_items, dependent: :restrict_with_error
   has_one :procedure_code_rule, dependent: :destroy
 
   accepts_nested_attributes_for :procedure_code_rule, update_only: true
