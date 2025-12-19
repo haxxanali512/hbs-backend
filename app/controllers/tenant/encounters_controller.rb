@@ -233,8 +233,21 @@ class Tenant::EncountersController < Tenant::BaseController
     end
 
     if encounter_ids.empty?
-      flash[:alert] = "Please select at least one encounter to submit."
-      redirect_to tenant_encounters_path
+      respond_to do |format|
+        format.html do
+          flash[:alert] = "Please select at least one encounter to submit."
+          redirect_to tenant_encounters_path(submitted_filter: "queued"), status: :see_other
+        end
+        format.turbo_stream do
+          flash.now[:alert] = "Please select at least one encounter to submit."
+          @show_queued_only = true
+          build_encounters_index
+          render turbo_stream: [
+            turbo_stream.replace("encounters_table_frame", partial: "tenant/encounters/table", locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }),
+            turbo_stream.replace("flash_container", partial: "shared/toast_flash")
+          ]
+        end
+      end
       return
     end
 
@@ -247,44 +260,23 @@ class Tenant::EncountersController < Tenant::BaseController
                                             .to_a
 
     if valid_encounters.size != encounter_ids.count
-      flash[:alert] = "Some selected encounters are not valid for submission."
-      redirect_to tenant_encounters_path
+      respond_to do |format|
+        format.html do
+          flash[:alert] = "Some selected encounters are not valid for submission."
+          redirect_to tenant_encounters_path(submitted_filter: "queued"), status: :see_other
+        end
+        format.turbo_stream do
+          flash.now[:alert] = "Some selected encounters are not valid for submission."
+          @show_queued_only = true
+          build_encounters_index
+          render turbo_stream: [
+            turbo_stream.replace("encounters_table_frame", partial: "tenant/encounters/table", locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }),
+            turbo_stream.replace("flash_container", partial: "shared/toast_flash")
+          ]
+        end
+      end
       return
     end
-
-    # # Queue the job to process submissions
-    # QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
-
-    # respond_to do |format|
-    #   format.html do
-    #     redirect_to tenant_encounters_path(submitted_filter: "queued"),
-    #                 notice: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
-    #   end
-    #   format.turbo_stream do
-    #     # Set queued filter to reload the queued encounters
-    #     params[:submitted_filter] = "queued"
-    #     build_encounters_index
-    #     @show_queued_only = true
-    #     render turbo_stream: [
-    #       turbo_stream.replace(
-    #         "encounters_table_frame",
-    #         partial: "tenant/encounters/table",
-    #         locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }
-    #       ),
-    #       turbo_stream.replace(
-    #         "send_for_billing_section",
-    #         partial: "tenant/encounters/send_for_billing_button",
-    #         locals: { encounters: @encounters }
-    #       ),
-    #       turbo_stream.prepend(
-    #         "flash",
-    #         partial: "shared/flash_message",
-    #         locals: {
-    #           type: :notice,
-    #           message: "#{encounter_ids.count} encounter(s) queued for submission to EZClaim. You will be notified of any failures."
-    #         }
-    #       )
-    #     ]
 
     # Mark encounters as sent immediately
     valid_encounters.each do |encounter|
@@ -304,13 +296,28 @@ class Tenant::EncountersController < Tenant::BaseController
 
     # Notify super admins about the submission
     NotificationService.notify_encounters_submitted_for_billing(
-      @current_organization,
-      valid_encounters.size
+      organization: @current_organization,
+      encounter_count: valid_encounters.size
     )
 
-    # Redirect to encounters page with success message
-    flash[:notice] = "#{valid_encounters.size} encounter(s) sent for billing."
-    redirect_to tenant_encounters_path
+    respond_to do |format|
+      format.html do
+        flash[:notice] = "#{valid_encounters.size} encounter(s) sent for billing."
+        redirect_to tenant_encounters_path(submitted_filter: "queued"), status: :see_other
+      end
+      format.turbo_stream do
+        # Reload the queued encounters table (should now be empty or show remaining items)
+        @show_queued_only = true
+        params[:submitted_filter] = "queued"
+        build_encounters_index
+        flash.now[:notice] = "#{valid_encounters.size} encounter(s) sent for billing."
+        render turbo_stream: [
+          turbo_stream.replace("encounters_table_frame", partial: "tenant/encounters/table", locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }),
+          turbo_stream.replace("send_for_billing_section", partial: "tenant/encounters/send_for_billing_button", locals: { encounters: @encounters }),
+          turbo_stream.replace("flash_container", partial: "shared/toast_flash")
+        ]
+      end
+    end
   end
 
   def request_correction

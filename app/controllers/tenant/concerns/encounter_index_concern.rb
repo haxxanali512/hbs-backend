@@ -15,14 +15,12 @@ module Tenant
         @show_queued_only = params[:submitted_filter] == "queued"
 
         if @show_submitted_only
-          # Show only cascaded encounters with submitted claims
+          # Show only encounters with status "sent"
           @current_organization.encounters
-                                .cascaded
-                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :claim, :diagnosis_codes, claim: { claim_lines: :procedure_code })
-                                .preload(encounter_procedure_items: :procedure_code)
-                                .joins(:claim)
-                                .where(claims: { status: [ :submitted, :accepted, :rejected, :denied, :paid_in_full, :applied_to_deductible ] })
                                 .kept
+                                .where(status: :sent)
+                                .includes(:patient, :provider, :specialty, :organization_location, :appointment, :diagnosis_codes, claim: { claim_lines: :procedure_code })
+                                .preload(encounter_procedure_items: :procedure_code)
         elsif @show_queued_only
           # Show only encounters that are ready to be sent (ready_to_submit but not yet cascaded or sent)
           @current_organization.encounters

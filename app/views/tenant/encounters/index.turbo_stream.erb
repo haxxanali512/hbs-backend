@@ -2,3 +2,13 @@
   <%= render partial: "tenant/encounters/table", locals: { encounters: @encounters, show_submitted_only: @show_submitted_only, show_queued_only: @show_queued_only, pagy: @pagy } %>
 <% end %>
 
+<% if @show_queued_only %>
+  <%= turbo_stream.replace "send_for_billing_section" do %>
+    <%= render partial: "tenant/encounters/send_for_billing_button", locals: { encounters: @encounters } %>
+  <% end %>
+<% end %>
+
+<%= turbo_stream.replace "flash_container" do %>
+  <%= render 'shared/toast_flash' %>
+<% end %>
+

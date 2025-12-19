@@ -25,13 +25,36 @@
 </div>
 
 <script>
-  // Auto-fade and dismiss toasts
+  // Auto-fade and dismiss toasts - reinitialize after Turbo updates
   (function(){
-    var toasts = document.querySelectorAll('.toast');
-    toasts.forEach(function(el){
-      setTimeout(function(){ el.classList.add('opacity-0'); }, 3500);
-      setTimeout(function(){ el.remove(); }, 4000);
-    });
+    function initializeToasts() {
+      var toasts = document.querySelectorAll('.toast');
+      toasts.forEach(function(el){
+        // Clear any existing timeouts
+        if (el._toastTimeout) {
+          clearTimeout(el._toastTimeout);
+        }
+        if (el._toastRemoveTimeout) {
+          clearTimeout(el._toastRemoveTimeout);
+        }
+        
+        // Set new timeouts
+        el._toastTimeout = setTimeout(function(){ 
+          el.classList.add('opacity-0'); 
+        }, 3500);
+        el._toastRemoveTimeout = setTimeout(function(){ 
+          el.remove(); 
+        }, 4000);
+      });
+    }
+    
+    // Initialize on page load
+    initializeToasts();
+    
+    // Reinitialize after Turbo Stream updates
+    document.addEventListener('turbo:load', initializeToasts);
+    document.addEventListener('turbo:frame-load', initializeToasts);
+    document.addEventListener('turbo:after-stream-render', initializeToasts);
   })();
 </script>
 
