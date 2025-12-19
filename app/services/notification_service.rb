@@ -174,11 +174,19 @@ class NotificationService
     end
 
     # Notify super admins when a tenant submits encounters for billing
-    def notify_encounters_submitted_for_billing(organization, encounter_count)
-      # Find all super admin users
-      super_admins = User.joins(:role).where(roles: { role_name: "Super Admin" }).active
+    def notify_encounters_submitted_for_billing(organization:, encounter_count:)
+      # Find all super admin users (include active, pending, or nil status - exclude only inactive and discarded)
+      super_admins = User.joins(:role)
+                        .where(roles: { role_name: "Super Admin" })
+                        .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                        .kept # Exclude discarded users
 
-      return if super_admins.empty?
+      if super_admins.empty?
+        Rails.logger.warn "No super admin users found to notify about encounters submission"
+        return
+      end
+
+      Rails.logger.info "Notifying #{super_admins.count} super admin(s) about #{encounter_count} encounter(s) submission from #{organization.name}"
 
       super_admins.each do |admin|
         Notification.create!(
@@ -187,13 +195,14 @@ class NotificationService
           notification_type: Notification::NOTIFICATION_TYPES[:encounters_submitted_for_billing],
           title: "Encounters Submitted for Billing",
           message: "#{organization.name} has submitted #{encounter_count} encounter(s) for billing.",
-          action_url: "/admin/encounters?organization_id=#{organization.id}",
+          action_url: "/admin/encounters?organization_id=#{organization.id}&submitted_filter=submitted",
           metadata: {
             organization_id: organization.id,
             organization_name: organization.name,
             encounter_count: encounter_count
           }
         )
+        Rails.logger.info "Notification created for super admin: #{admin.email}"
       end
     end
   end
