@@ -243,9 +243,10 @@ class Tenant::EncountersController < Tenant::BaseController
     valid_encounters = @current_organization.encounters
                                             .where(id: encounter_ids)
                                             .where(status: :ready_to_submit)
-                                            .not_cascaded
+                                            .where(cascaded: false)
+                                            .to_a
 
-    if valid_encounters.count != encounter_ids.count
+    if valid_encounters.size != encounter_ids.count
       flash[:alert] = "Some selected encounters are not valid for submission."
       redirect_to tenant_encounters_path
       return
