@@ -302,8 +302,14 @@ class Tenant::EncountersController < Tenant::BaseController
     # Queue the job to process submissions in the background
     QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
 
+    # Notify super admins about the submission
+    NotificationService.notify_encounters_submitted_for_billing(
+      @current_organization,
+      valid_encounters.size
+    )
+
     # Redirect to encounters page with success message
-    flash[:notice] = "#{valid_encounters.count} encounter(s) sent for billing."
+    flash[:notice] = "#{valid_encounters.size} encounter(s) sent for billing."
     redirect_to tenant_encounters_path
   end
 

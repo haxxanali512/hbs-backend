@@ -172,5 +172,29 @@ class NotificationService
         metadata: { new_role: new_role_name }
       )
     end
+
+    # Notify super admins when a tenant submits encounters for billing
+    def notify_encounters_submitted_for_billing(organization, encounter_count)
+      # Find all super admin users
+      super_admins = User.joins(:role).where(roles: { role_name: "Super Admin" }).active
+
+      return if super_admins.empty?
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:encounters_submitted_for_billing],
+          title: "Encounters Submitted for Billing",
+          message: "#{organization.name} has submitted #{encounter_count} encounter(s) for billing.",
+          action_url: "/admin/encounters?organization_id=#{organization.id}",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            encounter_count: encounter_count
+          }
+        )
+      end
+    end
   end
 end

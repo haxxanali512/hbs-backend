@@ -15,7 +15,8 @@ class Notification < ApplicationRecord
     provider_rejected: "provider_rejected",
     provider_suspended: "provider_suspended",
     user_invited: "user_invited",
-    user_role_changed: "user_role_changed"
+    user_role_changed: "user_role_changed",
+    encounters_submitted_for_billing: "encounters_submitted_for_billing"
   }.freeze
 
   scope :unread, -> { where(read: false) }
