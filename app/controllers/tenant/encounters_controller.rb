@@ -278,21 +278,12 @@ class Tenant::EncountersController < Tenant::BaseController
       return
     end
 
-    # Mark encounters as sent immediately
-    valid_encounters.each do |encounter|
-      if encounter.may_mark_sent?
-        encounter.mark_sent!
-      else
-        # Fallback: manually update if state machine doesn't allow transition
-        encounter.update!(
-          status: :sent,
-          display_status: :claim_submitted
-        )
-      end
-    end
-
     # Queue the job to process submissions in the background
+    # The job will:
+    # 1. Mark encounters as "sent" when actually submitting to EZClaim
+    # 2. Change them to "completed_confirmed" after successful submission
     QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
+    Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for background processing to EZClaim"
 
     # Notify super admins about the submission
     NotificationService.notify_encounters_submitted_for_billing(
@@ -302,7 +293,7 @@ class Tenant::EncountersController < Tenant::BaseController
 
     respond_to do |format|
       format.html do
-        flash[:notice] = "#{valid_encounters.size} encounter(s) sent for billing."
+        flash[:notice] = "#{valid_encounters.size} encounter(s) queued for billing submission."
         redirect_to tenant_encounters_path(submitted_filter: "queued"), status: :see_other
       end
       format.turbo_stream do
@@ -310,12 +301,8 @@ class Tenant::EncountersController < Tenant::BaseController
         @show_queued_only = true
         params[:submitted_filter] = "queued"
         build_encounters_index
-        flash.now[:notice] = "#{valid_encounters.size} encounter(s) sent for billing."
-        render turbo_stream: [
-          turbo_stream.replace("encounters_table_frame", partial: "tenant/encounters/table", locals: { encounters: @encounters, show_submitted_only: false, show_queued_only: true, pagy: @pagy }),
-          turbo_stream.replace("send_for_billing_section", partial: "tenant/encounters/send_for_billing_button", locals: { encounters: @encounters }),
-          turbo_stream.replace("flash_container", partial: "shared/toast_flash")
-        ]
+        flash.now[:notice] = "#{valid_encounters.size} encounter(s) queued for billing submission."
+        render :index
       end
     end
   end

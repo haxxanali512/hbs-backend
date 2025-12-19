@@ -32,11 +32,11 @@
     <%= render "shared/filters" %>
 
     <!-- Send for Billing Button (only shown when queued filter is active) -->
-    <% if @show_queued_only %>
-      <div id="send_for_billing_section">
+    <div id="send_for_billing_section">
+      <% if @show_queued_only %>
         <%= render partial: "tenant/encounters/send_for_billing_button", locals: { encounters: @encounters } %>
-      </div>
-    <% end %>
+      <% end %>
+    </div>
 
     <!-- Encounters Table -->
     <div id="encounters_table_frame">
@@ -107,14 +107,22 @@
     document.addEventListener('turbo:load', initialize);
     document.addEventListener('turbo:frame-load', function(event) {
       if (event.target.id === 'encounters_table_frame' || event.target.closest('#encounters_table_frame')) {
-        setTimeout(initialize, 50);
+        setTimeout(initialize, 100);
       }
     });
     document.addEventListener('turbo:before-stream-render', function() {
       // Update state before stream renders
+      setTimeout(initialize, 50);
+    });
+    document.addEventListener('turbo:after-stream-render', function() {
       setTimeout(initialize, 100);
     });
-    document.addEventListener('turbo:after-stream-render', initialize);
+    // Also listen for turbo:submit-end to reinitialize after form submission
+    document.addEventListener('turbo:submit-end', function(event) {
+      if (event.detail && event.detail.success !== false) {
+        setTimeout(initialize, 200);
+      }
+    });
 
     // Initial call
     initialize();

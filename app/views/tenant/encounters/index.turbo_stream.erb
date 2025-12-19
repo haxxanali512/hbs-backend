@@ -6,6 +6,8 @@
   <%= turbo_stream.replace "send_for_billing_section" do %>
     <%= render partial: "tenant/encounters/send_for_billing_button", locals: { encounters: @encounters } %>
   <% end %>
+<% else %>
+  <%= turbo_stream.remove "send_for_billing_section" %>
 <% end %>
 
 <%= turbo_stream.replace "flash_container" do %>

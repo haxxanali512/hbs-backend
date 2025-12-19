@@ -6,8 +6,8 @@ class QueuedEncountersSubmissionJob < ApplicationJob
 
   def perform(encounter_ids, organization_id)
     organization = Organization.find(organization_id)
-    # Process encounters that have been marked as sent but not yet cascaded
-    encounters = organization.encounters.where(id: encounter_ids).where(status: :sent).where(cascaded: false)
+    # Process encounters that are ready to submit (not yet sent or cascaded)
+    encounters = organization.encounters.where(id: encounter_ids).where(status: :ready_to_submit).where(cascaded: false)
 
     results = {
       successful: [],
@@ -16,6 +16,19 @@ class QueuedEncountersSubmissionJob < ApplicationJob
 
     encounters.each do |encounter|
       begin
+        # Mark as "sent" when actually submitting to EZClaim (not before)
+        if encounter.may_mark_sent?
+          encounter.mark_sent!
+          Rails.logger.info "Encounter #{encounter.id} marked as sent before EZClaim submission"
+        else
+          # Fallback: manually update if state machine doesn't allow transition
+          encounter.update!(
+            status: :sent,
+            display_status: :claim_submitted
+          )
+          Rails.logger.info "Encounter #{encounter.id} manually updated to sent before EZClaim submission"
+        end
+
         service = ClaimSubmissionService.new(
           encounter: encounter,
           organization: organization
@@ -53,6 +66,9 @@ class QueuedEncountersSubmissionJob < ApplicationJob
             date_of_service: encounter.date_of_service
           }
         else
+          # Submission failed - encounter remains in "sent" status
+          # Could optionally revert to "ready_to_submit" if desired
+          Rails.logger.error "Encounter #{encounter.id} submission failed: #{result[:error]}"
           results[:failed] << {
             encounter_id: encounter.id,
             error: result[:error],

@@ -3,7 +3,8 @@
   <% if encounters.any? %>
     <%= form_with url: submit_queued_tenant_encounters_path,
                   method: :post,
-                  data: { turbo_stream: true },
+                  data: { turbo_stream: true, turbo: true },
+                  local: false,
                   class: "inline" do |f| %>
       <%= f.hidden_field :encounter_ids, value: "", id: "encounter_ids_input" %>
       <%= f.submit "Send for Billing",
