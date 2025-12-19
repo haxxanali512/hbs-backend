@@ -98,7 +98,6 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   </tr>
@@ -110,10 +109,7 @@
                         <%= item.organization_fee_schedule.organization.name %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <%= item.organization_fee_schedule.provider&.full_name || "Organization-wide" %>
-                      </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        $<%= sprintf("%.2f", item.unit_price) %> / <%= item.pricing_rule.humanize %>
+                        $<%= sprintf("%.2f", item.unit_price.to_f) %> / <%= item.pricing_rule.humanize %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= item.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">

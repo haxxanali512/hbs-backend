@@ -1,0 +1,164 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Encounter Workflow</h1>
+        <p class="mt-1 text-sm text-gray-600">
+          Prepare encounters for billing submission.
+        </p>
+      </div>
+      <div>
+        <%= link_to "Back to Encounters",
+                    tenant_encounters_path,
+                    class: "inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50" %>
+      </div>
+    </div>
+
+    <!-- Prepare Encounter -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-100">
+        <h2 class="text-lg font-medium text-gray-900">Prepare Encounter</h2>
+        <p class="mt-1 text-sm text-gray-500">
+          Fill out the encounter details and save for submission. Encounters ready to submit will appear in the table below.
+        </p>
+      </div>
+
+      <turbo-frame id="prepare_encounter_frame">
+        <%= render "workflow_form",
+                   encounter: @encounter,
+                   patients: @patients,
+                   providers: @providers,
+                   specialties: @specialties,
+                   locations: @locations,
+                   appointments: @appointments,
+                   diagnosis_codes: @diagnosis_codes %>
+      </turbo-frame>
+    </div>
+
+    <!-- Queued Encounters -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200" data-controller="workflow-queued">
+      <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-medium text-gray-900">Ready to Submit</h2>
+          <p class="mt-1 text-sm text-gray-500">
+            Encounters that have been reviewed and are ready to be sent to billing.
+          </p>
+        </div>
+        <div>
+          <%= form_with url: submit_queued_tenant_encounters_path,
+                        method: :post,
+                        data: { turbo_stream: true },
+                        id: "submit-queued-form",
+                        class: "inline" do |f| %>
+            <%= f.hidden_field :encounter_ids, value: "", id: "encounter_ids_input" %>
+            <%= f.submit "Send for Billing",
+                        id: "submit_queued_button",
+                        class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed",
+                        disabled: true,
+                        data: { "workflow-queued-target": "submitButton" } %>
+          <% end %>
+        </div>
+      </div>
+
+      <turbo-frame id="queued_encounters_frame">
+        <%= render "queued_table", queued_encounters: @queued_encounters %>
+      </turbo-frame>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    function initializeWorkflowQueued() {
+      const selectAllCheckbox = document.getElementById('select_all_queued');
+      const submitButton = document.getElementById('submit_queued_button');
+      const encounterIdsInput = document.getElementById('encounter_ids_input');
+      const tableBody = document.querySelector('[data-workflow-queued-target="tableBody"]');
+
+      if (!tableBody) return;
+
+      function updateSubmitState() {
+        const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
+        const hasSelections = checkedBoxes.length > 0;
+        
+        if (submitButton) {
+          submitButton.disabled = !hasSelections;
+        }
+
+        // Update hidden input with selected IDs
+        if (encounterIdsInput) {
+          const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+          encounterIdsInput.value = selectedIds.join(',');
+        }
+      }
+
+      function toggleAll(event) {
+        const checkboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
+        const isChecked = event.target.checked;
+        
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+        });
+        
+        updateSubmitState();
+      }
+
+      // Set up select all checkbox
+      if (selectAllCheckbox) {
+        // Remove old event listeners by cloning
+        const newSelectAll = selectAllCheckbox.cloneNode(true);
+        selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
+        newSelectAll.addEventListener('change', toggleAll);
+      }
+
+      // Set up table body change listener
+      tableBody.addEventListener('change', function(event) {
+        if (event.target.name === 'encounter_ids[]') {
+          updateSubmitState();
+          
+          // Update select all checkbox state
+          const selectAll = document.getElementById('select_all_queued');
+          if (selectAll) {
+            const allCheckboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
+            const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
+            selectAll.checked = allCheckboxes.length > 0 && checkedBoxes.length === allCheckboxes.length;
+            selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < allCheckboxes.length;
+          }
+        }
+      });
+
+      // Initialize state
+      updateSubmitState();
+    }
+
+    // Initialize on page load
+    initializeWorkflowQueued();
+
+    // Re-initialize on Turbo Stream updates
+    document.addEventListener('turbo:frame-load', function(event) {
+      if (event.target.id === 'queued_encounters_frame') {
+        setTimeout(initializeWorkflowQueued, 100);
+      }
+    });
+
+    // Also listen for turbo:load for full page loads
+    document.addEventListener('turbo:load', initializeWorkflowQueued);
+  })();
+
+  // Handle row click to edit encounter
+  function handleRowClick(event, encounterId) {
+    // Don't navigate if clicking on checkbox, link, or button
+    if (event.target.tagName === 'INPUT' || 
+        event.target.tagName === 'A' || 
+        event.target.tagName === 'BUTTON' ||
+        event.target.closest('a') ||
+        event.target.closest('button')) {
+      return;
+    }
+    
+    // Navigate to edit page
+    window.location.href = '/tenant/encounters/' + encounterId + '/edit';
+  }
+</script>
+

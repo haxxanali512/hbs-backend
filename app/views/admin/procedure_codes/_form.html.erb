@@ -32,6 +32,56 @@
       </div>
     </div>
 
+    <!-- Pricing Rule & Clinical Rules (admin-only) -->
+    <div class="border-t border-gray-200 pt-4 mt-4">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Pricing Rule & Clinical Rules</h3>
+      <p class="text-sm text-gray-500 mb-4">
+        These settings control how this CPT is priced and validated across all tenants. Tenants can only edit the rate per unit.
+      </p>
+
+      <%= f.fields_for :procedure_code_rule do |rf| %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <%= rf.label :time_based, "Time-based (units from duration)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <div class="flex items-center mt-1">
+              <%= rf.check_box :time_based, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+              <span class="ml-2 text-xs text-gray-600">
+                If checked, units for this code will be derived from encounter duration (e.g., 1 unit per 15 minutes).
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <%= rf.label :pricing_type, "Pricing Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= rf.select :pricing_type,
+                  options_for_select(
+                    [
+                      ["Per Unit (time/units-based)", "per_unit"],
+                      ["Per Procedure (flat)", "per_procedure"]
+                    ],
+                    rf.object&.pricing_type
+                  ),
+                  { prompt: "Select pricing type" },
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            <p class="mt-1 text-xs text-gray-500">
+              Per Unit: amount is rate × units (often time-based). Per Procedure: flat amount, units usually forced to 1.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <%= rf.label :special_rules_text, "Special Rules (optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= rf.text_area :special_rules_text,
+                rows: 6,
+                class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono",
+                placeholder: "One rule per line, e.g.\nLimit 4 units\nCannot be billed w. 97124\nRequires 96360" %>
+          <p class="mt-1 text-xs text-gray-500">
+            Optional. These free-text rules drive validator behavior (unit limits, conflicts, documentation, frequency, etc.). One rule per line.
+          </p>
+        </div>
+      <% end %>
+    </div>
+
     <div>
       <%= f.label :description, class: "block text-sm font-medium text-gray-700 mb-1" %>
       <%= f.text_area :description, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Detailed description of the procedure" %>

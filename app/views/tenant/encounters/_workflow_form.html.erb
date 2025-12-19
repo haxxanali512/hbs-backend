@@ -1,0 +1,639 @@
+<%= form_with(model: encounter,
+             url: encounter.persisted? ? tenant_encounter_path(encounter) : tenant_encounters_path,
+             method: encounter.persisted? ? :patch : :post,
+             data: { turbo_stream: true },
+             class: "space-y-6 p-6") do |f| %>
+  <% if encounter.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(encounter.errors.count, "error") %> prohibited this encounter from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% encounter.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Patient -->
+    <div class="space-y-1">
+      <%= f.label :patient_id, class: "block text-sm font-medium text-gray-700" do %>
+        Patient <span class="text-red-500">*</span>
+      <% end %>
+      <%= f.select :patient_id,
+                   options_for_select(patients.map { |p| [p.full_name, p.id] }, encounter.patient_id),
+                   { prompt: "Select patient..." },
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                   required: true %>
+    </div>
+
+    <!-- Provider -->
+    <div class="space-y-1">
+      <%= f.label :provider_id, class: "block text-sm font-medium text-gray-700" do %>
+        Provider <span class="text-red-500">*</span>
+      <% end %>
+      <%= f.select :provider_id,
+                   options_for_select(providers.map { |p| [p.full_name, p.id] }, encounter.provider_id),
+                   { prompt: "Select provider..." },
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                   required: true %>
+    </div>
+
+    <!-- Specialty -->
+    <div class="space-y-1">
+      <%= f.label :specialty_id, class: "block text-sm font-medium text-gray-700" do %>
+        Specialty <span class="text-red-500">*</span>
+      <% end %>
+      <%= f.select :specialty_id,
+                   options_for_select(specialties.map { |s| [s.name, s.id] }, encounter.specialty_id),
+                   { prompt: "Select provider first" },
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                   required: true %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Template (placeholder for future use) -->
+    <div class="space-y-1">
+      <label class="block text-sm font-medium text-gray-700">Template (Optional)</label>
+      <div class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-400 bg-gray-50">
+        Choose a template...
+      </div>
+    </div>
+
+    <!-- Date of Service -->
+    <div class="space-y-1">
+      <%= f.label :date_of_service, class: "block text-sm font-medium text-gray-700" do %>
+        Date of Service <span class="text-red-500">*</span>
+      <% end %>
+      <%= f.date_field :date_of_service,
+                       value: encounter.date_of_service&.strftime("%Y-%m-%d") || Date.current.strftime("%Y-%m-%d"),
+                       class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                       required: true %>
+    </div>
+
+    <!-- Duration (minutes) -->
+    <div class="space-y-1" data-controller="duration-field">
+      <label class="block text-sm font-medium text-gray-700">
+        Duration (minutes)
+      </label>
+      <%= f.number_field :duration_minutes,
+                         min: 0,
+                         step: 1,
+                         class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                         data: { "duration-field-target": "input" } %>
+      <p class="text-xs text-gray-500">
+        Required only when the primary procedure is priced per unit.
+      </p>
+    </div>
+  </div>
+
+  <!-- Diagnosis Codes with search (up to 5) -->
+  <div class="space-y-2">
+    <h3 class="text-sm font-medium text-gray-900">Diagnosis Codes <span class="text-red-500">*</span></h3>
+
+    <div class="relative diagnosis-code-search">
+      <input type="text"
+             id="workflowDiagnosisInput"
+             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm diagnosis-code-search-input focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="Type to search diagnosis codes..."
+             autocomplete="off"
+             onfocus="workflowShowDiagnosisDropdown()"
+             oninput="workflowSearchDiagnosisCodes(this.value)">
+      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      <!-- Dropdown results -->
+      <div id="diagnosis_workflow_results"
+           class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
+      </div>
+    </div>
+
+    <!-- Selected diagnosis codes display -->
+    <div id="workflowSelectedDiagnosisCodes" class="mt-2 flex flex-wrap gap-2">
+      <% if encounter.diagnosis_codes.any? %>
+        <% encounter.diagnosis_codes.limit(5).each do |dc| %>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                data-code-id="<%= dc.id %>">
+            <%= dc.code %> - <%= truncate(dc.description.to_s, length: 30) %>
+            <button type="button"
+                    onclick="workflowRemoveDiagnosisCode(<%= dc.id %>)"
+                    class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
+          </span>
+        <% end %>
+      <% end %>
+    </div>
+
+    <!-- Hidden inputs for submission -->
+    <div id="workflowDiagnosisHiddenInputs">
+      <% Array(encounter.try(:diagnosis_code_ids)).first(5).each do |dc_id| %>
+        <input type="hidden"
+               name="encounter[diagnosis_code_ids][]"
+               value="<%= dc_id %>"
+               id="workflowDiagnosisHidden<%= dc_id %>">
+      <% end %>
+    </div>
+
+    <p class="text-xs text-gray-500">
+      Select up to 5 diagnosis codes. At least one is required.
+    </p>
+  </div>
+
+  <!-- Procedure Codes with search (up to 5) -->
+  <div class="space-y-4">
+    <h3 class="text-sm font-medium text-gray-900">Procedure Codes <span class="text-red-500">*</span></h3>
+
+    <div class="relative procedure-code-search">
+      <input type="text"
+             id="workflowProcedureInput"
+             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="Type to search procedure codes..."
+             autocomplete="off"
+             onfocus="workflowShowProcedureDropdown()"
+             oninput="workflowSearchProcedureCodes(this.value)">
+      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      <!-- Dropdown results -->
+      <div id="procedure_workflow_results"
+           class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
+      </div>
+    </div>
+
+    <!-- Selected procedure codes display -->
+    <div id="workflowSelectedProcedureCodes" class="mt-2 flex flex-wrap gap-2">
+      <% if encounter.respond_to?(:all_procedure_codes) && encounter.all_procedure_codes.present? %>
+        <% encounter.all_procedure_codes.first(5).each do |pc| %>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                data-procedure-id="<%= pc.id %>">
+            <%= pc.code %> - <%= truncate(pc.description.to_s, length: 30) %>
+            <button type="button"
+                    onclick="workflowRemoveProcedureCode(<%= pc.id %>)"
+                    class="ml-1 text-blue-600 hover:text-blue-800">×</button>
+          </span>
+        <% end %>
+      <% end %>
+    </div>
+
+    <!-- Hidden inputs for submission -->
+    <div id="workflowProcedureHiddenInputs">
+      <% Array(encounter.try(:procedure_code_ids)).first(5).each do |pc_id| %>
+        <input type="hidden"
+               name="encounter[procedure_code_ids][]"
+               value="<%= pc_id %>"
+               id="workflowProcedureHidden<%= pc_id %>">
+      <% end %>
+    </div>
+
+    <p class="text-xs text-gray-500">
+        Select up to 5 procedure codes. At least one is required.
+    </p>
+
+    <!-- Primary Procedure Code -->
+    <div class="space-y-1">
+      <label class="block text-sm font-medium text-gray-700">Primary Procedure Code</label>
+      <select name="encounter[primary_procedure_code_id]"
+              id="workflowPrimaryProcedure"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Select primary procedure (optional)...</option>
+      </select>
+      <p class="text-xs text-gray-500">
+        The primary procedure is optional and will be used for duration/pricing rules if specified.
+      </p>
+    </div>
+  </div>
+
+  <div class="flex justify-end pt-4 border-t border-gray-100">
+    <%= f.submit encounter.persisted? ? "Update Encounter" : "Save for Submission",
+                 class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer" %>
+  </div>
+<% end %>
+
+<script>
+  // Diagnosis code search for workflow (up to 5)
+  (function() {
+    if (window.workflowDiagnosisInitialized) return;
+    window.workflowDiagnosisInitialized = true;
+
+    const MAX_DIAGNOSIS_CODES = 5;
+    window.workflowSelectedDiagnosisCodes = window.workflowSelectedDiagnosisCodes || [];
+    let workflowDiagnosisTimeout = null;
+    const searchUrl = "<%= search_tenant_diagnosis_codes_path %>";
+
+    window.workflowShowDiagnosisDropdown = function() {
+      const resultsDiv = document.getElementById("diagnosis_workflow_results");
+      if (!resultsDiv) return;
+      resultsDiv.classList.remove("hidden");
+      if (resultsDiv.children.length === 0) {
+        workflowSearchDiagnosisCodes("");
+      }
+    };
+
+    window.workflowSearchDiagnosisCodes = function(query) {
+      const resultsDiv = document.getElementById("diagnosis_workflow_results");
+      if (!resultsDiv || !searchUrl) return;
+
+      if (workflowDiagnosisTimeout) {
+        clearTimeout(workflowDiagnosisTimeout);
+      }
+
+      workflowDiagnosisTimeout = setTimeout(function() {
+        resultsDiv.classList.remove("hidden");
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">Searching...</div>';
+
+        const url = searchUrl + "?q=" + encodeURIComponent(query || "");
+
+        fetch(url, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
+          },
+          credentials: "same-origin"
+        })
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.success && data.results) {
+              workflowDisplayDiagnosisResults(resultsDiv, data.results);
+            } else {
+              resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No diagnosis codes found</div>';
+            }
+          })
+          .catch(function(error) {
+            console.error("Error searching diagnosis codes:", error);
+            resultsDiv.innerHTML = '<div class="p-3 text-xs text-red-500 text-center">Error searching diagnosis codes</div>';
+          });
+      }, (query && query.length > 0) ? 250 : 0);
+    };
+
+    function workflowDisplayDiagnosisResults(resultsDiv, results) {
+      if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No diagnosis codes found</div>';
+        return;
+      }
+
+      var selectedArray = Array.isArray(window.workflowSelectedDiagnosisCodes)
+        ? window.workflowSelectedDiagnosisCodes
+        : [];
+      const selectedIds = selectedArray.map(function(s) { return s.id; });
+
+      const html = results.map(function(result) {
+        const code = result.code || "N/A";
+        const description = result.description || "No description";
+        const isSelected = selectedIds.indexOf(result.id) >= 0;
+
+        return (
+          '<div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors ' +
+          (isSelected ? 'bg-indigo-100' : '') + '" ' +
+          'onclick="workflowSelectDiagnosisCode(' + result.id + ', \'' + code.replace(/'/g, "\\'") + '\', \'' + description.replace(/'/g, "\\'") + '\')">' +
+            '<div class="text-xs font-medium text-gray-900">' + code +
+              (isSelected ? ' <span class=\"text-[10px] text-green-600\">(Selected)</span>' : '') +
+            '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">' + description + '</div>' +
+          '</div>'
+        );
+      }).join("");
+
+      resultsDiv.innerHTML =
+        '<div class="p-2 border-b border-gray-200"><div class="text-[11px] text-gray-500">Select diagnosis codes (up to ' +
+        MAX_DIAGNOSIS_CODES + ')</div></div>' + html;
+    }
+
+    window.workflowSelectDiagnosisCode = function(id, code, description) {
+      if (!Array.isArray(window.workflowSelectedDiagnosisCodes)) {
+        window.workflowSelectedDiagnosisCodes = [];
+      }
+
+      var selected = window.workflowSelectedDiagnosisCodes;
+      var existingIndex = selected.findIndex(function(s) { return s.id === id; });
+
+      if (existingIndex >= 0) {
+        selected.splice(existingIndex, 1);
+      } else {
+        if (selected.length >= MAX_DIAGNOSIS_CODES) {
+          alert("You can only select up to " + MAX_DIAGNOSIS_CODES + " diagnosis codes.");
+          return;
+        }
+        selected.push({ id: id, code: code, description: description });
+      }
+
+      workflowUpdateDiagnosisDisplay();
+
+      var input = document.getElementById("workflowDiagnosisInput");
+      if (input) input.value = "";
+
+      var resultsDiv = document.getElementById("diagnosis_workflow_results");
+      if (resultsDiv) resultsDiv.classList.add("hidden");
+    };
+
+    window.workflowRemoveDiagnosisCode = function(id) {
+      if (!window.workflowSelectedDiagnosisCodes) return;
+      var selected = window.workflowSelectedDiagnosisCodes;
+      var index = selected.findIndex(function(s) { return s.id === id; });
+      if (index >= 0) {
+        selected.splice(index, 1);
+        workflowUpdateDiagnosisDisplay();
+      }
+    };
+
+    function workflowUpdateDiagnosisDisplay() {
+      var container = document.getElementById("workflowSelectedDiagnosisCodes");
+      var hiddenInputs = document.getElementById("workflowDiagnosisHiddenInputs");
+      if (!container || !hiddenInputs) return;
+
+      var selected = window.workflowSelectedDiagnosisCodes || [];
+
+      if (selected.length === 0) {
+        container.innerHTML = '<span class="text-xs text-gray-500">No diagnosis codes selected</span>';
+      } else {
+        container.innerHTML = selected.map(function(item) {
+          var displayText = item.description
+            ? (item.code + " - " + (item.description.length > 30 ? item.description.substring(0, 30) + "..." : item.description))
+            : item.code;
+          return (
+            '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" data-code-id="' + item.id + '">' +
+              displayText +
+              '<button type="button" onclick="workflowRemoveDiagnosisCode(' + item.id + ')" class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>' +
+            '</span>'
+          );
+        }).join(" ");
+      }
+
+      hiddenInputs.innerHTML = selected.map(function(item) {
+        return '<input type="hidden" name="encounter[diagnosis_code_ids][]" value="' + item.id + '" id="workflowDiagnosisHidden' + item.id + '">';
+      }).join("");
+    }
+
+    // Initialize from server-side selected codes on first load
+    function initializeDiagnosisCodes() {
+      if (!Array.isArray(window.workflowSelectedDiagnosisCodes)) {
+        window.workflowSelectedDiagnosisCodes = [];
+      }
+      
+      var initialChips = document.querySelectorAll("#workflowSelectedDiagnosisCodes [data-code-id]");
+      if (initialChips && initialChips.length > 0) {
+        window.workflowSelectedDiagnosisCodes = Array.prototype.map.call(initialChips, function(el) {
+          var id = parseInt(el.getAttribute("data-code-id"), 10);
+          var text = el.textContent.trim().replace("×", "").trim();
+          var code = text.split(" - ")[0];
+          var description = text.split(" - ").slice(1).join(" - ");
+          return { id: id, code: code, description: description };
+        });
+        workflowUpdateDiagnosisDisplay();
+      }
+    }
+
+    document.addEventListener("turbo:load", initializeDiagnosisCodes);
+    document.addEventListener("DOMContentLoaded", initializeDiagnosisCodes);
+    
+    // Also initialize immediately if DOM is already loaded
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeDiagnosisCodes);
+    } else {
+      initializeDiagnosisCodes();
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function(event) {
+      var searchWrapper = document.querySelector(".diagnosis-code-search");
+      if (searchWrapper && !searchWrapper.contains(event.target)) {
+        var resultsDiv = document.getElementById("diagnosis_workflow_results");
+        if (resultsDiv) resultsDiv.classList.add("hidden");
+      }
+    });
+  })();
+
+  // Procedure code search for workflow (up to 5)
+  (function() {
+    if (window.workflowProcedureInitialized) return;
+    window.workflowProcedureInitialized = true;
+
+    const MAX_PROCEDURE_CODES = 5;
+    window.workflowSelectedProcedureCodes = window.workflowSelectedProcedureCodes || [];
+    let workflowProcedureTimeout = null;
+    const procedureSearchUrl = "<%= search_tenant_procedure_codes_path %>";
+
+    window.workflowShowProcedureDropdown = function() {
+      const resultsDiv = document.getElementById("procedure_workflow_results");
+      if (!resultsDiv) return;
+      resultsDiv.classList.remove("hidden");
+      if (resultsDiv.children.length === 0) {
+        workflowSearchProcedureCodes("");
+      }
+    };
+
+    window.workflowSearchProcedureCodes = function(query) {
+      const resultsDiv = document.getElementById("procedure_workflow_results");
+      if (!resultsDiv || !procedureSearchUrl) return;
+
+      if (workflowProcedureTimeout) {
+        clearTimeout(workflowProcedureTimeout);
+      }
+
+      workflowProcedureTimeout = setTimeout(function() {
+        resultsDiv.classList.remove("hidden");
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">Searching...</div>';
+
+        const url = procedureSearchUrl + "?q=" + encodeURIComponent(query || "");
+
+        fetch(url, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
+          },
+          credentials: "same-origin"
+        })
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.success && data.results) {
+              workflowDisplayProcedureResults(resultsDiv, data.results);
+            } else {
+              resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No procedure codes found</div>';
+            }
+          })
+          .catch(function(error) {
+            console.error("Error searching procedure codes:", error);
+            resultsDiv.innerHTML = '<div class="p-3 text-xs text-red-500 text-center">Error searching procedure codes</div>';
+          });
+      }, (query && query.length > 0) ? 250 : 0);
+    };
+
+    function workflowDisplayProcedureResults(resultsDiv, results) {
+      if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No procedure codes found</div>';
+        return;
+      }
+
+      if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
+        window.workflowSelectedProcedureCodes = [];
+      }
+      const selectedIds = window.workflowSelectedProcedureCodes.map(function(s) { return s.id; });
+
+      const html = results.map(function(result) {
+        const code = result.code || "N/A";
+        const description = result.description || "No description";
+        const isSelected = selectedIds.indexOf(result.id) >= 0;
+
+        return (
+          '<div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors ' +
+          (isSelected ? 'bg-blue-100' : '') + '" ' +
+          'onclick="workflowSelectProcedureCode(' + result.id + ', \'' + code.replace(/'/g, "\\'") + '\', \'' + description.replace(/'/g, "\\'") + '\')">' +
+            '<div class="text-xs font-medium text-gray-900">' + code +
+              (isSelected ? ' <span class=\"text-[10px] text-green-600\">(Selected)</span>' : '') +
+            '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">' + description + '</div>' +
+          '</div>'
+        );
+      }).join("");
+
+      resultsDiv.innerHTML =
+        '<div class="p-2 border-b border-gray-200"><div class="text-[11px] text-gray-500">Select procedure codes (up to ' +
+        MAX_PROCEDURE_CODES + ')</div></div>' + html;
+    }
+
+    window.workflowSelectProcedureCode = function(id, code, description) {
+      if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
+        window.workflowSelectedProcedureCodes = [];
+      }
+
+      var selected = window.workflowSelectedProcedureCodes;
+      var existingIndex = selected.findIndex(function(s) { return s.id === id; });
+
+      if (existingIndex >= 0) {
+        selected.splice(existingIndex, 1);
+      } else {
+        if (selected.length >= MAX_PROCEDURE_CODES) {
+          alert("You can only select up to " + MAX_PROCEDURE_CODES + " procedure codes.");
+          return;
+        }
+        selected.push({ id: id, code: code, description: description });
+      }
+
+      workflowUpdateProcedureDisplay();
+
+      var input = document.getElementById("workflowProcedureInput");
+      if (input) input.value = "";
+
+      var resultsDiv = document.getElementById("procedure_workflow_results");
+      if (resultsDiv) resultsDiv.classList.add("hidden");
+    };
+
+    window.workflowRemoveProcedureCode = function(id) {
+      if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
+        window.workflowSelectedProcedureCodes = [];
+      }
+      var selected = window.workflowSelectedProcedureCodes;
+      var index = selected.findIndex(function(s) { return s.id === id; });
+      if (index >= 0) {
+        selected.splice(index, 1);
+        workflowUpdateProcedureDisplay();
+      }
+    };
+
+    function workflowUpdateProcedureDisplay() {
+      var container = document.getElementById("workflowSelectedProcedureCodes");
+      var hiddenInputs = document.getElementById("workflowProcedureHiddenInputs");
+      var primarySelect = document.getElementById("workflowPrimaryProcedure");
+      if (!container || !hiddenInputs || !primarySelect) return;
+
+      if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
+        window.workflowSelectedProcedureCodes = [];
+      }
+      var selected = window.workflowSelectedProcedureCodes;
+
+      if (selected.length === 0) {
+        container.innerHTML = '<span class="text-xs text-gray-500">No procedure codes selected</span>';
+      } else {
+        container.innerHTML = selected.map(function(item) {
+          var displayText = item.description
+            ? (item.code + " - " + (item.description.length > 30 ? item.description.substring(0, 30) + "..." : item.description))
+            : item.code;
+          return (
+            '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700" data-procedure-id="' + item.id + '">' +
+              displayText +
+              '<button type="button" onclick="workflowRemoveProcedureCode(' + item.id + ')" class="ml-1 text-blue-600 hover:text-blue-800">×</button>' +
+            '</span>'
+          );
+        }).join(" ");
+      }
+
+      hiddenInputs.innerHTML = selected.map(function(item) {
+        return '<input type="hidden" name="encounter[procedure_code_ids][]" value="' + item.id + '" id="workflowProcedureHidden' + item.id + '">';
+      }).join("");
+
+      // Rebuild primary procedure select
+      primarySelect.innerHTML = '<option value="">Select primary procedure (optional)...</option>';
+      selected.forEach(function(item) {
+        var opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = item.code;
+        primarySelect.appendChild(opt);
+      });
+      
+      // If there's only one procedure code, auto-select it as primary
+      if (selected.length === 1 && !primarySelect.value) {
+        primarySelect.value = selected[0].id;
+      }
+    }
+
+    // Initialize procedure codes from server-side on first load
+    function initializeProcedureCodes() {
+      if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
+        window.workflowSelectedProcedureCodes = [];
+      }
+      
+      var initialChips = document.querySelectorAll("#workflowSelectedProcedureCodes [data-procedure-id]");
+      if (initialChips && initialChips.length > 0) {
+        window.workflowSelectedProcedureCodes = Array.prototype.map.call(initialChips, function(el) {
+          var id = parseInt(el.getAttribute("data-procedure-id"), 10);
+          var text = el.textContent.trim().replace("×", "").trim();
+          var code = text.split(" - ")[0];
+          var description = text.split(" - ").slice(1).join(" - ");
+          return { id: id, code: code, description: description };
+        });
+        workflowUpdateProcedureDisplay();
+      }
+    }
+
+    document.addEventListener("turbo:load", initializeProcedureCodes);
+    document.addEventListener("DOMContentLoaded", initializeProcedureCodes);
+    
+    // Also initialize immediately if DOM is already loaded
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeProcedureCodes);
+    } else {
+      initializeProcedureCodes();
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function(event) {
+      var searchWrapper = document.querySelector(".procedure-code-search");
+      if (searchWrapper && !searchWrapper.contains(event.target)) {
+        var resultsDiv = document.getElementById("procedure_workflow_results");
+        if (resultsDiv) resultsDiv.classList.add("hidden");
+      }
+    });
+  })();
+</script>
+
+

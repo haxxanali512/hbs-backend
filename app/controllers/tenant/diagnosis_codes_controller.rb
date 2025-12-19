@@ -10,6 +10,27 @@ class Tenant::DiagnosisCodesController < Tenant::BaseController
 
   def show; end
 
+  def search
+    search_term = params[:q].to_s.strip
+
+    diagnosis_codes = DiagnosisCode.active
+                                   .search(search_term)
+                                   .order(:code)
+                                   .limit(50)
+
+    render json: {
+      success: true,
+      results: diagnosis_codes.map do |dc|
+        {
+          id: dc.id,
+          code: dc.code || "",
+          description: dc.description || "",
+          display: "#{dc.code || 'N/A'} - #{dc.description || 'No description'}"
+        }
+      end
+    }
+  end
+
   # Allows clients to request a new diagnosis code to be added
   def request_review
     # Placeholder: create a task/ticket for HBS to review

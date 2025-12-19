@@ -27,6 +27,31 @@ class Tenant::ProcedureCodesController < Tenant::BaseController
                                         .includes(:organization_fee_schedule)
   end
 
+  def search
+    search_term = params[:q].to_s.strip
+
+    procedure_codes = @current_organization
+      .unlocked_procedure_codes
+      .kept
+      .active
+      .search(search_term)
+      .order(:code_type, :code)
+      .limit(50)
+
+    render json: {
+      success: true,
+      results: procedure_codes.map do |pc|
+        {
+          id: pc.id,
+          code: pc.code || "",
+          description: pc.description || "",
+          code_type: pc.code_type || nil,
+          display: "#{pc.code || 'N/A'} - #{pc.description || 'No description'}"
+        }
+      end
+    }
+  end
+
   private
 
   def set_procedure_code

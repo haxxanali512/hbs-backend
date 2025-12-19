@@ -1,0 +1,16 @@
+<div class="mb-4 flex justify-between items-center" id="send_for_billing_section">
+  <div></div>
+  <% if encounters.any? %>
+    <%= form_with url: submit_queued_tenant_encounters_path,
+                  method: :post,
+                  data: { turbo_stream: true },
+                  class: "inline" do |f| %>
+      <%= f.hidden_field :encounter_ids, value: "", id: "encounter_ids_input" %>
+      <%= f.submit "Send for Billing",
+                  id: "submit_queued_button",
+                  class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed",
+                  disabled: true %>
+    <% end %>
+  <% end %>
+</div>
+

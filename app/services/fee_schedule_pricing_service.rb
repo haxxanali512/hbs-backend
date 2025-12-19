@@ -60,7 +60,7 @@ class FeeSchedulePricingService
     def get_organization_pricing_summary(organization_id)
       schedules = OrganizationFeeSchedule.kept
                                         .where(organization_id: organization_id)
-                                        .includes(:specialty, :organization_fee_schedule_items)
+                                        .includes(:organization_fee_schedule_items)
 
       {
         total_schedules: schedules.count,

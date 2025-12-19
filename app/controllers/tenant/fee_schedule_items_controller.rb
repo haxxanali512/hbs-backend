@@ -121,6 +121,6 @@ class Tenant::FeeScheduleItemsController < Tenant::BaseController
   end
 
   def fee_schedule_item_params
-    params.require(:organization_fee_schedule_item).permit(:unit_price, :pricing_rule)
+    params.require(:organization_fee_schedule_item).permit(:unit_price)
   end
 end

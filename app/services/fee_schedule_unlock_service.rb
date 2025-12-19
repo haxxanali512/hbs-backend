@@ -18,11 +18,23 @@ class FeeScheduleUnlockService
         .find_by(procedure_code_id: procedure_code.id)
 
       if existing_item.nil?
+        # Determine pricing rule from ProcedureCodeRule (admin-managed) if present
+        rule = procedure_code.procedure_code_rule
+        pricing_rule_symbol =
+          case rule&.pricing_type
+          when "per_unit"
+            :price_per_unit
+          when "per_procedure"
+            :flat
+          else
+            :price_per_unit
+          end
+
         # Create new item with null unit_price (rate will be entered later by Client_Admin)
         fee_schedule.organization_fee_schedule_items.create!(
           procedure_code_id: procedure_code.id,
           unit_price: nil, # Will be filled by Client_Admin
-          pricing_rule: :price_per_unit, # Default, can be changed later
+          pricing_rule: pricing_rule_symbol,
           active: true
         )
         unlocked_count += 1

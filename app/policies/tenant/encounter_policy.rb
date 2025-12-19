@@ -23,6 +23,10 @@ class Tenant::EncounterPolicy < ApplicationPolicy
     update?
   end
 
+  def submitted?
+    index?
+  end
+
   def destroy?
     accessible?("tenant", "encounters", "destroy")
   end
@@ -53,6 +57,14 @@ class Tenant::EncounterPolicy < ApplicationPolicy
 
   def diagnosis_codes_search?
     submit_for_billing?
+  end
+
+  def submit_queued?
+    create?
+  end
+
+  def workflow?
+    create?
   end
 
   class Scope < Scope

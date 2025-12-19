@@ -24,6 +24,7 @@ class Admin::ProcedureCodesController < Admin::BaseController
 
   def new
     @procedure_code = ProcedureCode.new
+    @procedure_code.build_procedure_code_rule
   end
 
   def create
@@ -37,6 +38,7 @@ class Admin::ProcedureCodesController < Admin::BaseController
   end
 
   def edit
+    @procedure_code.build_procedure_code_rule unless @procedure_code.procedure_code_rule
   end
 
   def update
@@ -112,6 +114,18 @@ class Admin::ProcedureCodesController < Admin::BaseController
   end
 
   def procedure_code_params
-    params.require(:procedure_code).permit(:code, :description, :code_type, :status, :push_to_ezclaim)
+    params.require(:procedure_code).permit(
+      :code,
+      :description,
+      :code_type,
+      :status,
+      :push_to_ezclaim,
+      procedure_code_rule_attributes: [
+        :id,
+        :time_based,
+        :pricing_type,
+        :special_rules_text
+      ]
+    )
   end
 end
