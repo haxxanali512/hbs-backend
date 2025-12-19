@@ -70,11 +70,6 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("HOST", "localhost") }
 
-  # Letter opener configuration
-  config.action_mailer.letter_opener_settings = {
-    location: Rails.root.join("tmp", "letter_opener")
-  }
-
   # Mailtrap SMTP settings (commented out - using letter_opener for now)
   # config.action_mailer.smtp_settings = {
   #   user_name: "f08f0eb24d9514",
