@@ -115,6 +115,68 @@
           </div>
         </div>
 
+        <!-- Insurance Coverage -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Insurance Coverage</h2>
+            <%= link_to "Manage Insurance", edit_tenant_patient_path(@patient, anchor: 'insurance'), class: "text-sm text-blue-600 hover:text-blue-800" if @patient.can_edit_demographics? %>
+          </div>
+          
+          <% if @patient.patient_insurance_coverages.any? %>
+            <div class="space-y-4">
+              <% @patient.patient_insurance_coverages.order(coverage_order: :asc).each do |coverage| %>
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h3 class="text-sm font-semibold text-gray-900">
+                          <%= coverage.insurance_plan&.name || "Unknown Plan" %>
+                        </h3>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= coverage.coverage_order == 'primary' ? 'bg-blue-100 text-blue-800' : coverage.coverage_order == 'secondary' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800' %>">
+                          <%= coverage.coverage_order.humanize %>
+                        </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= coverage.status_badge_class %>">
+                          <%= coverage.status.humanize %>
+                        </span>
+                      </div>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span class="text-gray-500">Member ID:</span>
+                          <span class="ml-2 font-mono text-gray-900"><%= coverage.member_id %></span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500">Subscriber:</span>
+                          <span class="ml-2 text-gray-900"><%= coverage.subscriber_name %></span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500">Relationship:</span>
+                          <span class="ml-2 text-gray-900"><%= coverage.relationship_to_subscriber.humanize %></span>
+                        </div>
+                        <% if coverage.effective_date.present? || coverage.termination_date.present? %>
+                          <div>
+                            <span class="text-gray-500">Dates:</span>
+                            <span class="ml-2 text-gray-900">
+                              <%= coverage.effective_date&.strftime("%m/%d/%Y") || "—" %>
+                              <% if coverage.termination_date.present? %>
+                                - <%= coverage.termination_date.strftime("%m/%d/%Y") %>
+                              <% end %>
+                            </span>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <%= link_to "View Details", tenant_patient_insurance_coverage_path(coverage), class: "text-sm text-blue-600 hover:text-blue-800" %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No insurance coverage on file.</p>
+          <% end %>
+        </div>
+
         <!-- Notes -->
         <% if @patient.notes_nonphi.present? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

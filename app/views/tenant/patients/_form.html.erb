@@ -195,10 +195,43 @@
 
   <!-- Insurance Coverage -->
   <div class="space-y-4">
-    <h3 class="text-lg font-medium text-gray-900">Insurance Coverage</h3>
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-medium text-gray-900">Insurance Coverage</h3>
+      <button 
+        type="button" 
+        onclick="addInsuranceCoverage()"
+        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Add Insurance Plan
+      </button>
+    </div>
 
-    <%= f.fields_for :patient_insurance_coverages do |coverage_form| %>
-      <div class="border border-gray-200 rounded-lg p-6 space-y-4">
+    <div id="insurance_coverages_container" class="space-y-4">
+      <%= f.fields_for :patient_insurance_coverages do |coverage_form| %>
+        <div class="insurance-coverage-item border border-gray-200 rounded-lg p-6 space-y-4 relative">
+          <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+            <h4 class="text-md font-semibold text-gray-900">
+              Insurance Plan
+              <% if coverage_form.object.coverage_order.present? %>
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= coverage_form.object.coverage_order == 'primary' ? 'bg-blue-100 text-blue-800' : coverage_form.object.coverage_order == 'secondary' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800' %>">
+                  <%= coverage_form.object.coverage_order.humanize %>
+                </span>
+              <% end %>
+            </h4>
+            <% unless coverage_form.object.new_record? %>
+              <%= coverage_form.check_box :_destroy, { class: "hidden" }, "1", "0" %>
+            <% end %>
+            <button 
+              type="button" 
+              onclick="removeInsuranceCoverage(this)"
+              class="text-red-600 hover:text-red-800 text-sm font-medium"
+            >
+              Remove
+            </button>
+          </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Core Information -->
           <div class="space-y-4">
@@ -219,11 +252,16 @@
             </div>
 
             <div>
-              <%= coverage_form.label :coverage_order, "Coverage Order", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.label :coverage_order, "Coverage Order (Primary/Secondary/Tertiary)", class: "block text-sm font-medium text-gray-700 mb-1" %>
               <%= coverage_form.select :coverage_order, 
-                  options_for_select(PatientInsuranceCoverage.coverage_orders.keys.map { |k| [k.humanize, k] }, coverage_form.object.coverage_order),
-                  { prompt: "Select Order" },
-                  { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+                  options_for_select([
+                    ["Primary", "primary"],
+                    ["Secondary", "secondary"],
+                    ["Tertiary", "tertiary"]
+                  ], coverage_form.object.coverage_order),
+                  { prompt: "Select Coverage Order" },
+                  { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
+              <p class="text-xs text-gray-500 mt-1">Select whether this is the patient's Primary, Secondary, or Tertiary insurance plan</p>
             </div>
 
             <div>
@@ -309,9 +347,98 @@
             </div>
           </div>
         </div>
-      </div>
-    <% end %>
+        </div>
+      <% end %>
+    </div>
   </div>
+
+  <script>
+    function addInsuranceCoverage() {
+      const container = document.getElementById('insurance_coverages_container');
+      const template = container.querySelector('.insurance-coverage-item');
+      
+      if (!template) {
+        alert('Please refresh the page and try again.');
+        return;
+      }
+      
+      // Clone the template
+      const newForm = template.cloneNode(true);
+      
+      // Find the highest index in existing forms
+      let maxIndex = -1;
+      container.querySelectorAll('.insurance-coverage-item').forEach(item => {
+        const inputs = item.querySelectorAll('input[name*="[patient_insurance_coverages_attributes]"], select[name*="[patient_insurance_coverages_attributes]"], textarea[name*="[patient_insurance_coverages_attributes]"]');
+        inputs.forEach(input => {
+          const match = input.name.match(/\[patient_insurance_coverages_attributes\]\[(\d+)\]/);
+          if (match) {
+            const idx = parseInt(match[1]);
+            if (idx > maxIndex) maxIndex = idx;
+          }
+        });
+      });
+      
+      const newIndex = maxIndex + 1;
+      
+      // Update all form field names and IDs
+      newForm.querySelectorAll('input, select, textarea, label').forEach(element => {
+        // Update name attributes
+        if (element.name) {
+          element.name = element.name.replace(/\[patient_insurance_coverages_attributes\]\[\d+\]/, `[patient_insurance_coverages_attributes][${newIndex}]`);
+        }
+        
+        // Update id attributes
+        if (element.id) {
+          element.id = element.id.replace(/\d+/, newIndex);
+        }
+        
+        // Update for attributes in labels
+        if (element.hasAttribute('for')) {
+          element.setAttribute('for', element.getAttribute('for').replace(/\d+/, newIndex));
+        }
+        
+        // Reset values
+        if (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA') {
+          if (element.type === 'checkbox' || element.type === 'radio') {
+            element.checked = false;
+          } else if (element.type === 'date') {
+            element.value = '';
+          } else {
+            element.value = '';
+          }
+        }
+      });
+      
+      // Remove the destroy checkbox if it exists (for new records)
+      const destroyCheckbox = newForm.querySelector('input[name*="[_destroy]"]');
+      if (destroyCheckbox) {
+        destroyCheckbox.remove();
+      }
+      
+      // Reset the header
+      const header = newForm.querySelector('h4');
+      if (header) {
+        header.innerHTML = 'Insurance Plan';
+      }
+      
+      // Add the new form to the container
+      container.appendChild(newForm);
+    }
+
+    function removeInsuranceCoverage(button) {
+      const item = button.closest('.insurance-coverage-item');
+      const destroyCheckbox = item.querySelector('input[name*="[_destroy]"]');
+      
+      if (destroyCheckbox) {
+        // Mark for destruction (existing record)
+        destroyCheckbox.checked = true;
+        item.style.display = 'none';
+      } else {
+        // Remove new record
+        item.remove();
+      }
+    }
+  </script>
 
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">

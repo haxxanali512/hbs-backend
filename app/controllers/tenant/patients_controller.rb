@@ -52,7 +52,10 @@ class Tenant::PatientsController < Tenant::BaseController
     ]
   end
 
-  def show; end
+  def show
+    # Eager load insurance coverages to avoid N+1 queries
+    @patient.patient_insurance_coverages.load
+  end
 
   def new
     @patient = @current_organization.patients.build
