@@ -91,7 +91,7 @@
       <div class="info-box">
         <h3>Organization Details</h3>
         <p><strong>Name:</strong> <%= @organization.name %></p>
-        <p><strong>Tier:</strong> <%= @organization.tier&.humanize %></p>
+        <p><strong>Tier:</strong> <%= @organization.tier || 'N/A' %></p>
         <p><strong>Status:</strong> <%= @organization.activation_status.humanize %></p>
         <p><strong>Activated:</strong> <%= @organization.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
       </div>

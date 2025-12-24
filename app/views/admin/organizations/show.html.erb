@@ -30,12 +30,13 @@
           <label class="block text-sm font-medium text-gray-700">Tier</label>
           <span class="mt-1 inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium
             <%= case @organization.tier
-                when 'premium' then 'bg-purple-50 text-purple-700'
-                when 'standard' then 'bg-blue-50 text-blue-700'
-                when 'basic' then 'bg-gray-50 text-gray-700'
+                when '9%' then 'bg-purple-50 text-purple-700'
+                when '8%' then 'bg-indigo-50 text-indigo-700'
+                when '7%' then 'bg-blue-50 text-blue-700'
+                when '6%' then 'bg-gray-50 text-gray-700'
                 else 'bg-gray-50 text-gray-700'
                 end %>">
-            <%= @organization.tier&.humanize %>
+            <%= @organization.tier || 'N/A' %>
           </span>
         </div>
         <div>

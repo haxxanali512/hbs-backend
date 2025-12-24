@@ -1,0 +1,24 @@
+Data Import Complete
+
+Hello <%= @user.display_name %>,
+
+Your data import for <%= @model_name %> has been completed.
+
+Import Summary:
+  Successful: <%= @result[:success_count] %>
+  Failed: <%= @result[:error_count] %>
+
+<% if @failed_rows.any? %>
+Failed Rows:
+<% @failed_rows.each do |error| %>
+  Row #<%= error[:row] || 'N/A' %>:
+    Data: <%= error[:data].to_json rescue 'N/A' %>
+    Error(s):
+<% (error[:errors] || []).each do |err| %>
+      - <%= err %>
+<% end %>
+
+<% end %>
+<% end %>
+
+This is an automated message from the HBS Data Processing system.

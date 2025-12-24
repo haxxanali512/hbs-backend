@@ -22,7 +22,7 @@
             </span>
           </div>
           <p class="mt-1 text-sm text-gray-500">Subdomain: <%= organization.subdomain %></p>
-          <p class="mt-1 text-sm text-gray-500">Tier: <%= organization.tier.humanize %></p>
+          <p class="mt-1 text-sm text-gray-500">Tier: <%= organization.tier || 'N/A' %></p>
         </div>
         
         <div class="border-t border-gray-100 px-5 py-4 sm:px-6 sm:py-5">

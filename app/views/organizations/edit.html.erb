@@ -62,15 +62,167 @@
           <label class="block text-sm font-medium text-gray-700">Plan Tier</label>
           <%= f.select :tier, 
               options_for_select([
-                ['Basic', 'basic'],
-                ['Professional', 'professional'],
-                ['Enterprise', 'enterprise'],
-                ['Premium', 'premium']
+                ['6%', '6%'],
+                ['7%', '7%'],
+                ['8%', '8%'],
+                ['9%', '9%']
               ], @organization.tier), 
               { prompt: 'Select a plan tier' },
               { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
         </div>
       </div>
+    </div>
+
+    <!-- Organization Contact -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm mt-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Contact Information</h3>
+      <%= f.fields_for :organization_contact do |c| %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Address Line 1</label>
+            <%= c.text_field :address_line1, placeholder: "123 Main Street", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Address Line 2</label>
+            <%= c.text_field :address_line2, placeholder: "Suite 100 (optional)", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">City</label>
+            <%= c.text_field :city, placeholder: "New York", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">State</label>
+            <%= c.text_field :state, placeholder: "NY", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">ZIP Code</label>
+            <%= c.text_field :zip, placeholder: "10001", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Country</label>
+            <%= c.text_field :country, placeholder: "US", value: c.object&.country || "US", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Phone</label>
+            <%= c.text_field :phone, placeholder: "(555) 123-4567", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Email</label>
+            <%= c.email_field :email, placeholder: "contact@example.com", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Time Zone</label>
+            <%= c.text_field :time_zone, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500", placeholder: "America/New_York" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Contact Type</label>
+            <%= c.select :contact_type, options_for_select([["Primary", 0], ["Billing", 1], ["Administrative", 2]], c.object&.contact_type), { prompt: "Select contact type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Organization Identifier -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm mt-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Organization Identifiers</h3>
+      <%= f.fields_for :organization_identifier do |i| %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Tax Identification Number (TIN)</label>
+            <%= i.text_field :tax_identification_number, placeholder: "12-3456789", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Tax ID Type</label>
+            <%= i.select :tax_id_type, options_for_select([["SSN", 0], ["EIN", 1]], i.object&.tax_id_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">NPI</label>
+            <%= i.text_field :npi, placeholder: "1234567890", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">NPI Type</label>
+            <%= i.select :npi_type, options_for_select([["Type 1", 0], ["Type 2", 1]], i.object&.npi_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Previous TIN</label>
+            <%= i.text_field :previous_tin, placeholder: "12-3456789 (if changed)", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Previous NPI</label>
+            <%= i.text_field :previous_npi, placeholder: "1234567890 (if changed)", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Identifiers Change Status</label>
+            <%= i.select :identifiers_change_status, options_for_select([["Pending", 0], ["Approved", 1], ["Rejected", 2]], i.object&.identifiers_change_status), { prompt: "Select status" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Identifiers Change Effective On</label>
+            <%= i.date_field :identifiers_change_effective_on, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Identifiers Change Docs</label>
+            <%= i.text_field :identifiers_change_docs, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500", placeholder: "Document references or URLs" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Organization Members -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm mt-6">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Organization Members</h3>
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">Select Members</label>
+
+        <div class="relative member-search">
+          <input type="text"
+                 id="organizationMemberInput"
+                 class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm member-search-input focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                 placeholder="Type to search users..."
+                 autocomplete="off"
+                 onfocus="showMemberDropdown()"
+                 oninput="searchMembers(this.value)">
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+
+          <!-- Dropdown results -->
+          <div id="member_search_results"
+               class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
+          </div>
+        </div>
+
+        <!-- Selected members display -->
+        <div id="selectedMembers" class="mt-2 flex flex-wrap gap-2">
+          <% if @organization.members.any? %>
+            <% @organization.members.each do |member| %>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                    data-member-id="<%= member.id %>">
+                <%= member.display_name %> (<%= member.email %>)
+                <button type="button"
+                        onclick="removeMember(<%= member.id %>)"
+                        class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
+              </span>
+            <% end %>
+          <% end %>
+        </div>
+
+        <!-- Hidden inputs for submission -->
+        <div id="memberHiddenInputs">
+          <% if @organization.members.any? %>
+            <% @organization.members.each do |member| %>
+              <input type="hidden"
+                     name="member_ids[]"
+                     value="<%= member.id %>"
+                     id="memberHidden<%= member.id %>">
+            <% end %>
+          <% end %>
+        </div>
+
+        <p class="text-xs text-gray-500">The owner is automatically added as a member.</p>
+      </div>
+    </div>
 
       <!-- Form Actions -->
       <div class="mt-6 flex items-center justify-end gap-4">
@@ -80,3 +232,188 @@
     </div>
   <% end %>
 </div>
+
+<script>
+  // Member search functionality
+  (function() {
+    if (window.memberSearchInitialized) return;
+    window.memberSearchInitialized = true;
+
+    window.selectedMembers = window.selectedMembers || [];
+    let memberSearchTimeout = null;
+    const searchUrl = "<%= users_search_admin_organizations_path %>";
+
+    // Initialize from server-side selected members
+    function initializeMembers() {
+      if (!Array.isArray(window.selectedMembers)) {
+        window.selectedMembers = [];
+      }
+      
+      var initialChips = document.querySelectorAll("#selectedMembers [data-member-id]");
+      if (initialChips && initialChips.length > 0) {
+        window.selectedMembers = Array.prototype.map.call(initialChips, function(el) {
+          var id = parseInt(el.getAttribute("data-member-id"), 10);
+          var text = el.textContent.trim().replace("×", "").trim();
+          var parts = text.match(/^(.+?)\s*\((.+?)\)$/);
+          return {
+            id: id,
+            name: parts ? parts[1].trim() : text,
+            email: parts ? parts[2].trim() : ""
+          };
+        });
+        updateMemberDisplay();
+      }
+    }
+
+    window.showMemberDropdown = function() {
+      const resultsDiv = document.getElementById("member_search_results");
+      if (!resultsDiv) return;
+      resultsDiv.classList.remove("hidden");
+      if (resultsDiv.children.length === 0) {
+        searchMembers("");
+      }
+    };
+
+    window.searchMembers = function(query) {
+      const resultsDiv = document.getElementById("member_search_results");
+      if (!resultsDiv || !searchUrl) return;
+
+      if (memberSearchTimeout) {
+        clearTimeout(memberSearchTimeout);
+      }
+
+      memberSearchTimeout = setTimeout(function() {
+        resultsDiv.classList.remove("hidden");
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">Searching...</div>';
+
+        const url = searchUrl + "?q=" + encodeURIComponent(query || "");
+
+        fetch(url, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
+          },
+          credentials: "same-origin"
+        })
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.success && data.results) {
+              displayMemberResults(resultsDiv, data.results);
+            } else {
+              resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No users found</div>';
+            }
+          })
+          .catch(function(error) {
+            console.error("Error searching members:", error);
+            resultsDiv.innerHTML = '<div class="p-3 text-xs text-red-500 text-center">Error searching users</div>';
+          });
+      }, (query && query.length > 0) ? 250 : 0);
+    };
+
+    function displayMemberResults(resultsDiv, results) {
+      if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No users found</div>';
+        return;
+      }
+
+      var selectedArray = Array.isArray(window.selectedMembers) ? window.selectedMembers : [];
+      const selectedIds = selectedArray.map(function(s) { return s.id; });
+
+      const html = results.map(function(result) {
+        const isSelected = selectedIds.indexOf(result.id) >= 0;
+        return (
+          '<div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors ' +
+          (isSelected ? 'bg-indigo-100' : '') + '" ' +
+          'onclick="selectMember(' + result.id + ', \'' + (result.name || '').replace(/'/g, "\\'") + '\', \'' + (result.email || '').replace(/'/g, "\\'") + '\')">' +
+            '<div class="text-xs font-medium text-gray-900">' + (result.name || 'N/A') +
+              (isSelected ? ' <span class="text-[10px] text-green-600">(Selected)</span>' : '') +
+            '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">' + (result.email || '') + '</div>' +
+          '</div>'
+        );
+      }).join("");
+
+      resultsDiv.innerHTML = html;
+    }
+
+    window.selectMember = function(id, name, email) {
+      if (!Array.isArray(window.selectedMembers)) {
+        window.selectedMembers = [];
+      }
+
+      var selected = window.selectedMembers;
+      var existingIndex = selected.findIndex(function(s) { return s.id === id; });
+
+      if (existingIndex >= 0) {
+        selected.splice(existingIndex, 1);
+      } else {
+        selected.push({ id: id, name: name, email: email });
+      }
+
+      updateMemberDisplay();
+
+      var input = document.getElementById("organizationMemberInput");
+      if (input) input.value = "";
+
+      var resultsDiv = document.getElementById("member_search_results");
+      if (resultsDiv) resultsDiv.classList.add("hidden");
+    };
+
+    window.removeMember = function(id) {
+      if (!window.selectedMembers) return;
+      var selected = window.selectedMembers;
+      var index = selected.findIndex(function(s) { return s.id === id; });
+      if (index >= 0) {
+        selected.splice(index, 1);
+        updateMemberDisplay();
+      }
+    };
+
+    function updateMemberDisplay() {
+      var container = document.getElementById("selectedMembers");
+      var hiddenInputs = document.getElementById("memberHiddenInputs");
+      if (!container || !hiddenInputs) return;
+
+      var selected = window.selectedMembers || [];
+
+      if (selected.length === 0) {
+        container.innerHTML = '<span class="text-xs text-gray-500">No members selected</span>';
+      } else {
+        container.innerHTML = selected.map(function(item) {
+          var displayText = item.email
+            ? (item.name + " (" + item.email + ")")
+            : item.name;
+          return (
+            '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" data-member-id="' + item.id + '">' +
+              displayText +
+              '<button type="button" onclick="removeMember(' + item.id + ')" class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>' +
+            '</span>'
+          );
+        }).join(" ");
+      }
+
+      hiddenInputs.innerHTML = selected.map(function(item) {
+        return '<input type="hidden" name="member_ids[]" value="' + item.id + '" id="memberHidden' + item.id + '">';
+      }).join("");
+    }
+
+    document.addEventListener("turbo:load", initializeMembers);
+    document.addEventListener("DOMContentLoaded", initializeMembers);
+    
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeMembers);
+    } else {
+      initializeMembers();
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function(event) {
+      var searchWrapper = document.querySelector(".member-search");
+      if (searchWrapper && !searchWrapper.contains(event.target)) {
+        var resultsDiv = document.getElementById("member_search_results");
+        if (resultsDiv) resultsDiv.classList.add("hidden");
+      }
+    });
+  })();
+</script>

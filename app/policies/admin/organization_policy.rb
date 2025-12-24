@@ -28,6 +28,10 @@ module Admin
     accessible?("admin", "organizations", "destroy")
   end
 
+  def users_search?
+    index?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       scope.all

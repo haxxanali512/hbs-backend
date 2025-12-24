@@ -48,6 +48,9 @@ Rails.application.routes.draw do
           post :activate_tenant
           post :suspend_tenant
         end
+        collection do
+          get :users_search
+        end
       end
 
       resources :organization_locations, only: [ :index, :show, :edit, :update ] do

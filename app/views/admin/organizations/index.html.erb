@@ -37,12 +37,13 @@
       label: 'Tier',
       render: ->(org) {
         tier_classes = case org.tier
-        when 'premium' then 'bg-purple-50 text-purple-700'
-        when 'standard' then 'bg-blue-50 text-blue-700'
-        when 'basic' then 'bg-gray-50 text-gray-700'
+        when '9%' then 'bg-purple-50 text-purple-700'
+        when '8%' then 'bg-indigo-50 text-indigo-700'
+        when '7%' then 'bg-blue-50 text-blue-700'
+        when '6%' then 'bg-gray-50 text-gray-700'
         else 'bg-gray-50 text-gray-700'
         end
-        raw "<span class=\"inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium #{tier_classes}\">#{org.tier&.humanize}</span>"
+        raw "<span class=\"inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium #{tier_classes}\">#{org.tier || 'N/A'}</span>"
       }
     },
     {

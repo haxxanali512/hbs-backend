@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_17_185446) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_24_135147) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -610,6 +610,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_185446) do
     t.datetime "identifiers_change_effective_on", precision: nil
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "tax_id_type"
+    t.integer "npi_type"
     t.index ["organization_id"], name: "index_organization_identifiers_on_organization_id"
   end
 
@@ -670,13 +672,13 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_17_185446) do
     t.string "name"
     t.string "subdomain"
     t.bigint "owner_id", null: false
-    t.string "tier"
     t.integer "activation_status"
     t.datetime "activation_state_changed_at", precision: nil
     t.datetime "closed_at", precision: nil
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "discarded_at"
+    t.integer "tier", default: 0, null: false
     t.index ["discarded_at"], name: "index_organizations_on_discarded_at"
     t.index ["owner_id"], name: "index_organizations_on_owner_id"
   end

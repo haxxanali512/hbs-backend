@@ -67,27 +67,30 @@ class Organization < ApplicationRecord
   after_create :create_default_settings
 
   accepts_nested_attributes_for :organization_setting, update_only: true
+  accepts_nested_attributes_for :organization_contact, update_only: true
+  accepts_nested_attributes_for :organization_identifier, update_only: true
+
+  enum :tier, {
+    "6%": 0,
+    "7%": 1,
+    "8%": 2,
+    "9%": 3
+  }
 
   validates :name, presence: true
   validates :subdomain, presence: true, uniqueness: true
   validates :owner, presence: true
   validates :tier, presence: true
-  validate :tier_value_valid
 
-  # Parsed numeric tier percentage, e.g. "6%", "6.0", 6 -> 6.0
+  # Get numeric tier percentage from enum
   def tier_percentage
     return nil unless tier.present?
-    str = tier.to_s.strip
-    str = str.delete("%")
-    Float(str)
-  rescue ArgumentError
-    nil
-  end
-
-  def tier_value_valid
-    value = tier_percentage
-    unless value&.in?([ 6.0, 7.0, 8.0, 9.0 ])
-      errors.add(:tier, "must be one of 6, 7, 8, or 9 percent")
+    case tier.to_s
+    when "6%" then 6.0
+    when "7%" then 7.0
+    when "8%" then 8.0
+    when "9%" then 9.0
+    else nil
     end
   end
 

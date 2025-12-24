@@ -236,6 +236,18 @@
               <p class="mt-1 text-sm text-gray-500">Some models require an organization. Select one if needed.</p>
             </div>
 
+            <!-- Email Notification Option -->
+            <div class="flex items-center pt-2">
+              <input type="checkbox" 
+                     id="send_email" 
+                     name="send_email" 
+                     value="1"
+                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+              <label for="send_email" class="ml-2 block text-sm text-gray-700">
+                Send email notification with failed rows (if any errors occur)
+              </label>
+            </div>
+
             <!-- Submit Button -->
             <div class="flex justify-end pt-4 border-t border-gray-200">
               <button type="submit" 

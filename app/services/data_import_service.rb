@@ -275,6 +275,18 @@ class DataImportService
     column = associated_class.columns_hash[column_name]
     return value unless column
 
+    # Handle enum fields (stored as integers but can accept string values)
+    if associated_class.respond_to?(:defined_enums) && associated_class.defined_enums.key?(column_name.to_s)
+      enum_values = associated_class.defined_enums[column_name.to_s]
+      # Try to find by string key (e.g., "ssn", "ein", "type_1", "type_2")
+      if enum_values.key?(value.to_s.downcase)
+        return enum_values[value.to_s.downcase]
+      # Try to find by integer value
+      elsif value.to_s.match?(/^\d+$/) && enum_values.values.include?(value.to_i)
+        return value.to_i
+      end
+    end
+
     case column.type
     when :integer, :bigint
       value.to_i rescue value

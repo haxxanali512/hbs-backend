@@ -69,7 +69,7 @@
       <div class="info-box">
         <p><strong>Organization:</strong> <%= @organization.name %></p>
         <p><strong>Owner:</strong> <%= @owner.email %></p>
-        <p><strong>Tier:</strong> <%= @organization.tier&.humanize %></p>
+        <p><strong>Tier:</strong> <%= @organization.tier || 'N/A' %></p>
         <p><strong>Requested At:</strong> <%= @organization_billing.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
       </div>
 

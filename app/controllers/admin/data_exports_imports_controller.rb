@@ -71,6 +71,7 @@ class Admin::DataExportsImportsController < Admin::BaseController
   def import
     model_name = params[:model_name]
     file = params[:file]
+    send_email = params[:send_email] == "1"
 
     unless model_name.present?
       redirect_to admin_data_exports_imports_path(action_type: "import"), alert: "Please select a model."
@@ -83,30 +84,25 @@ class Admin::DataExportsImportsController < Admin::BaseController
     end
 
     begin
+      # Save file temporarily for background processing
+      temp_file_path = save_temp_file(file)
+
       # Build options from params (e.g., organization_id)
       options = build_import_options(params)
 
-      result = DataImportService.import(
-        model_name: model_name,
-        file: file,
-        **options
+      # Queue the import job
+      DataImportJob.perform_later(
+        temp_file_path,
+        model_name,
+        current_user.id,
+        options,
+        send_email: send_email
       )
 
-      if result[:error_count] == 0
-        redirect_to admin_data_exports_imports_path(action_type: "import"),
-                    notice: "Successfully imported #{result[:success_count]} record(s)."
-      elsif result[:success_count] > 0
-        redirect_to admin_data_exports_imports_path(action_type: "import"),
-                    alert: "Imported #{result[:success_count]} record(s) with #{result[:error_count]} error(s). Check logs for details."
-      else
-        redirect_to admin_data_exports_imports_path(action_type: "import"),
-                    alert: "Import failed. #{result[:errors].first[:errors].join(', ')}"
-      end
-    rescue DataImportService::ImportError => e
-      Rails.logger.error("Import error: #{e.message}")
-      redirect_to admin_data_exports_imports_path(action_type: "import"), alert: "Import failed: #{e.message}"
+      redirect_to admin_data_exports_imports_path(action_type: "import"),
+                  notice: "Import job queued. The import will be processed in the background. #{send_email ? 'You will receive an email with failed rows if any errors occur.' : ''}"
     rescue => e
-      Rails.logger.error("Unexpected import error: #{e.message}")
+      Rails.logger.error("Import error: #{e.message}")
       redirect_to admin_data_exports_imports_path(action_type: "import"), alert: "Import failed: #{e.message}"
     end
   end
@@ -197,8 +193,37 @@ class Admin::DataExportsImportsController < Admin::BaseController
   end
 
   def generate_sample_headers(model_class)
-    excluded_columns = %w[id created_at updated_at discarded_at encrypted_password reset_password_token confirmation_token unlock_token invitation_token]
-    columns = model_class.column_names.reject { |col| excluded_columns.include?(col) }
+    # Exclude internal system fields that shouldn't be imported/exported
+    excluded_columns = %w[
+      id
+      created_at updated_at discarded_at
+      encrypted_password
+      reset_password_token reset_password_sent_at
+      confirmation_token confirmed_at confirmation_sent_at unconfirmed_email
+      unlock_token locked_at
+      invitation_token invitation_created_at invitation_sent_at invitation_accepted_at invitation_limit invited_by_type invited_by_id invitations_count
+      remember_created_at
+      sign_in_count current_sign_in_at last_sign_in_at current_sign_in_ip last_sign_in_ip
+      failed_attempts
+      email_verified_at email_verification_at
+      activation_state_changed_at closed_at
+      cascaded_at
+    ]
+
+    # Also exclude any column ending with these patterns (internal fields)
+    # But keep important foreign keys and business-relevant datetime fields
+    important_foreign_keys = %w[owner_id organization_id role_id specialty_id provider_id patient_id]
+    business_datetime_fields = %w[scheduled_start_at scheduled_end_at actual_start_at actual_end_at]
+
+    columns = model_class.column_names.reject do |col|
+      excluded_columns.include?(col) ||
+      (col.end_with?("_at") && !business_datetime_fields.include?(col)) || # Exclude system timestamps, keep business datetimes
+      col.end_with?("_count") || # All counter fields
+      col.end_with?("_token") || # All token fields
+      col.end_with?("_ip") || # All IP address fields
+      col.end_with?("_by_type") || # Polymorphic type fields
+      (col.end_with?("_by_id") && !important_foreign_keys.include?(col)) # Polymorphic ID fields (except important FKs)
+    end
 
     headers = columns.map do |col|
       if col.end_with?("_id")
@@ -224,7 +249,9 @@ class Admin::DataExportsImportsController < Admin::BaseController
       headers += [
         # OrganizationIdentifier fields
         "identifier_tax_identification_number",
+        "identifier_tax_id_type",
         "identifier_npi",
+        "identifier_npi_type",
         "identifier_previous_tin",
         "identifier_previous_npi",
         "identifier_identifiers_change_status",
@@ -274,6 +301,10 @@ class Admin::DataExportsImportsController < Admin::BaseController
     elsif header.include?("status")
       enum_key = header.gsub("_", "").gsub(" ", "")
       model_class.defined_enums[enum_key]&.keys&.first || model_class.defined_enums["status"]&.keys&.first || "active"
+    elsif header.include?("tax_id_type")
+      "ein" # Default to EIN for tax ID type
+    elsif header.include?("npi_type")
+      "type_1" # Default to Type 1 for NPI type
     elsif header.include?("type")
       enum_key = header.gsub("_", "").gsub(" ", "")
       model_class.defined_enums[enum_key]&.keys&.first || "other"
@@ -325,5 +356,25 @@ class Admin::DataExportsImportsController < Admin::BaseController
     options[:organization_id] = params[:organization_id] if params[:organization_id].present?
 
     options
+  end
+
+  def save_temp_file(file)
+    # Create temp directory if it doesn't exist
+    temp_dir = Rails.root.join("tmp", "imports")
+    FileUtils.mkdir_p(temp_dir)
+
+    # Generate unique filename preserving original extension
+    # Sanitize filename to remove spaces and special characters that could cause issues
+    original_filename = file.original_filename || "import_file.csv"
+    sanitized_name = original_filename.gsub(/[^a-zA-Z0-9._-]/, "_")
+    filename = "#{SecureRandom.uuid}_#{sanitized_name}"
+    temp_path = temp_dir.join(filename)
+
+    # Save file - rewind file pointer first in case it was already read
+    file.rewind if file.respond_to?(:rewind)
+    File.binwrite(temp_path, file.read)
+
+    # Return absolute path
+    temp_path.to_s
   end
 end
