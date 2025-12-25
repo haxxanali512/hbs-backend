@@ -120,7 +120,13 @@ module Admin
 
       # Get success message for organization creation
       def organization_created_message
-        "Organization created successfully. The owner (#{@organization.owner.email}) must complete activation at #{@organization.subdomain}.localhost:3000"
+        subdomain_url = if Rails.env.development?
+          "#{@organization.subdomain}.localhost:3000"
+        else
+          host = ENV.fetch("HOST", request.host_with_port)
+          "#{@organization.subdomain}.#{host}"
+        end
+        "Organization created successfully. The owner (#{@organization.owner.email}) must complete activation at #{subdomain_url}"
       end
 
       # Get error message for organization creation

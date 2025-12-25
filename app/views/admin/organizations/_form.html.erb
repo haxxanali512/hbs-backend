@@ -40,7 +40,7 @@
                 placeholder: "subdomain",
                 class: "block w-full h-11 rounded-l-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500" %>
           <span class="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-gray-200 bg-gray-50 text-sm text-gray-500">
-            .localhost:3000
+            .<%= Rails.env.development? ? 'localhost:3000' : ENV.fetch('HOST', request.host_with_port).split('.').drop(1).join('.') %>
           </span>
         </div>
       </div>
@@ -128,7 +128,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Tax ID Type</label>
-          <%= i.select :tax_id_type, options_for_select([["SSN", 0], ["EIN", 1]], i.object.tax_id_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
+          <%= i.select :tax_id_type, options_for_select([["SSN", "ssn"], ["EIN", "ein"]], i.object.tax_id_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">NPI</label>
@@ -136,7 +136,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">NPI Type</label>
-          <%= i.select :npi_type, options_for_select([["Type 1", 0], ["Type 2", 1]], i.object.npi_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
+          <%= i.select :npi_type, options_for_select([["Type 1", "type_1"], ["Type 2", "type_2"]], i.object.npi_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Previous TIN</label>

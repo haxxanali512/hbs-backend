@@ -23,7 +23,7 @@
         end
       }
     },
-    { label: 'Subdomain', render: ->(org) { org.subdomain + '.localhost:3000' } },
+    { label: 'Subdomain', render: ->(org) { organization_subdomain_display(org.subdomain) } },
     {
       label: 'Owner',
       render: ->(org) { 

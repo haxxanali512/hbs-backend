@@ -14,7 +14,13 @@ class HomeController < ApplicationController
       # Redirect tenant users to their organization's dashboard
       user_org = current_user.organization_memberships.active.first&.organization
       if user_org
-        redirect_to "http://#{user_org.subdomain}.localhost:3000", allow_other_host: true
+        tenant_url = if Rails.env.development?
+          "http://#{user_org.subdomain}.localhost:3000"
+        else
+          host = ENV.fetch("HOST", request.host_with_port)
+          "#{request.protocol}#{user_org.subdomain}.#{host}"
+        end
+        redirect_to tenant_url, allow_other_host: true
         return
       else
         redirect_to new_user_session_path, alert: "You don't have access to any organization."

@@ -58,6 +58,28 @@ module ApplicationHelper
     "Showing #{pagy.from} to #{pagy.to} of #{pagy.count} entries"
   end
 
+  # Helper method to get organization subdomain URL based on environment
+  def organization_subdomain_url(subdomain)
+    if Rails.env.development?
+      "#{subdomain}.localhost:3000"
+    else
+      # In production/staging, use the actual domain
+      host = ENV.fetch("HOST", request.host_with_port)
+      "#{subdomain}.#{host}"
+    end
+  end
+
+  # Helper method to get organization subdomain display (without protocol)
+  def organization_subdomain_display(subdomain)
+    if Rails.env.development?
+      "#{subdomain}.localhost:3000"
+    else
+      # In production/staging, use the actual domain
+      host = ENV.fetch("HOST", request.host_with_port)
+      "#{subdomain}.#{host}"
+    end
+  end
+
   # Tailwind-styled Pagy navigation, used by all index pages
   def pagy_nav(pagy)
     return if pagy.pages <= 1

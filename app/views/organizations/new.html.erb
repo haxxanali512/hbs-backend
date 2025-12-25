@@ -133,7 +133,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">Tax ID Type</label>
-            <%= i.select :tax_id_type, options_for_select([["SSN", 0], ["EIN", 1]], i.object&.tax_id_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+            <%= i.select :tax_id_type, options_for_select([["SSN", "ssn"], ["EIN", "ein"]], i.object&.tax_id_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">NPI</label>

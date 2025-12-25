@@ -21,7 +21,7 @@
               <%= organization.activation_status.humanize %>
             </span>
           </div>
-          <p class="mt-1 text-sm text-gray-500">Subdomain: <%= organization.subdomain %></p>
+          <p class="mt-1 text-sm text-gray-500">Subdomain: <%= organization_subdomain_display(organization.subdomain) %></p>
           <p class="mt-1 text-sm text-gray-500">Tier: <%= organization.tier || 'N/A' %></p>
         </div>
         

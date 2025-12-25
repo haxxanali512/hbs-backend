@@ -19,8 +19,8 @@
         <div>
           <label class="block text-sm font-medium text-gray-700">Subdomain</label>
           <p class="mt-1 text-sm text-gray-900">
-            <% tenant_url = "#{request.protocol}#{@organization.subdomain}.#{request.host_with_port}" %>
-            <%= link_to "#{@organization.subdomain}.#{request.host_with_port}", 
+            <% tenant_url = "#{request.protocol}#{organization_subdomain_url(@organization.subdomain)}" %>
+            <%= link_to organization_subdomain_display(@organization.subdomain), 
                 tenant_url, 
                 target: '_blank',
                 class: 'text-indigo-600 hover:text-indigo-800' %>

@@ -36,7 +36,7 @@
 
     <% if invited_org.present? %>
       <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">After activation, you'll complete your organization's remaining setup steps from the tenant dashboard.</p>
-      <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">Tenant URL: <strong><%= invited_org.subdomain %>.localhost:3000</strong> (development)</p>
+      <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">Tenant URL: <strong><%= organization_subdomain_display(invited_org.subdomain) %></strong></p>
     <% end %>
 
     <% if @resource.invitation_due_at %>
