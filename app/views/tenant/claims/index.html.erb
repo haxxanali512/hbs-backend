@@ -64,7 +64,12 @@
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <%= link_to "View", tenant_claim_path(claim), class: "text-blue-600 hover:text-blue-800" %>
+                    <div class="flex space-x-2">
+                      <%= link_to "View", tenant_claim_path(claim), class: "text-blue-600 hover:text-blue-800" %>
+                      <% if claim.edi_file&.attached? %>
+                        <%= link_to "Download EDI", download_edi_tenant_claim_path(claim), class: "text-green-600 hover:text-green-800", title: "Download EDI file" %>
+                      <% end %>
+                    </div>
                   </td>
                 </tr>
               <% end %>

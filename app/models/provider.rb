@@ -8,7 +8,8 @@ class Provider < ApplicationRecord
   belongs_to :user, optional: true
   has_many :provider_assignments, dependent: :destroy
   has_many :organizations, through: :provider_assignments
-  has_many :documents, as: :documentable, dependent: :destroy
+  # Documents now use Active Storage
+  has_many_attached :documents
   has_many :appointments, dependent: :restrict_with_error
   has_many :encounters, dependent: :restrict_with_error
   has_many :provider_notes, dependent: :destroy

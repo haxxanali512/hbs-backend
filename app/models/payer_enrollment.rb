@@ -8,7 +8,8 @@ class PayerEnrollment < ApplicationRecord
   belongs_to :payer
   belongs_to :provider, optional: true
   belongs_to :organization_location, optional: true
-  has_many :documents, as: :documentable, dependent: :destroy
+  # Documents now use Active Storage
+  has_many_attached :documents
 
   # =========================
   # Enums

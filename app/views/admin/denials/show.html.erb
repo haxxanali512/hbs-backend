@@ -101,19 +101,22 @@
         <% end %>
 
         <!-- Attachments -->
-        <% if @denial.documents.any? %>
+        <% if @denial.documents.attached? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Attachments</h2>
             <div class="space-y-3">
-              <% @denial.documents.each do |doc| %>
+              <% @denial.documents.each do |attachment| %>
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p class="text-sm font-medium text-gray-900"><%= doc.title %></p>
-                    <p class="text-xs text-gray-500"><%= doc.created_at.strftime("%b %d, %Y") %></p>
+                    <p class="text-sm font-medium text-gray-900"><%= attachment.filename %></p>
+                    <p class="text-xs text-gray-500"><%= number_to_human_size(attachment.byte_size) %> · <%= attachment.created_at.strftime("%b %d, %Y") %></p>
                   </div>
-                  <% if policy(@denial).remove_doc? %>
-                    <%= button_to "Remove", remove_doc_admin_claim_denial_path(@claim, @denial), method: :delete, params: { doc_id: doc.id }, class: "text-xs text-red-600 hover:text-red-800" %>
-                  <% end %>
+                  <div class="flex space-x-2">
+                    <%= link_to "View", rails_blob_path(attachment, disposition: "inline"), target: "_blank", class: "text-xs text-blue-600 hover:text-blue-800" %>
+                    <% if current_user.permissions_for("admin", "denials", "remove_doc") %>
+                      <%= button_to "Remove", remove_doc_admin_claim_denial_path(@claim, @denial), method: :delete, params: { attachment_signed_id: attachment.signed_id }, class: "text-xs text-red-600 hover:text-red-800" %>
+                    <% end %>
+                  </div>
                 </div>
               <% end %>
             </div>

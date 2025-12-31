@@ -24,7 +24,6 @@ class Admin::SupportTicketsController < Admin::BaseController
   def show
     @comment = SupportTicketComment.new
     @comments = @support_ticket.comments.chronological.includes(:author_user)
-    @documents = @support_ticket.documents.includes(:document_attachments, :created_by).order(created_at: :desc)
   end
 
   def update

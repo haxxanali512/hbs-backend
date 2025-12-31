@@ -6,7 +6,8 @@ class Invoice < ApplicationRecord
   has_many :invoice_line_items, dependent: :destroy
   has_many :payments, dependent: :restrict_with_error
   has_one :remit_capture, as: :capturable, dependent: :destroy
-  has_many :documents, as: :documentable, dependent: :destroy
+  # Documents now use Active Storage
+  has_many_attached :documents
 
   enum :invoice_type, {
     onboarding_fee: 0,

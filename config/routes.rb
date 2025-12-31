@@ -245,6 +245,7 @@ Rails.application.routes.draw do
           get :procedure_codes_search
           get :diagnosis_codes_search
           post :submit_for_billing
+          get :download_edi
         end
         resources :encounter_comments, only: [ :index, :create ] do
           member do
@@ -263,6 +264,7 @@ Rails.application.routes.draw do
           post :void
           post :reverse
           post :close
+          get :download_edi
         end
         resources :denials, only: [ :index, :show, :create, :update ] do
           member do
@@ -413,6 +415,7 @@ Rails.application.routes.draw do
             get :procedure_codes_search
             get :diagnosis_codes_search
             post :submit_for_billing
+            get :download_edi
           end
           resources :encounter_comments, only: [ :index, :create ]
           resources :provider_notes, except: [ :show ]

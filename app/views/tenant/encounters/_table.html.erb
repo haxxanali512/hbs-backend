@@ -120,6 +120,9 @@
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex space-x-2">
                   <%= link_to "View", tenant_encounter_path(encounter), class: "text-blue-600 hover:text-blue-800" %>
+                  <% if encounter.claim&.edi_file&.attached? %>
+                    <%= link_to "Download EDI", download_edi_tenant_encounter_path(encounter), class: "text-green-600 hover:text-green-800", title: "Download EDI file" %>
+                  <% end %>
                   <% unless show_submitted_only %>
                     <%= link_to "Edit", edit_tenant_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" if !encounter.cascaded? %>
                     

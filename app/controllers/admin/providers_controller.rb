@@ -33,7 +33,6 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def show
-    @documents = @provider.documents.includes(:document_attachments).recent
   end
 
   def new

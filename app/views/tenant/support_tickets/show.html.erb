@@ -115,19 +115,16 @@
         <!-- Documents -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 class="text-base font-semibold text-gray-900 mb-4">Documents</h3>
-          <% if @documents.any? %>
+          <% if @support_ticket.documents.attached? %>
             <div class="space-y-2 mb-4">
-              <% @documents.each do |document| %>
-                <% attachment = document.primary_attachment %>
-                <% if attachment %>
-                  <div class="flex items-center justify-between p-2 border border-gray-200 rounded-md hover:bg-gray-50">
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-gray-900 truncate"><%= document.title %></p>
-                      <p class="text-xs text-gray-500"><%= attachment.file_name %> · <%= attachment.formatted_file_size %></p>
-                    </div>
-                    <a href="<%= attachment.file_path %>" target="_blank" class="ml-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium">View</a>
+              <% @support_ticket.documents.each do |attachment| %>
+                <div class="flex items-center justify-between p-2 border border-gray-200 rounded-md hover:bg-gray-50">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate"><%= attachment.filename %></p>
+                    <p class="text-xs text-gray-500"><%= number_to_human_size(attachment.byte_size) %> · <%= attachment.content_type %></p>
                   </div>
-                <% end %>
+                  <%= link_to "View", rails_blob_path(attachment, disposition: "inline"), target: "_blank", class: "ml-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium" %>
+                </div>
               <% end %>
             </div>
           <% else %>

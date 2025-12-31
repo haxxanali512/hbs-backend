@@ -6,7 +6,8 @@ class Denial < ApplicationRecord
   belongs_to :organization
   belongs_to :claim_submission, class_name: "ClaimSubmission", foreign_key: :source_submission_id
   has_many :denial_items, dependent: :destroy
-  has_many :documents, as: :documentable, dependent: :destroy
+  # Documents now use Active Storage
+  has_many_attached :documents
 
   # Denormalized for query speed
   validates :organization_id, :claim_id, presence: { message: "DENIAL_CLAIM_REQUIRED" }

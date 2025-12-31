@@ -1,6 +1,6 @@
 class Tenant::ActivationController < Tenant::BaseController
-  before_action :authenticate_user!
-  before_action :set_organization
+  # before_action :authenticate_user!
+  # before_action :set_organization
   before_action :check_activation_status
 
   def index

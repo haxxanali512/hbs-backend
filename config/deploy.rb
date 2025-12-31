@@ -66,7 +66,7 @@ namespace :deploy do
   task :upload_configs do
     on roles(:all) do
       upload!("config/master.key", "#{deploy_to}/shared/config/credentials/production.key")
-      upload!("config/production.yml.enc", "#{deploy_to}/shared/config/credentials/production.yml.enc")
+      upload!("config/credentials/production.yml.enc", "#{deploy_to}/shared/config/credentials/production.yml.enc")
       upload!("config/database.yml", "#{deploy_to}/shared/config/database.yml")
     end
   end
@@ -77,6 +77,25 @@ namespace :deploy do
       within "#{fetch(:deploy_to)}/current/" do
         execute :bundle, :exec, :"rake db:seed RAILS_ENV=#{fetch(:stage)}"
       end
+    end
+  end
+end
+
+namespace :credentials do
+  desc "Upload production.yml.enc to server"
+  task :push_production do
+    on roles(:all) do
+      source_file = "config/credentials/production.yml.enc"
+      target_file = "#{shared_path}/config/credentials/production.yml.enc"
+
+      unless File.exist?(source_file)
+        error "File not found: #{source_file}"
+        exit 1
+      end
+
+      info "Uploading #{source_file} to #{target_file}"
+      upload!(source_file, target_file)
+      info "Successfully uploaded production.yml.enc"
     end
   end
 end

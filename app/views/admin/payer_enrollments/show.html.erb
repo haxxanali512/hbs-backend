@@ -89,19 +89,20 @@
     </div>
 
     <!-- Documents -->
-    <% if @payer_enrollment.documents.any? %>
+    <% if @payer_enrollment.documents.attached? %>
       <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Supporting Documents</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <% @payer_enrollment.documents.each do |document| %>
+          <% @payer_enrollment.documents.each do |attachment| %>
             <div class="border border-gray-200 rounded-md p-4">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-medium text-gray-900"><%= document.title %></p>
-                  <p class="text-xs text-gray-500 mt-1"><%= document.description %></p>
+                  <p class="text-sm font-medium text-gray-900"><%= attachment.filename %></p>
+                  <p class="text-xs text-gray-500 mt-1"><%= number_to_human_size(attachment.byte_size) %> · <%= attachment.content_type %></p>
                 </div>
-                <div class="text-xs text-gray-500">
-                  <%= document.created_at.strftime("%m/%d/%Y") %>
+                <div class="flex space-x-2">
+                  <%= link_to "View", rails_blob_path(attachment, disposition: "inline"), target: "_blank", class: "text-blue-600 hover:text-blue-800 text-xs" %>
+                  <%= link_to "Download", rails_blob_path(attachment, disposition: "attachment"), class: "text-green-600 hover:text-green-800 text-xs" %>
                 </div>
               </div>
             </div>

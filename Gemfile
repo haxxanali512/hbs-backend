@@ -32,6 +32,7 @@ gem "rubocop", require: false
 gem "redis", "~> 4.8"
 gem "gocardless_pro", "~> 4.2"
 gem "httparty"
+gem "net-sftp", "~> 2.1"
 gem "uglifier", ">= 1.4.3"
 gem "pdfkit", "~> 0.8.7"
 gem "wkhtmltopdf-binary"

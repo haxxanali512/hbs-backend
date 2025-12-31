@@ -13,6 +13,9 @@ class Claim < ApplicationRecord
   has_many :denials, dependent: :restrict_with_error
   accepts_nested_attributes_for :claim_lines, allow_destroy: true
 
+  # Active Storage attachment for EDI file
+  has_one_attached :edi_file
+
   enum status: {
     generated: 0,
     validated: 1,

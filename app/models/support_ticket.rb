@@ -69,7 +69,8 @@ class SupportTicket < ApplicationRecord
            dependent: :destroy,
            inverse_of: :support_ticket
 
-  has_many :documents, as: :documentable, dependent: :destroy
+  # Documents now use Active Storage
+  has_many_attached :documents
 
   enum :category, CATEGORY_OPTIONS
   enum :priority, PRIORITY_OPTIONS

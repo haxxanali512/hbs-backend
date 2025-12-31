@@ -79,6 +79,9 @@
                       <% if claim.generated? || claim.validated? %>
                         <%= link_to "Edit", edit_admin_claim_path(claim), class: "text-indigo-600 hover:text-indigo-800" %>
                       <% end %>
+                      <% if claim.edi_file&.attached? %>
+                        <%= link_to "Download EDI", download_edi_admin_claim_path(claim), class: "text-green-600 hover:text-green-800", title: "Download EDI file" %>
+                      <% end %>
                     </div>
                   </td>
                 </tr>
