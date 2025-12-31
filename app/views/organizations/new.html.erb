@@ -141,7 +141,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">NPI Type</label>
-            <%= i.select :npi_type, options_for_select([["Type 1", 0], ["Type 2", 1]], i.object&.npi_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
+            <%= i.select :npi_type, options_for_select([["Type 1", "type_1"], ["Type 2", "type_2"]], i.object&.npi_type), { prompt: "Select type" }, { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">Previous TIN</label>

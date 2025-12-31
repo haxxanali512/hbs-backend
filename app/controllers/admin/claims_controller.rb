@@ -1,7 +1,7 @@
 class Admin::ClaimsController < Admin::BaseController
   include Admin::Concerns::ClaimSubmission
 
-  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :test_ezclaim_connection, :post_adjudication, :void, :reverse, :close ]
+  before_action :set_claim, only: [ :show, :edit, :update, :destroy, :validate, :submit, :test_ezclaim_connection, :post_adjudication, :void, :reverse, :close, :download_edi ]
   before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
 
   def index
@@ -143,6 +143,15 @@ class Admin::ClaimsController < Admin::BaseController
     else
       redirect_to admin_claim_path(@claim), alert: "Claim cannot be closed."
     end
+  end
+
+  def download_edi
+    unless @claim.edi_file&.attached?
+      redirect_to admin_claim_path(@claim), alert: "EDI file not found for this claim."
+      return
+    end
+
+    redirect_to rails_blob_path(@claim.edi_file, disposition: "attachment")
   end
 
   private

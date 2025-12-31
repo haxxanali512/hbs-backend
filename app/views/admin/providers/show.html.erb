@@ -127,9 +127,9 @@
         <!-- Documents -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
-          <% if @documents.any? %>
+          <% if @provider.documents.attached? %>
             <div class="space-y-3">
-              <% @documents.each do |document| %>
+              <% @provider.documents.each do |attachment| %>
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div class="flex items-center space-x-3">
                     <div class="flex-shrink-0">
@@ -138,15 +138,13 @@
                       </svg>
                     </div>
                     <div>
-                      <p class="text-sm font-medium text-gray-900"><%= document.title %></p>
-                      <p class="text-xs text-gray-500"><%= document.document_type.humanize if document.document_type.present? %></p>
+                      <p class="text-sm font-medium text-gray-900"><%= attachment.filename %></p>
+                      <p class="text-xs text-gray-500"><%= number_to_human_size(attachment.byte_size) %> · <%= attachment.content_type %></p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      <%= document.status.humanize %>
-                    </span>
-                    <%= link_to "View", "#", class: "text-blue-600 hover:text-blue-800 text-sm" %>
+                    <%= link_to "View", rails_blob_path(attachment, disposition: "inline"), target: "_blank", class: "text-blue-600 hover:text-blue-800 text-sm" %>
+                    <%= link_to "Download", rails_blob_path(attachment, disposition: "attachment"), class: "text-green-600 hover:text-green-800 text-sm" %>
                   </div>
                 </div>
               <% end %>

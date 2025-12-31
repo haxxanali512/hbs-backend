@@ -6,7 +6,7 @@ class Admin::EncountersController < Admin::BaseController
   # Alias the concern method before we override it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :download_edi ]
   before_action :load_form_options, only: [ :index, :edit, :update ]
 
   def index

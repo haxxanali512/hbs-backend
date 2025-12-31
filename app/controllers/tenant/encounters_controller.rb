@@ -2,7 +2,7 @@ class Tenant::EncountersController < Tenant::BaseController
   include ProcedureCodeSearch
   include Tenant::Concerns::EncounterIndexConcern
   before_action :set_current_organization
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :download_edi ]
   before_action :load_form_options, only: [ :index, :new, :create, :edit, :update, :workflow ]
 
   def index
@@ -280,10 +280,10 @@ class Tenant::EncountersController < Tenant::BaseController
 
     # Queue the job to process submissions in the background
     # The job will:
-    # 1. Mark encounters as "sent" when actually submitting to EZClaim
+    # 1. Mark encounters as "sent" when actually submitting to Waystar
     # 2. Change them to "completed_confirmed" after successful submission
     QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
-    Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for background processing to EZClaim"
+    Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for background processing to Waystar via EDI 837"
 
     # Notify super admins about the submission
     NotificationService.notify_encounters_submitted_for_billing(
@@ -479,6 +479,16 @@ class Tenant::EncountersController < Tenant::BaseController
     else
       redirect_to tenant_encounter_path(@encounter), alert: "Failed to upload attachment: #{result[:error]}"
     end
+  end
+
+  def download_edi
+    claim = @encounter.claim
+    unless claim&.edi_file&.attached?
+      redirect_to tenant_encounter_path(@encounter), alert: "EDI file not found for this encounter."
+      return
+    end
+
+    redirect_to rails_blob_path(claim.edi_file, disposition: "attachment")
   end
 
   private

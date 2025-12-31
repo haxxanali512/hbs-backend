@@ -1,0 +1,34 @@
+Waystar EDI Submission Failures
+==================================
+
+Dear <%= @organization.name %> Team,
+
+We encountered issues while submitting encounters to Waystar via EDI 837.
+
+Failed Submissions (<%= @failed_count %>)
+------------------------------------------
+<% if @results[:failed].any? %>
+<% @results[:failed].each do |failure| %>
+Encounter ID: <%= failure[:encounter_id] %>
+Patient: <%= failure[:patient_name] %>
+Date of Service: <%= failure[:date_of_service] %>
+Error: <%= failure[:error] %>
+
+<% end %>
+<% else %>
+No failures to report.
+<% end %>
+
+<% if @results[:successful].any? %>
+Successful Submissions (<%= @successful_count %>)
+--------------------------------------------------
+<% @results[:successful].each do |success| %>
+- Encounter #<%= success[:encounter_id] %> - <%= success[:patient_name] %> (<%= success[:date_of_service] %>)
+<% end %>
+
+<% end %>
+Please review the failed submissions and take appropriate action.
+
+Best regards,
+HBS Data Processing System
+

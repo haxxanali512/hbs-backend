@@ -32,7 +32,8 @@ class Encounter < ApplicationRecord
   has_many :encounter_comment_seens, dependent: :destroy
   has_many :provider_notes, dependent: :destroy
   # has_many :encounter_tasks, dependent: :destroy
-  has_many :documents, as: :documentable, dependent: :destroy
+  # Documents now use Active Storage
+  has_many_attached :documents
 
   # Virtual attributes for workflow-based procedure capture
   attr_accessor :procedure_code_ids, :primary_procedure_code_id, :duration_minutes

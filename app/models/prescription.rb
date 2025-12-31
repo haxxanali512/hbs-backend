@@ -4,7 +4,8 @@ class Prescription < ApplicationRecord
   audited
 
   belongs_to :patient
-  has_many :documents, as: :documentable, dependent: :destroy
+  # Documents now use Active Storage
+  has_many_attached :documents
 
   validates :expires_on, presence: true
   validates :title, presence: true

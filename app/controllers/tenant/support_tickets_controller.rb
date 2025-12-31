@@ -40,7 +40,8 @@ class Tenant::SupportTicketsController < Tenant::BaseController
   def show
     @comment = SupportTicketComment.new
     @comments = @support_ticket.comments.chronological
-    @documents = @support_ticket.documents.includes(:document_attachments, :created_by).order(created_at: :desc)
+    # Documents now use Active Storage - no need to load separately
+    # @documents is now @support_ticket.documents (Active Storage attachments)
   end
 
   def attach_document

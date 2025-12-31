@@ -1,5 +1,5 @@
 class Tenant::ClaimsController < Tenant::BaseController
-  before_action :set_claim, only: [ :show ]
+  before_action :set_claim, only: [ :show, :download_edi ]
 
   def index
     @claims = build_claims_index_query
@@ -10,6 +10,15 @@ class Tenant::ClaimsController < Tenant::BaseController
   end
 
   def show; end
+
+  def download_edi
+    unless @claim.edi_file&.attached?
+      redirect_to tenant_claim_path(@claim), alert: "EDI file not found for this claim."
+      return
+    end
+
+    redirect_to rails_blob_path(@claim.edi_file, disposition: "attachment")
+  end
 
   private
 

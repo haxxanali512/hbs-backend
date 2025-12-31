@@ -41,7 +41,7 @@ class Admin::DenialsController < Admin::BaseController
       return redirect_to admin_claim_denial_path(@claim, @denial), alert: "DENIAL_ATTEMPTS_EXCEEDED"
     end
 
-    sub = @claim.claim_submissions.create!(
+    @claim.claim_submissions.create!(
       submission_method: :api,
       status: :submitted,
       ack_status: :pending,
@@ -84,9 +84,19 @@ class Admin::DenialsController < Admin::BaseController
   end
 
   def remove_doc
-    doc = @denial.documents.find(params[:doc_id])
-    doc.destroy
-    redirect_to admin_claim_denial_path(@claim, @denial), notice: "Attachment removed."
+    attachment = ActiveStorage::Blob.find_signed(params[:attachment_signed_id])
+    if attachment
+      # Find the attachment record and purge it
+      attachment_record = @denial.documents.find_by(blob_id: attachment.id)
+      if attachment_record
+        attachment_record.purge
+        redirect_to admin_claim_denial_path(@claim, @denial), notice: "Attachment removed."
+      else
+        redirect_to admin_claim_denial_path(@claim, @denial), alert: "Attachment not found for this denial."
+      end
+    else
+      redirect_to admin_claim_denial_path(@claim, @denial), alert: "Invalid attachment ID."
+    end
   end
 
   private
