@@ -8,8 +8,8 @@ class Edi837GenerationService
   attr_reader :encounters, :organization, :errors
 
   # EDI Sender and Receiver IDs (from Rails credentials, hardcoded for now)
-  EDI_SENDER_ID = "258966"
-  EDI_RECEIVER_ID = "ZIRMED"
+  EDI_SENDER_ID = Rails.application.credentials.dig(:waystar, :sender_id)
+  EDI_RECEIVER_ID = Rails.application.credentials.dig(:waystar, :receiver_id)
 
   def initialize(encounters:, organization:)
     @encounters = Array(encounters)
