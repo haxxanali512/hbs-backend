@@ -70,12 +70,61 @@
 
 <script>
   (function() {
-    // Use TurboAware utilities for dynamic content
+    // Helper functions that work with or without TurboAware
+    function query(selector) {
+      if (window.TurboAware) {
+        return TurboAware.query(selector);
+      }
+      return document.querySelector(selector);
+    }
+
+    function getElement(id) {
+      if (window.TurboAware) {
+        return TurboAware.getElement(id);
+      }
+      return document.getElementById(id);
+    }
+
+    function delegate(eventType, selector, handler) {
+      if (window.TurboAware) {
+        TurboAware.delegate(eventType, selector, handler);
+      } else {
+        // Fallback: use document-level event delegation
+        document.addEventListener(eventType, function(event) {
+          const target = event.target.closest(selector);
+          if (target) {
+            handler.call(target, event);
+          }
+        }, true);
+      }
+    }
+
+    function onLoad(callback) {
+      if (window.TurboAware) {
+        TurboAware.onLoad(callback);
+      } else {
+        // Fallback: standard initialization
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', callback);
+        } else {
+          callback();
+        }
+        document.addEventListener('turbo:load', callback);
+        document.addEventListener('turbo:after-stream-render', function() {
+          setTimeout(callback, 50);
+        });
+        document.addEventListener('turbo:frame-load', function() {
+          setTimeout(callback, 50);
+        });
+      }
+    }
+
+    // Use helper functions for dynamic content
     function updateSubmitState() {
       // Always query fresh elements - don't cache
-      const tableBody = TurboAware.query('[data-workflow-queued-target="tableBody"]');
-      const submitButton = TurboAware.getElement('submit_queued_button');
-      const encounterIdsInput = TurboAware.getElement('encounter_ids_input');
+      const tableBody = query('[data-workflow-queued-target="tableBody"]');
+      const submitButton = getElement('submit_queued_button');
+      const encounterIdsInput = getElement('encounter_ids_input');
       
       if (!tableBody) {
         if (submitButton) submitButton.disabled = true;
@@ -96,7 +145,7 @@
       }
 
       // Update select all checkbox state
-      const selectAll = TurboAware.getElement('select_all_queued');
+      const selectAll = getElement('select_all_queued');
       if (selectAll && tableBody) {
         const allCheckboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
         const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
@@ -106,7 +155,7 @@
     }
 
     function toggleAll(event) {
-      const tableBody = TurboAware.query('[data-workflow-queued-target="tableBody"]');
+      const tableBody = query('[data-workflow-queued-target="tableBody"]');
       if (!tableBody) return;
       
       const checkboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
@@ -120,12 +169,12 @@
     }
 
     // Use event delegation for checkboxes - works with dynamic content
-    TurboAware.delegate('change', 'input[name="encounter_ids[]"]', function(event) {
+    delegate('change', 'input[name="encounter_ids[]"]', function(event) {
       updateSubmitState();
     });
 
     // Use event delegation for select all checkbox
-    TurboAware.delegate('change', '#select_all_queued', function(event) {
+    delegate('change', '#select_all_queued', function(event) {
       toggleAll(event);
     });
 
@@ -134,8 +183,8 @@
       updateSubmitState();
     }
 
-    // Use TurboAware.onLoad to ensure it runs on initial load and after updates
-    TurboAware.onLoad(initialize);
+    // Use onLoad to ensure it runs on initial load and after updates
+    onLoad(initialize);
 
     // Also specifically listen for queued table frame updates
     document.addEventListener('turbo:frame-load', function(event) {
@@ -146,7 +195,7 @@
 
     document.addEventListener('turbo:after-stream-render', function() {
       // Check if the queued table was updated
-      const frame = TurboAware.getElement('queued_encounters_frame');
+      const frame = getElement('queued_encounters_frame');
       if (frame) {
         setTimeout(initialize, 50);
       }
