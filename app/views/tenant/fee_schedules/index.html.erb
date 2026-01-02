@@ -39,7 +39,6 @@
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pricing Rule</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate per Unit</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -59,17 +58,6 @@
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-900">
                   <%= item.procedure_code.description %>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <select 
-                    data-item-id="<%= item.id %>"
-                    data-update-url="<%= tenant_fee_schedule_fee_schedule_item_path(@fee_schedule, item) %>"
-                    class="inline-edit-pricing-rule px-3 py-2 w-40 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    data-original-value="<%= item.pricing_rule %>"
-                  >
-                    <option value="price_per_unit" <%= 'selected' if item.pricing_rule == 'price_per_unit' %>>Price per Unit</option>
-                    <option value="flat" <%= 'selected' if item.pricing_rule == 'flat' %>>Flat</option>
-                  </select>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center space-x-2">
@@ -137,15 +125,13 @@
     // Track changes for each item
     function checkForChanges(itemId) {
       const rateInput = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
-      const pricingRuleSelect = document.querySelector(`.inline-edit-pricing-rule[data-item-id="${itemId}"]`);
       const saveButton = document.querySelector(`.save-item-btn[data-item-id="${itemId}"]`);
       
-      if (!rateInput || !pricingRuleSelect || !saveButton) return;
+      if (!rateInput || !saveButton) return;
       
       const rateChanged = (parseFloat(rateInput.value) || null) != (rateInput.dataset.originalValue || '');
-      const pricingRuleChanged = pricingRuleSelect.value != pricingRuleSelect.dataset.originalValue;
       
-      if (rateChanged || pricingRuleChanged) {
+      if (rateChanged) {
         saveButton.classList.remove('hidden');
       } else {
         saveButton.classList.add('hidden');
@@ -160,36 +146,25 @@
       });
     });
     
-    // Handle pricing rule changes
-    document.querySelectorAll('.inline-edit-pricing-rule').forEach(function(select) {
-      select.addEventListener('change', function() {
-        const itemId = this.dataset.itemId;
-        checkForChanges(itemId);
-      });
-    });
-    
     // Handle save button clicks
     document.querySelectorAll('.save-item-btn').forEach(function(button) {
       button.addEventListener('click', function() {
         const itemId = this.dataset.itemId;
         const updateUrl = this.dataset.updateUrl;
         const rateInput = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
-        const pricingRuleSelect = document.querySelector(`.inline-edit-pricing-rule[data-item-id="${itemId}"]`);
         
         const rateValue = parseFloat(rateInput.value) || null;
-        const pricingRuleValue = pricingRuleSelect.value;
         
-        updateItem(itemId, updateUrl, rateValue, pricingRuleValue);
+        updateItem(itemId, updateUrl, rateValue);
       });
     });
     
-    function updateItem(itemId, updateUrl, rateValue, pricingRuleValue) {
+    function updateItem(itemId, updateUrl, rateValue) {
       const savingIndicator = document.querySelector(`.saving-indicator[data-item-id="${itemId}"]`);
       const savedIndicator = document.querySelector(`.saved-indicator[data-item-id="${itemId}"]`);
       const errorIndicator = document.querySelector(`.error-indicator[data-item-id="${itemId}"]`);
       const saveButton = document.querySelector(`.save-item-btn[data-item-id="${itemId}"]`);
       const rateInput = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
-      const pricingRuleSelect = document.querySelector(`.inline-edit-pricing-rule[data-item-id="${itemId}"]`);
       
       // Hide save button and show saving indicator
       saveButton.classList.add('hidden');
@@ -200,7 +175,6 @@
       // Prepare form data
       const formData = new FormData();
       formData.append('organization_fee_schedule_item[unit_price]', rateValue || '');
-      formData.append('organization_fee_schedule_item[pricing_rule]', pricingRuleValue);
       
       // Send update request
       fetch(updateUrl, {
@@ -216,9 +190,8 @@
         savingIndicator.classList.add('hidden');
         
         if (data.success) {
-          // Update original values
+          // Update original value
           rateInput.dataset.originalValue = rateValue || '';
-          pricingRuleSelect.dataset.originalValue = pricingRuleValue;
           
           // Show saved indicator
           savedIndicator.classList.remove('hidden');
@@ -230,9 +203,8 @@
           errorIndicator.textContent = data.errors ? data.errors.join(', ') : 'Error saving changes';
           errorIndicator.classList.remove('hidden');
           
-          // Revert to original values
+          // Revert to original value
           rateInput.value = rateInput.dataset.originalValue || '';
-          pricingRuleSelect.value = pricingRuleSelect.dataset.originalValue;
           
           // Check if changes still exist after revert
           checkForChanges(itemId);
@@ -243,9 +215,8 @@
         errorIndicator.textContent = 'Error saving changes';
         errorIndicator.classList.remove('hidden');
         
-        // Revert to original values
+        // Revert to original value
         rateInput.value = rateInput.dataset.originalValue || '';
-        pricingRuleSelect.value = pricingRuleSelect.dataset.originalValue;
         
         // Check if changes still exist after revert
         checkForChanges(itemId);
