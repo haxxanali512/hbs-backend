@@ -70,80 +70,87 @@
 
 <script>
   (function() {
-    function initializeWorkflowQueued() {
-      const selectAllCheckbox = document.getElementById('select_all_queued');
-      const submitButton = document.getElementById('submit_queued_button');
-      const encounterIdsInput = document.getElementById('encounter_ids_input');
-      const tableBody = document.querySelector('[data-workflow-queued-target="tableBody"]');
+    // Use TurboAware utilities for dynamic content
+    function updateSubmitState() {
+      // Always query fresh elements - don't cache
+      const tableBody = TurboAware.query('[data-workflow-queued-target="tableBody"]');
+      const submitButton = TurboAware.getElement('submit_queued_button');
+      const encounterIdsInput = TurboAware.getElement('encounter_ids_input');
+      
+      if (!tableBody) {
+        if (submitButton) submitButton.disabled = true;
+        return;
+      }
 
-      if (!tableBody) return;
+      const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
+      const hasSelections = checkedBoxes.length > 0;
+      
+      if (submitButton) {
+        submitButton.disabled = !hasSelections;
+      }
 
-      function updateSubmitState() {
+      // Update hidden input with selected IDs
+      if (encounterIdsInput) {
+        const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+        encounterIdsInput.value = selectedIds.join(',');
+      }
+
+      // Update select all checkbox state
+      const selectAll = TurboAware.getElement('select_all_queued');
+      if (selectAll && tableBody) {
+        const allCheckboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
         const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
-        const hasSelections = checkedBoxes.length > 0;
-        
-        if (submitButton) {
-          submitButton.disabled = !hasSelections;
-        }
-
-        // Update hidden input with selected IDs
-        if (encounterIdsInput) {
-          const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
-          encounterIdsInput.value = selectedIds.join(',');
-        }
+        selectAll.checked = allCheckboxes.length > 0 && checkedBoxes.length === allCheckboxes.length;
+        selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < allCheckboxes.length;
       }
+    }
 
-      function toggleAll(event) {
-        const checkboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
-        const isChecked = event.target.checked;
-        
-        checkboxes.forEach(checkbox => {
-          checkbox.checked = isChecked;
-        });
-        
-        updateSubmitState();
-      }
-
-      // Set up select all checkbox
-      if (selectAllCheckbox) {
-        // Remove old event listeners by cloning
-        const newSelectAll = selectAllCheckbox.cloneNode(true);
-        selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
-        newSelectAll.addEventListener('change', toggleAll);
-      }
-
-      // Set up table body change listener
-      tableBody.addEventListener('change', function(event) {
-        if (event.target.name === 'encounter_ids[]') {
-          updateSubmitState();
-          
-          // Update select all checkbox state
-          const selectAll = document.getElementById('select_all_queued');
-          if (selectAll) {
-            const allCheckboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
-            const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
-            selectAll.checked = allCheckboxes.length > 0 && checkedBoxes.length === allCheckboxes.length;
-            selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < allCheckboxes.length;
-          }
-        }
+    function toggleAll(event) {
+      const tableBody = TurboAware.query('[data-workflow-queued-target="tableBody"]');
+      if (!tableBody) return;
+      
+      const checkboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
+      const isChecked = event.target.checked;
+      
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = isChecked;
       });
-
-      // Initialize state
+      
       updateSubmitState();
     }
 
-    // Initialize on page load
-    initializeWorkflowQueued();
+    // Use event delegation for checkboxes - works with dynamic content
+    TurboAware.delegate('change', 'input[name="encounter_ids[]"]', function(event) {
+      updateSubmitState();
+    });
 
-    // Re-initialize on Turbo Stream updates
+    // Use event delegation for select all checkbox
+    TurboAware.delegate('change', '#select_all_queued', function(event) {
+      toggleAll(event);
+    });
+
+    // Initialize state on load and after Turbo updates
+    function initialize() {
+      updateSubmitState();
+    }
+
+    // Use TurboAware.onLoad to ensure it runs on initial load and after updates
+    TurboAware.onLoad(initialize);
+
+    // Also specifically listen for queued table frame updates
     document.addEventListener('turbo:frame-load', function(event) {
       if (event.target.id === 'queued_encounters_frame') {
-        setTimeout(initializeWorkflowQueued, 100);
+        setTimeout(initialize, 50);
       }
     });
 
-    // Also listen for turbo:load for full page loads
-    document.addEventListener('turbo:load', initializeWorkflowQueued);
+    document.addEventListener('turbo:after-stream-render', function() {
+      // Check if the queued table was updated
+      const frame = TurboAware.getElement('queued_encounters_frame');
+      if (frame) {
+        setTimeout(initialize, 50);
+      }
+    });
   })();
 
   // Handle row click to edit encounter

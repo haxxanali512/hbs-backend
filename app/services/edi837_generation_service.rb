@@ -9,7 +9,7 @@ class Edi837GenerationService
 
   # EDI Sender and Receiver IDs (from Rails credentials, hardcoded for now)
   EDI_SENDER_ID = Rails.application.credentials.dig(:waystar, :sender_id)
-  EDI_RECEIVER_ID = Rails.application.credentials.dig(:waystar, :receiver_id)
+  EDI_RECEIVER_ID = Rails.application.credentials.dig(:waystar, :reciever_id)
 
   def initialize(encounters:, organization:)
     @encounters = Array(encounters)
@@ -457,21 +457,50 @@ class Edi837GenerationService
 
       # 2010BB - Payer Name Loop - MUST for insurance claims
       if coverage.insurance_plan.present?
-        payer_name = coverage.insurance_plan.name || "UNKNOWN PAYER"
-        payer_id = coverage.insurance_plan.payer_id || ""
+        insurance_plan = coverage.insurance_plan
+        payer = insurance_plan.payer
 
-        segments << [
-          "NM1",
-          "PR", # Entity Type Code (PR=Payer)
-          "2", # Entity Type Qualifier (2=Non-Person Entity)
-          payer_name,
-          "", # Name First
-          "", # Name Middle
-          "", # Name Prefix
-          "", # Name Suffix
-          "PI", # Identification Code Qualifier (PI=Payer Identification)
-          payer_id # Payer ID (required)
-        ].join("*")
+        if payer.present?
+          payer_name = payer.name || "UNKNOWN PAYER"
+          # Use national_payer_id if available, otherwise fallback to hbs_payer_key
+          payer_id = payer.national_payer_id.presence || payer.hbs_payer_key.presence || "123123123"
+
+          # NM1 - Payer Name - MUST
+          segments << [
+            "NM1",
+            "PR", # Entity Type Code (PR=Payer)
+            "2", # Entity Type Qualifier (2=Non-Person Entity)
+            payer_name,
+            "", # Name First
+            "", # Name Middle
+            "", # Name Prefix
+            "", # Name Suffix
+            payer_id.present? ? "PI" : "", # Identification Code Qualifier (PI=Payer Identification, only if ID present)
+            payer_id # Payer ID (required when PI qualifier is used)
+          ].join("*")
+
+          # REF - Payer Secondary Identification - OPTIONAL
+          # Add additional payer identification if hbs_payer_key is different from payer_id
+          if payer.hbs_payer_key.present? && payer.hbs_payer_key != payer_id
+            segments << [
+              "REF",
+              "G2", # Reference Identification Qualifier (G2=Provider Commercial Number)
+              payer.hbs_payer_key
+            ].join("*")
+          end
+        else
+          # Fallback if payer is not found - use insurance plan name
+          payer_name = insurance_plan.name || "UNKNOWN PAYER"
+          segments << [
+            "NM1",
+            "PR",
+            "2",
+            payer_name,
+            "", "", "", "",
+            "", # No identification code qualifier
+            "" # No payer ID
+          ].join("*")
+        end
       end
     else
       # Self-pay - Subscriber is the patient
