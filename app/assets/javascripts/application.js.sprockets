@@ -12,6 +12,7 @@
 //
 //= require rails-ujs
 //= require activestorage
+//= require turbo_aware
 //= require confirm_modal
 //= require_tree .
 
