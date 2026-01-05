@@ -65,9 +65,18 @@ class Admin::PatientInsuranceCoveragesController < Admin::BaseController
   end
 
   def terminate
-    termination_date = params[:termination_date] || Date.current
+    # Accept termination_date from either direct param or nested form param
+    termination_date = params[:termination_date].presence || params.dig(:patient_insurance_coverage, :termination_date).presence
+
+    # Parse the date string if it's a string
+    if termination_date.is_a?(String)
+      termination_date = Date.parse(termination_date) rescue Date.current
+    end
+
+    termination_date ||= Date.current
+
     if @patient_insurance_coverage.terminate!(termination_date: termination_date, actor: current_user)
-      redirect_to admin_patient_insurance_coverage_path(@patient_insurance_coverage), notice: "Coverage terminated."
+      redirect_to admin_patient_insurance_coverage_path(@patient_insurance_coverage), notice: "Coverage terminated with termination date: #{termination_date.strftime('%m/%d/%Y')}."
     else
       redirect_to admin_patient_insurance_coverage_path(@patient_insurance_coverage), alert: "Cannot terminate coverage: #{@patient_insurance_coverage.errors.full_messages.join(', ')}"
     end
