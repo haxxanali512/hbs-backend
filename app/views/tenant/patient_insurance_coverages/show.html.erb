@@ -99,7 +99,9 @@
               <%= button_to "Activate", activate_tenant_patient_insurance_coverage_path(@patient_insurance_coverage), method: :post, class: "w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
             <% end %>
             <% unless @patient_insurance_coverage.terminated? %>
-              <%= button_to "Terminate", terminate_tenant_patient_insurance_coverage_path(@patient_insurance_coverage), method: :post, class: "w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md" %>
+              <button type="button" onclick="openTerminateInsuranceModal()" class="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md">
+                Terminate
+              </button>
             <% end %>
             <% if @patient_insurance_coverage.can_be_deleted? %>
               <%= button_to "Delete", tenant_patient_insurance_coverage_path(@patient_insurance_coverage), method: :delete, 
@@ -114,4 +116,7 @@
     </div>
   </div>
 </div>
+
+<%= render "shared/terminate_insurance_modal" %>
+
 
