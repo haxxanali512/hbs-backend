@@ -208,6 +208,15 @@ class Tenant::EncountersController < Tenant::BaseController
       date_of_service: Date.current,
       billing_channel: :insurance
     )
+
+    # Auto-populate patient if patient_id is provided
+    if params[:patient_id].present?
+      patient = @current_organization.patients.find_by(id: params[:patient_id])
+      if patient
+        @encounter.patient_id = patient.id
+      end
+    end
+
     load_workflow_collections
   end
 
