@@ -1,3 +1,11 @@
+<% 
+  # Reusable terminate insurance coverage modal
+  # Usage: render "shared/terminate_insurance_modal", terminate_url: terminate_tenant_patient_insurance_coverage_path(@patient_insurance_coverage)
+  # or: render "shared/terminate_insurance_modal", terminate_url: terminate_admin_patient_insurance_coverage_path(@patient_insurance_coverage)
+  
+  terminate_url = local_assigns[:terminate_url] || '#'
+%>
+
 <!-- Terminate Insurance Coverage Modal -->
 <div id="terminateInsuranceModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="terminateInsuranceModal-title" role="dialog" aria-modal="true">
   <div class="relative flex min-h-full items-center justify-center p-4">
@@ -6,7 +14,7 @@
 
     <!-- Modal panel -->
     <div id="terminateInsuranceModalContent" class="relative z-10 w-full max-w-md rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out">
-      <div class="bg-white px-6 py-6">
+      <div class="bg-white px-6 py-8">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900" id="terminateInsuranceModal-title">Terminate Insurance Coverage</h3>
           <button type="button" onclick="closeTerminateInsuranceModal()" class="text-gray-400 hover:text-gray-500">
@@ -16,7 +24,7 @@
           </button>
         </div>
 
-        <%= form_with url: terminate_tenant_patient_insurance_coverage_path(@patient_insurance_coverage), method: :post, id: "terminateInsuranceForm", data: { turbo: false } do |f| %>
+        <%= form_with url: terminate_url, method: :post, id: "terminateInsuranceForm", data: { turbo: false } do |f| %>
           <div class="space-y-4">
             <div>
               <label for="termination_date" class="block text-sm font-medium text-gray-700 mb-2">
@@ -100,4 +108,3 @@
     }
   });
 </script>
-

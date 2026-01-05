@@ -1,0 +1,110 @@
+<% 
+  # Reusable activate insurance coverage modal
+  # Usage: render "shared/activate_insurance_modal", activate_url: activate_tenant_patient_insurance_coverage_path(@patient_insurance_coverage)
+  # or: render "shared/activate_insurance_modal", activate_url: activate_admin_patient_insurance_coverage_path(@patient_insurance_coverage)
+  
+  activate_url = local_assigns[:activate_url] || '#'
+%>
+
+<!-- Activate Insurance Coverage Modal -->
+<div id="activateInsuranceModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="activateInsuranceModal-title" role="dialog" aria-modal="true">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <!-- Background overlay -->
+    <div id="activateInsuranceModalOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out" onclick="closeActivateInsuranceModal()"></div>
+
+    <!-- Modal panel -->
+    <div id="activateInsuranceModalContent" class="relative z-10 w-full max-w-md rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900" id="activateInsuranceModal-title">Activate Insurance Coverage</h3>
+          <button type="button" onclick="closeActivateInsuranceModal()" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <%= form_with url: activate_url, method: :post, id: "activateInsuranceForm", data: { turbo: false } do |f| %>
+          <div class="space-y-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <p class="text-sm text-blue-800">
+                <strong>Please confirm:</strong> You are about to activate this insurance coverage. Make sure all information is correct before proceeding.
+              </p>
+            </div>
+
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <p class="text-sm text-yellow-800">
+                <strong>Warning:</strong> Activating this coverage will make it available for use in encounters and claims. Ensure that:
+              </p>
+              <ul class="mt-2 ml-4 list-disc text-sm text-yellow-800 space-y-1">
+                <li>The member ID is correct</li>
+                <li>The effective date is accurate</li>
+                <li>The coverage order (Primary/Secondary/Tertiary) is correct</li>
+                <li>All subscriber information is complete</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeActivateInsuranceModal()" class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Cancel
+            </button>
+            <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+              Activate Coverage
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openActivateInsuranceModal() {
+    const modal = document.getElementById('activateInsuranceModal');
+    const overlay = document.getElementById('activateInsuranceModalOverlay');
+    const content = document.getElementById('activateInsuranceModalContent');
+    
+    if (!modal || !overlay || !content) return;
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Trigger fade in animation
+    requestAnimationFrame(() => {
+      overlay.classList.remove('opacity-0');
+      overlay.classList.add('opacity-100');
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    });
+  }
+
+  function closeActivateInsuranceModal() {
+    const modal = document.getElementById('activateInsuranceModal');
+    const overlay = document.getElementById('activateInsuranceModalOverlay');
+    const content = document.getElementById('activateInsuranceModalContent');
+    
+    if (!modal || !overlay || !content) return;
+    
+    // Trigger fade out animation
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }, 300);
+  }
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('activateInsuranceModal');
+      if (modal && !modal.classList.contains('hidden')) {
+        closeActivateInsuranceModal();
+      }
+    }
+  });
+</script>
