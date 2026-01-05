@@ -1,6 +1,7 @@
 class Patient < ApplicationRecord
   include Discard::Model
   include AASM
+  include PatientVisitStats
 
   audited
 

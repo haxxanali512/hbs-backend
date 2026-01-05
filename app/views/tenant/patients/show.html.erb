@@ -177,6 +177,67 @@
           <% end %>
         </div>
 
+        <!-- Visit Count by Year and Service Type -->
+        <% 
+          visit_counts = @patient.visit_count_by_year_and_specialty
+          specialties_map = Specialty.where(id: visit_counts.values.flat_map(&:keys).uniq).index_by(&:id)
+        %>
+        <% if visit_counts.any? %>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Visit Count by Calendar Year & Service Type</h2>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                    <% visit_counts.values.flat_map(&:keys).uniq.sort.each do |specialty_id| %>
+                      <% specialty = specialties_map[specialty_id] %>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <%= specialty&.name || "Specialty #{specialty_id}" %>
+                      </th>
+                    <% end %>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% visit_counts.keys.sort.reverse.each do |year| %>
+                    <tr class="hover:bg-gray-50">
+                      <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <%= year %>
+                      </td>
+                      <% visit_counts.values.flat_map(&:keys).uniq.sort.each do |specialty_id| %>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center">
+                          <%= visit_counts[year]&.dig(specialty_id) || 0 %>
+                        </td>
+                      <% end %>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
+                        <%= @patient.total_visits_for_year(year) %>
+                      </td>
+                    </tr>
+                  <% end %>
+                  <!-- Total Row -->
+                  <tr class="bg-gray-50 font-semibold">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                      Total (All Years)
+                    </td>
+                    <% visit_counts.values.flat_map(&:keys).uniq.sort.each do |specialty_id| %>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center">
+                        <%= @patient.total_visits_for_specialty(specialty_id) %>
+                      </td>
+                    <% end %>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
+                      <%= @patient.encounters.kept.where(status: [:ready_for_review, :reviewed, :ready_to_submit, :completed_confirmed, :sent]).count %>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="mt-4 text-xs text-gray-500">
+              * Visit counts include encounters with status: Ready for Review, Reviewed, Ready to Submit, Completed/Confirmed, or Sent
+            </p>
+          </div>
+        <% end %>
+
         <!-- Notes -->
         <% if @patient.notes_nonphi.present? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
