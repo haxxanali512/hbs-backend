@@ -73,7 +73,8 @@ module HbsCustoms
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
           support_tickets: DEFAULT_CRUD.except(:destroy),
           support_ticket_comments: DEFAULT_CRUD.except(:destroy),
-          claims: DEFAULT_CRUD.merge(claim_insured_data: false, submit_claim_insured: false, claim_data: false, submit_claim: false)
+          claims: DEFAULT_CRUD.merge(claim_insured_data: false, submit_claim_insured: false, claim_data: false, submit_claim: false),
+          prescriptions: DEFAULT_CRUD.merge(archive: false, unarchive: false)
         }.freeze
       end
 
@@ -114,7 +115,8 @@ module HbsCustoms
           support_ticket_comments: DEFAULT_CRUD.except(:destroy).merge(redact: false),
           email_template_keys: DEFAULT_CRUD,
           email_templates: DEFAULT_CRUD,
-          data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false, upload_processing_file: false)
+          data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false, upload_processing_file: false),
+          prescriptions: DEFAULT_CRUD
         }.freeze
       end
 

@@ -449,6 +449,13 @@ Rails.application.routes.draw do
           end
         end
 
+        resources :prescriptions do
+          member do
+            post :archive
+            post :unarchive
+          end
+        end
+
         resources :patients do
           member do
             post :activate

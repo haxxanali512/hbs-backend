@@ -1,0 +1,106 @@
+<!-- Add Prescription Modal -->
+<div id="addPrescriptionModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="addPrescriptionModal-title" role="dialog" aria-modal="true">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <!-- Background overlay -->
+    <div id="addPrescriptionModalOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out" onclick="closeAddPrescriptionModal()"></div>
+
+    <!-- Modal panel -->
+    <div id="addPrescriptionModalContent" class="relative z-10 w-full max-w-md rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900" id="addPrescriptionModal-title">Add Prescription?</h3>
+          <button type="button" onclick="closeAddPrescriptionModal()" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex items-center justify-center w-12 h-12 mx-auto bg-indigo-100 rounded-full mb-4">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p class="text-sm text-gray-700 text-center">
+            Would you like to create a prescription for <strong><%= @patient.full_name %></strong> now?
+          </p>
+          <p class="text-xs text-gray-500 text-center">
+            You can always add a prescription later from the patient's profile page.
+          </p>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeAddPrescriptionModal()" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            No, Later
+          </button>
+          <%= link_to "Yes, Add Prescription", new_tenant_prescription_path(patient_id: @patient.id), class: "rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openAddPrescriptionModal() {
+    const modal = document.getElementById('addPrescriptionModal');
+    const overlay = document.getElementById('addPrescriptionModalOverlay');
+    const content = document.getElementById('addPrescriptionModalContent');
+    
+    if (!modal || !overlay || !content) return;
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Trigger fade in animation
+    requestAnimationFrame(() => {
+      overlay.classList.remove('opacity-0');
+      overlay.classList.add('opacity-100');
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    });
+  }
+
+  function closeAddPrescriptionModal() {
+    const modal = document.getElementById('addPrescriptionModal');
+    const overlay = document.getElementById('addPrescriptionModalOverlay');
+    const content = document.getElementById('addPrescriptionModalContent');
+    
+    if (!modal || !overlay || !content) return;
+    
+    // Trigger fade out animation
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      
+      // Remove the query parameter from URL without reload
+      if (window.history && window.history.replaceState) {
+        const url = new URL(window.location);
+        url.searchParams.delete('add_prescription');
+        window.history.replaceState({}, '', url);
+      }
+    }, 300);
+  }
+
+  // Auto-open modal if add_prescription parameter is present
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('add_prescription') === 'true') {
+      openAddPrescriptionModal();
+    }
+  });
+
+  // Also handle Turbo navigation
+  document.addEventListener('turbo:load', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('add_prescription') === 'true') {
+      openAddPrescriptionModal();
+    }
+  });
+</script>
+

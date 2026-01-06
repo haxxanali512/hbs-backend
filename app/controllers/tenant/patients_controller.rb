@@ -59,7 +59,6 @@ class Tenant::PatientsController < Tenant::BaseController
 
   def new
     @patient = @current_organization.patients.build
-    @patient.build_prescription
     if @patient.patient_insurance_coverages.empty?
       @patient.patient_insurance_coverages.build(
         status: :draft,
@@ -75,8 +74,7 @@ class Tenant::PatientsController < Tenant::BaseController
     set_insurance_coverage_organization_ids
 
     if @patient.save
-      attach_prescription_document_if_present
-      redirect_to tenant_patient_path(@patient), notice: "Patient created successfully."
+      redirect_to tenant_patient_path(@patient, add_prescription: true), notice: "Patient created successfully."
     else
       load_insurance_form_options
       render :new, status: :unprocessable_entity
@@ -84,7 +82,6 @@ class Tenant::PatientsController < Tenant::BaseController
   end
 
   def edit
-    @patient.build_prescription unless @patient.prescription
     if @patient.patient_insurance_coverages.empty?
       @patient.patient_insurance_coverages.build(
         status: :draft,
@@ -100,7 +97,6 @@ class Tenant::PatientsController < Tenant::BaseController
     set_insurance_coverage_organization_ids
 
     if @patient.save
-      attach_prescription_document_if_present
       redirect_to tenant_patient_path(@patient), notice: "Patient updated successfully."
     else
       load_insurance_form_options
@@ -232,25 +228,6 @@ class Tenant::PatientsController < Tenant::BaseController
     )
   end
 
-  def attach_prescription_document_if_present
-    uploaded_file = params.dig(:patient, :prescription_document_file)
-    return if uploaded_file.blank?
-
-    # Ensure we have a prescription record to attach to
-    @patient.build_prescription unless @patient.prescription
-    @patient.prescription.save! unless @patient.prescription.persisted?
-
-    DocumentUploadService.new(
-      documentable: @patient.prescription,
-      uploaded_by: current_user,
-      organization: @current_organization,
-      params: {
-        file: uploaded_file,
-        title: @patient.prescription.title.presence || "Prescription Document",
-        document_type: "patient_prescription"
-      }
-    ).call
-  end
 
   def load_insurance_form_options
     @insurance_plans = InsurancePlan.active_only.order(:name)

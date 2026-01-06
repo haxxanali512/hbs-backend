@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_31_093208) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_31_093210) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -849,6 +849,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_31_093208) do
     t.index ["source_hash"], name: "index_payments_on_source_hash", unique: true
   end
 
+  create_table "prescription_diagnosis_codes", force: :cascade do |t|
+    t.bigint "prescription_id", null: false
+    t.bigint "diagnosis_code_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["diagnosis_code_id"], name: "index_prescription_diagnosis_codes_on_diagnosis_code_id"
+    t.index ["prescription_id", "diagnosis_code_id"], name: "index_prescription_diagnosis_codes_unique", unique: true
+    t.index ["prescription_id"], name: "index_prescription_diagnosis_codes_on_prescription_id"
+  end
+
   create_table "prescriptions", force: :cascade do |t|
     t.bigint "patient_id", null: false
     t.date "expires_on", null: false
@@ -857,10 +867,23 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_31_093208) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "title"
+    t.bigint "organization_id", null: false
+    t.date "date_written", null: false
+    t.bigint "specialty_id"
+    t.bigint "procedure_code_id"
+    t.bigint "provider_id"
+    t.boolean "archived", default: false, null: false
+    t.datetime "archived_at"
+    t.index ["archived"], name: "index_prescriptions_on_archived"
+    t.index ["date_written"], name: "index_prescriptions_on_date_written"
     t.index ["discarded_at"], name: "index_prescriptions_on_discarded_at"
     t.index ["expired"], name: "index_prescriptions_on_expired"
     t.index ["expires_on"], name: "index_prescriptions_on_expires_on"
-    t.index ["patient_id"], name: "index_prescriptions_on_patient_id", unique: true
+    t.index ["organization_id"], name: "index_prescriptions_on_organization_id"
+    t.index ["patient_id"], name: "index_prescriptions_on_patient_id"
+    t.index ["procedure_code_id"], name: "index_prescriptions_on_procedure_code_id"
+    t.index ["provider_id"], name: "index_prescriptions_on_provider_id"
+    t.index ["specialty_id"], name: "index_prescriptions_on_specialty_id"
   end
 
   create_table "procedure_code_rules", force: :cascade do |t|
@@ -1177,6 +1200,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_31_093208) do
   add_foreign_key "payments", "organizations"
   add_foreign_key "payments", "payers"
   add_foreign_key "payments", "users", column: "processed_by_user_id"
+  add_foreign_key "prescription_diagnosis_codes", "diagnosis_codes"
+  add_foreign_key "prescription_diagnosis_codes", "prescriptions"
+  add_foreign_key "prescriptions", "organizations"
+  add_foreign_key "prescriptions", "procedure_codes"
+  add_foreign_key "prescriptions", "providers"
+  add_foreign_key "prescriptions", "specialties"
   add_foreign_key "procedure_code_rules", "procedure_codes"
   add_foreign_key "procedure_codes_specialties", "procedure_codes"
   add_foreign_key "procedure_codes_specialties", "specialties"
