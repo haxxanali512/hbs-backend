@@ -12,7 +12,7 @@ class Patient < ApplicationRecord
   has_many :patient_insurance_coverages, dependent: :restrict_with_error
   # Documents now use Active Storage
   has_many_attached :documents
-  has_one :prescription, dependent: :destroy
+  has_many :prescriptions, dependent: :restrict_with_error
   belongs_to :merged_into_patient, optional: true, class_name: "Patient", foreign_key: "merged_into_patient_id"
   has_many :merged_patients, class_name: "Patient", foreign_key: "merged_into_patient_id"
 
@@ -77,7 +77,6 @@ class Patient < ApplicationRecord
   # Callbacks
   after_create :push_to_ezclaim_if_requested
 
-  accepts_nested_attributes_for :prescription, update_only: true
 
   # Scopes
   scope :active_patients, -> { where(status: :active) }

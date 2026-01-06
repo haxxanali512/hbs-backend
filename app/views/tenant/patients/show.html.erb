@@ -1,3 +1,7 @@
+<% if params[:add_prescription] == 'true' %>
+  <%= render "shared/add_prescription_modal" %>
+<% end %>
+
 <div class="min-h-screen bg-gray-50 py-8">
   <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Header -->
@@ -282,40 +286,96 @@
               </div>
             <% end %>
 
-            <% if @patient.prescription.present? %>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Prescription Expiry</label>
-                <p class="text-sm text-gray-900">
-                  <%= @patient.prescription.expires_on&.strftime("%B %d, %Y") || "Not set" %>
-                  <% if @patient.prescription.expired? %>
-                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      Expired
-                    </span>
-                  <% end %>
-                </p>
-              </div>
-            <% end %>
           </div>
         </div>
 
-        <!-- Prescription Document -->
+        <!-- Prescriptions -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Prescription Document</h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Prescriptions</h3>
+            <%= link_to "New Prescription", new_tenant_prescription_path(patient_id: @patient.id), class: "text-sm text-blue-600 hover:text-blue-800" %>
+          </div>
 
-          <% if @patient.prescription&.documents&.attached? %>
-            <div class="space-y-2">
-              <% @patient.prescription.documents.each do |attachment| %>
-                <div class="flex items-center justify-between p-2 border border-gray-200 rounded-md hover:bg-gray-50">
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 truncate"><%= attachment.filename %></p>
-                    <p class="text-xs text-gray-500"><%= number_to_human_size(attachment.byte_size) %> · <%= attachment.content_type %></p>
+          <% if @patient.prescriptions.kept.any? %>
+            <div class="space-y-3">
+              <% @patient.prescriptions.kept.order(created_at: :desc).each do |prescription| %>
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h4 class="text-sm font-semibold text-gray-900">
+                          <%= link_to prescription.title, tenant_prescription_path(prescription), class: "text-blue-600 hover:text-blue-800" %>
+                        </h4>
+                        <% if prescription.archived? %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Archived
+                          </span>
+                        <% elsif prescription.expired? %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Expired
+                          </span>
+                        <% else %>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                          </span>
+                        <% end %>
+                      </div>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span class="text-gray-500">Date Written:</span>
+                          <span class="ml-2 text-gray-900"><%= prescription.date_written&.strftime("%m/%d/%Y") || "—" %></span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500">Expires:</span>
+                          <span class="ml-2 text-gray-900"><%= prescription.expires_on&.strftime("%m/%d/%Y") || "—" %></span>
+                        </div>
+                        <% if prescription.specialty.present? %>
+                          <div>
+                            <span class="text-gray-500">Specialty:</span>
+                            <span class="ml-2">
+                              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                <%= prescription.specialty.name %>
+                              </span>
+                            </span>
+                          </div>
+                        <% end %>
+                        <% if prescription.procedure_code.present? %>
+                          <div>
+                            <span class="text-gray-500">Procedure:</span>
+                            <span class="ml-2">
+                              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                <%= prescription.procedure_code.code %>
+                              </span>
+                            </span>
+                          </div>
+                        <% end %>
+                        <% if prescription.diagnosis_codes.any? %>
+                          <div class="md:col-span-2">
+                            <span class="text-gray-500">Diagnosis Codes:</span>
+                            <div class="mt-1 flex flex-wrap gap-1">
+                              <% prescription.diagnosis_codes.each do |dc| %>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                  <%= dc.code %>
+                                </span>
+                              <% end %>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <%= link_to "View", tenant_prescription_path(prescription), class: "text-sm text-blue-600 hover:text-blue-800" %>
+                    </div>
                   </div>
-                  <%= link_to "View", rails_blob_path(attachment, disposition: "inline"), target: "_blank", class: "ml-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium" %>
                 </div>
               <% end %>
             </div>
+            <div class="mt-4">
+              <%= link_to "View All Prescriptions", tenant_prescriptions_path(patient_id: @patient.id), class: "text-sm text-blue-600 hover:text-blue-800" %>
+            </div>
           <% else %>
-            <p class="text-sm text-gray-500">No prescription document attached.</p>
+            <p class="text-sm text-gray-500">No prescriptions on file.</p>
+            <%= link_to "Create Prescription", new_tenant_prescription_path(patient_id: @patient.id), class: "mt-2 inline-block text-sm text-blue-600 hover:text-blue-800" %>
           <% end %>
         </div>
 

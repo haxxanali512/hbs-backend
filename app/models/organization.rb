@@ -59,6 +59,7 @@ class Organization < ApplicationRecord
   has_many :encounters, dependent: :restrict_with_error
   has_many :claims, dependent: :restrict_with_error
   has_many :patients, dependent: :destroy
+  has_many :prescriptions, dependent: :restrict_with_error
   has_many :patient_insurance_coverages, dependent: :restrict_with_error
   has_many :org_accepted_plans, dependent: :restrict_with_error
   has_many :payer_enrollments, dependent: :restrict_with_error

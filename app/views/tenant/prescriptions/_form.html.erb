@@ -1,0 +1,387 @@
+<%= form_with(model: prescription, url: prescription.persisted? ? tenant_prescription_path(prescription) : tenant_prescriptions_path, method: prescription.persisted? ? :patch : :post, local: true, html: { class: "space-y-6", multipart: true }) do |f| %>
+  <% if prescription.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(prescription.errors.count, "error") %> prohibited this prescription from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% prescription.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Basic Information -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Basic Information</h3>
+      
+      <div>
+        <%= f.label :patient_id, "Patient", class: "block text-sm font-medium text-gray-700 mb-1" do %>
+          Patient <span class="text-red-500">*</span>
+        <% end %>
+        <%= f.select :patient_id,
+                     options_for_select(@patients.map { |p| [p.full_name, p.id] }, prescription.patient_id),
+                     { prompt: "Select patient..." },
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                     required: true %>
+      </div>
+
+      <div>
+        <%= f.label :title, "Prescription Title", class: "block text-sm font-medium text-gray-700 mb-1" do %>
+          Prescription Title <span class="text-red-500">*</span>
+        <% end %>
+        <%= f.text_field :title,
+                         class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                         placeholder: "e.g., Physical Therapy, Medication, etc.",
+                         required: true %>
+      </div>
+
+      <div>
+        <%= f.label :date_written, "Date Written", class: "block text-sm font-medium text-gray-700 mb-1" do %>
+          Date Written <span class="text-red-500">*</span>
+        <% end %>
+        <%= f.date_field :date_written,
+                         value: prescription.date_written&.strftime("%Y-%m-%d") || Date.current.strftime("%Y-%m-%d"),
+                         class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                         required: true %>
+      </div>
+
+      <div>
+        <%= f.label :expires_on, "Expires On", class: "block text-sm font-medium text-gray-700 mb-1" do %>
+          Expires On <span class="text-red-500">*</span>
+        <% end %>
+        <%= f.date_field :expires_on,
+                         value: prescription.expires_on&.strftime("%Y-%m-%d"),
+                         class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                         required: true %>
+      </div>
+    </div>
+
+    <!-- Prescription Details -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Prescription Details</h3>
+      
+      <div>
+        <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :specialty_id,
+                     options_for_select([["None", ""]] + @specialties.map { |s| [s.name, s.id] }, prescription.specialty_id),
+                     {},
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Optional: Select if this prescription is for a specific specialty</p>
+      </div>
+
+      <div>
+        <%= f.label :procedure_code_id, "Procedure Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :procedure_code_id,
+                     options_for_select([["None", ""]] + @procedure_codes.map { |pc| ["#{pc.code} - #{pc.description}", pc.id] }, prescription.procedure_code_id),
+                     {},
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Optional: Select if this prescription is for a specific procedure</p>
+      </div>
+
+      <div>
+        <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :provider_id,
+                     options_for_select([["None", ""]] + @providers.map { |p| [p.full_name, p.id] }, prescription.provider_id),
+                     {},
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        <p class="mt-1 text-sm text-gray-500">Optional: Select the provider who wrote this prescription</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagnosis Codes -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Diagnosis Codes</h3>
+
+    <div class="relative diagnosis-code-search">
+      <input type="text"
+             id="prescriptionDiagnosisInput"
+             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm diagnosis-code-search-input focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="Type to search diagnosis codes..."
+             autocomplete="off"
+             onfocus="prescriptionShowDiagnosisDropdown()"
+             oninput="prescriptionSearchDiagnosisCodes(this.value)">
+      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      <!-- Dropdown results -->
+      <div id="prescription_diagnosis_results"
+           class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
+      </div>
+    </div>
+
+    <!-- Selected diagnosis codes display -->
+    <div id="prescriptionSelectedDiagnosisCodes" class="mt-2 flex flex-wrap gap-2">
+      <% if prescription.diagnosis_codes.any? %>
+        <% prescription.diagnosis_codes.each do |dc| %>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                data-code-id="<%= dc.id %>">
+            <%= dc.code %> - <%= truncate(dc.description.to_s, length: 30) %>
+            <button type="button"
+                    onclick="prescriptionRemoveDiagnosisCode(<%= dc.id %>)"
+                    class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
+          </span>
+        <% end %>
+      <% end %>
+    </div>
+
+    <!-- Hidden inputs for submission -->
+    <div id="prescriptionDiagnosisHiddenInputs">
+      <% Array(prescription.diagnosis_code_ids).each do |dc_id| %>
+        <input type="hidden"
+               name="prescription[diagnosis_code_ids][]"
+               value="<%= dc_id %>"
+               id="prescriptionDiagnosisHidden<%= dc_id %>">
+      <% end %>
+    </div>
+
+    <p class="text-sm text-gray-500">
+      Select diagnosis codes associated with this prescription.
+    </p>
+  </div>
+
+  <!-- Documents -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Documents</h3>
+    
+    <%= render 'shared/document_upload', 
+        document_type: 'prescription_document',
+        field_name: 'prescription[documents]',
+        label: 'Attach Prescription Documents',
+        hint: 'Upload prescription documents, images, or PDFs. Max 25MB per file.',
+        multiple: true %>
+    
+    <% if prescription.persisted? && prescription.documents.attached? %>
+      <div class="mt-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Current Documents</h4>
+        <div class="space-y-2">
+          <% prescription.documents.each do |attachment| %>
+            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
+              <div class="flex items-center space-x-3">
+                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-gray-900"><%= attachment.filename %></p>
+                  <p class="text-xs text-gray-500"><%= number_to_human_size(attachment.byte_size) %> · <%= attachment.content_type %></p>
+                </div>
+              </div>
+              <%= link_to "View", rails_blob_path(attachment, disposition: "inline"), target: "_blank", class: "text-sm text-blue-600 hover:text-blue-800" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="flex justify-end pt-4 border-t border-gray-100">
+    <%= link_to "Cancel", prescription.persisted? ? tenant_prescription_path(prescription) : tenant_prescriptions_path, class: "mr-3 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+    <%= f.submit prescription.persisted? ? "Update Prescription" : "Create Prescription",
+                 class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer" %>
+  </div>
+<% end %>
+
+<script>
+  // Diagnosis code search for prescription form
+  (function() {
+    if (window.prescriptionDiagnosisInitialized) return;
+    window.prescriptionDiagnosisInitialized = true;
+
+    window.prescriptionSelectedDiagnosisCodes = window.prescriptionSelectedDiagnosisCodes || [];
+    let prescriptionDiagnosisTimeout = null;
+    const searchUrl = "<%= search_tenant_diagnosis_codes_path %>";
+
+    window.prescriptionShowDiagnosisDropdown = function() {
+      const resultsDiv = document.getElementById("prescription_diagnosis_results");
+      if (!resultsDiv) return;
+      resultsDiv.classList.remove("hidden");
+      if (resultsDiv.children.length === 0) {
+        prescriptionSearchDiagnosisCodes("");
+      }
+    };
+
+    window.prescriptionSearchDiagnosisCodes = function(query) {
+      const resultsDiv = document.getElementById("prescription_diagnosis_results");
+      if (!resultsDiv || !searchUrl) return;
+
+      if (prescriptionDiagnosisTimeout) {
+        clearTimeout(prescriptionDiagnosisTimeout);
+      }
+
+      prescriptionDiagnosisTimeout = setTimeout(function() {
+        resultsDiv.classList.remove("hidden");
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">Searching...</div>';
+
+        const url = searchUrl + "?q=" + encodeURIComponent(query || "");
+
+        fetch(url, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
+          },
+          credentials: "same-origin"
+        })
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.success && data.results) {
+              prescriptionDisplayDiagnosisResults(resultsDiv, data.results);
+            } else {
+              resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No diagnosis codes found</div>';
+            }
+          })
+          .catch(function(error) {
+            console.error("Error searching diagnosis codes:", error);
+            resultsDiv.innerHTML = '<div class="p-3 text-xs text-red-500 text-center">Error searching diagnosis codes</div>';
+          });
+      }, (query && query.length > 0) ? 250 : 0);
+    };
+
+    function prescriptionDisplayDiagnosisResults(resultsDiv, results) {
+      if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No diagnosis codes found</div>';
+        return;
+      }
+
+      var selectedArray = Array.isArray(window.prescriptionSelectedDiagnosisCodes)
+        ? window.prescriptionSelectedDiagnosisCodes
+        : [];
+      const selectedIds = selectedArray.map(function(s) { return s.id; });
+
+      const html = results.map(function(result) {
+        const code = result.code || "N/A";
+        const description = result.description || "No description";
+        const isSelected = selectedIds.indexOf(result.id) >= 0;
+
+        return (
+          '<div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors ' +
+          (isSelected ? 'bg-indigo-100' : '') + '" ' +
+          'onclick="prescriptionSelectDiagnosisCode(' + result.id + ', \'' + code.replace(/'/g, "\\'") + '\', \'' + description.replace(/'/g, "\\'") + '\')">' +
+            '<div class="text-xs font-medium text-gray-900">' + code +
+              (isSelected ? ' <span class="text-[10px] text-green-600">(Selected)</span>' : '') +
+            '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">' + description + '</div>' +
+          '</div>'
+        );
+      }).join("");
+
+      resultsDiv.innerHTML =
+        '<div class="p-2 border-b border-gray-200"><div class="text-[11px] text-gray-500">Select diagnosis codes</div></div>' + html;
+    }
+
+    window.prescriptionSelectDiagnosisCode = function(id, code, description) {
+      if (!Array.isArray(window.prescriptionSelectedDiagnosisCodes)) {
+        window.prescriptionSelectedDiagnosisCodes = [];
+      }
+
+      var selected = window.prescriptionSelectedDiagnosisCodes;
+      var existingIndex = selected.findIndex(function(s) { return s.id === id; });
+
+      if (existingIndex >= 0) {
+        selected.splice(existingIndex, 1);
+      } else {
+        selected.push({ id: id, code: code, description: description });
+      }
+
+      prescriptionUpdateDiagnosisDisplay();
+
+      var input = document.getElementById("prescriptionDiagnosisInput");
+      if (input) input.value = "";
+
+      var resultsDiv = document.getElementById("prescription_diagnosis_results");
+      if (resultsDiv) resultsDiv.classList.add("hidden");
+    };
+
+    window.prescriptionRemoveDiagnosisCode = function(id) {
+      if (!window.prescriptionSelectedDiagnosisCodes) return;
+      var selected = window.prescriptionSelectedDiagnosisCodes;
+      var index = selected.findIndex(function(s) { return s.id === id; });
+      if (index >= 0) {
+        selected.splice(index, 1);
+        prescriptionUpdateDiagnosisDisplay();
+      }
+    };
+
+    function prescriptionUpdateDiagnosisDisplay() {
+      var container = document.getElementById("prescriptionSelectedDiagnosisCodes");
+      var hiddenInputs = document.getElementById("prescriptionDiagnosisHiddenInputs");
+      if (!container || !hiddenInputs) return;
+
+      var selected = window.prescriptionSelectedDiagnosisCodes || [];
+
+      if (selected.length === 0) {
+        container.innerHTML = '<span class="text-xs text-gray-500">No diagnosis codes selected</span>';
+      } else {
+        container.innerHTML = selected.map(function(item) {
+          var displayText = item.description
+            ? (item.code + " - " + (item.description.length > 30 ? item.description.substring(0, 30) + "..." : item.description))
+            : item.code;
+          return (
+            '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" data-code-id="' + item.id + '">' +
+              displayText +
+              '<button type="button" onclick="prescriptionRemoveDiagnosisCode(' + item.id + ')" class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>' +
+            '</span>'
+          );
+        }).join(" ");
+      }
+
+      hiddenInputs.innerHTML = selected.map(function(item) {
+        return '<input type="hidden" name="prescription[diagnosis_code_ids][]" value="' + item.id + '" id="prescriptionDiagnosisHidden' + item.id + '">';
+      }).join("");
+    }
+
+    // Initialize from server-side selected codes on first load
+    function initializePrescriptionDiagnosisCodes() {
+      if (!Array.isArray(window.prescriptionSelectedDiagnosisCodes)) {
+        window.prescriptionSelectedDiagnosisCodes = [];
+      }
+      
+      var initialChips = document.querySelectorAll("#prescriptionSelectedDiagnosisCodes [data-code-id]");
+      if (initialChips && initialChips.length > 0) {
+        window.prescriptionSelectedDiagnosisCodes = Array.prototype.map.call(initialChips, function(el) {
+          var id = parseInt(el.getAttribute("data-code-id"), 10);
+          var text = el.textContent.trim().replace("×", "").trim();
+          var code = text.split(" - ")[0];
+          var description = text.split(" - ").slice(1).join(" - ");
+          return { id: id, code: code, description: description };
+        });
+        prescriptionUpdateDiagnosisDisplay();
+      }
+    }
+
+    document.addEventListener("turbo:load", initializePrescriptionDiagnosisCodes);
+    document.addEventListener("DOMContentLoaded", initializePrescriptionDiagnosisCodes);
+    
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializePrescriptionDiagnosisCodes);
+    } else {
+      initializePrescriptionDiagnosisCodes();
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function(event) {
+      var searchWrapper = document.querySelector(".diagnosis-code-search");
+      if (searchWrapper && !searchWrapper.contains(event.target)) {
+        var resultsDiv = document.getElementById("prescription_diagnosis_results");
+        if (resultsDiv) resultsDiv.classList.add("hidden");
+      }
+    });
+  })();
+</script>
