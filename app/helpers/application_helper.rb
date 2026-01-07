@@ -58,49 +58,13 @@ module ApplicationHelper
     "Showing #{pagy.from} to #{pagy.to} of #{pagy.count} entries"
   end
 
-  # Helper method to extract base domain (removes any subdomain prefix like "admin")
-  def base_domain
-    if Rails.env.development?
-      "localhost:3000"
-    else
-      # Prioritize request.host_with_port, fallback to ENV only if request is unavailable
-      host = request&.host_with_port || ENV.fetch("HOST", "holisticbusinesssolution.net")
-
-      # Handle port if present
-      port = nil
-      if host.include?(":")
-        host, port = host.split(":", 2)
-      end
-
-      # Explicitly remove "admin." prefix if present (most common case)
-      host = host.sub(/^admin\./, "") if host.start_with?("admin.")
-
-      # Remove any other subdomain prefix (e.g., "subdomain.holisticbusinesssolution.net" -> "holisticbusinesssolution.net")
-      # Split by dots and take the last 2 parts (domain + TLD)
-      parts = host.split(".")
-
-      # If we have more than 2 parts, we have a subdomain - remove it
-      base = if parts.length > 2
-        # Take only the last 2 parts (domain + TLD)
-        parts[-2..-1].join(".")
-      else
-        # Already base domain (2 parts: domain.tld)
-        host
-      end
-
-      # Reattach port if it was present
-      port ? "#{base}:#{port}" : base
-    end
-  end
-
   # Helper method to get organization subdomain URL based on environment
   def organization_subdomain_url(subdomain)
     if Rails.env.development?
       "#{subdomain}.localhost:3000"
     else
-      # Use base domain (without admin subdomain) for tenant URLs
-      base = base_domain
-      "#{subdomain}.#{base}"
+      # Hardcoded base domain - always use this for tenant URLs (no admin subdomain)
+      "#{subdomain}.holisticbusinesssolution.net"
     end
   end
 
@@ -109,9 +73,8 @@ module ApplicationHelper
     if Rails.env.development?
       "#{subdomain}.localhost:3000"
     else
-      # Use base domain (without admin subdomain) for tenant URLs
-      base = base_domain
-      "#{subdomain}.#{base}"
+      # Hardcoded base domain - always use this for tenant URLs (no admin subdomain)
+      "#{subdomain}.holisticbusinesssolution.net"
     end
   end
 
