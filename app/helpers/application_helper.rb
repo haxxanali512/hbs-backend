@@ -58,14 +58,42 @@ module ApplicationHelper
     "Showing #{pagy.from} to #{pagy.to} of #{pagy.count} entries"
   end
 
+  # Helper method to extract base domain (removes any subdomain prefix like "admin")
+  def base_domain
+    if Rails.env.development?
+      "localhost:3000"
+    else
+      host = ENV.fetch("HOST", request.host_with_port)
+      # Remove any subdomain prefix (e.g., "admin.holisticbusinesssolution.net" -> "holisticbusinesssolution.net")
+      # Handle port if present (e.g., "admin.example.com:3000" -> "example.com:3000")
+      port = nil
+      if host.include?(":")
+        host, port = host.split(":", 2)
+      end
+
+      # Split by dots, if more than 2 parts, take the last 2 parts (domain + TLD)
+      parts = host.split(".")
+      base = if parts.length > 2
+        # Has subdomain, extract base domain (last 2 parts)
+        parts[-2..-1].join(".")
+      else
+        # No subdomain, return as is
+        host
+      end
+
+      # Reattach port if it was present
+      port ? "#{base}:#{port}" : base
+    end
+  end
+
   # Helper method to get organization subdomain URL based on environment
   def organization_subdomain_url(subdomain)
     if Rails.env.development?
       "#{subdomain}.localhost:3000"
     else
-      # In production/staging, use the actual domain
-      host = ENV.fetch("HOST", request.host_with_port)
-      "#{subdomain}.#{host}"
+      # Use base domain (without admin subdomain) for tenant URLs
+      base = base_domain
+      "#{subdomain}.#{base}"
     end
   end
 
@@ -74,9 +102,9 @@ module ApplicationHelper
     if Rails.env.development?
       "#{subdomain}.localhost:3000"
     else
-      # In production/staging, use the actual domain
-      host = ENV.fetch("HOST", request.host_with_port)
-      "#{subdomain}.#{host}"
+      # Use base domain (without admin subdomain) for tenant URLs
+      base = base_domain
+      "#{subdomain}.#{base}"
     end
   end
 
