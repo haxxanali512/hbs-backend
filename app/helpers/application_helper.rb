@@ -63,9 +63,8 @@ module ApplicationHelper
     if Rails.env.development?
       "#{subdomain}.localhost:3000"
     else
-      # In production/staging, use the actual domain
-      host = ENV.fetch("HOST", request.host_with_port)
-      "#{subdomain}.#{host}"
+      # Hardcoded base domain - always use this for tenant URLs (no admin subdomain)
+      "#{subdomain}.holisticbusinesssolution.net"
     end
   end
 
@@ -74,9 +73,8 @@ module ApplicationHelper
     if Rails.env.development?
       "#{subdomain}.localhost:3000"
     else
-      # In production/staging, use the actual domain
-      host = ENV.fetch("HOST", request.host_with_port)
-      "#{subdomain}.#{host}"
+      # Hardcoded base domain - always use this for tenant URLs (no admin subdomain)
+      "#{subdomain}.holisticbusinesssolution.net"
     end
   end
 
