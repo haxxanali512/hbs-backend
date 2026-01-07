@@ -63,21 +63,28 @@ module ApplicationHelper
     if Rails.env.development?
       "localhost:3000"
     else
-      host = ENV.fetch("HOST", request.host_with_port)
-      # Remove any subdomain prefix (e.g., "admin.holisticbusinesssolution.net" -> "holisticbusinesssolution.net")
-      # Handle port if present (e.g., "admin.example.com:3000" -> "example.com:3000")
+      # Prioritize request.host_with_port, fallback to ENV only if request is unavailable
+      host = request&.host_with_port || ENV.fetch("HOST", "holisticbusinesssolution.net")
+
+      # Handle port if present
       port = nil
       if host.include?(":")
         host, port = host.split(":", 2)
       end
 
-      # Split by dots, if more than 2 parts, take the last 2 parts (domain + TLD)
+      # Explicitly remove "admin." prefix if present (most common case)
+      host = host.sub(/^admin\./, "") if host.start_with?("admin.")
+
+      # Remove any other subdomain prefix (e.g., "subdomain.holisticbusinesssolution.net" -> "holisticbusinesssolution.net")
+      # Split by dots and take the last 2 parts (domain + TLD)
       parts = host.split(".")
+
+      # If we have more than 2 parts, we have a subdomain - remove it
       base = if parts.length > 2
-        # Has subdomain, extract base domain (last 2 parts)
+        # Take only the last 2 parts (domain + TLD)
         parts[-2..-1].join(".")
       else
-        # No subdomain, return as is
+        # Already base domain (2 parts: domain.tld)
         host
       end
 
