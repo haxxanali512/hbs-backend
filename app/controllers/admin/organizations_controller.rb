@@ -49,13 +49,17 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def activate_tenant
-    if @organization.may_activate?
-      @organization.activate!
+    result = OrganizationDirectActivationService.new(
+      organization: @organization,
+      activated_by: current_user
+    ).call
+
+    if result[:success]
       redirect_to admin_organization_path(@organization),
-                  notice: "Organization activated successfully (skipped all activation steps)."
+                  notice: "Organization activated successfully (bypassed activation workflow)."
     else
       redirect_to admin_organization_path(@organization),
-                  alert: "Cannot activate organization. Only organizations in Pending state can be directly activated by admin."
+                  alert: "Cannot activate organization: #{result[:errors].join(', ')}"
     end
   end
 
