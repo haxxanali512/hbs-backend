@@ -28,6 +28,14 @@ module Admin
     accessible?("admin", "organizations", "destroy")
   end
 
+  def activate_tenant?
+    accessible?("admin", "organizations", "activate_tenant")
+  end
+
+  def suspend_tenant?
+    accessible?("admin", "organizations", "suspend_tenant")
+  end
+
   def users_search?
     index?
   end
