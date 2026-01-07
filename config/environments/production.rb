@@ -63,7 +63,7 @@ Rails.application.configure do
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Email delivery configuration - using letter_opener for now
-  config.action_mailer.delivery_method = :letter_opener
+  config.action_mailer.delivery_method = :smtp
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
 
@@ -89,6 +89,15 @@ Rails.application.configure do
 
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
+
+  config.action_mailer.smtp_settings = {
+    user_name: "f08f0eb24d9514",
+    password: "f8b601a5a06762",
+    address: "sandbox.smtp.mailtrap.io",
+    host: "sandbox.smtp.mailtrap.io",
+    port: "2525",
+    authentication: :login
+  }
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
