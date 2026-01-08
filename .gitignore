@@ -63,3 +63,6 @@ Thumbs.db
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+*.md
+public/*
