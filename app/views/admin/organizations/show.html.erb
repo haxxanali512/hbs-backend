@@ -144,10 +144,18 @@
               form: { data: { turbo_confirm: "Are you sure you want to activate this organization? This will bypass all activation steps and activate immediately." } } %>
         <% end %>
         
-        <% tenant_portal_url = "#{request.protocol}#{organization_subdomain_url(@organization.subdomain)}" %>
-        <%= link_to "Visit Organization Portal", tenant_portal_url,
-            target: '_blank',
-            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
+        <% if @organization.owner && policy(@organization.owner).masquerade? %>
+          <%= link_to "Visit Organization Portal", masquerade_path(@organization.owner),
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md",
+              title: "Impersonate #{@organization.owner.display_name}" %>
+        <% else %>
+          <% tenant_portal_url = "#{request.protocol}#{organization_subdomain_url(@organization.subdomain)}" %>
+          <%= link_to "Visit Organization Portal", tenant_portal_url,
+              target: '_blank',
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
+        <% end %>
         
         <%= link_to "Delete Organization", admin_organization_path(@organization),
             method: :delete,
