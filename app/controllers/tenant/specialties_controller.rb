@@ -14,8 +14,9 @@ class Tenant::SpecialtiesController < Tenant::BaseController
   end
 
   def show
-    @providers = @current_organization.providers.kept.where(specialty: @specialty)
-                                     .includes(:user)
+    @providers = @current_organization.providers.kept
+                                     .joins(:specialties)
+                                     .where(specialties: { id: @specialty.id })
                                      .order(:first_name, :last_name)
   end
 

@@ -231,7 +231,7 @@ class Organization < ApplicationRecord
 
   def has_active_specialties?
     # Check if any providers have active specialties
-    providers.joins(:specialty).where(specialties: { status: :active }).any?
+    providers.joins(:specialties).where(specialties: { status: :active }).any?
   end
 
   def has_accepted_plans?
@@ -266,7 +266,7 @@ class Organization < ApplicationRecord
     {
       providers: { present: has_active_providers?, count: providers.active.count },
       fee_schedules: { present: has_fee_schedules?, count: organization_fee_schedules.kept.count },
-      specialties: { present: has_active_specialties?, count: providers.joins(:specialty).where(specialties: { status: :active }).distinct.count(:specialty_id) },
+      specialties: { present: has_active_specialties?, count: providers.joins(:specialties).where(specialties: { status: :active }).distinct.count("specialties.id") },
       locations: { present: has_locations?, count: organization_locations.active.count },
       accepted_plans: { present: has_accepted_plans?, count: 0 } # Placeholder
     }

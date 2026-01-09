@@ -32,16 +32,15 @@
             </div>
             <div>
               <label class="text-sm font-medium text-gray-500">Status</label>
-              <% status_colors = { "draft" => "bg-gray-100 text-gray-800", "pending" => "bg-yellow-100 text-yellow-800", "approved" => "bg-green-100 text-green-800", "rejected" => "bg-red-100 text-red-800", "suspended" => "bg-orange-100 text-orange-800" } %>
               <p class="text-sm">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[@provider.status] || 'bg-gray-100 text-gray-800' %>">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @provider.status_badge_color %>">
                   <%= @provider.status.humanize %>
                 </span>
               </p>
             </div>
             <div>
-              <label class="text-sm font-medium text-gray-500">Specialty</label>
-              <p class="text-sm text-gray-900"><%= @provider.specialty&.name || @provider.specialty_id || "—" %></p>
+              <label class="text-sm font-medium text-gray-500">Specialties</label>
+              <p class="text-sm text-gray-900"><%= @provider.specialties.pluck(:name).join(", ").presence || "—" %></p>
             </div>
             <div>
               <label class="text-sm font-medium text-gray-500">License Number</label>
@@ -54,21 +53,6 @@
           </div>
         </div>
 
-        <% if @provider.user.present? %>
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">User Account</h2>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="text-sm font-medium text-gray-500">Email</label>
-                <p class="text-sm text-gray-900"><%= @provider.user.email.presence || "—" %></p>
-              </div>
-              <div>
-                <label class="text-sm font-medium text-gray-500">Phone</label>
-                <p class="text-sm text-gray-900"><%= @provider.user.phone.presence || "—" %></p>
-              </div>
-            </div>
-          </div>
-        <% end %>
 
         <% if @provider.metadata.present? && @provider.metadata.any? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -85,21 +69,18 @@
           <h2 class="text-lg font-semibold text-gray-900 mb-4">System Information</h2>
           <div class="space-y-2 text-sm text-gray-900">
             <div class="flex justify-between"><span class="text-gray-600">Provider ID</span><span class="font-mono"><%= @provider.id %></span></div>
-            <div class="flex justify-between"><span class="text-gray-600">User ID</span><span class="font-mono"><%= @provider.user_id || "—" %></span></div>
-            <div class="flex justify-between"><span class="text-gray-600">Specialty ID</span><span class="font-mono"><%= @provider.specialty_id %></span></div>
-            <div class="flex justify-between"><span class="text-gray-600">Organizations</span><span><%= @provider.organizations.count %></span></div>
             <div class="flex justify-between"><span class="text-gray-600">Created At</span><span><%= @provider.created_at.strftime('%b %d, %Y %I:%M %p') %></span></div>
             <div class="flex justify-between"><span class="text-gray-600">Updated At</span><span><%= @provider.updated_at.strftime('%b %d, %Y %I:%M %p') %></span></div>
           </div>
         </div>
 
-        <% if @provider.organizations.any? %>
+        <% if @provider.documents.attached? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Organizations</h2>
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
             <div class="space-y-2">
-              <% @provider.organizations.each do |org| %>
+              <% @provider.documents.attachments.each do |attachment| %>
                 <div class="text-sm text-gray-900">
-                  <%= org.name %>
+                  <%= link_to attachment.filename, rails_blob_path(attachment, disposition: "inline"), target: "_blank", class: "text-primary-blue hover:text-primary-green" %>
                 </div>
               <% end %>
             </div>

@@ -53,50 +53,70 @@
 </div>
 
 <script>
-  (function() {
-    // Avoid double-initialization on Turbo visits
-    if (window._notificationsInitialized) return;
-    window._notificationsInitialized = true;
-
+  // Initialize notifications functionality
+  function initializeNotifications() {
     const button = document.getElementById('notifications-button');
     const dropdown = document.getElementById('notifications-dropdown');
     const notificationsList = document.getElementById('notifications_list');
     
     if (!button || !dropdown) return;
 
-    // Toggle dropdown
-    button.addEventListener('click', function(e) {
+    // Remove old listeners if they exist (cleanup from previous initialization)
+    if (button._notificationClickHandler) {
+      button.removeEventListener('click', button._notificationClickHandler);
+    }
+    if (document._notificationDocumentClickHandler) {
+      document.removeEventListener('click', document._notificationDocumentClickHandler);
+    }
+    if (dropdown._notificationClickHandler) {
+      dropdown.removeEventListener('click', dropdown._notificationClickHandler);
+    }
+
+    // Create new handlers
+    const buttonClickHandler = function(e) {
       e.stopPropagation();
       dropdown.classList.toggle('hidden');
-    });
+    };
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(event) {
+    const documentClickHandler = function(event) {
       const container = document.getElementById('notifications-container');
       if (container && !container.contains(event.target)) {
         dropdown.classList.add('hidden');
       }
-    });
+    };
 
-    // Prevent dropdown from closing when clicking inside it
-    dropdown.addEventListener('click', function(e) {
+    const dropdownClickHandler = function(e) {
       e.stopPropagation();
-    });
+    };
 
-    // Create toast container if it doesn't exist
-    function getOrCreateToastContainer() {
-      let container = document.getElementById('notification_toasts_container');
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'notification_toasts_container';
-        container.className = 'fixed bottom-4 left-4 z-50 space-y-3 pointer-events-none';
-        document.body.appendChild(container);
-      }
-      return container;
+    // Attach new listeners
+    button.addEventListener('click', buttonClickHandler);
+    document.addEventListener('click', documentClickHandler);
+    dropdown.addEventListener('click', dropdownClickHandler);
+
+    // Store handlers for cleanup
+    button._notificationClickHandler = buttonClickHandler;
+    document._notificationDocumentClickHandler = documentClickHandler;
+    dropdown._notificationClickHandler = dropdownClickHandler;
+
+    // Initialize MutationObserver for notifications list
+    initializeNotificationsObserver(notificationsList);
+  }
+
+  // Create toast container if it doesn't exist (global function)
+  function getOrCreateToastContainer() {
+    let container = document.getElementById('notification_toasts_container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'notification_toasts_container';
+      container.className = 'fixed bottom-4 left-4 z-50 space-y-3 pointer-events-none';
+      document.body.appendChild(container);
     }
+    return container;
+  }
 
-    // Play notification sound
-    function playNotificationSound() {
+  // Play notification sound (global function)
+  function playNotificationSound() {
       try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
@@ -119,8 +139,8 @@
       }
     }
 
-    // Show toast notification (Facebook-style)
-    function showToastNotification(notification) {
+  // Show toast notification (Facebook-style) (global function)
+  function showToastNotification(notification) {
       const container = getOrCreateToastContainer();
       
       const toast = document.createElement('div');
@@ -175,15 +195,15 @@
       }, 5000);
     }
 
-    // Escape HTML to prevent XSS
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+  // Escape HTML to prevent XSS (global function)
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
-    // Extract notification data from DOM element
-    function extractNotificationData(element) {
+  // Extract notification data from DOM element (global function)
+  function extractNotificationData(element) {
       // Find title (first p with font-medium class)
       const titleEl = element.querySelector('p.text-sm.font-medium.text-gray-900');
       // Find message (p with text-xs and text-gray-600, but not the time one)
@@ -198,46 +218,58 @@
         if (match) actionUrl = match[1];
       }
       
-      return {
-        title: titleEl ? titleEl.textContent.trim() : 'New Notification',
-        message: messageEl ? messageEl.textContent.trim() : '',
-        action_url: actionUrl
-      };
+    return {
+      title: titleEl ? titleEl.textContent.trim() : 'New Notification',
+      message: messageEl ? messageEl.textContent.trim() : '',
+      action_url: actionUrl
+    };
+  }
+
+  // Initialize MutationObserver for notifications list
+  function initializeNotificationsObserver(notificationsList) {
+    if (!notificationsList) return;
+
+    // Disconnect existing observer if any
+    if (notificationsList._notificationObserver) {
+      notificationsList._notificationObserver.disconnect();
     }
 
     // Track if page has finished initial load
     let pageLoaded = false;
     setTimeout(() => { pageLoaded = true; }, 1000);
 
-    // Watch for new notifications being added to the list
-    if (notificationsList) {
-      const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          mutation.addedNodes.forEach(function(node) {
-            if (node.nodeType === 1 && node.id && node.id.startsWith('notification_')) {
-              // Only show toast for new notifications after page load
-              // This prevents showing toasts for existing notifications on initial page render
-              if (pageLoaded) {
-                // Small delay to ensure DOM is fully rendered
-                setTimeout(() => {
-                  const notificationData = extractNotificationData(node);
-                  if (notificationData.title && notificationData.title !== 'New Notification') {
-                    showToastNotification(notificationData);
-                  }
-                }, 100);
-              }
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1 && node.id && node.id.startsWith('notification_')) {
+            // Only show toast for new notifications after page load
+            // This prevents showing toasts for existing notifications on initial page render
+            if (pageLoaded) {
+              // Small delay to ensure DOM is fully rendered
+              setTimeout(() => {
+                const notificationData = extractNotificationData(node);
+                if (notificationData.title && notificationData.title !== 'New Notification') {
+                  showToastNotification(notificationData);
+                }
+              }, 100);
             }
-          });
+          }
         });
       });
+    });
 
-      observer.observe(notificationsList, {
-        childList: true,
-        subtree: false
-      });
-    }
+    observer.observe(notificationsList, {
+      childList: true,
+      subtree: false
+    });
 
-    // Also listen for Turbo Stream events
+    // Store observer for cleanup
+    notificationsList._notificationObserver = observer;
+  }
+
+  // Listen for Turbo Stream events (only once, not per page load)
+  if (!window._turboStreamListenerAdded) {
+    window._turboStreamListenerAdded = true;
     document.addEventListener('turbo:before-stream-render', function(event) {
       const streamAction = event.detail.render;
       if (streamAction && streamAction.action === 'prepend' && streamAction.target === 'notifications_list') {
@@ -245,7 +277,23 @@
         // We'll catch it via MutationObserver, but we can also handle it here if needed
       }
     });
-  })();
+  }
+
+  // Initialize on page load and Turbo navigation
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeNotifications);
+  } else {
+    initializeNotifications();
+  }
+
+  // Re-initialize on Turbo navigation
+  document.addEventListener('turbo:load', initializeNotifications);
+  document.addEventListener('turbo:frame-load', function(event) {
+    // Only initialize if the notifications container is in the loaded frame
+    if (event.target.querySelector('#notifications-container')) {
+      initializeNotifications();
+    }
+  });
 
   function markNotificationAsRead(notificationId) {
     const token = document.querySelector('meta[name="csrf-token"]')?.content;

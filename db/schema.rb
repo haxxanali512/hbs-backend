@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_31_093210) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_08_120002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -940,22 +940,29 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_31_093210) do
     t.index ["provider_id"], name: "index_provider_notes_on_provider_id"
   end
 
+  create_table "provider_specialties", force: :cascade do |t|
+    t.bigint "provider_id", null: false
+    t.bigint "specialty_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider_id", "specialty_id"], name: "index_provider_specialties_on_provider_and_specialty", unique: true
+    t.index ["provider_id"], name: "index_provider_specialties_on_provider_id"
+    t.index ["specialty_id"], name: "index_provider_specialties_on_specialty_id"
+  end
+
   create_table "providers", force: :cascade do |t|
     t.string "first_name", limit: 100, null: false
     t.string "last_name", limit: 100, null: false
     t.string "npi", limit: 10
     t.string "license_number"
     t.string "license_state", limit: 2
-    t.bigint "user_id"
     t.string "status", default: "draft", null: false
     t.jsonb "metadata", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "discarded_at"
-    t.bigint "specialty_id"
     t.index ["discarded_at"], name: "index_providers_on_discarded_at"
     t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
-    t.index ["user_id"], name: "index_providers_on_user_id"
   end
 
   create_table "remit_captures", force: :cascade do |t|
@@ -1213,8 +1220,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_31_093210) do
   add_foreign_key "provider_assignments", "providers"
   add_foreign_key "provider_notes", "encounters"
   add_foreign_key "provider_notes", "providers"
-  add_foreign_key "providers", "specialties"
-  add_foreign_key "providers", "users"
+  add_foreign_key "provider_specialties", "providers"
+  add_foreign_key "provider_specialties", "specialties"
   add_foreign_key "support_ticket_comments", "support_tickets"
   add_foreign_key "support_ticket_comments", "users", column: "author_user_id"
   add_foreign_key "support_ticket_tasks", "support_tickets"

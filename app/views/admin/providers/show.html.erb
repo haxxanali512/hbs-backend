@@ -86,7 +86,7 @@
             </div>
             <div>
               <label class="text-sm font-medium text-gray-500">Specialty</label>
-              <p class="text-sm text-gray-900"><%= @provider.specialty.name %></p>
+              <p class="text-sm text-gray-900"><%= @provider.specialties.pluck(:name).join(", ").presence || "—" %></p>
             </div>
             <div>
               <label class="text-sm font-medium text-gray-500">Status</label>
@@ -167,7 +167,7 @@
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Specialty ID</span>
-              <span class="text-gray-900"><%= @provider.specialty_id %></span>
+              <span class="text-gray-900"><%= @provider.specialties.pluck(:id).join(", ").presence || "—" %></span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Created</span>

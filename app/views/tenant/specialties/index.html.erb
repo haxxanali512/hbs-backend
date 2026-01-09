@@ -7,10 +7,6 @@
           <h1 class="text-3xl font-bold text-gray-900">Specialties</h1>
           <p class="mt-2 text-gray-600">Available medical specialties and their allowed procedures</p>
         </div>
-        <div>
-          <%= link_to "New Specialty", new_tenant_specialty_path, 
-              class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
-        </div>
       </div>
     </div>
 
@@ -60,18 +56,8 @@
                   <%= specialty.provider_count %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex space-x-2">
-                    <%= link_to "View", tenant_specialty_path(specialty), 
-                        class: "text-blue-600 hover:text-blue-800" %>
-                    <%= link_to "Edit", edit_tenant_specialty_path(specialty), 
-                        class: "text-indigo-600 hover:text-indigo-800" %>
-                    <% if specialty.can_be_deleted? %>
-                      <%= link_to "Delete", tenant_specialty_path(specialty), 
-                          method: :delete,
-                          data: { confirm: "Are you sure you want to delete this specialty?" },
-                          class: "text-red-600 hover:text-red-800" %>
-                    <% end %>
-                  </div>
+                  <%= link_to "View", tenant_specialty_path(specialty), 
+                      class: "text-primary-blue hover:text-primary-green" %>
                 </td>
               </tr>
             <% end %>

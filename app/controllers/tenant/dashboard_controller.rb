@@ -69,6 +69,18 @@ class Tenant::DashboardController < Tenant::BaseController
     @visit_caps_approaching_count = 0
     @auth_expirations_count = 0
 
+    # Recent encounters for basic dashboard table (6% / 7% tiers)
+    @recent_encounters = org.encounters
+                            .includes(:patient, :provider, :specialty)
+                            .order(created_at: :desc)
+                            .limit(10)
+
+    # Recent patients for basic dashboard table (6% / 7% tiers)
+    @recent_patients = org.patients
+                          .kept
+                          .order(created_at: :desc)
+                          .limit(10)
+
     # ==============================
     # Advanced metrics (8% / 9% tiers)
     # ==============================

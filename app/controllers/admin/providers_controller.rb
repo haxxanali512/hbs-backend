@@ -7,7 +7,7 @@ class Admin::ProvidersController < Admin::BaseController
   before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reject, :suspend, :reactivate, :resubmit ]
 
   def index
-    @providers = Provider.kept.includes(:organizations, :specialty).recent
+    @providers = Provider.kept.includes(:organizations, :specialties).recent
 
     # Filtering
     @providers = @providers.by_status(params[:status]) if params[:status].present?
@@ -43,11 +43,17 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def create
-    @provider = Provider.new(provider_params)
+    @provider = Provider.new(provider_params.except(:specialty_ids))
 
-    # Ensure status defaults to 'draft' if not provided or invalid
+    # Handle specialty assignments
+    if params[:provider][:specialty_ids].present?
+      specialty_ids = params[:provider][:specialty_ids].reject(&:blank?)
+      @provider.specialty_ids = specialty_ids
+    end
+
+    # Ensure status defaults to 'drafted' if not provided or invalid
     if @provider.status.blank? || !Provider.statuses.key?(@provider.status)
-      @provider.status = "draft"
+      @provider.status = "drafted"
     end
 
     if @provider.save
@@ -65,7 +71,13 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def update
-    if @provider.update(provider_params)
+    # Handle specialty assignments
+    if params[:provider][:specialty_ids].present?
+      specialty_ids = params[:provider][:specialty_ids].reject(&:blank?)
+      @provider.specialty_ids = specialty_ids
+    end
+
+    if @provider.update(provider_params.except(:specialty_ids))
       redirect_to admin_provider_path(@provider), notice: "Provider updated successfully."
     else
       @organizations = Organization.kept.order(:name)
@@ -198,8 +210,8 @@ class Admin::ProvidersController < Admin::BaseController
             npi: npi,
             license_number: provider_data["license_number"] || provider_data["license"] || nil,
             license_state: provider_data["license_state"] || provider_data["state"] || nil,
-            status: :draft,
-            specialty_id: specialty_id
+            status: :drafted,
+            specialty_ids: [ specialty_id ].compact
           }
         }
       }
@@ -221,7 +233,7 @@ class Admin::ProvidersController < Admin::BaseController
   def provider_params
     params.require(:provider).permit(
       :first_name, :last_name, :npi, :license_number, :license_state,
-      :specialty_id, :user_id, :status, :metadata,
+      :status, :metadata, specialty_ids: [], documents: [],
       provider_assignments_attributes: [ :id, :organization_id, :role, :active, :_destroy ]
     )
   end
