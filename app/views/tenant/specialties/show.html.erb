@@ -45,55 +45,34 @@
           <% end %>
         </div>
 
-        <!-- Organization Providers -->
-        <% if @providers.any? %>
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Our Providers</h2>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Providers for this Specialty and Organization -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Our Providers</h2>
+          <% if @providers.any? %>
             <div class="space-y-3">
               <% @providers.each do |provider| %>
-                <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-md">
+                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
                   <div>
-                    <div class="font-medium text-gray-900"><%= provider.full_name %></div>
-                    <div class="text-sm text-gray-600"><%= provider.user&.email || "No email on file" %></div>
+                    <div class="font-medium text-sm text-gray-900"><%= provider.full_name %></div>
+                    <div class="text-xs text-gray-600"><%= provider.npi.presence || "No NPI" %></div>
                   </div>
                   <div>
-                    <% status_colors = {
-                      "draft" => "bg-gray-100 text-gray-800",
-                      "pending" => "bg-yellow-100 text-yellow-800",
-                      "approved" => "bg-green-100 text-green-800",
-                      "rejected" => "bg-red-100 text-red-800",
-                      "suspended" => "bg-orange-100 text-orange-800"
-                    } %>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[provider.status] %>">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <%= provider.status_badge_color %>">
                       <%= provider.status.humanize %>
                     </span>
                   </div>
                 </div>
               <% end %>
             </div>
-          </div>
-        <% end %>
-      </div>
-
-      <!-- Sidebar -->
-      <div class="space-y-6">
-        <!-- Statistics -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h2>
-          <div class="space-y-3">
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Total Providers</span>
-              <span class="text-sm font-medium text-gray-900"><%= @specialty.provider_count %></span>
+          <% else %>
+            <div class="text-center py-4 text-gray-500 text-sm">
+              <p>No providers assigned to this specialty</p>
             </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Our Providers</span>
-              <span class="text-sm font-medium text-gray-900"><%= @providers.count %></span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">CPT Codes</span>
-              <span class="text-sm font-medium text-gray-900"><%= @specialty.procedure_code_count %></span>
-            </div>
-          </div>
+          <% end %>
         </div>
 
         <!-- Important Notice -->

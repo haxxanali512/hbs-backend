@@ -24,7 +24,6 @@
     <!-- Filters -->
     <% 
       @search_placeholder = "Procedure code, description..."
-      @status_options = [["All Items", ""], ["Active", "true"], ["Inactive", "false"]]
       @organization_options = [] # Not needed for tenant
       @service_month_options = [] # Not applicable for fee schedule items
       @show_past_due = false
@@ -72,9 +71,10 @@
                         value="<%= item.unit_price || '' %>"
                         data-item-id="<%= item.id %>"
                         data-update-url="<%= tenant_fee_schedule_fee_schedule_item_path(@fee_schedule, item) %>"
-                        class="inline-edit-rate pl-7 pr-3 py-2 w-32 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        class="inline-edit-rate pl-7 pr-3 py-2 w-32 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm <%= 'bg-gray-50' if item.unit_price.present? %>"
                         placeholder="Enter rate"
                         data-original-value="<%= item.unit_price || '' %>"
+                        <%= 'readonly' if item.unit_price.present? %>
                       />
                     </div>
                     <span class="text-xs text-gray-500 saving-indicator hidden" data-item-id="<%= item.id %>">Saving...</span>
@@ -83,14 +83,28 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <button
-                    type="button"
-                    data-item-id="<%= item.id %>"
-                    data-update-url="<%= tenant_fee_schedule_fee_schedule_item_path(@fee_schedule, item) %>"
-                    class="save-item-btn hidden inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Save
-                  </button>
+                  <div class="flex items-center space-x-2">
+                    <% if item.unit_price.present? %>
+                      <button
+                        type="button"
+                        data-item-id="<%= item.id %>"
+                        class="edit-item-btn inline-flex items-center justify-center w-5 h-5 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+                        title="Edit rate"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        </svg>
+                      </button>
+                    <% end %>
+                    <button
+                      type="button"
+                      data-item-id="<%= item.id %>"
+                      data-update-url="<%= tenant_fee_schedule_fee_schedule_item_path(@fee_schedule, item) %>"
+                      class="save-item-btn <%= 'hidden' if item.unit_price.present? %> inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Save
+                    </button>
+                  </div>
                 </td>
               </tr>
             <% end %>
@@ -122,12 +136,67 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Initialize: Lock all rates that have saved values
+    document.querySelectorAll('.inline-edit-rate').forEach(function(input) {
+      if (input.dataset.originalValue && input.dataset.originalValue !== '') {
+        const itemId = input.dataset.itemId;
+        lockRate(itemId);
+      }
+    });
+    
+    // Lock/unlock rate input
+    function lockRate(itemId) {
+      const rateInput = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
+      const editButton = document.querySelector(`.edit-item-btn[data-item-id="${itemId}"]`);
+      const saveButton = document.querySelector(`.save-item-btn[data-item-id="${itemId}"]`);
+      
+      if (!rateInput) return;
+      
+      rateInput.readOnly = true;
+      rateInput.classList.add('bg-gray-50');
+      rateInput.classList.remove('bg-white');
+      
+      if (editButton) {
+        editButton.classList.remove('hidden');
+        editButton.style.display = 'inline-flex';
+      }
+      if (saveButton) {
+        saveButton.classList.add('hidden');
+        saveButton.style.display = 'none';
+      }
+    }
+    
+    function unlockRate(itemId) {
+      const rateInput = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
+      const editButton = document.querySelector(`.edit-item-btn[data-item-id="${itemId}"]`);
+      const saveButton = document.querySelector(`.save-item-btn[data-item-id="${itemId}"]`);
+      
+      if (!rateInput) return;
+      
+      rateInput.readOnly = false;
+      rateInput.classList.remove('bg-gray-50');
+      rateInput.classList.add('bg-white');
+      rateInput.focus();
+      
+      if (editButton) {
+        editButton.classList.add('hidden');
+        editButton.style.display = 'none';
+      }
+      if (saveButton) {
+        saveButton.classList.remove('hidden');
+        saveButton.style.display = 'inline-flex';
+      }
+    }
+    
     // Track changes for each item
     function checkForChanges(itemId) {
       const rateInput = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
       const saveButton = document.querySelector(`.save-item-btn[data-item-id="${itemId}"]`);
       
       if (!rateInput || !saveButton) return;
+      
+      // Only check changes if input is not locked
+      if (rateInput.readOnly) return;
       
       const rateChanged = (parseFloat(rateInput.value) || null) != (rateInput.dataset.originalValue || '');
       
@@ -137,6 +206,14 @@
         saveButton.classList.add('hidden');
       }
     }
+    
+    // Handle edit button clicks (unlock for editing)
+    document.querySelectorAll('.edit-item-btn').forEach(function(button) {
+      button.addEventListener('click', function() {
+        const itemId = this.dataset.itemId;
+        unlockRate(itemId);
+      });
+    });
     
     // Handle inline rate editing
     document.querySelectorAll('.inline-edit-rate').forEach(function(input) {
@@ -192,6 +269,9 @@
         if (data.success) {
           // Update original value
           rateInput.dataset.originalValue = rateValue || '';
+          
+          // Lock the rate and show edit button
+          lockRate(itemId);
           
           // Show saved indicator
           savedIndicator.classList.remove('hidden');

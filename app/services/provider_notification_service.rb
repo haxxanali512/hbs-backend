@@ -34,4 +34,10 @@ class ProviderNotificationService
     AdminMailer.provider_resubmitted(provider).deliver_now
     Rails.logger.info "Provider resubmission notification sent for #{provider.full_name}"
   end
+
+  def self.notify_deactivation(provider)
+    # Notify organization about provider deactivation
+    OrganizationMailer.provider_deactivated(provider).deliver_now
+    Rails.logger.info "Provider deactivation notification sent for #{provider.full_name}"
+  end
 end

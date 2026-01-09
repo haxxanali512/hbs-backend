@@ -37,27 +37,45 @@
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Patient and Claim Totals</h2>
             <dl class="space-y-2 text-sm text-gray-700">
               <div class="flex justify-between">
-                <dt class="font-medium">Total Patients:</dt>
+                <dt class="font-medium">
+                  <%= link_to "Total Patients:", tenant_patients_path, 
+                      class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                </dt>
                 <dd><%= @total_patients || 0 %></dd>
               </div>
               <div class="flex justify-between">
-                <dt class="font-medium">Active Patients:</dt>
+                <dt class="font-medium">
+                  <%= link_to "Active Patients:", tenant_patients_path(status: "active"), 
+                      class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                </dt>
                 <dd><%= @active_patients || 0 %></dd>
               </div>
               <div class="flex justify-between">
-                <dt class="font-medium">Total Claims:</dt>
+                <dt class="font-medium">
+                  <%= link_to "Total Claims:", tenant_encounters_path, 
+                      class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                </dt>
                 <dd><%= @total_claims || 0 %></dd>
               </div>
               <div class="flex justify-between">
-                <dt class="font-medium">Claims in Process:</dt>
+                <dt class="font-medium">
+                  <%= link_to "Claims in Process:", tenant_encounters_path(submitted_filter: "submitted"), 
+                      class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                </dt>
                 <dd><%= @claims_in_process || 0 %></dd>
               </div>
               <div class="flex justify-between">
-                <dt class="font-medium">Claims Paid:</dt>
+                <dt class="font-medium">
+                  <%= link_to "Claims Paid:", tenant_encounters_path(submitted_filter: "submitted", claim_status: "paid_in_full"), 
+                      class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                </dt>
                 <dd><%= @claims_paid || 0 %></dd>
               </div>
               <div class="flex justify-between">
-                <dt class="font-medium">Claims Denied:</dt>
+                <dt class="font-medium">
+                  <%= link_to "Claims Denied:", tenant_encounters_path(submitted_filter: "submitted", claim_status: "denied"), 
+                      class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                </dt>
                 <dd><%= @claims_denied || 0 %></dd>
               </div>
             </dl>
@@ -109,6 +127,98 @@
             </dl>
           </div>
         </div>
+
+        <!-- Recent Encounters and Patients Tables (for 6% / 7% tiers) -->
+        <% unless @current_organization.tier_percentage&.in?([8.0, 9.0]) %>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+            <!-- Recent Encounters -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Encounters</h2>
+              </div>
+              <div class="px-6 py-4 overflow-x-auto">
+                <% if @recent_encounters&.any? %>
+                  <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-2 text-right font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      <% @recent_encounters.each do |encounter| %>
+                        <tr>
+                          <td class="px-4 py-2 whitespace-nowrap"><%= encounter.date_of_service&.strftime("%m/%d/%Y") || encounter.created_at.strftime("%m/%d/%Y") %></td>
+                          <td class="px-4 py-2 whitespace-nowrap">
+                            <%= link_to encounter.patient&.full_name || "N/A", tenant_patient_path(encounter.patient), 
+                                class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                          </td>
+                          <td class="px-4 py-2 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <%= encounter.status.humanize %>
+                            </span>
+                          </td>
+                          <td class="px-4 py-2 whitespace-nowrap text-right">
+                            <%= link_to "View", tenant_encounter_path(encounter), 
+                                class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                <% else %>
+                  <p class="text-sm text-gray-500">No recent encounters.</p>
+                <% end %>
+              </div>
+            </div>
+
+            <!-- Recent Patients -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Patients</h2>
+              </div>
+              <div class="px-6 py-4 overflow-x-auto">
+                <% if @recent_patients&.any? %>
+                  <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">DOB</th>
+                        <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-2 text-right font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      <% @recent_patients.each do |patient| %>
+                        <tr>
+                          <td class="px-4 py-2 whitespace-nowrap">
+                            <%= link_to patient.full_name, tenant_patient_path(patient), 
+                                class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                          </td>
+                          <td class="px-4 py-2 whitespace-nowrap"><%= patient.dob&.strftime("%m/%d/%Y") || "—" %></td>
+                          <td class="px-4 py-2 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <%= patient.status.humanize %>
+                            </span>
+                          </td>
+                          <td class="px-4 py-2 whitespace-nowrap text-right">
+                            <%= link_to "View", tenant_patient_path(patient), 
+                                class: "text-blue-600 hover:text-green-600 transition-colors underline cursor-pointer" %>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                <% else %>
+                  <p class="text-sm text-gray-500">No recent patients.</p>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
         <% if @current_organization.tier_percentage&.in?([8.0, 9.0]) %>
           <!-- Advanced sections for 8% / 9% tiers -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

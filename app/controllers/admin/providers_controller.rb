@@ -4,10 +4,10 @@ class Admin::ProvidersController < Admin::BaseController
   # Alias the concern method before we override it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
-  before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reject, :suspend, :reactivate, :resubmit ]
+  before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reactivate ]
 
   def index
-    @providers = Provider.kept.includes(:organizations, :specialty).recent
+    @providers = Provider.kept.includes(:organizations, :specialties).recent
 
     # Filtering
     @providers = @providers.by_status(params[:status]) if params[:status].present?
@@ -43,11 +43,17 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def create
-    @provider = Provider.new(provider_params)
+    @provider = Provider.new(provider_params.except(:specialty_ids))
 
-    # Ensure status defaults to 'draft' if not provided or invalid
+    # Handle specialty assignments
+    if params[:provider][:specialty_ids].present?
+      specialty_ids = params[:provider][:specialty_ids].reject(&:blank?)
+      @provider.specialty_ids = specialty_ids
+    end
+
+    # Ensure status defaults to 'drafted' if not provided or invalid
     if @provider.status.blank? || !Provider.statuses.key?(@provider.status)
-      @provider.status = "draft"
+      @provider.status = "drafted"
     end
 
     if @provider.save
@@ -65,7 +71,13 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def update
-    if @provider.update(provider_params)
+    # Handle specialty assignments
+    if params[:provider][:specialty_ids].present?
+      specialty_ids = params[:provider][:specialty_ids].reject(&:blank?)
+      @provider.specialty_ids = specialty_ids
+    end
+
+    if @provider.update(provider_params.except(:specialty_ids))
       redirect_to admin_provider_path(@provider), notice: "Provider updated successfully."
     else
       @organizations = Organization.kept.order(:name)
@@ -75,10 +87,11 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def destroy
-    if @provider.discard
-      redirect_to admin_providers_path, notice: "Provider deleted successfully."
+    # Deactivate instead of delete - historical records remain
+    if @provider.can_be_deactivated? && @provider.deactivate!
+      redirect_to admin_providers_path, notice: "Provider deactivated successfully."
     else
-      redirect_to admin_provider_path(@provider), alert: "Failed to delete provider."
+      redirect_to admin_provider_path(@provider), alert: "Failed to deactivate provider."
     end
   end
 
@@ -91,38 +104,12 @@ class Admin::ProvidersController < Admin::BaseController
     end
   end
 
-  def reject
-    if @provider.reject!
-      notify_organizations(:notify_provider_rejected)
-      redirect_to admin_provider_path(@provider), notice: "Provider rejected successfully."
-    else
-      redirect_to admin_provider_path(@provider), alert: "Failed to reject provider."
-    end
-  end
-
-  def suspend
-    if @provider.suspend!
-      notify_organizations(:notify_provider_suspended)
-      redirect_to admin_provider_path(@provider), notice: "Provider suspended successfully."
-    else
-      redirect_to admin_provider_path(@provider), alert: "Failed to suspend provider."
-    end
-  end
-
   def reactivate
     if @provider.reactivate!
       notify_organizations(:notify_provider_approved)
       redirect_to admin_provider_path(@provider), notice: "Provider reactivated successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to reactivate provider."
-    end
-  end
-
-  def resubmit
-    if @provider.resubmit!
-      redirect_to admin_provider_path(@provider), notice: "Provider resubmitted successfully."
-    else
-      redirect_to admin_provider_path(@provider), alert: "Failed to resubmit provider."
     end
   end
 
@@ -140,25 +127,6 @@ class Admin::ProvidersController < Admin::BaseController
       end
 
       redirect_to admin_providers_path, notice: "#{approved_count} providers approved successfully."
-    else
-      redirect_to admin_providers_path, alert: "No providers selected."
-    end
-  end
-
-  def bulk_reject
-    provider_ids = params[:provider_ids]
-    if provider_ids.present?
-      providers = Provider.where(id: provider_ids, status: "pending")
-      rejected_count = 0
-
-      providers.each do |provider|
-        authorize provider, :reject?
-        if provider.reject!
-          rejected_count += 1
-        end
-      end
-
-      redirect_to admin_providers_path, notice: "#{rejected_count} providers rejected successfully."
     else
       redirect_to admin_providers_path, alert: "No providers selected."
     end
@@ -198,8 +166,8 @@ class Admin::ProvidersController < Admin::BaseController
             npi: npi,
             license_number: provider_data["license_number"] || provider_data["license"] || nil,
             license_state: provider_data["license_state"] || provider_data["state"] || nil,
-            status: :draft,
-            specialty_id: specialty_id
+            status: :drafted,
+            specialty_ids: [ specialty_id ].compact
           }
         }
       }
@@ -221,7 +189,7 @@ class Admin::ProvidersController < Admin::BaseController
   def provider_params
     params.require(:provider).permit(
       :first_name, :last_name, :npi, :license_number, :license_state,
-      :specialty_id, :user_id, :status, :metadata,
+      :metadata, specialty_ids: [], documents: [],
       provider_assignments_attributes: [ :id, :organization_id, :role, :active, :_destroy ]
     )
   end

@@ -3,13 +3,13 @@ class Tenant::ProvidersController < Tenant::BaseController
   before_action :set_provider, only: [ :show, :edit, :update, :destroy ]
 
   def index
-    @providers = @current_organization.providers.kept.includes(:specialty, :user)
+    @providers = @current_organization.providers.kept.includes(:specialties)
                                     .order(:first_name, :last_name)
 
     # Apply filters
     @providers = @providers.search(params[:search]) if params[:search].present?
     @providers = @providers.where(status: params[:status]) if params[:status].present?
-    @providers = @providers.where(specialty_id: params[:specialty_id]) if params[:specialty_id].present?
+    @providers = @providers.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
 
     @pagy, @providers = pagy(@providers, items: 20)
     @specialties = Specialty.active.order(:name)
@@ -20,43 +20,51 @@ class Tenant::ProvidersController < Tenant::BaseController
   def new
     @provider = Provider.new
     @specialties = Specialty.active.order(:name)
-    @users = @current_organization.members.order(:first_name, :last_name)
   end
 
   def create
-    @provider = Provider.new(provider_params)
+    @provider = Provider.new(provider_params.except(:specialty_ids))
     @provider.assign_to_organization_id = @current_organization.id
+
+    # Handle specialty assignments
+    if params[:provider][:specialty_ids].present?
+      specialty_ids = params[:provider][:specialty_ids].reject(&:blank?)
+      @provider.specialty_ids = specialty_ids
+    end
 
     if @provider.save
       redirect_to tenant_providers_path, notice: "Provider created successfully."
     else
       @specialties = Specialty.active.order(:name)
-      @users = @current_organization.members.order(:first_name, :last_name)
       render :new
     end
   end
 
   def edit
     @specialties = Specialty.active.order(:name)
-    @users = @current_organization.members.order(:first_name, :last_name)
   end
 
   def update
-    # Don't update associations, only the provider attributes
-    if @provider.update(provider_params.except(:organization_ids))
+    # Handle specialty assignments
+    if params[:provider][:specialty_ids].present?
+      specialty_ids = params[:provider][:specialty_ids].reject(&:blank?)
+      @provider.specialty_ids = specialty_ids
+    end
+
+    if @provider.update(provider_params.except(:specialty_ids))
       redirect_to tenant_providers_path, notice: "Provider updated successfully."
     else
       @specialties = Specialty.active.order(:name)
-      @users = @current_organization.members.order(:first_name, :last_name)
       render :edit
     end
   end
 
   def destroy
-    if @provider.discard
-      redirect_to tenant_providers_path, notice: "Provider deleted successfully."
+    # Deactivate instead of delete
+    if @provider.can_be_deactivated? && @provider.deactivate
+      redirect_to tenant_providers_path, notice: "Provider deactivated successfully."
     else
-      redirect_to tenant_providers_path, alert: "Failed to delete provider."
+      redirect_to tenant_providers_path, alert: "Failed to deactivate provider."
     end
   end
 
@@ -67,6 +75,6 @@ class Tenant::ProvidersController < Tenant::BaseController
   end
 
   def provider_params
-    params.require(:provider).permit(:first_name, :last_name, :npi, :license_number, :license_state, :specialty_id, :user_id, :status, :metadata)
+    params.require(:provider).permit(:first_name, :last_name, :npi, :license_number, :license_state, :metadata, specialty_ids: [], documents: [])
   end
 end

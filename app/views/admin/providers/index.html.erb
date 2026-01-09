@@ -34,12 +34,7 @@
             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
               Approve Selected
             </button>
-            <%= link_to "Reject Selected", "#", onclick: "document.getElementById('bulk-reject-form').submit(); return false;", class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
           </div>
-        <% end %>
-        
-        <%= form_with url: bulk_reject_admin_providers_path, method: :post, local: true, id: "bulk-reject-form", class: "hidden" do |f| %>
-          <!-- Selected provider IDs will be added by JavaScript -->
         <% end %>
       </div>
     <% end %>
@@ -102,7 +97,7 @@
                     <% end %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <%= provider.specialty.name %>
+                    <%= provider.specialties.pluck(:name).join(", ").presence || "—" %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= provider.status_badge_color %>">
@@ -120,19 +115,14 @@
                       <% if provider.can_be_approved? %>
                         <%= link_to "Approve", approve_admin_provider_path(provider), method: :post, 
                             class: "text-green-600 hover:text-green-800", 
-                            data: { confirm: "Are you sure you want to approve this provider?" } %>
+                            data: { confirm: "Are you sure you want to approve this provider? This confirms HBS has verified addition to all external systems." } %>
                       <% end %>
                       
-                      <% if provider.can_be_rejected? %>
-                        <%= link_to "Reject", reject_admin_provider_path(provider), method: :post, 
+                      <% if provider.can_be_deactivated? %>
+                        <%= link_to "Deactivate", admin_provider_path(provider), 
+                            method: :delete, 
                             class: "text-red-600 hover:text-red-800", 
-                            data: { confirm: "Are you sure you want to reject this provider?" } %>
-                      <% end %>
-                      
-                      <% if provider.can_be_suspended? %>
-                        <%= link_to "Suspend", suspend_admin_provider_path(provider), method: :post, 
-                            class: "text-orange-600 hover:text-orange-800", 
-                            data: { confirm: "Are you sure you want to suspend this provider?" } %>
+                            data: { confirm: "Are you sure you want to deactivate this provider? Provider has left organization. Historical records will remain, but the provider cannot be added to encounters until reactivated." } %>
                       <% end %>
                       
                       <% if provider.can_be_reactivated? %>

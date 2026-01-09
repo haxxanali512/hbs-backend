@@ -23,81 +23,76 @@
     </div>
   <% end %>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Basic Information -->
-    <div class="space-y-4">
-      <h3 class="text-lg font-medium text-gray-900">Basic Information</h3>
-      
-      <div>
-        <%= f.label :name, "Location Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.text_field :name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
-
-      <div>
-        <%= f.label :place_of_service_code, "Place of Service Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.text_field :place_of_service_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., 11, 02, 10" %>
-        <p class="mt-1 text-sm text-gray-500">2-digit code (e.g., 11=Office, 02=Telehealth, 12=Patient Home)</p>
-      </div>
-
-      <div class="flex items-center">
-        <%= f.check_box :is_virtual, class: "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500", id: "is_virtual_checkbox" %>
-        <%= f.label :is_virtual, "Virtual Location", class: "ml-2 text-sm text-gray-900" %>
-      </div>
-    </div>
-
-    <!-- Address Information -->
-    <div class="space-y-4" id="address_section">
-      <h3 class="text-lg font-medium text-gray-900">Address Information</h3>
-      
-      <div>
-        <%= f.label :address_line_1, "Address Line 1", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.text_field :address_line_1, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
-
-      <div>
-        <%= f.label :address_line_2, "Address Line 2", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.text_field :address_line_2, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        <p class="mt-1 text-sm text-gray-500">Required unless virtual or telehealth (POS codes 02, 12)</p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <%= f.label :city, "City", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= f.text_field :city, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        </div>
-        <div>
-          <%= f.label :state, "State", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= f.text_field :state, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., CA" %>
-        </div>
-      </div>
-
-      <div>
-        <%= f.label :postal_code, "ZIP Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.text_field :postal_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
+  <!-- Location Name -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Location Name</h3>
+    <div>
+      <%= f.text_field :name, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter location name" %>
     </div>
   </div>
 
-  <!-- Contact Information -->
-  <div class="space-y-4">
-    <h3 class="text-lg font-medium text-gray-900">Contact Information</h3>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <%= f.label :phone_number, "Phone", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.telephone_field :phone_number, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Billing Information -->
-  <div class="space-y-4">
-    <h3 class="text-lg font-medium text-gray-900">Billing Information</h3>
+  <!-- Address -->
+  <div class="space-y-4" id="address_section">
+    <h3 class="text-lg font-medium text-gray-900">Address</h3>
     
     <div>
-      <%= f.label :billing_npi, "Billing NPI", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_field :billing_npi, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "10-digit NPI" %>
+      <%= f.text_field :address_line_1, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter street address" %>
+      <p class="mt-1 text-sm text-gray-500">Street Address</p>
+    </div>
+
+    <div>
+      <%= f.text_field :address_line_2, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter additional address details" %>
+      <p class="mt-1 text-sm text-gray-500">Street Address Line 2</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <%= f.text_field :city, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter city" %>
+        <p class="mt-1 text-sm text-gray-500">City</p>
+      </div>
+      <div>
+        <%= f.text_field :state, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., CA" %>
+        <p class="mt-1 text-sm text-gray-500">State / Province</p>
+      </div>
+    </div>
+
+    <div>
+      <%= f.text_field :postal_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter postal code" %>
+      <p class="mt-1 text-sm text-gray-500">Postal / Zip Code</p>
+    </div>
+  </div>
+
+  <!-- Phone Number -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Phone Number</h3>
+    <div>
+      <%= f.telephone_field :phone_number, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "(000) 000-0000" %>
+      <p class="mt-1 text-sm text-gray-500">Please enter a valid phone number.</p>
+    </div>
+  </div>
+
+  <!-- Billing NPI -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Billing NPI</h3>
+    <div>
+      <%= f.text_field :billing_npi, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter 10-digit NPI" %>
       <p class="mt-1 text-sm text-gray-500">Optional. If provided, overrides organization billing NPI for this location.</p>
+    </div>
+  </div>
+
+  <!-- Additional Fields -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Additional Information</h3>
+    
+    <div>
+      <%= f.label :place_of_service_code, "Place of Service Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :place_of_service_code, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "e.g., 11, 02, 10" %>
+      <p class="mt-1 text-sm text-gray-500">2-digit code (e.g., 11=Office, 02=Telehealth, 12=Patient Home)</p>
+    </div>
+
+    <div class="flex items-center">
+      <%= f.check_box :is_virtual, class: "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500", id: "is_virtual_checkbox" %>
+      <%= f.label :is_virtual, "Virtual Location", class: "ml-2 text-sm text-gray-900" %>
     </div>
   </div>
 

@@ -170,8 +170,7 @@ class Organization < ApplicationRecord
 
   # Check if a specific procedure code is unlocked for this organization
   def procedure_code_unlocked?(procedure_code_id)
-    organization_fee_schedule_items
-      .joins(:organization_fee_schedule)
+    OrganizationFeeScheduleItem.joins(:organization_fee_schedule)
       .where(organization_fee_schedules: { organization_id: id })
       .where(procedure_code_id: procedure_code_id, active: true)
       .exists?
@@ -231,7 +230,7 @@ class Organization < ApplicationRecord
 
   def has_active_specialties?
     # Check if any providers have active specialties
-    providers.joins(:specialty).where(specialties: { status: :active }).any?
+    providers.joins(:specialties).where(specialties: { status: :active }).any?
   end
 
   def has_accepted_plans?
@@ -266,7 +265,7 @@ class Organization < ApplicationRecord
     {
       providers: { present: has_active_providers?, count: providers.active.count },
       fee_schedules: { present: has_fee_schedules?, count: organization_fee_schedules.kept.count },
-      specialties: { present: has_active_specialties?, count: providers.joins(:specialty).where(specialties: { status: :active }).distinct.count(:specialty_id) },
+      specialties: { present: has_active_specialties?, count: providers.joins(:specialties).where(specialties: { status: :active }).distinct.count("specialties.id") },
       locations: { present: has_locations?, count: organization_locations.active.count },
       accepted_plans: { present: has_accepted_plans?, count: 0 } # Placeholder
     }

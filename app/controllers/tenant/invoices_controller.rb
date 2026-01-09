@@ -8,9 +8,15 @@ class Tenant::InvoicesController < ApplicationController
                                    .includes(:payments)
                                    .order(created_at: :desc)
 
-    # Apply filters
-    @invoices = @invoices.where(status: params[:status]) if params[:status].present?
-    @invoices = @invoices.past_due if params[:past_due] == "true"
+    # Apply filters - merge status and past_due into one filter
+    # Viewable statuses: Issued, Voided, Partially Paid, Paid, Past Due
+    if params[:status].present?
+      if params[:status] == "past_due"
+        @invoices = @invoices.past_due.where(status: [ :issued, :partially_paid ])
+      else
+        @invoices = @invoices.where(status: params[:status])
+      end
+    end
     @invoices = @invoices.by_service_month(params[:service_month]) if params[:service_month].present?
 
     @pagy, @invoices = pagy(@invoices, items: 20)

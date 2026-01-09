@@ -15,7 +15,7 @@
     <!-- Filters -->
     <% 
       @search_placeholder = "Name, email..."
-      @status_options = [["Draft", "draft"], ["Pending", "pending"], ["Approved", "approved"], ["Rejected", "rejected"], ["Suspended", "suspended"]]
+      @status_options = [["Drafted", "drafted"], ["Pending", "pending"], ["Approved", "approved"], ["Deactivated", "deactivated"]]
       @specialty_options = @specialties
     %>
     <%= render "shared/filters" %>
@@ -41,9 +41,6 @@
                   <div class="text-sm font-medium text-gray-900">
                     <%= link_to provider.full_name, tenant_provider_path(provider), class: "text-blue-600 hover:text-blue-800" %>
                   </div>
-                  <% if provider.user.present? %>
-                    <div class="text-sm text-gray-500"><%= provider.user.email %></div>
-                  <% end %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <%= provider.npi.presence || "—" %>
@@ -59,25 +56,20 @@
                   <% end %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <%= provider.specialty&.name || "—" %>
+                  <%= provider.specialties.pluck(:name).join(", ").presence || "—" %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <% status_colors = { 
-                    "draft" => "bg-gray-100 text-gray-800", 
-                    "pending" => "bg-yellow-100 text-yellow-800", 
-                    "approved" => "bg-green-100 text-green-800", 
-                    "rejected" => "bg-red-100 text-red-800", 
-                    "suspended" => "bg-orange-100 text-orange-800" 
-                  } %>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= status_colors[provider.status] %>">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= provider.status_badge_color %>">
                     <%= provider.status.humanize %>
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex space-x-3">
-                    <%= link_to "View", tenant_provider_path(provider), class: "text-blue-600 hover:text-blue-800" %>
-                    <%= link_to "Edit", edit_tenant_provider_path(provider), class: "text-gray-600 hover:text-gray-800" %>
-                    <%= link_to "Delete", tenant_provider_path(provider), data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "text-red-600 hover:text-red-800" %>
+                    <%= link_to "View", tenant_provider_path(provider), class: "text-primary-blue hover:text-primary-green" %>
+                    <%= link_to "Edit", edit_tenant_provider_path(provider), class: "text-primary-blue hover:text-primary-green" %>
+                    <% if provider.can_be_deactivated? %>
+                      <%= link_to "Deactivate", tenant_provider_path(provider), data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to deactivate this provider?" }, class: "text-red-600 hover:text-red-800" %>
+                    <% end %>
                   </div>
                 </td>
               </tr>
