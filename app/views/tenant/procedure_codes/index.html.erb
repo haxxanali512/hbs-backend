@@ -27,8 +27,6 @@
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialties</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -44,28 +42,6 @@
                 <td class="px-6 py-4 text-sm text-gray-900">
                   <div class="max-w-xs truncate" title="<%= procedure_code.description %>">
                     <%= procedure_code.description %>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= procedure_code.code_type_badge_color %>">
-                    <%= procedure_code.code_type&.humanize || 'N/A' %>
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <div class="flex flex-wrap gap-1">
-                    <% procedure_code.specialties.limit(3).each do |specialty| %>
-                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        <%= specialty.name %>
-                      </span>
-                    <% end %>
-                    <% if procedure_code.specialties.count > 3 %>
-                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
-                        +<%= procedure_code.specialties.count - 3 %> more
-                      </span>
-                    <% end %>
-                    <% if procedure_code.specialties.empty? %>
-                      <span class="text-gray-400 text-xs">No specialties</span>
-                    <% end %>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
