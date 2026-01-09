@@ -87,10 +87,11 @@ class Admin::ProvidersController < Admin::BaseController
   end
 
   def destroy
-    if @provider.discard
-      redirect_to admin_providers_path, notice: "Provider deleted successfully."
+    # Deactivate instead of delete - historical records remain
+    if @provider.can_be_deactivated? && @provider.deactivate!
+      redirect_to admin_providers_path, notice: "Provider deactivated successfully."
     else
-      redirect_to admin_provider_path(@provider), alert: "Failed to delete provider."
+      redirect_to admin_provider_path(@provider), alert: "Failed to deactivate provider."
     end
   end
 

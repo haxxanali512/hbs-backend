@@ -120,19 +120,14 @@
                       <% if provider.can_be_approved? %>
                         <%= link_to "Approve", approve_admin_provider_path(provider), method: :post, 
                             class: "text-green-600 hover:text-green-800", 
-                            data: { confirm: "Are you sure you want to approve this provider?" } %>
+                            data: { confirm: "Are you sure you want to approve this provider? This confirms HBS has verified addition to all external systems." } %>
                       <% end %>
                       
-                      <% if provider.can_be_rejected? %>
-                        <%= link_to "Reject", reject_admin_provider_path(provider), method: :post, 
+                      <% if provider.can_be_deactivated? %>
+                        <%= link_to "Deactivate", admin_provider_path(provider), 
+                            method: :delete, 
                             class: "text-red-600 hover:text-red-800", 
-                            data: { confirm: "Are you sure you want to reject this provider?" } %>
-                      <% end %>
-                      
-                      <% if provider.can_be_suspended? %>
-                        <%= link_to "Suspend", suspend_admin_provider_path(provider), method: :post, 
-                            class: "text-orange-600 hover:text-orange-800", 
-                            data: { confirm: "Are you sure you want to suspend this provider?" } %>
+                            data: { confirm: "Are you sure you want to deactivate this provider? Provider has left organization. Historical records will remain, but the provider cannot be added to encounters until reactivated." } %>
                       <% end %>
                       
                       <% if provider.can_be_reactivated? %>
