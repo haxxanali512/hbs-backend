@@ -181,14 +181,10 @@ Rails.application.routes.draw do
         end
         member do
           post :approve
-          post :reject
-          post :suspend
           post :reactivate
-          post :resubmit
         end
         collection do
           post :bulk_approve
-          post :bulk_reject
         end
       end
 
