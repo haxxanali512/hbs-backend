@@ -64,21 +64,6 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <%= f.label :status, class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :status, 
-            options_for_select([
-              ["Drafted", "drafted"], 
-              ["Pending", "pending"], 
-              ["Approved", "approved"], 
-              ["Deactivated", "deactivated"]
-            ], @provider.status || "drafted"), 
-            { prompt: "Select Status" },
-            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-      </div>
-    </div>
-
     <!-- Organization Assignments -->
     <div>
       <h3 class="text-lg font-medium text-gray-900 mb-4">Organization Assignments</h3>

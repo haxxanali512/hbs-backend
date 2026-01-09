@@ -4,7 +4,7 @@ class Admin::ProvidersController < Admin::BaseController
   # Alias the concern method before we override it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
-  before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reject, :suspend, :reactivate, :resubmit ]
+  before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reactivate ]
 
   def index
     @providers = Provider.kept.includes(:organizations, :specialties).recent
@@ -104,38 +104,12 @@ class Admin::ProvidersController < Admin::BaseController
     end
   end
 
-  def reject
-    if @provider.reject!
-      notify_organizations(:notify_provider_rejected)
-      redirect_to admin_provider_path(@provider), notice: "Provider rejected successfully."
-    else
-      redirect_to admin_provider_path(@provider), alert: "Failed to reject provider."
-    end
-  end
-
-  def suspend
-    if @provider.suspend!
-      notify_organizations(:notify_provider_suspended)
-      redirect_to admin_provider_path(@provider), notice: "Provider suspended successfully."
-    else
-      redirect_to admin_provider_path(@provider), alert: "Failed to suspend provider."
-    end
-  end
-
   def reactivate
     if @provider.reactivate!
       notify_organizations(:notify_provider_approved)
       redirect_to admin_provider_path(@provider), notice: "Provider reactivated successfully."
     else
       redirect_to admin_provider_path(@provider), alert: "Failed to reactivate provider."
-    end
-  end
-
-  def resubmit
-    if @provider.resubmit!
-      redirect_to admin_provider_path(@provider), notice: "Provider resubmitted successfully."
-    else
-      redirect_to admin_provider_path(@provider), alert: "Failed to resubmit provider."
     end
   end
 
@@ -153,25 +127,6 @@ class Admin::ProvidersController < Admin::BaseController
       end
 
       redirect_to admin_providers_path, notice: "#{approved_count} providers approved successfully."
-    else
-      redirect_to admin_providers_path, alert: "No providers selected."
-    end
-  end
-
-  def bulk_reject
-    provider_ids = params[:provider_ids]
-    if provider_ids.present?
-      providers = Provider.where(id: provider_ids, status: "pending")
-      rejected_count = 0
-
-      providers.each do |provider|
-        authorize provider, :reject?
-        if provider.reject!
-          rejected_count += 1
-        end
-      end
-
-      redirect_to admin_providers_path, notice: "#{rejected_count} providers rejected successfully."
     else
       redirect_to admin_providers_path, alert: "No providers selected."
     end
@@ -234,7 +189,7 @@ class Admin::ProvidersController < Admin::BaseController
   def provider_params
     params.require(:provider).permit(
       :first_name, :last_name, :npi, :license_number, :license_state,
-      :status, :metadata, specialty_ids: [], documents: [],
+      :metadata, specialty_ids: [], documents: [],
       provider_assignments_attributes: [ :id, :organization_id, :role, :active, :_destroy ]
     )
   end

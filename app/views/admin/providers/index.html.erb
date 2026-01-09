@@ -34,12 +34,7 @@
             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
               Approve Selected
             </button>
-            <%= link_to "Reject Selected", "#", onclick: "document.getElementById('bulk-reject-form').submit(); return false;", class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
           </div>
-        <% end %>
-        
-        <%= form_with url: bulk_reject_admin_providers_path, method: :post, local: true, id: "bulk-reject-form", class: "hidden" do |f| %>
-          <!-- Selected provider IDs will be added by JavaScript -->
         <% end %>
       </div>
     <% end %>
