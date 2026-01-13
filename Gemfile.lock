@@ -428,10 +428,10 @@ GEM
       ostruct
     stringio (3.1.8)
     stripe (18.0.0)
-    tailwindcss-ruby (3.4.13)
-    tailwindcss-ruby (3.4.13-arm64-darwin)
-    tailwindcss-ruby (3.4.13-x86_64-darwin)
-    tailwindcss-ruby (3.4.13-x86_64-linux)
+    tailwindcss-ruby (4.1.16)
+    tailwindcss-ruby (4.1.16-arm64-darwin)
+    tailwindcss-ruby (4.1.16-x86_64-darwin)
+    tailwindcss-ruby (4.1.16-x86_64-linux-gnu)
     thor (1.4.0)
     timeout (0.4.4)
     tsort (0.2.0)
@@ -513,7 +513,7 @@ DEPENDENCIES
   simplecov
   sprockets-rails
   stripe
-  tailwindcss-ruby (= 3.4.13)
+  tailwindcss-ruby (= 4.1.16)
   turbo-rails
   tzinfo-data
   uglifier (>= 1.4.3)
