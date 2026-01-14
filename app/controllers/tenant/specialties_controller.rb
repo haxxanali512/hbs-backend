@@ -2,6 +2,7 @@ class Tenant::SpecialtiesController < Tenant::BaseController
   before_action :set_specialty, only: [ :show, :edit, :update, :destroy ]
 
   def index
+    # Show ALL specialties, not just enabled ones
     @specialties = Specialty.kept.includes(:procedure_codes)
                             .order(:name)
 
@@ -10,10 +11,9 @@ class Tenant::SpecialtiesController < Tenant::BaseController
     @specialties = @specialties.by_name(params[:name]) if params[:name].present?
     @specialties = @specialties.where(status: params[:status]) if params[:status].present?
 
-    # Limit to specialties that are enabled for this organization (present on its fee schedule)
+    # Get enabled specialty IDs for the view to determine locked/enabled status
     fee_schedule = @current_organization.get_or_create_fee_schedule
-    enabled_ids  = fee_schedule.specialties.kept.pluck(:id)
-    @specialties = @specialties.where(id: enabled_ids)
+    @enabled_specialty_ids = fee_schedule.specialties.kept.pluck(:id)
 
     @pagy, @specialties = pagy(@specialties, items: 20)
   end
