@@ -356,7 +356,11 @@ Rails.application.routes.draw do
         end
 
         resources :providers
-        resources :specialties
+        resources :specialties do
+          collection do
+            post :add_selected
+          end
+        end
         resources :organization_locations do
           member do
             post :activate
