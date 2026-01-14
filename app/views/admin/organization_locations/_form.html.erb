@@ -143,18 +143,20 @@
     const virtualCheckbox = document.getElementById('is_virtual_checkbox');
     const addressSection = document.getElementById('address_section');
     
-    function toggleAddressFields() {
-      if (virtualCheckbox.checked) {
-        addressSection.style.display = 'none';
-      } else {
-        addressSection.style.display = 'block';
+    if (virtualCheckbox && addressSection) {
+      function toggleAddressFields() {
+        if (virtualCheckbox.checked) {
+          addressSection.style.display = 'none';
+        } else {
+          addressSection.style.display = 'block';
+        }
       }
+      
+      // Set initial state
+      toggleAddressFields();
+      
+      // Add event listener
+      virtualCheckbox.addEventListener('change', toggleAddressFields);
     }
-    
-    // Set initial state
-    toggleAddressFields();
-    
-    // Add event listener
-    virtualCheckbox.addEventListener('change', toggleAddressFields);
   });
 </script>

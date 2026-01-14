@@ -5,74 +5,214 @@
       <div class="flex justify-between items-center">
         <div>
           <h1 class="text-3xl font-bold text-gray-900">Organization Locations</h1>
-          <p class="mt-2 text-gray-600">Manage your organization's locations</p>
-        </div>
-        <div>
-          <%= link_to "New Location", new_tenant_organization_location_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <p class="mt-2 text-gray-600">Manage your organization's addresses</p>
         </div>
       </div>
     </div>
 
-    <!-- Filters -->
-    <%
-      @search_placeholder = "Name, address, city..."
-      @status_options = @statuses
-    %>
-    <%= render "shared/filters" %>
-
-    <!-- Organization Locations Table -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">POS Code</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <% if @organization_locations.present? && @organization_locations.any? %>
-              <% @organization_locations.each do |location| %>
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                      <div class="flex-shrink-0 h-10 w-10">
-                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                          </svg>
-                        </div>
+    <!-- Servicing Addresses Section -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-900">Servicing Addresses</h2>
+        <%= link_to "Add New Service Location", new_tenant_organization_location_path(address_type: :servicing), 
+            class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% if @servicing_addresses.any? %>
+                <% @servicing_addresses.each do |location| %>
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= location.name %>
                       </div>
-                      <div class="ml-4">
-                        <div class="text-sm font-medium text-gray-900">
-                          <%= link_to location.name, tenant_organization_location_path(location), class: "text-blue-600 hover:text-blue-800" %>
-                        </div>
-                        <div class="text-sm text-gray-500">
-                          <% if location.is_virtual? %>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                              Virtual
-                            </span>
-                          <% else %>
-                            Physical Location
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                      <% if location.address_line_1.present? %>
+                        <div class="max-w-xs">
+                          <%= location.address_line_1 %>
+                          <% if location.address_line_2.present? %>
+                            <br><%= location.address_line_2 %>
+                          <% end %>
+                          <% if location.city.present? %>
+                            <br><%= location.city %>, <%= location.state %> <%= location.postal_code %>
                           <% end %>
                         </div>
+                      <% else %>
+                        <span class="text-gray-400">No address</span>
+                      <% end %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <%= location.phone_number.presence || "—" %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= location.status_badge_color %>">
+                        <%= location.status.humanize %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div class="flex space-x-3">
+                        <%= link_to "View", tenant_organization_location_path(location), 
+                            class: "text-primary-blue hover:text-primary-green" %>
+                        <%= link_to "Edit", edit_tenant_organization_location_path(location),
+                            class: "text-primary-blue hover:text-primary-green" %>
+                        <%= link_to "Delete", tenant_organization_location_path(location),
+                            method: :delete,
+                            data: { confirm: "Are you sure you want to delete this address?" },
+                            class: "text-red-600 hover:text-red-800" %>
                       </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        
+        <% if @servicing_addresses.empty? %>
+          <div class="text-center py-12">
+            <div class="text-gray-500 text-lg">No servicing addresses found</div>
+            <div class="text-gray-400 text-sm mt-2">Create your first servicing address to get started</div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Billing Addresses Section -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-900">Billing Addresses</h2>
+        <%= link_to "Add New Billing Location", new_tenant_organization_location_path(address_type: :billing), 
+            class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billing NPI</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% if @billing_addresses.any? %>
+                <% @billing_addresses.each do |location| %>
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= location.name %>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                      <% if location.address_line_1.present? %>
+                        <div class="max-w-xs">
+                          <%= location.address_line_1 %>
+                          <% if location.address_line_2.present? %>
+                            <br><%= location.address_line_2 %>
+                          <% end %>
+                          <% if location.city.present? %>
+                            <br><%= location.city %>, <%= location.state %> <%= location.postal_code %>
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <span class="text-gray-400">No address</span>
+                      <% end %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <%= location.billing_npi.presence || "—" %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <%= location.phone_number.presence || "—" %>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= location.status_badge_color %>">
+                        <%= location.status.humanize %>
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div class="flex space-x-3">
+                        <%= link_to "View", tenant_organization_location_path(location), 
+                            class: "text-primary-blue hover:text-primary-green" %>
+                        <%= link_to "Edit", edit_tenant_organization_location_path(location),
+                            class: "text-primary-blue hover:text-primary-green" %>
+                        <%= link_to "Delete", tenant_organization_location_path(location),
+                            method: :delete,
+                            data: { confirm: "Are you sure you want to delete this address?" },
+                            class: "text-red-600 hover:text-red-800" %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        
+        <% if @billing_addresses.empty? %>
+          <div class="text-center py-12">
+            <div class="text-gray-500 text-lg">No billing addresses found</div>
+            <div class="text-gray-400 text-sm mt-2">Create your first billing address to get started</div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Remittance Address Section -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-900">Remittance Address</h2>
+        <% unless @remittance_address %>
+          <%= link_to "Add New Remittance Location", new_tenant_organization_location_path(address_type: :remittance), 
+              class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        <% end %>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% if @remittance_address %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">
+                      <%= @remittance_address.name %>
                     </div>
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-900">
-                    <% if location.address_line_1.present? %>
-                      <div class="max-w-xs truncate">
-                        <%= location.address_line_1 %>
-                        <% if location.address_line_2.present? %>
-                          <br><%= location.address_line_2 %>
+                    <% if @remittance_address.address_line_1.present? %>
+                      <div class="max-w-xs">
+                        <%= @remittance_address.address_line_1 %>
+                        <% if @remittance_address.address_line_2.present? %>
+                          <br><%= @remittance_address.address_line_2 %>
                         <% end %>
-                        <% if location.city.present? %>
-                          <br><%= location.city %>, <%= location.state %> <%= location.postal_code %>
+                        <% if @remittance_address.city.present? %>
+                          <br><%= @remittance_address.city %>, <%= @remittance_address.state %> <%= @remittance_address.postal_code %>
                         <% end %>
                       </div>
                     <% else %>
@@ -80,69 +220,34 @@
                     <% end %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <%= location.place_of_service_code %>
+                    <%= @remittance_address.phone_number.presence || "—" %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= location.status_badge_color %>">
-                      <%= location.status.humanize %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @remittance_address.status_badge_color %>">
+                      <%= @remittance_address.status.humanize %>
                     </span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <%= location.created_at.strftime("%b %d, %Y") %>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div class="flex space-x-2">
-                      <%= link_to "View", tenant_organization_location_path(location), class: "text-blue-600 hover:text-blue-800" %>
-                      <%= link_to "Edit", edit_tenant_organization_location_path(location), class: "text-indigo-600 hover:text-indigo-800" %>
-                      
-                      <% if location.can_be_activated? %>
-                        <%= link_to "Activate", activate_tenant_organization_location_path(location), method: :post,
-                            class: "text-green-600 hover:text-green-800",
-                            data: { confirm: "Are you sure you want to activate this location?" } %>
-                      <% end %>
-                      
-                      <% if location.can_be_inactivated? %>
-                        <%= link_to "Inactivate", inactivate_tenant_organization_location_path(location), method: :post,
-                            class: "text-yellow-600 hover:text-yellow-800",
-                            data: { confirm: "Are you sure you want to inactivate this location?" } %>
-                      <% end %>
-
-                      <% if location.can_be_reactivated? %>
-                        <%= link_to "Reactivate", reactivate_tenant_organization_location_path(location), method: :post,
-                            class: "text-green-600 hover:text-green-800",
-                            data: { confirm: "Are you sure you want to reactivate this location?" } %>
-                      <% end %>
-
-                      <%= link_to "Delete", tenant_organization_location_path(location), method: :delete,
-                          class: "text-red-600 hover:text-red-800",
-                          data: { confirm: "Are you sure you want to delete this location?" } %>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex space-x-3">
+                      <%= link_to "View", tenant_organization_location_path(@remittance_address), 
+                          class: "text-primary-blue hover:text-primary-green" %>
+                      <%= link_to "Edit", edit_tenant_organization_location_path(@remittance_address),
+                          class: "text-primary-blue hover:text-primary-green" %>
                     </div>
                   </td>
                 </tr>
               <% end %>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-      
-      <% if @organization_locations.empty? %>
-        <div class="text-center py-12">
-          <div class="text-gray-500 text-lg">No organization locations found</div>
-          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new location</div>
+            </tbody>
+          </table>
         </div>
-      <% end %>
+        
+        <% unless @remittance_address %>
+          <div class="text-center py-12">
+            <div class="text-gray-500 text-lg">No remittance address found</div>
+            <div class="text-gray-400 text-sm mt-2">Create your remittance address to get started</div>
+          </div>
+        <% end %>
+      </div>
     </div>
-
-    <!-- Pagination -->
-    <% if @pagy %>
-      <div class="mt-6 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
-          <%= pagination_info(@pagy) %>
-        </div>
-        <div>
-          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
-        </div>
-      </div>
-    <% end %>
   </div>
 </div>

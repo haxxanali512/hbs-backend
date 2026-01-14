@@ -36,6 +36,7 @@
                 # Skip any accidentally blank specialties so we don't render an empty row
                 next if specialty.name.blank?
 
+                is_enabled = @enabled_specialty_ids.include?(specialty.id)
                 provider_count = specialty.provider_count_for_organization(@current_organization)
               %>
               <tr>
@@ -43,9 +44,8 @@
                   <input type="checkbox"
                          name="specialty_ids[]"
                          value="<%= specialty.id %>"
-                         class="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                         checked
-                         disabled>
+                         class="h-4 w-4 text-blue-600 border-gray-300 rounded specialty-checkbox"
+                         <%= is_enabled ? 'checked disabled' : '' %>>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">
@@ -53,9 +53,15 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Enabled
-                  </span>
+                  <% if is_enabled %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Enabled
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      Locked
+                    </span>
+                  <% end %>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <%= specialty.procedure_code_count %>
@@ -79,15 +85,15 @@
           <div class="text-gray-400 text-sm mt-2">Try adjusting your search terms</div>
         </div>
       <% end %>
+    </div>
 
-      <!-- Add Selected Specialties Button -->
-      <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
-        <button type="button" 
-                id="add-selected-btn"
-                class="bg-primary-blue hover:bg-primary-blue-50 text-white font-medium py-2 px-4 rounded-md transition-colors border border-gray-900">
-          Add Selected Specialties
-        </button>
-      </div>
+    <!-- Add Selected Specialties Button -->
+    <div class="mt-4 flex justify-end">
+      <button type="button" 
+              id="add-selected-btn"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+        Add Selected Specialties
+      </button>
     </div>
 
     <!-- Confirmation Modal -->
@@ -138,9 +144,13 @@
           if (hasSelection) {
             addBtn.disabled = false;
             addBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            addBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            addBtn.classList.remove('bg-gray-400', 'hover:bg-gray-500');
           } else {
             addBtn.disabled = true;
             addBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            addBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            addBtn.classList.add('bg-gray-400', 'hover:bg-gray-500');
           }
         }
 

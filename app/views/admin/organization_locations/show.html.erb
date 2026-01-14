@@ -82,12 +82,12 @@
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700">Address</label>
                 <p class="mt-1 text-sm text-gray-900">
-                  <%= @organization_location.address_line_1 %><br>
+                  <%= @organization_location.address_line_1 %>
                   <% if @organization_location.address_line_2.present? %>
-                    <%= @organization_location.address_line_2 %><br>
+                    <br><%= @organization_location.address_line_2 %>
                   <% end %>
                   <% if @organization_location.city.present? %>
-                    <%= @organization_location.city %>, <%= @organization_location.state %> <%= @organization_location.postal_code %>
+                    <br><%= @organization_location.city %>, <%= @organization_location.state %> <%= @organization_location.postal_code %>
                   <% end %>
                 </p>
               </div>
