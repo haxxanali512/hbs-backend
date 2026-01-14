@@ -10,6 +10,11 @@ class Tenant::SpecialtiesController < Tenant::BaseController
     @specialties = @specialties.by_name(params[:name]) if params[:name].present?
     @specialties = @specialties.where(status: params[:status]) if params[:status].present?
 
+    # Limit to specialties that are enabled for this organization (present on its fee schedule)
+    fee_schedule = @current_organization.get_or_create_fee_schedule
+    enabled_ids  = fee_schedule.specialties.kept.pluck(:id)
+    @specialties = @specialties.where(id: enabled_ids)
+
     @pagy, @specialties = pagy(@specialties, items: 20)
   end
 
@@ -94,6 +99,36 @@ class Tenant::SpecialtiesController < Tenant::BaseController
       redirect_to tenant_specialties_path, notice: "Specialty deleted successfully."
     else
       redirect_to tenant_specialty_path(@specialty), alert: "Cannot delete specialty with assigned providers."
+    end
+  end
+
+  def add_selected
+    specialty_ids = params[:specialty_ids] || []
+
+    if specialty_ids.empty?
+      redirect_to tenant_specialties_path, alert: "Please select at least one specialty to add."
+      return
+    end
+
+    fee_schedule = @current_organization.get_or_create_fee_schedule
+    added_count = 0
+
+    specialty_ids.each do |specialty_id|
+      specialty = Specialty.kept.find_by(id: specialty_id)
+      next unless specialty&.active?
+
+      unless fee_schedule.specialties.include?(specialty)
+        fee_schedule.specialties << specialty
+        # Unlock procedure codes for this specialty
+        FeeScheduleUnlockService.unlock_procedure_codes_for_organization(@current_organization, specialty)
+        added_count += 1
+      end
+    end
+
+    if added_count > 0
+      redirect_to tenant_specialties_path, notice: "Successfully added #{added_count} #{'specialty'.pluralize(added_count)} to your organization."
+    else
+      redirect_to tenant_specialties_path, alert: "No new specialties were added. They may already be enabled or are not active."
     end
   end
 

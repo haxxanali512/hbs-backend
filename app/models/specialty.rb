@@ -59,6 +59,24 @@ class Specialty < ApplicationRecord
     procedure_codes.count
   end
 
+  # Is this specialty enabled for a given organization?
+  # Currently \"enabled\" means it is attached to the organization's fee schedule.
+  def enabled_for_organization?(organization)
+    OrganizationFeeSchedule.kept
+                           .where(organization_id: organization.id)
+                           .joins(:specialties)
+                           .where(specialties: { id: id })
+                           .exists?
+  end
+
+  # Number of providers for this specialty within a given organization
+  def provider_count_for_organization(organization)
+    organization.providers.kept
+                .joins(:specialties)
+                .where(specialties: { id: id })
+                .count
+  end
+
   def impact_analysis
     {
       total_providers: provider_count,
