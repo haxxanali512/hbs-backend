@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_08_120002) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_14_123740) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -531,6 +531,27 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_120002) do
     t.index ["status"], name: "index_org_accepted_plans_on_status"
   end
 
+  create_table "organization_addresses", force: :cascade do |t|
+    t.bigint "organization_location_id", null: false
+    t.integer "address_type", null: false
+    t.text "address_line_1"
+    t.text "address_line_2"
+    t.string "city"
+    t.string "state"
+    t.string "postal_code"
+    t.string "country", default: "US"
+    t.string "phone_number"
+    t.string "billing_npi"
+    t.boolean "is_primary", default: false
+    t.integer "status", default: 0
+    t.datetime "discarded_at", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["discarded_at"], name: "index_organization_addresses_on_discarded_at"
+    t.index ["organization_location_id", "address_type"], name: "idx_on_organization_location_id_address_type_f6f75e3c7a"
+    t.index ["organization_location_id"], name: "index_organization_addresses_on_organization_location_id"
+  end
+
   create_table "organization_billings", force: :cascade do |t|
     t.bigint "organization_id", null: false
     t.integer "billing_status"
@@ -649,14 +670,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_120002) do
     t.integer "status"
     t.string "place_of_service_code"
     t.boolean "is_virtual"
-    t.text "address_line_1"
-    t.text "address_line_2"
-    t.string "city"
-    t.string "state"
-    t.string "postal_code"
-    t.string "country"
-    t.string "phone_number"
-    t.string "billing_npi"
     t.string "taxonomy_code"
     t.string "hours"
     t.text "notes_internal"
@@ -664,6 +677,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_120002) do
     t.boolean "locked"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "billing_npi"
+    t.string "phone_number"
+    t.string "country"
+    t.string "postal_code"
+    t.string "state"
+    t.string "city"
+    t.text "address_line_2"
+    t.text "address_line_1"
+    t.integer "address_type", default: 0, null: false
+    t.index ["address_type"], name: "index_organization_locations_on_address_type"
+    t.index ["organization_id", "address_type"], name: "idx_on_organization_id_address_type_86a7131b6e"
     t.index ["organization_id"], name: "index_organization_locations_on_organization_id"
   end
 
@@ -1175,6 +1199,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_120002) do
   add_foreign_key "org_accepted_plans", "insurance_plans"
   add_foreign_key "org_accepted_plans", "organizations"
   add_foreign_key "org_accepted_plans", "users", column: "added_by_id"
+  add_foreign_key "organization_addresses", "organization_locations"
   add_foreign_key "organization_billings", "organizations"
   add_foreign_key "organization_compliances", "organizations"
   add_foreign_key "organization_contacts", "organizations"

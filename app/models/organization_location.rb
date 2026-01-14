@@ -17,8 +17,9 @@ class OrganizationLocation < ApplicationRecord
   # Custom validations
   validate :unique_name_per_organization
   validate :soft_duplicate_guard
-  # validate :billing_npi_checksum
+  validate :billing_npi_checksum
   validate :address_required_unless_virtual_or_telehealth
+  validate :one_remittance_address_per_organization
   validate :can_be_retired
 
   # Enums
@@ -28,12 +29,22 @@ class OrganizationLocation < ApplicationRecord
     retired: 2
   }
 
+  enum :address_type, {
+    servicing: 0,
+    billing: 1,
+    remittance: 2
+  }
+
   # Scopes
   scope :active, -> { where(status: :active) }
   scope :inactive, -> { where(status: :inactive) }
   scope :retired, -> { where(status: :retired) }
   scope :available_for_encounters, -> { where(status: [ :active ]) }
   scope :by_organization, ->(org) { where(organization: org) }
+  scope :servicing, -> { where(address_type: :servicing) }
+  scope :billing, -> { where(address_type: :billing) }
+  scope :remittance, -> { where(address_type: :remittance) }
+  scope :by_status, ->(status) { where(status: status) if status.present? }
 
   # State machine methods
   def can_be_activated?
@@ -133,6 +144,18 @@ class OrganizationLocation < ApplicationRecord
     end
   end
 
+  def one_remittance_address_per_organization
+    return unless remittance?
+
+    existing = OrganizationLocation.kept
+                                   .where(organization: organization, address_type: :remittance)
+                                   .where.not(id: id)
+
+    if existing.exists?
+      errors.add(:address_type, "An organization can only have one remittance address")
+    end
+  end
+
   def can_be_retired
     if status == "retired" && has_open_encounters?
       errors.add(:base, "Cannot retire location with open encounters or claims")
@@ -147,22 +170,22 @@ class OrganizationLocation < ApplicationRecord
     addr.to_s.downcase.gsub(/[^\w\s]/, "").gsub(/\s+/, " ").strip
   end
 
-  # def valid_npi_checksum?(npi)
-  #   return false unless npi.match?(/\A\d{10}\z/)
+  def valid_npi_checksum?(npi)
+    return false unless npi.match?(/\A\d{10}\z/)
 
-  #   # NPI checksum algorithm
-  #   digits = npi.chars.map(&:to_i)
-  #   sum = 0
+    # NPI checksum algorithm
+    digits = npi.chars.map(&:to_i)
+    sum = 0
 
-  #   digits.each_with_index do |digit, index|
-  #     if index.even?
-  #       sum += digit * 2
-  #       sum += digit if digit > 4
-  #     else
-  #       sum += digit
-  #     end
-  #   end
+    digits.each_with_index do |digit, index|
+      if index.even?
+        sum += digit * 2
+        sum += digit if digit > 4
+      else
+        sum += digit
+      end
+    end
 
-  #   sum % 10 == 0
-  # end
+    sum % 10 == 0
+  end
 end
