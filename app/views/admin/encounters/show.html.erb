@@ -48,7 +48,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700">Billing Channel</label>
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.insurance? ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
-                <%= @encounter.billing_channel.humanize %>
+                <%= @encounter.billing_channel&.humanize || "—" %>
               </span>
             </div>
 
