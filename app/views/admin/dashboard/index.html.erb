@@ -80,85 +80,51 @@
     </div>
   </div>
 
-  <!-- Organization Activation Progress -->
-  <% pending_orgs = @recent_organizations.select { |org| !org.activated? } %>
-  <% if pending_orgs.any? %>
-    <div class="mb-8">
-      <h2 class="text-xl font-semibold text-gray-900 mb-4">Organizations Pending Activation</h2>
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <% pending_orgs.first(4).each do |org| %>
-          <div>
-            <div class="mb-3 flex items-center justify-between">
-              <div>
-                <h3 class="text-base font-semibold text-gray-900"><%= org.name %></h3>
-                <p class="text-sm text-gray-500"><%= org.owner.email %></p>
-              </div>
-              <%= link_to "View Details", admin_organization_path(org), class: "text-sm text-indigo-600 hover:text-indigo-800" %>
-            </div>
-            <%= render "shared/organization_activation_steps", organization: org %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <!-- Recent Activity -->
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-    <!-- Recent Organizations -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h3 class="text-base font-semibold text-gray-900 mb-4">Recent Organizations</h3>
-      <div class="space-y-3">
-        <% @recent_organizations.each do |org| %>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <div class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold">
-                <%= org.name.first.upcase %>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm font-medium text-gray-900"><%= org.name %></p>
-                <p class="text-xs text-gray-500"><%= org.owner.email %></p>
-              </div>
-            </div>
-            <div class="text-right">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                <%= case org.activation_status
-                    when 'activated' then 'bg-green-100 text-green-800'
-                    when 'pending' then 'bg-gray-100 text-gray-800'
-                    else 'bg-amber-100 text-amber-800'
-                    end %>">
-                <%= org.activation_status.humanize %>
-              </span>
-              <p class="text-xs text-gray-500 mt-1"><%= time_ago_in_words(org.created_at) %> ago</p>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Recent Users -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h3 class="text-base font-semibold text-gray-900 mb-4">Recent Users</h3>
-      <div class="space-y-3">
-        <% @recent_users.each do |user| %>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <div class="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold">
-                <%= user.display_name.first.upcase %>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm font-medium text-gray-900"><%= user.display_name %></p>
-                <p class="text-xs text-gray-500"><%= user.email %></p>
-              </div>
-            </div>
-            <div class="text-right">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                <%= user.super_admin? ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800' %>">
-                <%= user.role&.role_name || 'No Role' %>
-              </span>
-              <p class="text-xs text-gray-500 mt-1"><%= time_ago_in_words(user.created_at) %> ago</p>
-            </div>
-          </div>
-        <% end %>
+  <!-- Recent Organizations Table -->
+  <div class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Latest Organizations</h2>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Org Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @recent_organizations.each do |org| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <%= org.name %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div class="font-medium"><%= org.owner.display_name %></div>
+                  <div class="text-gray-500 text-xs"><%= org.owner.email %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    <%= case org.activation_status
+                        when 'activated' then 'bg-green-100 text-green-800'
+                        when 'pending' then 'bg-gray-100 text-gray-800'
+                        else 'bg-amber-100 text-amber-800'
+                        end %>">
+                    <%= org.activation_status.humanize %>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <%= org.created_at.strftime("%b %d, %Y") %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <%= link_to "View", admin_organization_path(org), class: "text-indigo-600 hover:text-indigo-800" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
