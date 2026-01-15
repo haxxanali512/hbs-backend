@@ -129,4 +129,13 @@ class Claim < ApplicationRecord
 
     errors.add(:base, "CLAIM_DX_POINTER_POLICY_VIOLATION") if any_invalid
   end
+
+  # Linked resource helper for support tickets
+  def self.patient_claims(organization, patient_id)
+    return none unless organization && patient_id.present?
+
+    where(organization_id: organization.id, patient_id: patient_id)
+      .includes(:encounter, :provider)
+      .order(created_at: :desc)
+  end
 end

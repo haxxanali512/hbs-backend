@@ -47,10 +47,10 @@
         <div>
           <label class="block text-sm font-medium text-gray-700">MRN Enabled</label>
           <p class="mt-1 text-sm text-gray-900">
-            <%= @organization_setting.mrn_enabled == "true" ? "Yes" : "No" %>
+            <%= @organization_setting.mrn_enabled? ? "Yes" : "No" %>
           </p>
         </div>
-        <% if @organization_setting.mrn_enabled == "true" %>
+        <% if @organization_setting.mrn_enabled? %>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">MRN Prefix</label>

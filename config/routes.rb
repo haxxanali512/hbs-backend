@@ -425,6 +425,9 @@ Rails.application.routes.draw do
           member do
             post :attach_document
           end
+          collection do
+            get :linked_resources
+          end
 
           resources :comments,
                     only: [ :create ],

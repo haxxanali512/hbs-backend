@@ -40,12 +40,13 @@
       </div>
 
       <div id="claims-subcategory-field" class="hidden">
-        <%= f.label :sub_category, "Claims Subcategory", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.label :sub_category, "Subcategory", class: "block text-sm font-medium text-gray-700 mb-1" %>
         <%= f.select :sub_category,
-                     SupportTicket.sub_categories.keys.map { |k| [k.to_s.humanize, k] },
+                     [],
                      { prompt: "Select subcategory" },
-                     { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-        <p class="mt-1 text-sm text-gray-500">Required for Claims Issue</p>
+                     { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                       data: { current_value: @support_ticket.sub_category } } %>
+        <p class="mt-1 text-sm text-gray-500" id="subcategory-help">Required for Claims Issue</p>
       </div>
 
       <div>
@@ -59,19 +60,39 @@
     <div class="space-y-4">
       <h3 class="text-lg font-medium text-gray-900">Additional Information</h3>
       
-      <div>
-        <%= f.label :linked_resource_type, "Linked Resource", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <div class="flex gap-2">
+      <div class="space-y-3">
+        <div>
+          <%= f.label :linked_resource_type, "Linked Resource", class: "block text-sm font-medium text-gray-700 mb-1" %>
           <%= f.select :linked_resource_type,
                        [["None", ""]] + SupportTicket::LINKED_RESOURCE_TYPES.keys.map { |k| [k, k] },
                        {},
-                       { class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-          <%= f.text_field :linked_resource_id,
-                           placeholder: "Reference ID",
-                           class: "w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+                       { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
+          <%# <p class="mt-1 text-sm text-gray-500">Optional, must belong to your organization.</p> %>
         </div>
-        <p class="mt-1 text-sm text-gray-500">Optional, must belong to your organization.</p>
+
+        <div id="linked-resource-picker" class="hidden space-y-3">
+          <div id="linked-resource-patient-block" class="hidden">
+            <%= label_tag :linked_patient_id, "Patient", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= select_tag :linked_patient_id,
+                           options_from_collection_for_select(@patients, :id, :full_name),
+                           include_blank: "Select patient...",
+                           class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                           id: "support_ticket_patient_select" %>
+          </div>
+
+          <div>
+            <%= label_tag :linked_resource_select, "Select Resource", class: "block text-sm font-medium text-gray-700 mb-1", id: "linked-resource-label" %>
+            <%= select_tag :linked_resource_select,
+                           options_for_select([]),
+                           include_blank: "Select resource...",
+                           class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                           id: "support_ticket_resource_select" %>
+            <p class="mt-1 text-sm text-gray-500" id="linked-resource-help">Select a resource to link to this ticket.</p>
+          </div>
+        </div>
       </div>
+
+      <%= f.hidden_field :linked_resource_id, id: "support_ticket_linked_resource_id" %>
     </div>
   </div>
 
@@ -80,22 +101,131 @@
     const categorySelect = document.getElementById("support_ticket_category");
     const subcategoryField = document.getElementById("claims-subcategory-field");
     const subcategorySelect = document.getElementById("support_ticket_sub_category");
-
-    if (!categorySelect || !subcategoryField) return;
+    const subcategoryHelp = document.getElementById("subcategory-help");
+    const subcategoryOptions = <%= raw SupportTicket.subcategory_options_by_category.to_json %>;
 
     function toggleSubcategory() {
-      const isClaims = categorySelect.value === "claims_issue";
-      subcategoryField.classList.toggle("hidden", !isClaims);
-      if (!isClaims && subcategorySelect) {
+      if (!categorySelect || !subcategoryField) return;
+      const category = categorySelect.value;
+      const options = subcategoryOptions[category] || [];
+      const requiresSubcategory = options.length > 0;
+
+      subcategoryField.classList.toggle("hidden", !requiresSubcategory);
+      if (!requiresSubcategory && subcategorySelect) {
         subcategorySelect.value = "";
       }
-      if (subcategorySelect) {
-        subcategorySelect.required = isClaims;
+      if (subcategorySelect) subcategorySelect.required = requiresSubcategory;
+
+      if (requiresSubcategory && subcategorySelect) {
+        const currentValue = subcategorySelect.dataset.currentValue;
+        subcategorySelect.innerHTML = '<option value="">Select subcategory</option>';
+        options.forEach(function(opt) {
+          const option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.label;
+          if (currentValue && currentValue === opt.value) {
+            option.selected = true;
+          }
+          subcategorySelect.appendChild(option);
+        });
+      }
+
+      if (subcategoryHelp) {
+        if (category === "claims_issue") subcategoryHelp.textContent = "Required for Claims Issue";
+        else if (category === "portal_bug") subcategoryHelp.textContent = "Required for Portal & Tech tickets";
+        else if (category === "access_request") subcategoryHelp.textContent = "Required for Access Requests";
       }
     }
 
     toggleSubcategory();
-    categorySelect.addEventListener("change", toggleSubcategory);
+    if (categorySelect) {
+      categorySelect.addEventListener("change", toggleSubcategory);
+    }
+
+    const resourceTypeSelect = document.getElementById("support_ticket_linked_resource_type");
+    const patientBlock = document.getElementById("linked-resource-patient-block");
+    const pickerBlock = document.getElementById("linked-resource-picker");
+    const patientSelect = document.getElementById("support_ticket_patient_select");
+    const resourceSelect = document.getElementById("support_ticket_resource_select");
+    const resourceLabel = document.getElementById("linked-resource-label");
+    const resourceHelp = document.getElementById("linked-resource-help");
+    const linkedResourceId = document.getElementById("support_ticket_linked_resource_id");
+
+    const patientScopedResources = ["Encounter", "Claim"];
+
+    function resetResourceSelect() {
+      if (!resourceSelect) return;
+      resourceSelect.innerHTML = '<option value="">Select resource...</option>';
+    }
+
+    function toggleLinkedResourceUI() {
+      if (!resourceTypeSelect || !pickerBlock) return;
+      const resourceType = resourceTypeSelect.value;
+      const hasResource = resourceType && resourceType.length > 0;
+      pickerBlock.classList.toggle("hidden", !hasResource);
+
+      if (!hasResource) {
+        if (patientSelect) patientSelect.value = "";
+        resetResourceSelect();
+        if (linkedResourceId) linkedResourceId.value = "";
+        return;
+      }
+
+      const needsPatient = patientScopedResources.includes(resourceType);
+      if (patientBlock) patientBlock.classList.toggle("hidden", !needsPatient);
+      if (resourceLabel) resourceLabel.textContent = resourceType;
+      if (resourceHelp) {
+        resourceHelp.textContent = needsPatient
+          ? "Select a patient to load items, then choose one."
+          : "Select a resource to link to this ticket.";
+      }
+
+      resetResourceSelect();
+      if (!needsPatient) {
+        loadResources(resourceType, null);
+      }
+    }
+
+    async function loadResources(resourceType, patientId) {
+      if (!resourceType) return;
+      const url = "<%= linked_resources_tenant_support_tickets_path %>" +
+        "?resource_type=" + encodeURIComponent(resourceType) +
+        (patientId ? ("&patient_id=" + encodeURIComponent(patientId)) : "");
+
+      const response = await fetch(url, { headers: { "Accept": "application/json" } });
+      const data = await response.json();
+      resetResourceSelect();
+      if (!data.success) return;
+      data.resources.forEach(function(item) {
+        const option = document.createElement("option");
+        option.value = item.id;
+        option.textContent = item.label;
+        resourceSelect.appendChild(option);
+      });
+    }
+
+    if (resourceTypeSelect) {
+      toggleLinkedResourceUI();
+      resourceTypeSelect.addEventListener("change", function() {
+        if (linkedResourceId) linkedResourceId.value = "";
+        if (patientSelect) patientSelect.value = "";
+        toggleLinkedResourceUI();
+      });
+    }
+
+    if (patientSelect) {
+      patientSelect.addEventListener("change", function() {
+        const resourceType = resourceTypeSelect ? resourceTypeSelect.value : "";
+        if (!resourceType) return;
+        loadResources(resourceType, patientSelect.value);
+      });
+    }
+
+    if (resourceSelect) {
+      resourceSelect.addEventListener("change", function() {
+        if (linkedResourceId) linkedResourceId.value = resourceSelect.value || "";
+      });
+    }
   });
 </script>
   <!-- Description -->

@@ -340,6 +340,16 @@ class Encounter < ApplicationRecord
     end
   end
 
+  # Linked resource helper for support tickets
+  def self.patient_encounters(organization, patient_id)
+    return none unless organization && patient_id.present?
+
+    kept
+      .where(organization_id: organization.id, patient_id: patient_id)
+      .includes(:provider)
+      .order(date_of_service: :desc)
+  end
+
   def insurance_requirements_if_insurance_billing
     nil unless insurance?
 

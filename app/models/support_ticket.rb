@@ -6,19 +6,51 @@ class SupportTicket < ApplicationRecord
   CATEGORY_OPTIONS = {
     claims_issue: 0,
     portal_bug: 1,
-    access_problem: 2,
+    access_request: 2,
     data_export: 3,
     general_question: 4,
     ownership_transfer: 5,
     invoice_issue: 6
   }.freeze
 
-  CLAIMS_SUBCATEGORY_OPTIONS = {
+  SUBCATEGORY_OPTIONS = {
     claim_status_follow_up: 0,
     denial_clarification: 1,
     underpayment: 2,
     deductible_eob_interpretation: 3,
-    other: 4
+    other: 4,
+    portal_errors_bugs: 10,
+    portal_upload_errors: 11,
+    portal_feature_not_working: 12,
+    portal_performance_issues: 13,
+    portal_other: 14,
+    access_insurance_plan: 20,
+    access_cpt_codes: 21,
+    access_diagnosis_codes: 22,
+    access_other: 23
+  }.freeze
+
+  SUBCATEGORY_BY_CATEGORY = {
+    "claims_issue" => %w[
+      claim_status_follow_up
+      denial_clarification
+      underpayment
+      deductible_eob_interpretation
+      other
+    ],
+    "portal_bug" => %w[
+      portal_errors_bugs
+      portal_upload_errors
+      portal_feature_not_working
+      portal_performance_issues
+      portal_other
+    ],
+    "access_request" => %w[
+      access_insurance_plan
+      access_cpt_codes
+      access_diagnosis_codes
+      access_other
+    ]
   }.freeze
 
   PRIORITY_OPTIONS = {
@@ -82,7 +114,7 @@ class SupportTicket < ApplicationRecord
   has_many_attached :documents
 
   enum :category, CATEGORY_OPTIONS
-  enum :sub_category, CLAIMS_SUBCATEGORY_OPTIONS
+  enum :sub_category, SUBCATEGORY_OPTIONS
   enum :priority, PRIORITY_OPTIONS
   enum :status, STATUS_OPTIONS
 
@@ -133,6 +165,20 @@ class SupportTicket < ApplicationRecord
 
   def claims_issue?
     category == "claims_issue"
+  end
+
+  def portal_bug?
+    category == "portal_bug"
+  end
+
+  def access_request?
+    category == "access_request"
+  end
+
+  def self.subcategory_options_by_category
+    SUBCATEGORY_BY_CATEGORY.transform_values do |keys|
+      keys.map { |k| { value: k, label: k.humanize } }
+    end
   end
 
   def append_internal_note!(body:, author:)
@@ -311,7 +357,7 @@ class SupportTicket < ApplicationRecord
   end
 
   def claims_sub_category_required
-    return unless claims_issue?
+    return unless claims_issue? || portal_bug? || access_request?
 
     if sub_category.blank?
       errors.add(:sub_category, "COV_CLAIMS_SUBCATEGORY_REQUIRED")

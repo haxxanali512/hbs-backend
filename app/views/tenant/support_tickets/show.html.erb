@@ -38,7 +38,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700">Category</label>
               <p class="mt-1 text-sm text-gray-900"><%= @support_ticket.category.humanize %></p>
-              <% if @support_ticket.claims_issue? && @support_ticket.sub_category.present? %>
+              <% if @support_ticket.sub_category.present? %>
                 <p class="mt-1 text-sm text-gray-700">Subcategory: <%= @support_ticket.sub_category.humanize %></p>
               <% end %>
             </div>

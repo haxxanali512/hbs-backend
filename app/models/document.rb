@@ -48,4 +48,16 @@ class Document < ApplicationRecord
   def can_be_archived?
     approved? || rejected?
   end
+
+  # Linked resource helper for support tickets (Agreement)
+  def self.patient_agreements(organization, patient_id = nil)
+    return none unless organization
+
+    scope = where(organization_id: organization.id)
+    if patient_id.present?
+      scope = scope.where(documentable_type: "Patient", documentable_id: patient_id)
+    end
+
+    scope.order(created_at: :desc)
+  end
 end
