@@ -75,21 +75,25 @@
       <h3 class="text-lg font-medium text-gray-900">Prescription Details</h3>
       
       <div>
-        <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" do %>
+          Specialty <span class="text-red-500">*</span>
+        <% end %>
         <%= f.select :specialty_id,
-                     options_for_select([["None", ""]] + @specialties.map { |s| [s.name, s.id] }, prescription.specialty_id),
-                     {},
-                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        <p class="mt-1 text-sm text-gray-500">Optional: Select if this prescription is for a specific specialty</p>
+                     options_for_select(@specialties.map { |s| [s.name, s.id] }, prescription.specialty_id),
+                     { prompt: "Select specialty..." },
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                     required: true %>
       </div>
 
       <div>
-        <%= f.label :procedure_code_id, "Procedure Code", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.label :procedure_code_id, "Procedure Code", class: "block text-sm font-medium text-gray-700 mb-1" do %>
+          Procedure Code <span class="text-red-500">*</span>
+        <% end %>
         <%= f.select :procedure_code_id,
-                     options_for_select([["None", ""]] + @procedure_codes.map { |pc| ["#{pc.code} - #{pc.description}", pc.id] }, prescription.procedure_code_id),
-                     {},
-                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        <p class="mt-1 text-sm text-gray-500">Optional: Select if this prescription is for a specific procedure</p>
+                     options_for_select(@procedure_codes.map { |pc| ["#{pc.code} - #{pc.description}", pc.id] }, prescription.procedure_code_id),
+                     { prompt: "Select procedure code..." },
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                     required: true %>
       </div>
 
       <div>
