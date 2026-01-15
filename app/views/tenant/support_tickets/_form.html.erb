@@ -40,12 +40,13 @@
       </div>
 
       <div id="claims-subcategory-field" class="hidden">
-        <%= f.label :sub_category, "Claims Subcategory", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.label :sub_category, "Subcategory", class: "block text-sm font-medium text-gray-700 mb-1" %>
         <%= f.select :sub_category,
-                     SupportTicket.sub_categories.keys.map { |k| [k.to_s.humanize, k] },
+                     [],
                      { prompt: "Select subcategory" },
-                     { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" } %>
-        <p class="mt-1 text-sm text-gray-500">Required for Claims Issue</p>
+                     { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                       data: { current_value: @support_ticket.sub_category } } %>
+        <p class="mt-1 text-sm text-gray-500" id="subcategory-help">Required for Claims Issue</p>
       </div>
 
       <div>
@@ -100,16 +101,39 @@
     const categorySelect = document.getElementById("support_ticket_category");
     const subcategoryField = document.getElementById("claims-subcategory-field");
     const subcategorySelect = document.getElementById("support_ticket_sub_category");
+    const subcategoryHelp = document.getElementById("subcategory-help");
+    const subcategoryOptions = <%= raw SupportTicket.subcategory_options_by_category.to_json %>;
 
     function toggleSubcategory() {
       if (!categorySelect || !subcategoryField) return;
-      const isClaims = categorySelect.value === "claims_issue";
-      subcategoryField.classList.toggle("hidden", !isClaims);
-      if (!isClaims && subcategorySelect) {
+      const category = categorySelect.value;
+      const options = subcategoryOptions[category] || [];
+      const requiresSubcategory = options.length > 0;
+
+      subcategoryField.classList.toggle("hidden", !requiresSubcategory);
+      if (!requiresSubcategory && subcategorySelect) {
         subcategorySelect.value = "";
       }
-      if (subcategorySelect) {
-        subcategorySelect.required = isClaims;
+      if (subcategorySelect) subcategorySelect.required = requiresSubcategory;
+
+      if (requiresSubcategory && subcategorySelect) {
+        const currentValue = subcategorySelect.dataset.currentValue;
+        subcategorySelect.innerHTML = '<option value="">Select subcategory</option>';
+        options.forEach(function(opt) {
+          const option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.label;
+          if (currentValue && currentValue === opt.value) {
+            option.selected = true;
+          }
+          subcategorySelect.appendChild(option);
+        });
+      }
+
+      if (subcategoryHelp) {
+        if (category === "claims_issue") subcategoryHelp.textContent = "Required for Claims Issue";
+        else if (category === "portal_bug") subcategoryHelp.textContent = "Required for Portal & Tech tickets";
+        else if (category === "access_request") subcategoryHelp.textContent = "Required for Access Requests";
       }
     }
 
