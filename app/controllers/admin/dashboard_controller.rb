@@ -4,7 +4,7 @@ class Admin::DashboardController < Admin::BaseController
     @active_organizations = Organization.where(activation_status: :activated).count
     @total_users = User.count
     @pending_billings = OrganizationBilling.pending_approval.count
-    @recent_organizations = Organization.order(created_at: :desc).limit(5)
+    @recent_organizations = Organization.includes(:owner).order(created_at: :desc).limit(10)
     @recent_users = User.order(created_at: :desc).limit(5)
 
     # Calculate growth metrics
