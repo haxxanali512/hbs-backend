@@ -1,5 +1,7 @@
 class Tenant::SupportTicketsController < Tenant::BaseController
+  include LinkedResourceOptions
   before_action :set_support_ticket, only: [ :show, :attach_document ]
+  before_action :load_linked_resource_options, only: [ :new, :create ]
 
   def index
     tickets = current_organization.support_tickets
@@ -37,6 +39,18 @@ class Tenant::SupportTicketsController < Tenant::BaseController
     end
   end
 
+  def linked_resources
+    resource_type = params[:resource_type].to_s
+    patient_id = params[:patient_id].presence
+
+    if linked_resource_requires_patient?(resource_type) && patient_id.blank?
+      return render json: { success: true, resources: [] }
+    end
+
+    resources = linked_resource_options(resource_type, current_organization, patient_id)
+    render json: { success: true, resources: resources }
+  end
+
   def show
     @comment = SupportTicketComment.new
     @comments = @support_ticket.comments.chronological
@@ -68,6 +82,10 @@ class Tenant::SupportTicketsController < Tenant::BaseController
 
   def set_support_ticket
     @support_ticket = current_organization.support_tickets.find(params[:id])
+  end
+
+  def load_linked_resource_options
+    @patients = current_organization.patients.active.order(:last_name, :first_name)
   end
 
   def support_ticket_params

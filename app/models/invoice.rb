@@ -104,6 +104,14 @@ class Invoice < ApplicationRecord
     invoice_line_items.create!(attributes.merge(position: position))
   end
 
+  # Linked resource helper for support tickets
+  def self.patient_invoices(organization, _patient_id = nil)
+    return none unless organization
+
+    where(organization_id: organization.id)
+      .order(created_at: :desc)
+  end
+
   private
 
   def generate_invoice_number
