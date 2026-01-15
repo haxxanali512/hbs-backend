@@ -8,16 +8,16 @@ class OrganizationSetting < ApplicationRecord
   validates :mrn_sequence, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true, unless: :mrn_disabled?
 
   # Scopes
-  scope :with_mrn_enabled, -> { where(mrn_enabled: "true") }
-  scope :with_mrn_disabled, -> { where.not(mrn_enabled: "true") }
+  scope :with_mrn_enabled, -> { where(mrn_enabled: true) }
+  scope :with_mrn_disabled, -> { where(mrn_enabled: false) }
 
   # Instance Methods
   def mrn_enabled?
-    mrn_enabled.present? && mrn_enabled == "true"
+    mrn_enabled == true
   end
 
   def mrn_disabled?
-    mrn_enabled.blank? || mrn_enabled != "true"
+    !mrn_enabled?
   end
 
   def generate_mrn

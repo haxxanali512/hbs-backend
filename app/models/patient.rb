@@ -172,7 +172,7 @@ class Patient < ApplicationRecord
     return unless organization.present?
 
     org_settings = organization.organization_setting
-    if org_settings&.mrn_enabled == "true" && mrn.blank?
+    if org_settings&.mrn_enabled? && mrn.blank?
       errors.add(:mrn, "PAT_MRN_REQUIRED - MRN is required for this organization")
     end
   end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_15_105248) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_15_183821) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -710,7 +710,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_15_105248) do
     t.string "mrn_prefix"
     t.string "mrn_sequence"
     t.string "mrn_format"
-    t.string "mrn_enabled"
+    t.boolean "mrn_enabled", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "ezclaim_api_token"
