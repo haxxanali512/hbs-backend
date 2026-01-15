@@ -72,7 +72,7 @@ class Tenant::ProviderNotesController < Tenant::BaseController
 
   def current_provider
     # Get provider associated with current user or encounter provider
-    provider = Provider.find_by(user_id: current_user&.id) if current_user
+    provider = nil # user_id association removed from Provider
     provider ||= @encounter&.provider
     provider
   end

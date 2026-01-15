@@ -8,7 +8,7 @@
   encounter_finalized = @encounter.cascaded?
   
   # Check if user can create/edit notes
-  current_provider = Provider.find_by(user_id: current_user&.id) if current_user
+  current_provider = nil # user_id association removed from Provider
   can_create = !encounter_finalized && (namespace == "tenant" && current_provider.present?)
   can_edit = !encounter_finalized && (namespace == "tenant" && current_provider.present?)
 %>
