@@ -4,12 +4,13 @@ class SupportTicket < ApplicationRecord
   audited
 
   CATEGORY_OPTIONS = {
-    billing_issue: 0,
+    claims_issue: 0,
     portal_bug: 1,
     access_problem: 2,
     data_export: 3,
     general_question: 4,
-    ownership_transfer: 5
+    ownership_transfer: 5,
+    invoice_issue: 6
   }.freeze
 
   PRIORITY_OPTIONS = {

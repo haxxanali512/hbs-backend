@@ -55,6 +55,7 @@ class OrgAcceptedPlan < ApplicationRecord
   after_save :auto_activate_if_dates_valid
   after_save :inactivate_if_date_passed
   after_save :create_enrollment_task_if_in_network
+  after_commit :create_enrollment_support_ticket, on: :create
 
   # =========================
   # Business Logic
@@ -183,5 +184,32 @@ class OrgAcceptedPlan < ApplicationRecord
     #   reference_id: id,
     #   description: "Verify enrollment for #{insurance_plan.name} (in-network)"
     # )
+  end
+
+  def create_enrollment_support_ticket
+    return unless requires_enrollment_verification?
+
+    creator = if added_by&.client_user?
+      added_by
+    elsif organization&.owner&.client_user?
+      organization.owner
+    end
+
+    return unless creator.present?
+
+    subject = "Enrollment Verification Needed: #{insurance_plan.name}"
+
+    return if SupportTicket.where(organization_id: organization_id, subject: subject).exists?
+
+    SupportTicket.create!(
+      organization: organization,
+      created_by_user: creator,
+      category: :general_question,
+      priority: :normal,
+      subject: subject,
+      description: "Organization #{organization.name} requested enrollment verification for #{insurance_plan.name} (#{network_type.humanize}). Please review and process this enrollment."
+    )
+  rescue => e
+    Rails.logger.error("Failed to create enrollment support ticket for OrgAcceptedPlan #{id}: #{e.message}")
   end
 end

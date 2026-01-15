@@ -230,7 +230,7 @@ class Tenant::PatientsController < Tenant::BaseController
 
 
   def load_insurance_form_options
-    @insurance_plans = InsurancePlan.active_only.order(:name)
+    @insurance_plans = @current_organization.eligible_insurance_plans_for_patient_coverages
   end
 
   def process_insurance_coverage_addresses
