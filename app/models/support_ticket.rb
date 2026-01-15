@@ -13,6 +13,14 @@ class SupportTicket < ApplicationRecord
     invoice_issue: 6
   }.freeze
 
+  CLAIMS_SUBCATEGORY_OPTIONS = {
+    claim_status_follow_up: 0,
+    denial_clarification: 1,
+    underpayment: 2,
+    deductible_eob_interpretation: 3,
+    other: 4
+  }.freeze
+
   PRIORITY_OPTIONS = {
     low: 0,
     normal: 1,
@@ -74,6 +82,7 @@ class SupportTicket < ApplicationRecord
   has_many_attached :documents
 
   enum :category, CATEGORY_OPTIONS
+  enum :sub_category, CLAIMS_SUBCATEGORY_OPTIONS
   enum :priority, PRIORITY_OPTIONS
   enum :status, STATUS_OPTIONS
 
@@ -101,6 +110,7 @@ class SupportTicket < ApplicationRecord
   validate :internal_notes_array
   validate :subject_phi_safe
   validate :description_phi_safe
+  validate :claims_sub_category_required
 
   scope :for_org, ->(org_id) { where(organization_id: org_id) }
   scope :open_flow, -> { where(status: %i[open in_progress waiting_on_client]) }
@@ -119,6 +129,10 @@ class SupportTicket < ApplicationRecord
 
     klass = klass_name.constantize
     klass.find_by(id: linked_resource_id)
+  end
+
+  def claims_issue?
+    category == "claims_issue"
   end
 
   def append_internal_note!(body:, author:)
@@ -293,6 +307,14 @@ class SupportTicket < ApplicationRecord
 
     unless allowed_transition?(previous_status, status)
       errors.add(:status, "[#{ERROR_CODES[:immutable_fields]}] Invalid transition from #{previous_status} to #{status}.")
+    end
+  end
+
+  def claims_sub_category_required
+    return unless claims_issue?
+
+    if sub_category.blank?
+      errors.add(:sub_category, "COV_CLAIMS_SUBCATEGORY_REQUIRED")
     end
   end
 
