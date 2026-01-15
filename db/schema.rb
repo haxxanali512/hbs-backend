@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_14_123740) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_15_105248) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -1075,6 +1075,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_14_123740) do
     t.datetime "discarded_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "sub_category"
     t.index ["assigned_to_user_id"], name: "index_support_tickets_on_assigned_to_user_id"
     t.index ["category"], name: "index_support_tickets_on_category"
     t.index ["created_by_user_id"], name: "index_support_tickets_on_created_by_user_id"
@@ -1085,6 +1086,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_14_123740) do
     t.index ["priority"], name: "index_support_tickets_on_priority"
     t.index ["resolution_due_at"], name: "index_support_tickets_on_resolution_due_at"
     t.index ["status"], name: "index_support_tickets_on_status"
+    t.index ["sub_category"], name: "index_support_tickets_on_sub_category"
   end
 
   create_table "users", force: :cascade do |t|

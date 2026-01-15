@@ -10,7 +10,7 @@ class Tenant::PatientInsuranceCoveragesController < Tenant::BaseController
 
     # Set filter options for shared filters partial
     @patient_options = @current_organization.patients.order(:last_name, :first_name)
-    @insurance_plan_options = InsurancePlan.active_only.order(:name)
+    @insurance_plan_options = @current_organization.eligible_insurance_plans_for_patient_coverages
     @coverage_order_options = PatientInsuranceCoverage.coverage_orders.keys
     @status_options = PatientInsuranceCoverage.statuses.keys
 
@@ -104,7 +104,7 @@ class Tenant::PatientInsuranceCoveragesController < Tenant::BaseController
 
   def load_form_options
     @patients = @current_organization.patients.active.order(:last_name, :first_name)
-    @insurance_plans = InsurancePlan.active_only.order(:name)
+    @insurance_plans = @current_organization.eligible_insurance_plans_for_patient_coverages
   end
 
   def apply_filters(coverages)

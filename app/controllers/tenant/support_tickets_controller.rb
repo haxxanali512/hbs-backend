@@ -73,6 +73,7 @@ class Tenant::SupportTicketsController < Tenant::BaseController
   def support_ticket_params
     permitted = params.require(:support_ticket).permit(
       :category,
+      :sub_category,
       :subject,
       :description,
       :linked_resource_type,
