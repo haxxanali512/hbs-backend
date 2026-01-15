@@ -220,6 +220,16 @@ class Tenant::EncountersController < Tenant::BaseController
     load_workflow_collections
   end
 
+  def specialties_for_provider
+    provider = @current_organization.providers.kept.active.find_by(id: params[:provider_id])
+    return render json: { success: false, specialties: [] } unless provider
+
+    specialties = provider.specialties.kept.active.order(:name)
+    data = specialties.map { |s| { id: s.id, name: s.name } }
+
+    render json: { success: true, specialties: data }
+  end
+
   def load_workflow_collections
     # Show encounters that are ready to submit (ready_to_submit but not yet cascaded)
     @queued_encounters = @current_organization.encounters

@@ -63,7 +63,7 @@
             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium" onclick="event.stopPropagation()">
               <div class="flex space-x-2">
                 <%= link_to "View", tenant_encounter_path(enc), class: "text-blue-600 hover:text-blue-800" %>
-                <% unless enc.cascaded? %>
+                <% if enc.ready_to_submit? && !enc.cascaded? %>
                   <%= link_to "Edit", edit_tenant_encounter_path(enc), class: "text-indigo-600 hover:text-indigo-800" %>
                 <% end %>
               </div>

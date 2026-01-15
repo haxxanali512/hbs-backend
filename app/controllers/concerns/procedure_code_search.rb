@@ -71,11 +71,17 @@ module ProcedureCodeSearch
 
   def handle_procedure_code_search(search_term, line_id)
     org = current_organization_for_pricing
+    specialty_id = params[:specialty_id].presence || current_encounter_for_pricing&.specialty_id
     unlocked_ids = org.unlocked_procedure_codes.select(:id)
 
-    procedure_codes = ProcedureCode.kept.active
-                                   .where(id: unlocked_ids)
-                                   .search(search_term)
+    procedure_codes = ProcedureCode.kept.active.where(id: unlocked_ids)
+    if specialty_id.present?
+      procedure_codes = procedure_codes.joins(:specialties).where(specialties: { id: specialty_id })
+    else
+      procedure_codes = ProcedureCode.none
+    end
+
+    procedure_codes = procedure_codes.search(search_term)
                                    .limit(50)
                                    .order(:code)
 
