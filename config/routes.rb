@@ -404,6 +404,7 @@ Rails.application.routes.draw do
           collection do
             get :workflow
             post :submit_queued
+            get :specialties_for_provider
           end
           member do
             post :mark_reviewed
