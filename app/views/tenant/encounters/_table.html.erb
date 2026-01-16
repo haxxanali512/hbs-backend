@@ -124,7 +124,9 @@
                     <%= link_to "Download EDI", download_edi_tenant_encounter_path(encounter), class: "text-green-600 hover:text-green-800", title: "Download EDI file" %>
                   <% end %>
                   <% unless show_submitted_only %>
-                    <%= link_to "Edit", edit_tenant_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" if !encounter.cascaded? %>
+                    <% if encounter.ready_to_submit? && !encounter.cascaded? %>
+                      <%= link_to "Edit", edit_tenant_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" %>
+                    <% end %>
                     
                     <% if encounter.ready_for_review? && encounter.may_mark_reviewed? %>
                       <%= button_to "Mark as Reviewed", mark_reviewed_tenant_encounter_path(encounter),

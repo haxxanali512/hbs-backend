@@ -155,6 +155,13 @@
       }
     }
 
+    function collectSelectedIds() {
+      const tableBody = query('[data-workflow-queued-target="tableBody"]');
+      if (!tableBody) return [];
+      const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
+      return Array.from(checkedBoxes).map(cb => cb.value);
+    }
+
     function toggleAll(event) {
       const tableBody = query('[data-workflow-queued-target="tableBody"]');
       if (!tableBody) return;
@@ -186,6 +193,21 @@
 
     // Use onLoad to ensure it runs on initial load and after updates
     onLoad(initialize);
+
+    // Ensure selected IDs are captured at submit time
+    const submitForm = getElement('submit-queued-form');
+    if (submitForm) {
+      submitForm.addEventListener('submit', function(event) {
+        const encounterIdsInput = getElement('encounter_ids_input');
+        const selectedIds = collectSelectedIds();
+        if (encounterIdsInput) {
+          encounterIdsInput.value = selectedIds.join(',');
+        }
+        if (selectedIds.length === 0) {
+          event.preventDefault();
+        }
+      });
+    }
 
     // Also specifically listen for queued table frame updates
     document.addEventListener('turbo:frame-load', function(event) {
