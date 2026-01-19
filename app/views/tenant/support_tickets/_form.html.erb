@@ -1,6 +1,7 @@
 <%= form_with(model: @support_ticket,
               url: (@support_ticket.persisted? ? tenant_support_ticket_path(@support_ticket) : tenant_support_tickets_path),
               local: true,
+              multipart: true,
               class: "space-y-6") do |f| %>
   <% if @support_ticket.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -34,7 +35,7 @@
       <div>
         <%= f.label :category, "Category", class: "block text-sm font-medium text-gray-700 mb-1" %>
         <%= f.select :category,
-                     SupportTicket.categories.keys.map { |k| [k.humanize, k] },
+                     SupportTicket.category_options_for_select,
                      { prompt: "Select category" },
                      { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true } %>
       </div>
@@ -244,13 +245,11 @@
     <h3 class="text-lg font-medium text-gray-900">Attachments</h3>
     
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Attachment Tokens</label>
-      <input type="text"
-             name="support_ticket[attachment_tokens]"
-             value="<%= (@support_ticket.attachments || []).join(', ') %>"
-             placeholder="Paste upload tokens (comma separated)"
-             class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <p class="mt-1 text-sm text-gray-500">Provide IDs from the secure uploader when prompted by HBS.</p>
+      <%= f.label :documents, "Upload Files", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.file_field :documents,
+                       multiple: true,
+                       class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-sm text-gray-500">PDF, images, or office docs. Max 25MB.</p>
     </div>
   </div>
 

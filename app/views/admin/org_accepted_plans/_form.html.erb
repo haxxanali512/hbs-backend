@@ -94,9 +94,30 @@
   <div class="space-y-4">
     <h3 class="text-lg font-medium text-gray-900">Notes</h3>
     <div>
-      <%= f.label :notes, "Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= f.text_area :notes, rows: 4, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      <%= label_tag :note_body, "Add Note", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= text_area_tag :note_body, nil, rows: 4, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-sm text-gray-500">New entries are appended to the note history.</p>
     </div>
+    <% if org_accepted_plan.plan_notes.any? || org_accepted_plan.notes.present? %>
+      <div class="space-y-2">
+        <p class="text-sm font-medium text-gray-700">Previous Notes</p>
+        <div class="space-y-3">
+          <% if org_accepted_plan.notes.present? %>
+            <div class="rounded-md border border-gray-200 p-3 text-sm text-gray-900 whitespace-pre-wrap">
+              <%= org_accepted_plan.notes %>
+            </div>
+          <% end %>
+          <% org_accepted_plan.plan_notes.each do |note| %>
+            <div class="rounded-md border border-gray-200 p-3">
+              <div class="text-xs text-gray-500 mb-1">
+                <%= note.created_by&.display_name || "System" %> · <%= note.created_at.strftime("%m/%d/%Y %I:%M %p") %>
+              </div>
+              <div class="text-sm text-gray-900 whitespace-pre-wrap"><%= note.body %></div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
   </div>
 
   <!-- Form Actions -->

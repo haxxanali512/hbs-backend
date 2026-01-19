@@ -37,6 +37,7 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
     @org_accepted_plan.organization_id = @current_organization.id
     @org_accepted_plan.added_by_id = current_user.id
     if @org_accepted_plan.save
+      create_note_if_present(@org_accepted_plan)
       redirect_to tenant_org_accepted_plan_path(@org_accepted_plan), notice: "Organization accepted plan created."
     else
       render :new, status: :unprocessable_entity
@@ -50,14 +51,16 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
     authorize @org_accepted_plan
     # Client admins can only update certain fields
     unless current_user.has_admin_access?
-      permitted_params = org_accepted_plan_params.slice(:status, :network_type, :effective_date, :end_date, :notes)
+      permitted_params = org_accepted_plan_params.slice(:status, :network_type, :effective_date, :end_date)
       if @org_accepted_plan.update(permitted_params)
+        create_note_if_present(@org_accepted_plan)
         redirect_to tenant_org_accepted_plan_path(@org_accepted_plan), notice: "Organization accepted plan updated."
       else
         render :edit, status: :unprocessable_entity
       end
     else
       if @org_accepted_plan.update(org_accepted_plan_params)
+        create_note_if_present(@org_accepted_plan)
         redirect_to tenant_org_accepted_plan_path(@org_accepted_plan), notice: "Organization accepted plan updated."
       else
         render :edit, status: :unprocessable_entity
@@ -91,6 +94,7 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
 
   def load_form_options
     @insurance_plans = InsurancePlan.active_only.order(:name)
+    @accepted_plan_ids = @current_organization.org_accepted_plans.pluck(:insurance_plan_id)
   end
 
   def apply_filters(plans)
@@ -105,7 +109,14 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
   def org_accepted_plan_params
     params.require(:org_accepted_plan).permit(
       :insurance_plan_id, :status, :network_type,
-      :enrollment_status, :effective_date, :end_date, :notes
+      :enrollment_status, :effective_date, :end_date
     )
+  end
+
+  def create_note_if_present(plan)
+    note_body = params[:note_body].to_s.strip
+    return if note_body.blank?
+
+    plan.plan_notes.create!(body: note_body, created_by: current_user)
   end
 end

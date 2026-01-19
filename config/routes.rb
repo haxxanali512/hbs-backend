@@ -458,6 +458,9 @@ Rails.application.routes.draw do
             post :archive
             post :unarchive
           end
+          collection do
+            get :specialties_for_provider
+          end
         end
 
         resources :patients do

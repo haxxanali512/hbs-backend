@@ -7,6 +7,10 @@ class OrgAcceptedPlan < ApplicationRecord
   belongs_to :organization
   belongs_to :insurance_plan
   belongs_to :added_by, class_name: "User"
+  has_many :plan_notes,
+           -> { order(created_at: :desc) },
+           class_name: "OrgAcceptedPlanNote",
+           dependent: :destroy
 
   # =========================
   # Enums

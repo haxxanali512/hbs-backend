@@ -18,7 +18,7 @@ class Admin::SupportTicketsController < Admin::BaseController
     organization_ids = base_tickets.distinct.pluck(:organization_id).compact
     @organization_options = Organization.where(id: organization_ids).order(:name)
     @priority_options = SupportTicket.priorities.keys.map { |k| [ k.humanize, k ] }
-    @category_options = SupportTicket.categories.keys.map { |k| [ k.humanize, k ] }
+    @category_options = SupportTicket.category_options_for_select
   end
 
   def show

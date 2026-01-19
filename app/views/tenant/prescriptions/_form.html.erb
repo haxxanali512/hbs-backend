@@ -75,6 +75,15 @@
       <h3 class="text-lg font-medium text-gray-900">Prescription Details</h3>
       
       <div>
+        <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :provider_id,
+                     options_for_select([["None", ""]] + @providers.map { |p| [p.full_name, p.id] }, prescription.provider_id),
+                     {},
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                     data: { current_specialty_id: prescription.specialty_id } %>
+      </div>
+
+      <div>
         <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" do %>
           Specialty <span class="text-red-500">*</span>
         <% end %>
@@ -82,7 +91,8 @@
                      options_for_select(@specialties.map { |s| [s.name, s.id] }, prescription.specialty_id),
                      { prompt: "Select specialty..." },
                      class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
-                     required: true %>
+                     required: true,
+                     data: { all_specialties: @specialties.map { |s| { id: s.id, name: s.name } }.to_json } %>
       </div>
 
       <div>
@@ -94,15 +104,6 @@
                      { prompt: "Select procedure code..." },
                      class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
                      required: true %>
-      </div>
-
-      <div>
-        <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :provider_id,
-                     options_for_select([["None", ""]] + @providers.map { |p| [p.full_name, p.id] }, prescription.provider_id),
-                     {},
-                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        <p class="mt-1 text-sm text-gray-500">Optional: Select the provider who wrote this prescription</p>
       </div>
     </div>
   </div>
@@ -388,4 +389,66 @@
       }
     });
   })();
+</script>
+
+<script>
+  document.addEventListener("turbo:load", function() {
+    const providerSelect = document.getElementById("prescription_provider_id");
+    const specialtySelect = document.getElementById("prescription_specialty_id");
+    const currentSpecialtyId = providerSelect?.dataset?.currentSpecialtyId;
+    const allSpecialties = specialtySelect?.dataset?.allSpecialties
+      ? JSON.parse(specialtySelect.dataset.allSpecialties)
+      : [];
+
+    if (!providerSelect || !specialtySelect) return;
+
+    function resetSpecialties(selectedId = null) {
+      specialtySelect.innerHTML = '<option value="">Select specialty...</option>';
+      allSpecialties.forEach(function(spec) {
+        const option = document.createElement("option");
+        option.value = spec.id;
+        option.textContent = spec.name;
+        if (selectedId && selectedId.toString() === spec.id.toString()) {
+          option.selected = true;
+        }
+        specialtySelect.appendChild(option);
+      });
+    }
+
+    async function loadSpecialties(providerId, selectedId) {
+      if (!providerId) {
+        resetSpecialties();
+        return;
+      }
+      const url = "<%= specialties_for_provider_tenant_prescriptions_path %>?provider_id=" + encodeURIComponent(providerId);
+      const response = await fetch(url, { headers: { "Accept": "application/json" } });
+      const data = await response.json();
+
+      resetSpecialties();
+      if (!data.success) return;
+      data.specialties.forEach(function(spec) {
+        const option = document.createElement("option");
+        option.value = spec.id;
+        option.textContent = spec.name;
+        if (selectedId && selectedId.toString() === spec.id.toString()) {
+          option.selected = true;
+        }
+        specialtySelect.appendChild(option);
+      });
+    }
+
+    providerSelect.addEventListener("change", function() {
+      if (providerSelect.value) {
+        loadSpecialties(providerSelect.value, null);
+      } else {
+        resetSpecialties();
+      }
+    });
+
+    if (providerSelect.value) {
+      loadSpecialties(providerSelect.value, currentSpecialtyId);
+    } else {
+      resetSpecialties(currentSpecialtyId);
+    }
+  });
 </script>

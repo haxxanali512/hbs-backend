@@ -9,6 +9,7 @@
         </div>
         <div class="flex space-x-3">
           <%= link_to "Back to Prescriptions", tenant_prescriptions_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <%= link_to "Back to Patient", tenant_patient_path(@prescription.patient), class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
           <%= link_to "Edit", edit_tenant_prescription_path(@prescription), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
         </div>
       </div>
@@ -24,7 +25,7 @@
             <div>
               <dt class="text-sm font-medium text-gray-500">Patient</dt>
               <dd class="mt-1 text-sm text-gray-900">
-                <%= link_to @prescription.patient.full_name, tenant_patient_path(@prescription.patient), class: "text-blue-600 hover:text-blue-800" %>
+                <%= link_to @prescription.patient.full_name, tenant_patient_path(@prescription.patient), class: "text-blue-600 hover:text-blue-800 font-bold underline" %>
               </dd>
             </div>
             <div>

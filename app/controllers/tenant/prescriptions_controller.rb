@@ -49,6 +49,16 @@ class Tenant::PrescriptionsController < Tenant::BaseController
     end
   end
 
+  def specialties_for_provider
+    provider = @current_organization.providers.kept.active.find_by(id: params[:provider_id])
+    return render json: { success: false, specialties: [] } unless provider
+
+    specialties = provider.specialties.kept.active.order(:name)
+    data = specialties.map { |s| { id: s.id, name: s.name } }
+
+    render json: { success: true, specialties: data }
+  end
+
   def edit
     @patient = @prescription.patient
   end

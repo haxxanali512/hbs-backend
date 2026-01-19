@@ -65,10 +65,24 @@
           </dl>
         </div>
 
-        <% if @org_accepted_plan.notes.present? %>
+        <% if @org_accepted_plan.plan_notes.any? || @org_accepted_plan.notes.present? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Notes</h2>
-            <p class="text-sm text-gray-900 whitespace-pre-wrap"><%= @org_accepted_plan.notes %></p>
+            <div class="space-y-3">
+              <% if @org_accepted_plan.notes.present? %>
+                <div class="rounded-md border border-gray-200 p-3 text-sm text-gray-900 whitespace-pre-wrap">
+                  <%= @org_accepted_plan.notes %>
+                </div>
+              <% end %>
+              <% @org_accepted_plan.plan_notes.each do |note| %>
+                <div class="rounded-md border border-gray-200 p-3">
+                  <div class="text-xs text-gray-500 mb-1">
+                    <%= note.created_by&.display_name || "System" %> · <%= note.created_at.strftime("%m/%d/%Y %I:%M %p") %>
+                  </div>
+                  <div class="text-sm text-gray-900 whitespace-pre-wrap"><%= note.body %></div>
+                </div>
+              <% end %>
+            </div>
           </div>
         <% end %>
       </div>
