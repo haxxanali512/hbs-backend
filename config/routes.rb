@@ -460,6 +460,7 @@ Rails.application.routes.draw do
           end
           collection do
             get :specialties_for_provider
+            get :procedure_codes_for_specialty
           end
         end
 
