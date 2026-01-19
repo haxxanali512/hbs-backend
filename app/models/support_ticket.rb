@@ -13,6 +13,10 @@ class SupportTicket < ApplicationRecord
     invoice_issue: 6
   }.freeze
 
+  CATEGORY_LABEL_OVERRIDES = {
+    "access_request" => "Data Addition / Update Request"
+  }.freeze
+
   SUBCATEGORY_OPTIONS = {
     claim_status_follow_up: 0,
     denial_clarification: 1,
@@ -27,7 +31,8 @@ class SupportTicket < ApplicationRecord
     access_insurance_plan: 20,
     access_cpt_codes: 21,
     access_diagnosis_codes: 22,
-    access_other: 23
+    access_other: 23,
+    access_payer_rule_requirement: 24
   }.freeze
 
   SUBCATEGORY_BY_CATEGORY = {
@@ -49,12 +54,18 @@ class SupportTicket < ApplicationRecord
       access_insurance_plan
       access_cpt_codes
       access_diagnosis_codes
+      access_payer_rule_requirement
       access_other
     ]
   }.freeze
 
   SUBCATEGORY_LABEL_OVERRIDES = {
-    "deductible_eob_interpretation" => "Deductible/ EOB Interpretation"
+    "deductible_eob_interpretation" => "Deductible/ EOB Interpretation",
+    "access_cpt_codes" => "Add CPT Code",
+    "access_diagnosis_codes" => "Add Diagnosis (DX) Code",
+    "access_insurance_plan" => "Add Insurance Plan",
+    "access_payer_rule_requirement" => "Add Payer Rule / Requirement",
+    "access_other" => "Add Other Reference Data"
   }.freeze
 
   PRIORITY_OPTIONS = {
@@ -188,6 +199,30 @@ class SupportTicket < ApplicationRecord
         }
       end
     end
+  end
+
+  def self.category_label(category_key)
+    return "" if category_key.blank?
+
+    CATEGORY_LABEL_OVERRIDES.fetch(category_key.to_s, category_key.to_s.humanize)
+  end
+
+  def self.sub_category_label(sub_category_key)
+    return "" if sub_category_key.blank?
+
+    SUBCATEGORY_LABEL_OVERRIDES.fetch(sub_category_key.to_s, sub_category_key.to_s.humanize)
+  end
+
+  def self.category_options_for_select
+    categories.keys.map { |k| [ category_label(k), k ] }
+  end
+
+  def category_label
+    self.class.category_label(category)
+  end
+
+  def sub_category_label
+    self.class.sub_category_label(sub_category)
   end
 
   def append_internal_note!(body:, author:)

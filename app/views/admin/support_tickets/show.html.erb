@@ -39,9 +39,9 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label class="block text-sm font-medium text-gray-700">Category</label>
-              <p class="mt-1 text-sm text-gray-900"><%= @support_ticket.category.humanize %></p>
+              <p class="mt-1 text-sm text-gray-900"><%= @support_ticket.category_label %></p>
               <% if @support_ticket.sub_category.present? %>
-                <p class="mt-1 text-sm text-gray-700">Subcategory: <%= @support_ticket.sub_category.humanize %></p>
+                <p class="mt-1 text-sm text-gray-700">Subcategory: <%= @support_ticket.sub_category_label %></p>
               <% end %>
             </div>
             <div>

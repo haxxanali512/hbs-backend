@@ -18,7 +18,7 @@ class Tenant::SupportTicketsController < Tenant::BaseController
     @use_status_for_action_type = true
     @status_options = SupportTicket.statuses.keys.map { |k| [ k.humanize, k ] }
     @priority_options = SupportTicket.priorities.keys.map { |k| [ k.humanize, k ] }
-    @category_options = SupportTicket.categories.keys.map { |k| [ k.humanize, k ] }
+    @category_options = SupportTicket.category_options_for_select
   end
 
   def new
