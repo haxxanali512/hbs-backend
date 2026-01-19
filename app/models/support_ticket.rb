@@ -53,6 +53,10 @@ class SupportTicket < ApplicationRecord
     ]
   }.freeze
 
+  SUBCATEGORY_LABEL_OVERRIDES = {
+    "deductible_eob_interpretation" => "Deductible/ EOB Interpretation"
+  }.freeze
+
   PRIORITY_OPTIONS = {
     low: 0,
     normal: 1,
@@ -177,7 +181,12 @@ class SupportTicket < ApplicationRecord
 
   def self.subcategory_options_by_category
     SUBCATEGORY_BY_CATEGORY.transform_values do |keys|
-      keys.map { |k| { value: k, label: k.humanize } }
+      keys.map do |k|
+        {
+          value: k,
+          label: SUBCATEGORY_LABEL_OVERRIDES.fetch(k, k.humanize)
+        }
+      end
     end
   end
 
