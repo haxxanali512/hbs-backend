@@ -96,13 +96,8 @@ class Tenant::SupportTicketsController < Tenant::BaseController
       :description,
       :linked_resource_type,
       :linked_resource_id,
-      attachments: []
+      documents: []
     )
-
-    tokens = params[:support_ticket][:attachment_tokens]
-    if tokens.present?
-      permitted[:attachments] = tokens.to_s.split(/[\s,]+/).select(&:present?)
-    end
 
     permitted
   end
