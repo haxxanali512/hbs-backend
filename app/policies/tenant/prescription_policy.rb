@@ -35,6 +35,10 @@ class Tenant::PrescriptionPolicy < ApplicationPolicy
     accessible?("tenant", "prescriptions", "unarchive")
   end
 
+  def specialties_for_provider?
+    create?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

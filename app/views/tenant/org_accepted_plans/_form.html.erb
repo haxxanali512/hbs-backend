@@ -85,7 +85,7 @@
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
     <%= link_to "Cancel", org_accepted_plan.persisted? ? tenant_org_accepted_plan_path(org_accepted_plan) : tenant_org_accepted_plans_path, class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
-    <%= f.submit org_accepted_plan.persisted? ? "Update Plan" : "Create Plan", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
+    <%= f.submit org_accepted_plan.persisted? ? "Update Plan" : "Accept Plan", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
   </div>
 <% end %>
 
