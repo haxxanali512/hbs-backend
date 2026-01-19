@@ -91,6 +91,7 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
 
   def load_form_options
     @insurance_plans = InsurancePlan.active_only.order(:name)
+    @accepted_plan_ids = @current_organization.org_accepted_plans.pluck(:insurance_plan_id)
   end
 
   def apply_filters(plans)
