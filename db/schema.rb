@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_15_183821) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_20_121500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -507,6 +507,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_15_183821) do
     t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at"
     t.index ["user_id", "read"], name: "index_notifications_on_user_id_and_read"
     t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
+  create_table "org_accepted_plan_notes", force: :cascade do |t|
+    t.bigint "org_accepted_plan_id", null: false
+    t.bigint "created_by_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_org_accepted_plan_notes_on_created_by_id"
+    t.index ["org_accepted_plan_id", "created_at"], name: "idx_on_org_accepted_plan_id_created_at_8d8211d753"
+    t.index ["org_accepted_plan_id"], name: "index_org_accepted_plan_notes_on_org_accepted_plan_id"
   end
 
   create_table "org_accepted_plans", force: :cascade do |t|
@@ -1198,6 +1209,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_15_183821) do
   add_foreign_key "invoices", "users", column: "exception_set_by_user_id"
   add_foreign_key "notifications", "organizations"
   add_foreign_key "notifications", "users"
+  add_foreign_key "org_accepted_plan_notes", "org_accepted_plans"
+  add_foreign_key "org_accepted_plan_notes", "users", column: "created_by_id"
   add_foreign_key "org_accepted_plans", "insurance_plans"
   add_foreign_key "org_accepted_plans", "organizations"
   add_foreign_key "org_accepted_plans", "users", column: "added_by_id"
