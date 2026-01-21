@@ -92,15 +92,16 @@
     <!-- Place of Service -->
     <div class="space-y-1">
       <%= f.label :place_of_service_code, "Place of Service", class: "block text-sm font-medium text-gray-700" %>
-      <% pos_selected = encounter.place_of_service_code.presence || encounter.claim&.place_of_service_code || "11" %>
+      <% claim_pos_key = Encounter.place_of_service_codes.key(encounter.claim&.place_of_service_code) %>
+      <% pos_selected = encounter.place_of_service_code.presence || claim_pos_key || "office" %>
       <%= f.select :place_of_service_code,
                    options_for_select(
                      [
-                       ["11 - Office", 11],
-                       ["12 - Patient's Home", 12],
-                       ["10 - Telehealth / Virtual", 10]
+                       ["11 - Office", "office"],
+                       ["12 - Patient's Home", "patients_home"],
+                       ["10 - Telehealth / Virtual", "telehealth"]
                      ],
-                     pos_selected.to_i
+                     pos_selected
                    ),
                    {},
                    class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
