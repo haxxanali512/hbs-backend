@@ -15,6 +15,36 @@ class Tenant::EncountersController < Tenant::BaseController
     end
   end
 
+  def templates_for_specialty
+    specialty_id = params[:specialty_id].presence
+
+    templates = EncounterTemplate.active
+                                 .includes(:specialty, encounter_template_lines: :procedure_code)
+                                 .order(:name)
+    templates = templates.where(specialty_id: specialty_id) if specialty_id.present?
+
+    data = templates.map do |template|
+      {
+        id: template.id,
+        name: template.name,
+        specialty_id: template.specialty_id,
+        specialty_name: template.specialty&.name,
+        lines: template.encounter_template_lines.sort_by(&:position).map do |line|
+          {
+            id: line.id,
+            procedure_code_id: line.procedure_code_id,
+            code: line.procedure_code.code,
+            description: line.procedure_code.description,
+            units: line.units,
+            modifiers: line.modifiers
+          }
+        end
+      }
+    end
+
+    render json: { success: true, templates: data }
+  end
+
   def show
     # Mark comments as seen when viewing encounter
     if current_user
@@ -545,10 +575,13 @@ class Tenant::EncountersController < Tenant::BaseController
       :date_of_service,
       :billing_channel,
       :notes,
+      :encounter_template_id,
       :primary_procedure_code_id,
-      :duration_minutes,
+      :place_of_service_code,
       diagnosis_code_ids: [],
-      procedure_code_ids: []
+      procedure_code_ids: [],
+      procedure_units: {},
+      procedure_modifiers: {}
     )
   end
 

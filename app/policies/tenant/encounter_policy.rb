@@ -55,6 +55,10 @@ class Tenant::EncounterPolicy < ApplicationPolicy
     create?
   end
 
+  def templates_for_specialty?
+    create?
+  end
+
   def procedure_codes_search?
     submit_for_billing?
   end

@@ -68,12 +68,14 @@
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Template (placeholder for future use) -->
+    <!-- Template (curated by HBS) -->
     <div class="space-y-1">
-      <label class="block text-sm font-medium text-gray-700">Template (Optional)</label>
-      <div class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-400 bg-gray-50">
-        Choose a template...
-      </div>
+      <%= f.label :encounter_template_id, "Template (Optional)", class: "block text-sm font-medium text-gray-700" %>
+      <%= f.select :encounter_template_id,
+                   [],
+                   { prompt: "Select template..." },
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                   data: { current_template_id: encounter.encounter_template_id } %>
     </div>
 
     <!-- Date of Service -->
@@ -87,27 +89,37 @@
                        required: true %>
     </div>
 
-    <!-- Duration (minutes) -->
-    <div class="space-y-1" data-controller="duration-field">
-      <label class="block text-sm font-medium text-gray-700">
-        Duration (minutes)
-      </label>
-      <%= f.number_field :duration_minutes,
-                         min: 0,
-                         step: 1,
-                         class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
-                         data: { "duration-field-target": "input" } %>
-      <p class="text-xs text-gray-500">
-        Required only when the primary procedure is priced per unit.
-      </p>
+    <!-- Place of Service -->
+    <div class="space-y-1">
+      <%= f.label :place_of_service_code, "Place of Service", class: "block text-sm font-medium text-gray-700" %>
+      <% pos_selected = encounter.place_of_service_code.presence || encounter.claim&.place_of_service_code || "11" %>
+      <%= f.select :place_of_service_code,
+                   options_for_select(
+                     [
+                       ["11 - Office", 11],
+                       ["12 - Patient's Home", 12],
+                       ["02 - Telehealth / Virtual", 2]
+                     ],
+                     pos_selected.to_i
+                   ),
+                   {},
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
     </div>
   </div>
 
   <script>
     document.addEventListener("turbo:load", function() {
+      if (window.encounterTemplatesInitialized) return;
+      window.encounterTemplatesInitialized = true;
+
       const providerSelect = document.getElementById("encounter_provider_id");
       const specialtySelect = document.getElementById("encounter_specialty_id");
+      const templateSelect = document.getElementById("encounter_encounter_template_id");
       const currentSpecialtyId = providerSelect?.dataset?.currentSpecialtyId;
+      const currentTemplateId = templateSelect?.dataset?.currentTemplateId;
+      const templatesUrl = "<%= templates_for_specialty_tenant_encounters_path %>";
+      let templatesIndex = {};
+      let templatesRequestId = 0;
 
       if (!providerSelect || !specialtySelect) return;
 
@@ -115,9 +127,24 @@
         specialtySelect.innerHTML = '<option value="">Select provider first</option>';
       }
 
+      function resetTemplates() {
+        if (!templateSelect) return;
+        templateSelect.innerHTML = '<option value="">Select template...</option>';
+        templatesIndex = {};
+      }
+
+      function clearProcedureSelection() {
+        window.workflowSelectedProcedureCodes = [];
+        if (window.workflowUpdateProcedureDisplay) {
+          window.workflowUpdateProcedureDisplay();
+        }
+      }
+
       async function loadSpecialties(providerId, selectedId) {
         if (!providerId) {
           resetSpecialties();
+          resetTemplates();
+          clearProcedureSelection();
           return;
         }
 
@@ -139,17 +166,176 @@
         });
       }
 
-      providerSelect.addEventListener("change", function() {
-        loadSpecialties(providerSelect.value, null);
+      async function loadTemplates(specialtyId, selectedId) {
+        if (!templateSelect) return;
+        resetTemplates();
+        templatesRequestId += 1;
+        const requestId = templatesRequestId;
+        const url = specialtyId
+          ? (templatesUrl + "?specialty_id=" + encodeURIComponent(specialtyId))
+          : templatesUrl;
+        const response = await fetch(url, { headers: { "Accept": "application/json" } });
+        const data = await response.json();
+        if (!data.success) return;
+        if (requestId !== templatesRequestId) return;
+
+        data.templates.forEach(function(template) {
+          templatesIndex[template.id] = template;
+          const option = document.createElement("option");
+          option.value = template.id;
+          option.textContent = template.specialty_name
+            ? (template.name + " (" + template.specialty_name + ")")
+            : template.name;
+          if (selectedId && selectedId.toString() === template.id.toString()) {
+            option.selected = true;
+          }
+          templateSelect.appendChild(option);
+        });
+
+        if (selectedId && templateSelect.value) {
+          applyTemplate(templateSelect.value);
+        }
+      }
+
+      function applyTemplate(templateId) {
+        const template = templatesIndex[templateId];
+        if (!template) return;
+
+        window.workflowSelectedProcedureCodes = (template.lines || []).map(function(line) {
+          return {
+            id: line.procedure_code_id,
+            code: line.code,
+            description: line.description,
+            units: line.units,
+            modifier: (line.modifiers && line.modifiers.length > 0) ? line.modifiers[0] : ""
+          };
+        });
+        if (window.workflowUpdateProcedureDisplay) {
+          window.workflowUpdateProcedureDisplay();
+        }
+
+        // Default primary procedure to the first template line
+        const primarySelect = document.getElementById("workflowPrimaryProcedure");
+        if (primarySelect) {
+          if (window.workflowSelectedProcedureCodes.length > 0) {
+            primarySelect.value = window.workflowSelectedProcedureCodes[0].id;
+          } else {
+            primarySelect.value = "";
+          }
+        }
+      }
+
+      providerSelect.addEventListener("change", async function() {
+        await loadSpecialties(providerSelect.value, null);
+        if (templateSelect) templateSelect.value = "";
+        await loadTemplates(specialtySelect.value, null);
       });
 
-      if (providerSelect.value) {
-        loadSpecialties(providerSelect.value, currentSpecialtyId);
-      } else {
-        resetSpecialties();
+      specialtySelect.addEventListener("change", function() {
+        loadTemplates(specialtySelect.value, null);
+        if (templateSelect) templateSelect.value = "";
+        clearProcedureSelection();
+      });
+
+      if (templateSelect) {
+        templateSelect.addEventListener("change", function() {
+          if (templateSelect.value) {
+            applyTemplate(templateSelect.value);
+          } else {
+            clearProcedureSelection();
+          }
+        });
       }
+
+      async function initializeTemplates() {
+        if (providerSelect.value) {
+          await loadSpecialties(providerSelect.value, currentSpecialtyId);
+          await loadTemplates(specialtySelect.value, currentTemplateId);
+        } else {
+          resetSpecialties();
+          await loadTemplates(null, currentTemplateId);
+        }
+      }
+
+      initializeTemplates();
     });
   </script>
+
+  <script>
+    window.workflowInitialServiceLines = <%= raw(
+      encounter.encounter_procedure_items.includes(:procedure_code).map do |item|
+        {
+          id: item.procedure_code_id,
+          code: item.procedure_code.code,
+          description: item.procedure_code.description,
+          units: item.units,
+          modifier: item.modifiers&.first
+        }
+      end.to_json
+    ) %>;
+  </script>
+
+  <!-- Procedure Codes with search -->
+  <div class="space-y-4">
+    <h3 class="text-sm font-medium text-gray-900">Procedure Codes <span class="text-red-500">*</span></h3>
+
+    <div class="relative procedure-code-search">
+      <input type="text"
+             id="workflowProcedureInput"
+             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="Type to search procedure codes..."
+             autocomplete="off"
+             onfocus="workflowShowProcedureDropdown()"
+             oninput="workflowSearchProcedureCodes(this.value)">
+      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      <!-- Dropdown results -->
+      <div id="procedure_workflow_results"
+           class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedure Code</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modifier</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="workflowServiceLinesBody" class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">No procedure codes selected.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="text-xs text-gray-500">
+      Select procedure codes. At least one is required.
+    </p>
+
+    <!-- Primary Procedure Code -->
+    <div class="space-y-1">
+      <label class="block text-sm font-medium text-gray-700">Primary Procedure Code</label>
+      <select name="encounter[primary_procedure_code_id]"
+              id="workflowPrimaryProcedure"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Select primary procedure (optional)...</option>
+      </select>
+      <p class="text-xs text-gray-500">
+        The primary procedure is optional and will be used for pricing rules if specified.
+      </p>
+    </div>
+  </div>
 
   <!-- Diagnosis Codes with search (up to 4) -->
   <div class="space-y-2">
@@ -205,73 +391,6 @@
     </p>
   </div>
 
-  <!-- Procedure Codes with search -->
-  <div class="space-y-4">
-    <h3 class="text-sm font-medium text-gray-900">Procedure Codes <span class="text-red-500">*</span></h3>
-
-    <div class="relative procedure-code-search">
-      <input type="text"
-             id="workflowProcedureInput"
-             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-             placeholder="Type to search procedure codes..."
-             autocomplete="off"
-             onfocus="workflowShowProcedureDropdown()"
-             oninput="workflowSearchProcedureCodes(this.value)">
-      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-
-      <!-- Dropdown results -->
-      <div id="procedure_workflow_results"
-           class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
-      </div>
-    </div>
-
-    <!-- Selected procedure codes display -->
-    <div id="workflowSelectedProcedureCodes" class="mt-2 flex flex-wrap gap-2">
-      <% if encounter.respond_to?(:all_procedure_codes) && encounter.all_procedure_codes.present? %>
-        <% encounter.all_procedure_codes.each do |pc| %>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-                data-procedure-id="<%= pc.id %>">
-            <%= pc.code %> - <%= truncate(pc.description.to_s, length: 30) %>
-            <button type="button"
-                    onclick="workflowRemoveProcedureCode(<%= pc.id %>)"
-                    class="ml-1 text-blue-600 hover:text-blue-800">×</button>
-          </span>
-        <% end %>
-      <% end %>
-    </div>
-
-    <!-- Hidden inputs for submission -->
-    <div id="workflowProcedureHiddenInputs">
-      <% Array(encounter.try(:procedure_code_ids)).each do |pc_id| %>
-        <input type="hidden"
-               name="encounter[procedure_code_ids][]"
-               value="<%= pc_id %>"
-               id="workflowProcedureHidden<%= pc_id %>">
-      <% end %>
-    </div>
-
-    <p class="text-xs text-gray-500">
-        Select procedure codes. At least one is required.
-    </p>
-
-    <!-- Primary Procedure Code -->
-    <div class="space-y-1">
-      <label class="block text-sm font-medium text-gray-700">Primary Procedure Code</label>
-      <select name="encounter[primary_procedure_code_id]"
-              id="workflowPrimaryProcedure"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <option value="">Select primary procedure (optional)...</option>
-      </select>
-      <p class="text-xs text-gray-500">
-        The primary procedure is optional and will be used for duration/pricing rules if specified.
-      </p>
-    </div>
-  </div>
-
   <div class="flex justify-end pt-4 border-t border-gray-100 space-x-3">
     <button type="button"
             id="clear_workflow_form_button"
@@ -299,12 +418,10 @@
 
     // Clear procedure codes UI/hidden inputs
     window.workflowSelectedProcedureCodes = [];
-    const procContainer = document.getElementById("workflowSelectedProcedureCodes");
-    const procHidden = document.getElementById("workflowProcedureHiddenInputs");
+    const procContainer = document.getElementById("workflowServiceLinesBody");
     if (procContainer) {
-      procContainer.innerHTML = '<span class="text-xs text-gray-500">No procedure codes selected</span>';
+      procContainer.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">No procedure codes selected.</td></tr>';
     }
-    if (procHidden) procHidden.innerHTML = "";
 
     // Reset primary procedure options
     const primarySelect = document.getElementById("workflowPrimaryProcedure");
@@ -539,6 +656,14 @@
     });
   })();
 
+  window.workflowModifierOptions = <%= raw([
+    { code: "GP", label: "GP" },
+    { code: "GT", label: "GT" },
+    { code: "95", label: "95" },
+    { code: "25", label: "25" },
+    { code: "59", label: "59" }
+  ].to_json) %>;
+
   // Procedure code search for workflow (no hard limit)
   (function() {
     if (window.workflowProcedureInitialized) return;
@@ -676,10 +801,9 @@
     };
 
     function workflowUpdateProcedureDisplay() {
-      var container = document.getElementById("workflowSelectedProcedureCodes");
-      var hiddenInputs = document.getElementById("workflowProcedureHiddenInputs");
+      var container = document.getElementById("workflowServiceLinesBody");
       var primarySelect = document.getElementById("workflowPrimaryProcedure");
-      if (!container || !hiddenInputs || !primarySelect) return;
+      if (!container || !primarySelect) return;
 
       if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
         window.workflowSelectedProcedureCodes = [];
@@ -687,24 +811,37 @@
       var selected = window.workflowSelectedProcedureCodes;
 
       if (selected.length === 0) {
-        container.innerHTML = '<span class="text-xs text-gray-500">No procedure codes selected</span>';
+        container.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">No procedure codes selected.</td></tr>';
       } else {
+        var modifierOptions = window.workflowModifierOptions || [];
         container.innerHTML = selected.map(function(item) {
           var displayText = item.description
             ? (item.code + " - " + (item.description.length > 30 ? item.description.substring(0, 30) + "..." : item.description))
             : item.code;
+          var modifierSelect = '<select name="encounter[procedure_modifiers][' + item.id + ']" class="w-full border border-gray-300 rounded-md px-2 py-1 text-sm">' +
+            '<option value="">None</option>' +
+            modifierOptions.map(function(opt) {
+              var selectedAttr = item.modifier && item.modifier.toString() === opt.code.toString() ? ' selected' : '';
+              return '<option value="' + opt.code + '"' + selectedAttr + '>' + opt.label + '</option>';
+            }).join("") +
+            '</select>';
           return (
-            '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700" data-procedure-id="' + item.id + '">' +
-              displayText +
-              '<button type="button" onclick="workflowRemoveProcedureCode(' + item.id + ')" class="ml-1 text-blue-600 hover:text-blue-800">×</button>' +
-            '</span>'
+            '<tr data-procedure-id="' + item.id + '">' +
+              '<td class="px-4 py-2 text-sm text-gray-900">' +
+                displayText +
+                '<input type="hidden" name="encounter[procedure_code_ids][]" value="' + item.id + '">' +
+              '</td>' +
+              '<td class="px-4 py-2">' + modifierSelect + '</td>' +
+              '<td class="px-4 py-2">' +
+                '<input type="number" name="encounter[procedure_units][' + item.id + ']" min="1" step="1" value="' + (item.units || 1) + '" class="w-full border border-gray-300 rounded-md px-2 py-1 text-sm" />' +
+              '</td>' +
+              '<td class="px-4 py-2 text-right">' +
+                '<button type="button" onclick="workflowRemoveProcedureCode(' + item.id + ')" class="text-red-600 hover:text-red-800 text-sm">Remove</button>' +
+              '</td>' +
+            '</tr>'
           );
-        }).join(" ");
+        }).join("");
       }
-
-      hiddenInputs.innerHTML = selected.map(function(item) {
-        return '<input type="hidden" name="encounter[procedure_code_ids][]" value="' + item.id + '" id="workflowProcedureHidden' + item.id + '">';
-      }).join("");
 
       // Rebuild primary procedure select
       primarySelect.innerHTML = '<option value="">Select primary procedure (optional)...</option>';
@@ -720,22 +857,16 @@
         primarySelect.value = selected[0].id;
       }
     }
+    window.workflowUpdateProcedureDisplay = workflowUpdateProcedureDisplay;
 
     // Initialize procedure codes from server-side on first load
     function initializeProcedureCodes() {
       if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
         window.workflowSelectedProcedureCodes = [];
       }
-      
-      var initialChips = document.querySelectorAll("#workflowSelectedProcedureCodes [data-procedure-id]");
-      if (initialChips && initialChips.length > 0) {
-        window.workflowSelectedProcedureCodes = Array.prototype.map.call(initialChips, function(el) {
-          var id = parseInt(el.getAttribute("data-procedure-id"), 10);
-          var text = el.textContent.trim().replace("×", "").trim();
-          var code = text.split(" - ")[0];
-          var description = text.split(" - ").slice(1).join(" - ");
-          return { id: id, code: code, description: description };
-        });
+
+      if (window.workflowInitialServiceLines && window.workflowInitialServiceLines.length > 0) {
+        window.workflowSelectedProcedureCodes = window.workflowInitialServiceLines;
         workflowUpdateProcedureDisplay();
       }
     }
