@@ -264,182 +264,196 @@
       <% elsif current_user.dashboard_type == "tenant_dashboard" && current_organization.present? %>
         <!-- Tenant-specific Sidebar -->
         <% if current_organization.activated? %>
+          <% dashboard_active = current_page?(tenant_dashboard_path) %>
+          <% providers_active = controller_path == 'tenant/providers' %>
+          <% specialties_active = controller_path == 'tenant/specialties' %>
+          <% fee_schedules_active = controller_path == 'tenant/fee_schedules' %>
+          <% org_locations_active = controller_path == 'tenant/organization_locations' %>
+          <% accepted_plans_active = controller_path == 'tenant/org_accepted_plans' %>
+          <% patients_active = controller_path == 'tenant/patients' %>
+          <% coverages_active = controller_path == 'tenant/patient_insurance_coverages' %>
+          <% encounters_active = controller_path == 'tenant/encounters' && action_name != 'workflow' %>
+          <% prescriptions_active = controller_path == 'tenant/prescriptions' %>
+          <% procedure_codes_active = controller_path == 'tenant/procedure_codes' %>
+          <% diagnosis_codes_active = controller_path == 'tenant/diagnosis_codes' %>
+          <% invoices_active = controller_path == 'tenant/invoices' %>
+          <% support_tickets_active = controller_path == 'tenant/support_tickets' %>
+          <% settings_active = controller_path == 'tenant/organization_settings' %>
+
+          <% practice_active = providers_active || specialties_active || fee_schedules_active || accepted_plans_active || org_locations_active %>
+          <% clinical_active = patients_active || coverages_active || encounters_active || prescriptions_active %>
+          <% codes_active = procedure_codes_active || diagnosis_codes_active %>
+          <% financial_active = invoices_active || support_tickets_active || settings_active %>
+
+          <li class="mt-1">
+            <div class="px-3 pb-2 text-xs font-semibold uppercase tracking-widest text-gray-400">Menu</div>
+          </li>
           <% if current_user.permissions_for("tenant", "dashboard", "index") %>
-          <li>
-            <% dashboard_active = current_page?(tenant_dashboard_path) %>
-            <%= link_to tenant_dashboard_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{dashboard_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{dashboard_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 10.5V21h15V10.5"/></svg>
-              <span>Dashboard</span>
-            <% end %>
-          </li>
-          <% end %>
-
-          
-
-          <% if current_user.permissions_for("tenant", "invoices", "index") %>
             <li>
-              <% invoices_active = controller_path == 'tenant/invoices' %>
-              <%= link_to tenant_invoices_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{invoices_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{invoices_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                <span>Invoices</span>
-              <% end %>
-            </li>
-          <% end %>
-          
-          <!-- Tenant Management Module -->
-          <% if current_user.permissions_for("tenant", "team_members", "index") %>
-              <li>
-                <% team_active = controller_path == 'tenant/team_members' %>
-                <%= link_to tenant_team_members_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{team_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{team_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M13 7a4 4 0 11-8 0 4 4 0 018 0zm7 13v-1a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-                  <span>Team</span>
-                <% end %>
-              </li>
-            <% end %>
-
-          <% if current_user.permissions_for("tenant", "providers", "index") %>
-            <li>
-              <% providers_active = controller_path == 'tenant/providers' %>
-              <%= link_to tenant_providers_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{providers_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{providers_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a4 4 0 100-8 4 4 0 000 8z"/></svg>
-                <span>Providers</span>
+              <%= link_to tenant_dashboard_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{dashboard_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{dashboard_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 10.5V21h15V10.5"/></svg>
+                <span>Dashboard</span>
               <% end %>
             </li>
           <% end %>
 
-          <% if current_user.permissions_for("tenant", "specialties", "index") %>
-            <li>
-              <% specialties_active = controller_path == 'tenant/specialties' %>
-              <%= link_to tenant_specialties_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{specialties_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{specialties_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                <span>Specialties</span>
+          <li class="mt-5">
+            <button type="button"
+                    class="w-full flex items-center justify-between text-left text-xs font-semibold uppercase tracking-widest text-gray-400 px-3 py-1.5"
+                    data-sidebar-section="practice"
+                    data-section-active="<%= practice_active %>">
+              <span class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V3M12 6a3 3 0 013 3h3M12 6a3 3 0 00-3 3H6m6 9v3m0-3a3 3 0 01-3-3H6m6 3a3 3 0 003-3h3M6 9h12M6 15h12"/></svg>
+                <span>Practice Configuration</span>
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <ul class="space-y-1 pl-7" data-sidebar-section-content="practice">
+              <% if current_user.permissions_for("tenant", "providers", "index") %>
+                <li>
+                  <%= link_to tenant_providers_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{providers_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Providers</span>
+                  <% end %>
+                </li>
               <% end %>
-            </li>
-          <% end %>
-
-          <% if current_user.permissions_for("tenant", "fee_schedules", "index") %>
-            <li>
-              <% fee_schedules_active = controller_path == 'tenant/fee_schedules' %>
-              <%= link_to tenant_fee_schedules_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{fee_schedules_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{fee_schedules_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
-                <span>Fee Schedules</span>
+              <% if current_user.permissions_for("tenant", "specialties", "index") %>
+                <li>
+                  <%= link_to tenant_specialties_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{specialties_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Specialties</span>
+                  <% end %>
+                </li>
               <% end %>
-            </li>
-          <% end %>
-
-          <% if current_user.permissions_for("tenant", "procedure_codes", "index") %>
-            <li>
-              <% procedure_codes_active = controller_path == 'tenant/procedure_codes' %>
-              <%= link_to tenant_procedure_codes_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{procedure_codes_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{procedure_codes_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>Procedure Codes</span>
+              <% if current_user.permissions_for("tenant", "fee_schedules", "index") %>
+                <li>
+                  <%= link_to tenant_fee_schedules_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{fee_schedules_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Fee Schedules</span>
+                  <% end %>
+                </li>
               <% end %>
-            </li>
-          <% end %>
-
-           <% if current_user.permissions_for("tenant", "organization_locations", "index") %>
-            <li>
-              <% organization_locations_active = controller_path == 'tenant/organization_locations' %>
-              <%= link_to tenant_organization_locations_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{organization_locations_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{organization_locations_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span>Organization Locations</span>
+              <% if current_user.permissions_for("tenant", "org_accepted_plans", "index") %>
+                <li>
+                  <%= link_to tenant_org_accepted_plans_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{accepted_plans_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Accepted Plans</span>
+                  <% end %>
+                </li>
               <% end %>
-            </li>
-          <% end %>
-
-        <% if current_user.permissions_for("tenant", "patients", "index") %>
-          <li>
-            <% patients_active = controller_path == 'tenant/patients' %>
-            <%= link_to tenant_patients_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{patients_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{patients_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-              <span>Patients</span>
-            <% end %>
-          </li>
-        <% end %>
-
-        <% if current_user.permissions_for("tenant", "prescriptions", "index") %>
-          <li>
-            <% prescriptions_active = controller_path == 'tenant/prescriptions' %>
-            <%= link_to tenant_prescriptions_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{prescriptions_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{prescriptions_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <span>Prescriptions</span>
-            <% end %>
-          </li>
-        <% end %>
-
-         <% if current_user.permissions_for("tenant", "claims", "index") %>
-          <%# Claims link hidden per request (tenant claims index not required) %>
-        <% end %>
-
-        <% if current_user.permissions_for("tenant", "org_accepted_plans", "index") %>
-          <li>
-            <% org_accepted_plans_active = controller_path == 'tenant/org_accepted_plans' %>
-            <%= link_to tenant_org_accepted_plans_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{org_accepted_plans_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{org_accepted_plans_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              <span>Accepted Plans</span>
-            <% end %>
-          </li>
-        <% end %>
-
-        <% if current_user.permissions_for("tenant", "patient_insurance_coverages", "index") %>
-          <li>
-            <% coverages_active = controller_path == 'tenant/patient_insurance_coverages' %>
-            <%= link_to tenant_patient_insurance_coverages_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{coverages_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{coverages_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-              <span>Insurance Coverages</span>
-            <% end %>
-          </li>
-        <% end %>
-
-        <% if current_user.permissions_for("tenant", "appointments", "index") %>
-          <li>
-            <% appointments_active = controller_path == 'tenant/appointments' %>
-            <%= link_to tenant_appointments_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{appointments_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{appointments_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>Appointments</span>
-            <% end %>
-          </li>
-        <% end %>
-
-        <% if current_user.permissions_for("tenant", "encounters", "index") %>
-          <li>
-            <% encounters_active = controller_path == 'tenant/encounters' && action_name != 'workflow' %>
-            <%= link_to tenant_encounters_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{encounters_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{encounters_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-              <span>Encounters</span>
-            <% end %>
-          </li>
-        <% end %>
-
-        <% if current_user.permissions_for("tenant", "diagnosis_codes", "index") %>
-          <li>
-            <% diagnosis_codes_active = controller_path == 'tenant/diagnosis_codes' %>
-            <%= link_to tenant_diagnosis_codes_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{diagnosis_codes_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{diagnosis_codes_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
-              <span>Diagnosis Codes</span>
-            <% end %>
-          </li>
-        <% end %>
-
-          <% if current_user.permissions_for("tenant", "support_tickets", "index") %>
-            <li>
-              <% support_tickets_active = controller_path == 'tenant/support_tickets' %>
-              <%= link_to tenant_support_tickets_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{support_tickets_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 #{support_tickets_active ? 'text-indigo-600' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
-                <span>Support Center</span>
+              <% if current_user.permissions_for("tenant", "organization_locations", "index") %>
+                <li>
+                  <%= link_to tenant_organization_locations_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{org_locations_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Organization Locations</span>
+                  <% end %>
+                </li>
               <% end %>
-            </li>
-          <% end %>
+            </ul>
+          </li>
 
-        <% if current_user.permissions_for("tenant", "organization_settings", "show") %>
-            <li>
-              <% settings_active = controller_path == 'tenant/organization_settings' %>
-              <%= link_to tenant_organization_setting_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{settings_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{settings_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span>Settings</span>
+          <li class="mt-5">
+            <button type="button"
+                    class="w-full flex items-center justify-between text-left text-xs font-semibold uppercase tracking-widest text-gray-400 px-3 py-1.5"
+                    data-sidebar-section="clinical"
+                    data-section-active="<%= clinical_active %>">
+              <span class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0"/></svg>
+                <span>Patients &amp; Clinical Data</span>
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <ul class="space-y-1 pl-7" data-sidebar-section-content="clinical">
+              <% if current_user.permissions_for("tenant", "patients", "index") %>
+                <li>
+                  <%= link_to tenant_patients_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{patients_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Patients</span>
+                  <% end %>
+                </li>
               <% end %>
-            </li>
-          <% end %>
+              <% if current_user.permissions_for("tenant", "patient_insurance_coverages", "index") %>
+                <li>
+                  <%= link_to tenant_patient_insurance_coverages_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{coverages_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Insurance Coverages</span>
+                  <% end %>
+                </li>
+              <% end %>
+              <% if current_user.permissions_for("tenant", "encounters", "index") %>
+                <li>
+                  <%= link_to tenant_encounters_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{encounters_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Encounters</span>
+                  <% end %>
+                </li>
+              <% end %>
+              <% if current_user.permissions_for("tenant", "prescriptions", "index") %>
+                <li>
+                  <%= link_to tenant_prescriptions_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{prescriptions_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Prescriptions</span>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          </li>
+
+          <li class="mt-5">
+            <button type="button"
+                    class="w-full flex items-center justify-between text-left text-xs font-semibold uppercase tracking-widest text-gray-400 px-3 py-1.5"
+                    data-sidebar-section="codes"
+                    data-section-active="<%= codes_active %>">
+              <span class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                <span>Codes &amp; Rules</span>
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <ul class="space-y-1 pl-7" data-sidebar-section-content="codes">
+              <% if current_user.permissions_for("tenant", "procedure_codes", "index") %>
+                <li>
+                  <%= link_to tenant_procedure_codes_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{procedure_codes_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Procedure Codes</span>
+                  <% end %>
+                </li>
+              <% end %>
+              <% if current_user.permissions_for("tenant", "diagnosis_codes", "index") %>
+                <li>
+                  <%= link_to tenant_diagnosis_codes_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{diagnosis_codes_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Diagnosis Codes</span>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          </li>
+
+          <li class="mt-5">
+            <button type="button"
+                    class="w-full flex items-center justify-between text-left text-xs font-semibold uppercase tracking-widest text-gray-400 px-3 py-1.5"
+                    data-sidebar-section="financial"
+                    data-section-active="<%= financial_active %>">
+              <span class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5 1.343 5 3-2.239 3-5 3M12 5v2m0 10v2"/></svg>
+                <span>Financial &amp; System</span>
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <ul class="space-y-1 pl-7" data-sidebar-section-content="financial">
+              <% if current_user.permissions_for("tenant", "invoices", "index") %>
+                <li>
+                  <%= link_to tenant_invoices_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{invoices_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Invoices</span>
+                  <% end %>
+                </li>
+              <% end %>
+              <% if current_user.permissions_for("tenant", "support_tickets", "index") %>
+                <li>
+                  <%= link_to tenant_support_tickets_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{support_tickets_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Support Center</span>
+                  <% end %>
+                </li>
+              <% end %>
+              <% if current_user.permissions_for("tenant", "organization_settings", "show") %>
+                <li>
+                  <%= link_to tenant_organization_setting_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{settings_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                    <span>Settings</span>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          </li>
         <% else %>
           <% if current_user.permissions_for("tenant", "activation", "index") %>
             <li>
@@ -485,4 +499,42 @@
     <div class="mb-4 text-sm font-medium text-gray-900 truncate"><%= current_user.display_name %></div>
     <%= button_to "Sign Out", destroy_user_session_path, method: :delete, class: "block w-full text-center px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md border-0 cursor-pointer" %>
   </div>
+
+  <script>
+    document.addEventListener("turbo:load", function() {
+      const sections = document.querySelectorAll("[data-sidebar-section]");
+      if (!sections.length) return;
+
+      const storageKey = "tenantSidebarSections:<%= current_user&.id %>";
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+
+      sections.forEach(function(button) {
+        const sectionId = button.getAttribute("data-sidebar-section");
+        const content = document.querySelector("[data-sidebar-section-content='" + sectionId + "']");
+        const active = button.getAttribute("data-section-active") === "true";
+
+        let expanded = saved[sectionId];
+        if (expanded === undefined) expanded = true;
+        if (active) expanded = true;
+
+        button.setAttribute("aria-expanded", expanded);
+        if (content) {
+          content.classList.toggle("hidden", !expanded);
+        }
+
+        const icon = button.querySelector("svg");
+        if (icon) icon.classList.toggle("rotate-180", expanded);
+
+        button.addEventListener("click", function() {
+          const isExpanded = button.getAttribute("aria-expanded") === "true";
+          const nextExpanded = !isExpanded;
+          button.setAttribute("aria-expanded", nextExpanded);
+          if (content) content.classList.toggle("hidden", !nextExpanded);
+          if (icon) icon.classList.toggle("rotate-180", nextExpanded);
+          saved[sectionId] = nextExpanded;
+          localStorage.setItem(storageKey, JSON.stringify(saved));
+        });
+      });
+    });
+  </script>
 </aside>
