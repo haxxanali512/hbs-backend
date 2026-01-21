@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_20_121500) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_20_171000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -366,10 +366,38 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_121500) do
     t.boolean "is_primary", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "units", default: 1, null: false
+    t.string "modifiers", default: [], array: true
     t.index ["encounter_id", "procedure_code_id"], name: "index_encounter_procedure_items_unique", unique: true
     t.index ["encounter_id"], name: "index_encounter_procedure_items_on_encounter_id"
     t.index ["is_primary"], name: "index_encounter_procedure_items_on_is_primary"
     t.index ["procedure_code_id"], name: "index_encounter_procedure_items_on_procedure_code_id"
+    t.index ["units"], name: "index_encounter_procedure_items_on_units"
+  end
+
+  create_table "encounter_template_lines", force: :cascade do |t|
+    t.bigint "encounter_template_id", null: false
+    t.bigint "procedure_code_id", null: false
+    t.integer "units", default: 1, null: false
+    t.string "modifiers", default: [], array: true
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_template_id", "position"], name: "idx_on_encounter_template_id_position_809261c63f"
+    t.index ["encounter_template_id", "procedure_code_id"], name: "index_enc_template_lines_unique", unique: true
+    t.index ["encounter_template_id"], name: "index_encounter_template_lines_on_encounter_template_id"
+    t.index ["procedure_code_id"], name: "index_encounter_template_lines_on_procedure_code_id"
+  end
+
+  create_table "encounter_templates", force: :cascade do |t|
+    t.string "name", null: false
+    t.bigint "specialty_id", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_encounter_templates_on_active"
+    t.index ["specialty_id", "name"], name: "index_encounter_templates_on_specialty_id_and_name", unique: true
+    t.index ["specialty_id"], name: "index_encounter_templates_on_specialty_id"
   end
 
   create_table "encounters", force: :cascade do |t|
@@ -399,17 +427,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_121500) do
     t.boolean "locked_for_correction", default: false
     t.datetime "discarded_at", precision: nil
     t.bigint "patient_insurance_coverage_id"
+    t.integer "place_of_service_code", default: 11, null: false
+    t.bigint "encounter_template_id"
     t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
     t.index ["cascaded"], name: "index_encounters_on_cascaded"
     t.index ["claim_id"], name: "index_encounters_on_claim_id"
     t.index ["confirmed_by_id"], name: "index_encounters_on_confirmed_by_id"
     t.index ["display_status"], name: "index_encounters_on_display_status"
     t.index ["eligibility_check_used_id"], name: "index_encounters_on_eligibility_check_used_id"
+    t.index ["encounter_template_id"], name: "index_encounters_on_encounter_template_id"
     t.index ["organization_id"], name: "index_encounters_on_organization_id"
     t.index ["organization_location_id"], name: "index_encounters_on_organization_location_id"
     t.index ["patient_id"], name: "index_encounters_on_patient_id"
     t.index ["patient_insurance_coverage_id"], name: "index_encounters_on_patient_insurance_coverage_id"
     t.index ["patient_invoice_id"], name: "index_encounters_on_patient_invoice_id"
+    t.index ["place_of_service_code"], name: "index_encounters_on_place_of_service_code"
     t.index ["provider_id"], name: "index_encounters_on_provider_id"
     t.index ["specialty_id"], name: "index_encounters_on_specialty_id"
   end
@@ -1196,7 +1228,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_121500) do
   add_foreign_key "encounter_diagnosis_codes", "encounters"
   add_foreign_key "encounter_procedure_items", "encounters"
   add_foreign_key "encounter_procedure_items", "procedure_codes"
+  add_foreign_key "encounter_template_lines", "encounter_templates"
+  add_foreign_key "encounter_template_lines", "procedure_codes"
+  add_foreign_key "encounter_templates", "specialties"
   add_foreign_key "encounters", "appointments"
+  add_foreign_key "encounters", "encounter_templates"
   add_foreign_key "encounters", "organization_locations"
   add_foreign_key "encounters", "organizations"
   add_foreign_key "encounters", "patient_insurance_coverages"

@@ -8,6 +8,7 @@ class Encounter < ApplicationRecord
   belongs_to :patient
   belongs_to :provider
   belongs_to :specialty
+  belongs_to :encounter_template, optional: true
   belongs_to :organization_location, optional: true
   belongs_to :appointment, optional: true
 
@@ -38,6 +39,8 @@ class Encounter < ApplicationRecord
   # Virtual attributes for workflow-based procedure capture
   attr_accessor :procedure_code_ids, :primary_procedure_code_id, :duration_minutes
   attr_accessor :diagnosis_code_ids
+  attr_accessor :procedure_units, :procedure_modifiers
+
 
   # ===========================================================
   # ENUMS
@@ -82,6 +85,12 @@ class Encounter < ApplicationRecord
     auth_required: 3,
     auth_approved: 4,
     auth_denied: 5
+  }
+
+  enum :place_of_service_code, {
+    office: 11,
+    patients_home: 12,
+    telehealth: 2
   }
 
   # ===========================================================
@@ -151,7 +160,6 @@ class Encounter < ApplicationRecord
   validate :exactly_one_billing_document
   validate :patient_not_deceased
   validate :procedure_codes_required_for_submission
-  validate :duration_required_for_price_per_unit
   validate :procedure_code_rules_compliance
 
   # ===========================================================
@@ -419,26 +427,7 @@ class Encounter < ApplicationRecord
     end
   end
 
-  def duration_required_for_price_per_unit
-    # Only validate if we're in the workflow and have procedure codes
-    return unless procedure_code_ids.present?
-
-    primary_proc = ProcedureCode.find_by(id: primary_procedure_code_id)
-    return unless primary_proc
-
-    # Get pricing rule from fee schedule
-    pricing_result = FeeSchedulePricingService.resolve_pricing(
-      organization_id,
-      provider_id,
-      primary_proc.id
-    )
-
-    if pricing_result[:success] && pricing_result[:pricing][:pricing_rule] == "price_per_unit"
-      if duration_minutes.blank? || duration_minutes.to_i <= 0
-        errors.add(:duration_minutes, "Duration is required when the primary procedure is priced per unit")
-      end
-    end
-  end
+  # Duration is no longer collected in the workflow form.
 
   def ensure_cascade_fields_locked
     # Prevent modification of locked fields
@@ -522,6 +511,9 @@ class Encounter < ApplicationRecord
     proc_ids = Array(procedure_code_ids).reject(&:blank?)
     return if proc_ids.empty?
 
+    units_map = (procedure_units || {}).transform_keys(&:to_s)
+    modifiers_map = (procedure_modifiers || {}).transform_keys(&:to_s)
+
     # Clear existing associations
     encounter_procedure_items.destroy_all
 
@@ -533,6 +525,10 @@ class Encounter < ApplicationRecord
         procedure_code_id: proc_code_id.to_i
       ) do |item|
         item.is_primary = is_primary
+        units_value = units_map[proc_code_id.to_s].to_i
+        item.units = units_value.positive? ? units_value : 1
+        modifier_value = modifiers_map[proc_code_id.to_s].to_s.strip
+        item.modifiers = modifier_value.present? ? [ modifier_value ] : []
       end
     end
 
@@ -548,16 +544,18 @@ class Encounter < ApplicationRecord
 
   def create_claim_from_procedure_codes
     proc_ids = Array(procedure_code_ids).reject(&:blank?)
-    return if proc_ids.empty?
+    items = encounter_procedure_items.includes(:procedure_code)
+    return if proc_ids.empty? && items.empty?
 
     # Create or find claim
+    pos_code = resolved_place_of_service_code
     claim_record = claim || Claim.create!(
       organization_id: organization_id,
       encounter_id: id,
       patient_id: patient_id,
       provider_id: provider_id,
       specialty_id: specialty_id,
-      place_of_service_code: organization_location&.place_of_service_code || "11",
+      place_of_service_code: pos_code,
       status: :generated,
       generated_at: Time.current
     )
@@ -565,9 +563,23 @@ class Encounter < ApplicationRecord
     # Clear existing claim lines if any
     claim_record.claim_lines.destroy_all
 
+    service_lines = if items.any?
+      items.map do |item|
+        {
+          proc_code: item.procedure_code,
+          units: item.units,
+          modifiers: item.modifiers
+        }
+      end
+    else
+      proc_ids.map do |proc_code_id|
+        { proc_code: ProcedureCode.find_by(id: proc_code_id.to_i), units: 1, modifiers: [] }
+      end
+    end
+
     # Create claim lines from procedure codes
-    proc_ids.each do |proc_code_id|
-      proc_code = ProcedureCode.find_by(id: proc_code_id.to_i)
+    service_lines.each do |line|
+      proc_code = line[:proc_code]
       next unless proc_code
 
       # Get pricing from fee schedule
@@ -577,20 +589,7 @@ class Encounter < ApplicationRecord
         proc_code.id
       )
 
-      # Calculate units based on pricing rule
-      # Use the first procedure code's pricing rule if primary is not set
-      primary_proc_id = primary_procedure_code_id.present? ? primary_procedure_code_id.to_i : proc_ids.first.to_i
-      is_primary_proc = proc_code_id.to_i == primary_proc_id
-
-      units = if pricing_result[:success] && pricing_result[:pricing][:pricing_rule] == "price_per_unit" && is_primary_proc
-        # For price_per_unit on primary (or first) procedure, calculate units from duration
-        # Default: 1 unit per 15 minutes (common for therapy codes)
-        duration = duration_minutes.to_i
-        duration > 0 ? (duration / 15.0).ceil : 1
-      else
-        # For flat pricing or non-primary procedures, always 1 unit
-        1
-      end
+      units = line[:units].to_i > 0 ? line[:units].to_i : 1
 
       # Get unit price from pricing result
       unit_price = if pricing_result[:success]
@@ -613,12 +612,19 @@ class Encounter < ApplicationRecord
         procedure_code_id: proc_code.id,
         units: units,
         amount_billed: amount_billed,
-        place_of_service_code: organization_location&.place_of_service_code || "11",
+        modifiers: line[:modifiers],
+        place_of_service_code: pos_code,
         status: :generated
       )
     end
 
     # Update encounter to reference the claim
     update_column(:claim_id, claim_record.id) unless claim_id.present?
+  end
+
+  def resolved_place_of_service_code
+    return place_of_service_code.to_s if place_of_service_code.present?
+
+    organization_location&.place_of_service_code.to_s.presence || "11"
   end
 end

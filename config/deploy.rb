@@ -81,6 +81,8 @@ namespace :deploy do
   end
 end
 
+after "deploy:restart", "super_admin:sync_access"
+
 namespace :credentials do
   desc "Upload production.yml.enc to server"
   task :push_production do

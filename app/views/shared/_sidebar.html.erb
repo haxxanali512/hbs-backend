@@ -131,6 +131,16 @@
         </li>
         <% end %>
 
+        <% if current_user.permissions_for("admin", "encounter_templates", "index") %>
+        <li>
+          <% templates_active = controller_path == 'admin/encounter_templates' %>
+          <%= link_to admin_encounter_templates_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{templates_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{templates_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5h6a2 2 0 012 2v12a2 2 0 01-2 2H9a2 2 0 01-2-2V7a2 2 0 012-2zm3 4h4m-4 4h4m-4 4h4M7 9h.01M7 13h.01M7 17h.01"/></svg>
+            <span>Encounter Templates</span>
+          <% end %>
+        </li>
+        <% end %>
+
         <% if current_user.permissions_for("admin", "patients", "index") %>
         <li>
           <% patients_active = controller_path == 'admin/patients' %>

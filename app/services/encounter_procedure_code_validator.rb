@@ -53,17 +53,7 @@ class EncounterProcedureCodeValidator
       claim_line&.units || 1
     elsif @encounter.encounter_procedure_items.any?
       item = @encounter.encounter_procedure_items.find_by(procedure_code: proc_code)
-      # For time-based codes, calculate units from duration
-      if item && @encounter.duration_minutes.present?
-        rule = ProcedureCodeRule.find_by(procedure_code: proc_code)
-        if rule&.time_based?
-          (@encounter.duration_minutes.to_i / 15.0).ceil
-        else
-          1
-        end
-      else
-        1
-      end
+      item&.units || 1
     else
       # Default to 1 unit if not specified
       1

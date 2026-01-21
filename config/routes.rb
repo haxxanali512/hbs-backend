@@ -197,6 +197,8 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :encounter_templates
+
       resources :fee_schedules do
         member do
           post :lock
@@ -405,6 +407,7 @@ Rails.application.routes.draw do
             get :workflow
             post :submit_queued
             get :specialties_for_provider
+            get :templates_for_specialty
           end
           member do
             post :mark_reviewed
