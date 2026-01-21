@@ -98,7 +98,7 @@
                      [
                        ["11 - Office", 11],
                        ["12 - Patient's Home", 12],
-                       ["02 - Telehealth / Virtual", 2]
+                       ["10 - Telehealth / Virtual", 10]
                      ],
                      pos_selected.to_i
                    ),
@@ -214,15 +214,6 @@
           window.workflowUpdateProcedureDisplay();
         }
 
-        // Default primary procedure to the first template line
-        const primarySelect = document.getElementById("workflowPrimaryProcedure");
-        if (primarySelect) {
-          if (window.workflowSelectedProcedureCodes.length > 0) {
-            primarySelect.value = window.workflowSelectedProcedureCodes[0].id;
-          } else {
-            primarySelect.value = "";
-          }
-        }
       }
 
       providerSelect.addEventListener("change", async function() {
@@ -323,18 +314,6 @@
       Select procedure codes. At least one is required.
     </p>
 
-    <!-- Primary Procedure Code -->
-    <div class="space-y-1">
-      <label class="block text-sm font-medium text-gray-700">Primary Procedure Code</label>
-      <select name="encounter[primary_procedure_code_id]"
-              id="workflowPrimaryProcedure"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <option value="">Select primary procedure (optional)...</option>
-      </select>
-      <p class="text-xs text-gray-500">
-        The primary procedure is optional and will be used for pricing rules if specified.
-      </p>
-    </div>
   </div>
 
   <!-- Diagnosis Codes with search (up to 4) -->
@@ -421,12 +400,6 @@
     const procContainer = document.getElementById("workflowServiceLinesBody");
     if (procContainer) {
       procContainer.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">No procedure codes selected.</td></tr>';
-    }
-
-    // Reset primary procedure options
-    const primarySelect = document.getElementById("workflowPrimaryProcedure");
-    if (primarySelect) {
-      primarySelect.innerHTML = '<option value="">Select primary procedure (optional)...</option>';
     }
 
     // Hide dropdown results
@@ -802,8 +775,7 @@
 
     function workflowUpdateProcedureDisplay() {
       var container = document.getElementById("workflowServiceLinesBody");
-      var primarySelect = document.getElementById("workflowPrimaryProcedure");
-      if (!container || !primarySelect) return;
+      if (!container) return;
 
       if (!Array.isArray(window.workflowSelectedProcedureCodes)) {
         window.workflowSelectedProcedureCodes = [];
@@ -843,19 +815,6 @@
         }).join("");
       }
 
-      // Rebuild primary procedure select
-      primarySelect.innerHTML = '<option value="">Select primary procedure (optional)...</option>';
-      selected.forEach(function(item) {
-        var opt = document.createElement("option");
-        opt.value = item.id;
-        opt.textContent = item.code;
-        primarySelect.appendChild(opt);
-      });
-      
-      // If there's only one procedure code, auto-select it as primary
-      if (selected.length === 1 && !primarySelect.value) {
-        primarySelect.value = selected[0].id;
-      }
     }
     window.workflowUpdateProcedureDisplay = workflowUpdateProcedureDisplay;
 
