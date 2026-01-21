@@ -90,7 +90,7 @@ class Encounter < ApplicationRecord
   enum :place_of_service_code, {
     office: 11,
     patients_home: 12,
-    telehealth: 2
+    telehealth: 10
   }
 
   # ===========================================================
