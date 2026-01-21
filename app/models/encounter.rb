@@ -623,8 +623,8 @@ class Encounter < ApplicationRecord
   end
 
   def resolved_place_of_service_code
-    return place_of_service_code.to_s if place_of_service_code.present?
+    return place_of_service_code if place_of_service_code.present?
 
-    organization_location&.place_of_service_code.to_s.presence || "11"
+    organization_location&.place_of_service_code.presence || 11
   end
 end
