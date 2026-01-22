@@ -89,6 +89,39 @@
           <% end %>
         </div>
 
+        <!-- Procedure Code Rules -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Procedure Code Rules</h2>
+          <% rule = @procedure_code.procedure_code_rule %>
+          <% if rule.present? %>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Pricing Type</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= rule.pricing_type&.humanize || "N/A" %></dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Time Based</dt>
+                <dd class="mt-1 text-sm text-gray-900"><%= rule.time_based? ? "Yes" : "No" %></dd>
+              </div>
+            </dl>
+
+            <div class="mt-4">
+              <dt class="text-sm font-medium text-gray-500 mb-2">Special Rules</dt>
+              <% if rule.parse_special_rules.any? %>
+                <ul class="list-disc pl-5 space-y-1 text-sm text-gray-900">
+                  <% rule.parse_special_rules.each do |rule_line| %>
+                    <li><%= rule_line %></li>
+                  <% end %>
+                </ul>
+              <% else %>
+                <p class="text-sm text-gray-500">No special rules defined.</p>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No rules defined for this procedure code.</p>
+          <% end %>
+        </div>
+
         <!-- Fee Schedule Items -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">Fee Schedule Items</h2>

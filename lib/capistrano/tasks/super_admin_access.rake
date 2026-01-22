@@ -4,16 +4,16 @@ namespace :super_admin do
     on roles(:app) do
       within release_path do
         with rails_env: fetch(:rails_env, fetch(:stage)) do
-          execute :bundle, :exec, :rails, "runner", <<~RUBY
-            role = Role.find_by(role_name: "Super Admin")
-
+          script = %q[
+            role = Role.find_by(role_name: "Super Admin");
             if role
-              role.update!(access: HbsCustoms::ModulePermission.admin_access)
-              puts "Super Admin access synced successfully"
+              role.update!(access: HbsCustoms::ModulePermission.admin_access);
+              puts "Super Admin access synced successfully";
             else
-              puts "Super Admin role not found"
+              puts "Super Admin role not found";
             end
-          RUBY
+          ].squish
+          execute :bundle, :exec, :rails, "runner", script
         end
       end
     end
