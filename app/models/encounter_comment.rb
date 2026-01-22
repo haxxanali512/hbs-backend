@@ -99,6 +99,25 @@ class EncounterComment < ApplicationRecord
     false
   end
 
+  def status_transition_label
+    status_transition.to_s.humanize
+  end
+
+  def status_transition_badge_class
+    case status_transition.to_s
+    when "additional_info_requested"
+      "bg-orange-100 text-orange-800"
+    when "info_request_answered"
+      "bg-blue-100 text-blue-800"
+    when "finalized"
+      "bg-green-100 text-green-800"
+    when "denied"
+      "bg-red-100 text-red-800"
+    else
+      "bg-gray-100 text-gray-800"
+    end
+  end
+
   # =========================
   # Private Methods
   # =========================
