@@ -120,7 +120,7 @@ class Admin::DataExportsImportsController < Admin::BaseController
       saved_path = persist_uploaded_file(file)
       file_type = File.extname(file.original_filename).delete(".").downcase
 
-      FileProcessingJob.perform_later(saved_path, file_type, nil)
+      FileProcessingJob.perform_later(saved_path, file_type, nil, current_user.id)
 
       redirect_to admin_data_exports_imports_path(action_type: "import"),
                   notice: "File uploaded. Processing has started."
