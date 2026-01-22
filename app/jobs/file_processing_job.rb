@@ -676,12 +676,19 @@ class FileProcessingJob < ApplicationJob
         notes_parts << "Payment Status: #{payment_data[:payment_status]}" if payment_data[:payment_status].present?
         notes = notes_parts.join(" | ")
 
+        payer_id = encounter.patient_insurance_coverage&.insurance_plan&.payer_id
+        if payer_id.nil?
+          Rails.logger.warn "Payer not found for encounter #{encounter.id} (patient_insurance_coverage missing)"
+          error_count += 1
+          next
+        end
+
         # Build payment record (matching Xano payment_line structure)
         # Note: invoice_id is optional for remit-based payments
         payment = Payment.new(
           invoice_id: nil, # Remit-based payments don't require invoice
           organization_id: payment_data[:owned_by] || encounter.organization_id,
-          payer_id: nil, # Not provided in file
+          payer_id: payer_id,
           payment_date: payment_data[:Date_Processed] || payment_data[:Date_Logged],
           amount_total: payment_data[:Amount] || 0.0,
           remit_reference: payment_data[:organization] || "UNKNOWN",
