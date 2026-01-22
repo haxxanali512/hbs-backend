@@ -106,6 +106,8 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :payments, only: [ :index ]
+
       resources :payers do
         collection do
           get :fetch_from_ezclaim

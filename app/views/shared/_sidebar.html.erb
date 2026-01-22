@@ -71,6 +71,16 @@
           </li>
         <% end %>
 
+        <% if current_user.permissions_for("admin", "payments", "index") %>
+          <li>
+            <% payments_active = controller_path == 'admin/payments' %>
+            <%= link_to admin_payments_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{payments_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{payments_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5 1.343 5 3-2.239 3-5 3M12 5v2m0 10v2"/></svg>
+              <span>Payments</span>
+            <% end %>
+          </li>
+        <% end %>
+
         <% if current_user.permissions_for("admin", "providers", "index") %>
         <li>
           <% providers_active = controller_path == 'admin/providers' %>
