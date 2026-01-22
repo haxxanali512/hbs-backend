@@ -1,0 +1,14 @@
+Waystar Import Error Report
+
+<% if @user.present? %>
+Hello <%= @user.display_name %>,
+<% else %>
+Hello,
+<% end %>
+
+Your Waystar data sheet import completed with <%= @error_count %> error(s).
+Job ID: <%= @job_id %>
+
+The error details are attached as a CSV.
+
+This is an automated message from the HBS Data Processing system.

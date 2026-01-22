@@ -5,7 +5,7 @@ class FileProcessingJob < ApplicationJob
   queue_as :default
 
 
-  def perform(file_path, file_type, job_id = nil)
+  def perform(file_path, file_type, job_id = nil, user_id = nil)
     job_id ||= SecureRandom.uuid
     Rails.logger.info "Starting file processing for #{file_path} (Job ID: #{job_id})"
     @errors = []
@@ -42,7 +42,10 @@ class FileProcessingJob < ApplicationJob
       # Save payment records to database
       save_grouped_payments(grouped_payments, job_id)
     end
-      write_error_csv(job_id) if @errors.any?
+      if @errors.any?
+        error_path = write_error_csv(job_id)
+        notify_error_report(user_id, job_id, error_path)
+      end
 
     rescue => e
       Rails.logger.error "File processing failed for Job ID: #{job_id}: #{e.message}"
@@ -63,6 +66,20 @@ class FileProcessingJob < ApplicationJob
   end
 
   private
+  def notify_error_report(user_id, job_id, error_path)
+    user = User.find_by(id: user_id) if user_id.present?
+    return if user.nil? && User.joins(:role).where(roles: { role_name: "Super Admin" }).none?
+
+    FileProcessingMailer.errors_report(
+      user: user,
+      job_id: job_id,
+      error_path: error_path,
+      error_count: @errors.size
+    ).deliver_later
+  rescue => e
+    Rails.logger.warn "Failed to send file processing error email: #{e.message}"
+  end
+
 
   def process_csv_file(file_path, job_id)
     Rails.logger.info "Processing CSV file: #{file_path}"
