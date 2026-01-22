@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_20_171000) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_22_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -342,6 +342,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_171000) do
     t.integer "redaction_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "status_transition", default: 0, null: false
     t.index ["author_user_id"], name: "index_encounter_comments_on_author_user_id"
     t.index ["encounter_id", "created_at"], name: "index_encounter_comments_on_encounter_id_and_created_at"
     t.index ["encounter_id"], name: "index_encounter_comments_on_encounter_id"
@@ -349,6 +350,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_171000) do
     t.index ["organization_id"], name: "index_encounter_comments_on_organization_id"
     t.index ["patient_id"], name: "index_encounter_comments_on_patient_id"
     t.index ["provider_id"], name: "index_encounter_comments_on_provider_id"
+    t.index ["status_transition"], name: "index_encounter_comments_on_status_transition"
   end
 
   create_table "encounter_diagnosis_codes", force: :cascade do |t|
@@ -429,6 +431,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_171000) do
     t.bigint "patient_insurance_coverage_id"
     t.integer "place_of_service_code", default: 11, null: false
     t.bigint "encounter_template_id"
+    t.integer "tenant_status", default: 0, null: false
+    t.integer "internal_status"
+    t.integer "shared_status"
     t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
     t.index ["cascaded"], name: "index_encounters_on_cascaded"
     t.index ["claim_id"], name: "index_encounters_on_claim_id"
@@ -436,6 +441,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_171000) do
     t.index ["display_status"], name: "index_encounters_on_display_status"
     t.index ["eligibility_check_used_id"], name: "index_encounters_on_eligibility_check_used_id"
     t.index ["encounter_template_id"], name: "index_encounters_on_encounter_template_id"
+    t.index ["internal_status"], name: "index_encounters_on_internal_status"
     t.index ["organization_id"], name: "index_encounters_on_organization_id"
     t.index ["organization_location_id"], name: "index_encounters_on_organization_location_id"
     t.index ["patient_id"], name: "index_encounters_on_patient_id"
@@ -443,7 +449,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_20_171000) do
     t.index ["patient_invoice_id"], name: "index_encounters_on_patient_invoice_id"
     t.index ["place_of_service_code"], name: "index_encounters_on_place_of_service_code"
     t.index ["provider_id"], name: "index_encounters_on_provider_id"
+    t.index ["shared_status"], name: "index_encounters_on_shared_status"
     t.index ["specialty_id"], name: "index_encounters_on_specialty_id"
+    t.index ["tenant_status"], name: "index_encounters_on_tenant_status"
   end
 
   create_table "insurance_plans", force: :cascade do |t|

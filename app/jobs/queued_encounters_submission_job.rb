@@ -16,6 +16,8 @@ class QueuedEncountersSubmissionJob < ApplicationJob
 
     return if encounters.empty?
 
+    encounters.update_all(internal_status: Encounter.internal_statuses[:queued_for_billing])
+
     results = {
       successful: [],
       failed: []
@@ -38,10 +40,12 @@ class QueuedEncountersSubmissionJob < ApplicationJob
           begin
             if encounter.may_mark_sent?
               encounter.mark_sent!
+              encounter.update!(internal_status: :billed) if encounter.internal_status != "billed"
             else
               encounter.update!(
                 status: :sent,
-                display_status: :claim_submitted
+                display_status: :claim_submitted,
+                internal_status: :billed
               )
             end
 

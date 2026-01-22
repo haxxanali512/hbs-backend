@@ -66,6 +66,9 @@
                 <p class="text-sm text-gray-500 italic">This comment has been redacted.</p>
               <% else %>
                 <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= comment.body_text %></p>
+                <% if comment.status_transition.present? && comment.status_transition != "none" %>
+                  <p class="mt-1 text-xs text-gray-500">Status updated to <%= comment.status_transition.humanize %>.</p>
+                <% end %>
               <% end %>
             </div>
             <% if !comment.redacted? && current_user.can_redact_comment? && namespace == "admin" %>
@@ -110,6 +113,24 @@
                 { class: "w-full border border-gray-300 rounded-md px-3 py-2" } %>
           </div>
         <% end %>
+
+        <% if namespace == "admin" %>
+          <div>
+            <%= label_tag "encounter_comment[status_transition]", "Status Transition", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= select_tag "encounter_comment[status_transition]",
+                options_for_select([
+                  ["No change", "none"],
+                  ["Additional Info Requested", "additional_info_requested"],
+                  ["Finalized", "finalized"],
+                  ["Denied", "denied"]
+                ], "none"),
+                { class: "w-full border border-gray-300 rounded-md px-3 py-2" } %>
+            <p class="mt-1 text-xs text-gray-500">Only applies to shared tenant-visible status.</p>
+          </div>
+        <% elsif namespace == "tenant" %>
+          <input type="hidden" name="encounter_comment[status_transition]" value="info_request_answered" />
+        <% end %>
+
         <div class="flex justify-end">
           <%= submit_tag "Post Comment", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
         </div>

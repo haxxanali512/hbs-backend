@@ -6,14 +6,49 @@ class Admin::EncountersController < Admin::BaseController
   # Alias the concern method before we override it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing ]
-  before_action :load_form_options, only: [ :index, :edit, :update ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :bill_claim ]
+  before_action :load_form_options, only: [ :index, :edit, :update, :billing_queue ]
 
   def index
     @encounters = build_encounters_index_query
     @encounters = apply_encounters_filters(@encounters)
     @encounters = apply_encounters_sorting(@encounters)
     @pagy, @encounters = paginate_encounters(@encounters)
+  end
+
+  def billing_queue
+    @encounters = Encounter
+      .includes(:patient, :provider, :organization, :diagnosis_codes, encounter_procedure_items: :procedure_code)
+      .where(internal_status: :queued_for_billing)
+      .order(date_of_service: :desc, created_at: :desc)
+
+    if params[:search].present?
+      term = "%#{params[:search]}%"
+      @encounters = @encounters.joins(:patient)
+                               .where("patients.first_name ILIKE ? OR patients.last_name ILIKE ?", term, term)
+    end
+
+    @encounters = @encounters.where(provider_id: params[:provider_id]) if params[:provider_id].present?
+    @encounters = @encounters.where(organization_id: params[:organization_id]) if params[:organization_id].present?
+
+    if params[:procedure_code_id].present?
+      @encounters = @encounters.joins(:encounter_procedure_items)
+                               .where(encounter_procedure_items: { procedure_code_id: params[:procedure_code_id] })
+                               .distinct
+    end
+
+    @pagy, @encounters = pagy(@encounters, items: 20)
+
+    @search_placeholder = "Patient name..."
+    @provider_options = Provider.kept.order(:last_name, :first_name)
+    @organization_options = Organization.order(:name)
+    @custom_selects = [
+      {
+        param: :procedure_code_id,
+        label: "Procedure Code",
+        options: [ [ "All Procedure Codes", "" ] ] + ProcedureCode.kept.active.order(:code).map { |pc| [ "#{pc.code} - #{pc.description}", pc.id ] }
+      }
+    ]
   end
 
   def show
@@ -202,6 +237,36 @@ class Admin::EncountersController < Admin::BaseController
         end
       end
     end
+  end
+
+  def bill_claim
+    encounter = @encounter
+
+    if encounter.may_mark_sent?
+      encounter.mark_sent!
+    else
+      encounter.update!(status: :sent, display_status: :claim_submitted)
+    end
+
+    encounter.update!(internal_status: :billed)
+
+    if encounter.may_confirm_completed?
+      encounter.confirm_completed!
+    else
+      encounter.update!(
+        status: :completed_confirmed,
+        cascaded: true,
+        cascaded_at: Time.current,
+        confirmed_at: Time.current
+      )
+      encounter.update!(display_status: :claim_generated) if encounter.insurance?
+      encounter.update!(display_status: :invoice_created) if encounter.self_pay?
+      encounter.send(:fire_cascade_event) if encounter.respond_to?(:fire_cascade_event, true)
+    end
+
+    redirect_to billing_queue_admin_encounters_path, notice: "Encounter marked as claim billed."
+  rescue => e
+    redirect_to billing_queue_admin_encounters_path, alert: "Failed to mark claim billed: #{e.message}"
   end
 
   def fetch_from_ezclaim

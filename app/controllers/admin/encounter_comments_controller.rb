@@ -58,6 +58,6 @@ class Admin::EncounterCommentsController < Admin::BaseController
   end
 
   def encounter_comment_params
-    params.require(:encounter_comment).permit(:body_text, :visibility)
+    params.require(:encounter_comment).permit(:body_text, :visibility, :status_transition)
   end
 end

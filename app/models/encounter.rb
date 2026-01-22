@@ -78,6 +78,23 @@ class Encounter < ApplicationRecord
     error: 13
   }
 
+  enum :tenant_status, {
+    prepared: 0,
+    in_process: 1
+  }, prefix: true
+
+  enum :internal_status, {
+    queued_for_billing: 0,
+    billed: 1
+  }, prefix: true
+
+  enum :shared_status, {
+    additional_info_requested: 0,
+    info_request_answered: 1,
+    finalized: 2,
+    denied: 3
+  }, prefix: true
+
   enum :billing_insurance_status, {
     no_coverage: 0,
     coverage_pending: 1,
@@ -259,6 +276,41 @@ class Encounter < ApplicationRecord
     when "ready_for_review" then "bg-blue-100 text-blue-800"
     when "cancelled" then "bg-red-100 text-red-800"
     when "completed_confirmed" then "bg-green-100 text-green-800"
+    else "bg-gray-100 text-gray-800"
+    end
+  end
+
+  def tenant_visible_status_label
+    (shared_status || tenant_status).to_s.humanize
+  end
+
+  def tenant_visible_status_badge_color
+    status_key = (shared_status || tenant_status).to_s
+    case status_key
+    when "prepared" then "bg-gray-100 text-gray-800"
+    when "in_process" then "bg-yellow-100 text-yellow-800"
+    when "additional_info_requested" then "bg-orange-100 text-orange-800"
+    when "info_request_answered" then "bg-blue-100 text-blue-800"
+    when "finalized" then "bg-green-100 text-green-800"
+    when "denied" then "bg-red-100 text-red-800"
+    else "bg-gray-100 text-gray-800"
+    end
+  end
+
+  def internal_status_badge_color
+    case internal_status.to_s
+    when "queued_for_billing" then "bg-yellow-100 text-yellow-800"
+    when "billed" then "bg-blue-100 text-blue-800"
+    else "bg-gray-100 text-gray-800"
+    end
+  end
+
+  def shared_status_badge_color
+    case shared_status.to_s
+    when "additional_info_requested" then "bg-orange-100 text-orange-800"
+    when "info_request_answered" then "bg-blue-100 text-blue-800"
+    when "finalized" then "bg-green-100 text-green-800"
+    when "denied" then "bg-red-100 text-red-800"
     else "bg-gray-100 text-gray-800"
     end
   end
