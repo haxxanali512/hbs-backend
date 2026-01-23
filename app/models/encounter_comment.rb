@@ -29,7 +29,7 @@ class EncounterComment < ApplicationRecord
   }
 
   enum :status_transition, {
-    none: 0,
+    no_change: 0,
     additional_info_requested: 1,
     info_request_answered: 2,
     finalized: 3,
@@ -123,7 +123,7 @@ class EncounterComment < ApplicationRecord
   # =========================
   private
   def apply_status_transition
-    return unless encounter && status_transition.present? && status_transition != "none"
+    return unless encounter && status_transition.present? && status_transition != "no_change"
 
     case status_transition
     when "additional_info_requested"
