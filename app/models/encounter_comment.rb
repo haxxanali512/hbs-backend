@@ -28,6 +28,14 @@ class EncounterComment < ApplicationRecord
     internal_only: 1
   }
 
+  enum :status_transition, {
+    none: 0,
+    additional_info_requested: 1,
+    info_request_answered: 2,
+    finalized: 3,
+    denied: 4
+  }
+
   enum :redaction_reason, {
     min_necessary_violation: 0,
     legal_request: 1,
@@ -62,6 +70,8 @@ class EncounterComment < ApplicationRecord
   before_validation :infer_actor_type, on: :create
   before_validation :normalize_body_text
 
+  after_commit :apply_status_transition, on: :create
+
   # =========================
   # Business Logic
   # =========================
@@ -89,10 +99,44 @@ class EncounterComment < ApplicationRecord
     false
   end
 
+  def status_transition_label
+    status_transition.to_s.humanize
+  end
+
+  def status_transition_badge_class
+    case status_transition.to_s
+    when "additional_info_requested"
+      "bg-orange-100 text-orange-800"
+    when "info_request_answered"
+      "bg-blue-100 text-blue-800"
+    when "finalized"
+      "bg-green-100 text-green-800"
+    when "denied"
+      "bg-red-100 text-red-800"
+    else
+      "bg-gray-100 text-gray-800"
+    end
+  end
+
   # =========================
   # Private Methods
   # =========================
   private
+  def apply_status_transition
+    return unless encounter && status_transition.present? && status_transition != "none"
+
+    case status_transition
+    when "additional_info_requested"
+      encounter.update(shared_status: :additional_info_requested)
+    when "info_request_answered"
+      encounter.update(shared_status: :info_request_answered)
+    when "finalized"
+      encounter.update(shared_status: :finalized)
+    when "denied"
+      encounter.update(shared_status: :denied)
+    end
+  end
+
 
   def denormalize_from_encounter
     return unless encounter

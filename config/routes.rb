@@ -236,6 +236,7 @@ Rails.application.routes.draw do
         collection do
           get :fetch_from_ezclaim
           post :save_from_ezclaim
+          get :billing_queue
         end
         member do
           post :cancel
@@ -246,6 +247,7 @@ Rails.application.routes.draw do
           get :diagnosis_codes_search
           post :submit_for_billing
           get :download_edi
+          post :bill_claim
         end
         resources :encounter_comments, only: [ :index, :create ] do
           member do

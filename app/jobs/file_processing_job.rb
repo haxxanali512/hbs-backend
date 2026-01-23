@@ -706,6 +706,7 @@ class FileProcessingJob < ApplicationJob
           # Update encounter status to "Finalized" only if payment succeeded (matching Xano logic)
           if payment_status == :succeeded && encounter.respond_to?(:status) && encounter.status != "completed_confirmed"
             encounter.update(status: :completed_confirmed)
+            encounter.update(shared_status: :finalized) if encounter.respond_to?(:shared_status)
             Rails.logger.debug "Encounter #{encounter.id} status updated to finalized"
           end
         else

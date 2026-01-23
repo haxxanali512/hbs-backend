@@ -7,6 +7,7 @@
   
   # Filter comments based on user visibility
   visible_comments = comments.select { |c| c.visible_to?(current_user) }
+  status_history = visible_comments.select { |c| c.status_transition.present? && c.status_transition != "none" }
   
   # Check if HBS has initiated the thread
   hbs_initiated = @encounter.encounter_comments.any? { |c| c.actor_type.to_s.in?(["hbs_admin", "hbs_user", "system"]) }
@@ -41,6 +42,33 @@
     <% end %>
   </div>
 
+  <% if status_history.any? %>
+    <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 mb-6">
+      <div class="text-sm font-semibold text-gray-900 mb-1">Encounter Status History</div>
+      <div class="text-xs text-gray-500 mb-3">Track all status changes and updates</div>
+      <div class="space-y-3">
+        <% status_history.each do |comment| %>
+          <div class="flex items-center justify-between bg-white rounded-md border border-gray-200 px-4 py-3">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium <%= comment.status_transition_badge_class %>">
+                <%= comment.status_transition_label %>
+              </span>
+              <div class="text-xs text-gray-500">
+                <span class="inline-flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A9 9 0 1119.07 6.93M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  <%= comment.author.full_name %>
+                </span>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500"><%= comment.created_at.strftime("%m-%d-%Y %H:%M:%S") %></div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Comments List -->
   <div class="space-y-4 mb-6 max-h-96 overflow-y-auto">
     <% if visible_comments.any? %>
@@ -66,6 +94,9 @@
                 <p class="text-sm text-gray-500 italic">This comment has been redacted.</p>
               <% else %>
                 <p class="text-sm text-gray-700 whitespace-pre-wrap"><%= comment.body_text %></p>
+                <% if comment.status_transition.present? && comment.status_transition != "none" %>
+                  <p class="mt-1 text-xs text-gray-500">Status updated to <%= comment.status_transition.humanize %>.</p>
+                <% end %>
               <% end %>
             </div>
             <% if !comment.redacted? && current_user.can_redact_comment? && namespace == "admin" %>
@@ -110,6 +141,24 @@
                 { class: "w-full border border-gray-300 rounded-md px-3 py-2" } %>
           </div>
         <% end %>
+
+        <% if namespace == "admin" %>
+          <div>
+            <%= label_tag "encounter_comment[status_transition]", "Status Transition", class: "block text-sm font-medium text-gray-700 mb-1" %>
+            <%= select_tag "encounter_comment[status_transition]",
+                options_for_select([
+                  ["No change", "none"],
+                  ["Additional Info Requested", "additional_info_requested"],
+                  ["Finalized", "finalized"],
+                  ["Denied", "denied"]
+                ], "none"),
+                { class: "w-full border border-gray-300 rounded-md px-3 py-2" } %>
+            <p class="mt-1 text-xs text-gray-500">Only applies to shared tenant-visible status.</p>
+          </div>
+        <% elsif namespace == "tenant" %>
+          <input type="hidden" name="encounter_comment[status_transition]" value="info_request_answered" />
+        <% end %>
+
         <div class="flex justify-end">
           <%= submit_tag "Post Comment", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
         </div>

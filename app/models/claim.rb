@@ -40,6 +40,7 @@ class Claim < ApplicationRecord
   before_validation :rollup_totals
   before_save :update_status_timestamps
   before_create :set_initial_status_and_timestamp
+  after_update :sync_encounter_shared_status, if: :saved_change_to_status?
 
   def rollup_totals
     self.total_units = claim_lines.sum(:units)
@@ -98,6 +99,17 @@ class Claim < ApplicationRecord
   end
 
   private
+  def sync_encounter_shared_status
+    return unless encounter
+
+    case status
+    when "paid_in_full", "applied_to_deductible"
+      encounter.update_column(:shared_status, Encounter.shared_statuses[:finalized])
+    when "denied"
+      encounter.update_column(:shared_status, Encounter.shared_statuses[:denied])
+    end
+  end
+
 
   def validate_has_lines
     if claim_lines.blank? || claim_lines.empty?

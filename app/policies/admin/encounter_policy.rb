@@ -39,6 +39,10 @@ class Admin::EncounterPolicy < ApplicationPolicy
     accessible?("admin", "encounters", "cancel")
   end
 
+  def billing_queue?
+    accessible?("admin", "encounters", "billing_queue")
+  end
+
   def override_validation?
     accessible?("admin", "encounters", "override_validation")
   end

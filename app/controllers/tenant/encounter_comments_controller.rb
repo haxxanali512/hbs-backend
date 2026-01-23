@@ -45,6 +45,6 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
   end
 
   def encounter_comment_params
-    params.require(:encounter_comment).permit(:body_text)
+    params.require(:encounter_comment).permit(:body_text, :status_transition)
   end
 end

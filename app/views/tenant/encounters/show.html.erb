@@ -19,8 +19,8 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <span class="text-sm font-medium text-gray-700">Current Status:</span>
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <%= @encounter.status_badge_color %>">
-            <%= @encounter.status.humanize %>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <%= @encounter.tenant_visible_status_badge_color %>">
+            <%= @encounter.tenant_visible_status_label %>
           </span>
           <% if @encounter.cascaded? %>
             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
@@ -105,8 +105,8 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-700">Status</label>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.status_badge_color %>">
-                <%= @encounter.status.humanize %>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.tenant_visible_status_badge_color %>">
+                <%= @encounter.tenant_visible_status_label %>
               </span>
             </div>
           </div>

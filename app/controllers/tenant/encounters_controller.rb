@@ -327,12 +327,16 @@ class Tenant::EncountersController < Tenant::BaseController
       return
     end
 
-    # Queue the job to process submissions in the background
-    # The job will:
-    # 1. Mark encounters as "sent" when actually submitting to Waystar
-    # 2. Change them to "completed_confirmed" after successful submission
-    QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
-    Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for background processing to Waystar via EDI 837"
+    # Do not submit to Waystar yet; queue for HBS manual billing
+    valid_encounters.each do |encounter|
+      encounter.update(
+        tenant_status: :in_process,
+        internal_status: :queued_for_billing
+      )
+    end
+    #  QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
+    # Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for background processing to Waystar via EDI 837"
+    Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for manual billing review"
 
     # Notify super admins about the submission
     NotificationService.notify_encounters_submitted_for_billing(
