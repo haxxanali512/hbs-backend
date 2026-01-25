@@ -412,6 +412,7 @@ Rails.application.routes.draw do
             post :submit_queued
             get :specialties_for_provider
             get :templates_for_specialty
+            get :prescriptions_for_patient
           end
           member do
             post :mark_reviewed

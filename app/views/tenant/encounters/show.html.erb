@@ -162,6 +162,15 @@
               <label class="block text-sm font-medium text-gray-700">Last Updated</label>
               <p class="text-sm text-gray-900"><%= @encounter.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
             </div>
+
+            <% if @encounter.prescription.present? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Prescription</label>
+                <p class="text-sm text-gray-900">
+                  <%= link_to @encounter.prescription.title, tenant_prescription_path(@encounter.prescription), class: "text-blue-600 hover:text-blue-800" %>
+                </p>
+              </div>
+            <% end %>
             
             <% if @encounter.cascaded? %>
               <div>

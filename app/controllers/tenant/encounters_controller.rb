@@ -45,6 +45,51 @@ class Tenant::EncountersController < Tenant::BaseController
     render json: { success: true, templates: data }
   end
 
+  def prescriptions_for_patient
+    patient = @current_organization.patients.find_by(id: params[:patient_id])
+    return render json: { success: true, prescriptions: [] } unless patient
+
+    specialty = Specialty.kept.active.find_by(id: params[:specialty_id])
+    return render json: { success: true, prescriptions: [] } unless specialty&.name.to_s.downcase.include?("massage")
+
+    proc_ids = Array(params[:procedure_code_ids]).reject(&:blank?)
+    proc_codes = ProcedureCode.where(id: proc_ids).pluck(:code)
+    return render json: { success: true, prescriptions: [] } unless (proc_codes & %w[97124 97140]).any?
+
+    nyship = patient.patient_insurance_coverages
+                     .active_only
+                     .joins(:insurance_plan)
+                     .left_joins(insurance_plan: :payer)
+                     .where("insurance_plans.name ILIKE ? OR payers.name ILIKE ?", "%NYSHIP%", "%NYSHIP%")
+                     .exists?
+    return render json: { success: true, prescriptions: [] } unless nyship
+
+    prescriptions = @current_organization.prescriptions
+                                         .kept
+                                         .where(patient_id: patient.id, procedure_code_id: proc_ids)
+                                         .where(archived: false)
+
+    if params[:date_of_service].present?
+      dos = Date.parse(params[:date_of_service]) rescue nil
+      if dos
+        prescriptions = prescriptions.where("date_written <= ? AND expires_on >= ?", dos, dos)
+      end
+    end
+
+    data = prescriptions.includes(:diagnosis_codes, :procedure_code).map do |rx|
+      {
+        id: rx.id,
+        title: rx.title,
+        procedure_code: rx.procedure_code&.code,
+        date_written: rx.date_written,
+        expires_on: rx.expires_on,
+        diagnosis_codes: rx.diagnosis_codes.map { |dc| { id: dc.id, code: dc.code, description: dc.description } }
+      }
+    end
+
+    render json: { success: true, prescriptions: data }
+  end
+
   def show
     # Mark comments as seen when viewing encounter
     if current_user
@@ -580,6 +625,7 @@ class Tenant::EncountersController < Tenant::BaseController
       :billing_channel,
       :notes,
       :encounter_template_id,
+      :prescription_id,
       :primary_procedure_code_id,
       :place_of_service_code,
       diagnosis_code_ids: [],

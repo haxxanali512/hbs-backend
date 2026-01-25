@@ -8,6 +8,7 @@ class Encounter < ApplicationRecord
   belongs_to :patient
   belongs_to :provider
   belongs_to :specialty
+  belongs_to :prescription, optional: true
   belongs_to :encounter_template, optional: true
   belongs_to :organization_location, optional: true
   belongs_to :appointment, optional: true
@@ -178,6 +179,8 @@ class Encounter < ApplicationRecord
   validate :patient_not_deceased
   validate :procedure_codes_required_for_submission
   validate :procedure_code_rules_compliance
+  validate :prescription_required_for_nyship_massage
+  validate :prescription_matches_procedure_and_dates
 
   # ===========================================================
   # SCOPES
@@ -199,6 +202,7 @@ class Encounter < ApplicationRecord
   # CALLBACKS
   # ===========================================================
 
+  before_validation :apply_prescription_diagnosis_codes
   before_save :ensure_cascade_fields_locked, if: :cascaded?
   after_save :associate_diagnosis_codes, if: -> { diagnosis_code_ids.present? }
   after_save :associate_procedure_codes, if: -> { procedure_code_ids.present? }
@@ -242,6 +246,34 @@ class Encounter < ApplicationRecord
     return "claim" if claim_id.present?
     return "invoice" if patient_invoice_id.present?
     nil
+  end
+
+  def nyship_insurance?
+    return false unless patient
+
+    patient.patient_insurance_coverages
+           .active_only
+           .joins(:insurance_plan)
+           .left_joins(insurance_plan: :payer)
+           .where("insurance_plans.name ILIKE ? OR payers.name ILIKE ?", "%NYSHIP%", "%NYSHIP%")
+           .exists?
+  end
+
+  def massage_therapy_specialty?
+    specialty&.name.to_s.downcase.include?("massage")
+  end
+
+  def massage_therapy_code_selected?
+    codes = if procedure_code_ids.present?
+      ProcedureCode.where(id: Array(procedure_code_ids).reject(&:blank?)).pluck(:code)
+    else
+      encounter_procedure_items.includes(:procedure_code).map { |item| item.procedure_code.code }
+    end
+    (codes & %w[97124 97140]).any?
+  end
+
+  def nyship_massage_prescription_required?
+    nyship_insurance? && massage_therapy_specialty? && massage_therapy_code_selected?
   end
 
   # Get procedure codes from encounter_procedure_items (preferred) or claim lines (fallback)
@@ -397,6 +429,42 @@ class Encounter < ApplicationRecord
     else
       # No diagnosis codes provided
       errors.add(:base, "ENC_DX_REQUIRED - At least one diagnosis code is required")
+    end
+  end
+
+  def apply_prescription_diagnosis_codes
+    return unless prescription.present?
+
+    if new_record? || will_save_change_to_prescription_id? || diagnosis_code_ids.blank?
+      self.diagnosis_code_ids = prescription.diagnosis_codes.pluck(:id)
+    end
+  end
+
+  def prescription_required_for_nyship_massage
+    return unless nyship_massage_prescription_required?
+    return if prescription_id.present?
+
+    errors.add(:prescription_id, "A valid NYSHIP massage prescription is required")
+  end
+
+  def prescription_matches_procedure_and_dates
+    return unless nyship_massage_prescription_required?
+    return unless prescription.present?
+
+    encounter_codes = if procedure_code_ids.present?
+      ProcedureCode.where(id: Array(procedure_code_ids).reject(&:blank?)).pluck(:code)
+    else
+      encounter_procedure_items.includes(:procedure_code).map { |item| item.procedure_code.code }
+    end
+
+    unless encounter_codes.include?(prescription.procedure_code.code)
+      errors.add(:prescription_id, "Prescription code must match encounter procedure")
+    end
+
+    if date_of_service.present? && prescription.date_written.present? && prescription.expires_on.present?
+      unless date_of_service.between?(prescription.date_written, prescription.expires_on)
+        errors.add(:prescription_id, "Prescription must be valid for the date of service")
+      end
     end
   end
 

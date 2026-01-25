@@ -60,13 +60,45 @@
       </div>
 
       <div>
-        <%= f.label :expires_on, "Expires On", class: "block text-sm font-medium text-gray-700 mb-1" do %>
-          Expires On <span class="text-red-500">*</span>
+        <%= f.label :expires_on, "Expiration Date", class: "block text-sm font-medium text-gray-700 mb-1" do %>
+          Expiration Date <span class="text-red-500">*</span>
         <% end %>
-        <%= f.date_field :expires_on,
-                         value: prescription.expires_on&.strftime("%Y-%m-%d"),
-                         class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
-                         required: true %>
+
+        <% selected_option = prescription.expiration_option.presence || "date" %>
+        <div class="space-y-3">
+          <label class="flex items-start gap-2 text-sm text-gray-700">
+            <%= radio_button_tag "prescription[expiration_option]", "none", selected_option == "none", class: "mt-1" %>
+            <span>No expiration specified (sets to 6 months after written date)</span>
+          </label>
+
+          <label class="flex items-start gap-2 text-sm text-gray-700">
+            <%= radio_button_tag "prescription[expiration_option]", "duration", selected_option == "duration", class: "mt-1" %>
+            <span>Duration specified</span>
+          </label>
+          <div class="ml-6 flex gap-2 items-center" data-expiration-duration>
+            <%= number_field_tag "prescription[expiration_duration_value]",
+                                 prescription.expiration_duration_value,
+                                 min: 1,
+                                 class: "w-24 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                                 placeholder: "12" %>
+            <%= select_tag "prescription[expiration_duration_unit]",
+                           options_for_select([["Days", "days"], ["Weeks", "weeks"], ["Months", "months"]], prescription.expiration_duration_unit || "weeks"),
+                           class: "border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+
+          <label class="flex items-start gap-2 text-sm text-gray-700">
+            <%= radio_button_tag "prescription[expiration_option]", "date", selected_option == "date", class: "mt-1" %>
+            <span>Date specified</span>
+          </label>
+          <div class="ml-6" data-expiration-date>
+            <%= date_field_tag "prescription[expiration_date]",
+                               prescription.expiration_date || prescription.expires_on&.strftime("%Y-%m-%d"),
+                               class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500">
+          For NYSHIP massage prescriptions, expiration is capped at 6 months from the written date.
+        </p>
       </div>
     </div>
 
@@ -390,6 +422,27 @@
       }
     });
   })();
+</script>
+
+<script>
+  document.addEventListener("turbo:load", function() {
+    const radios = document.querySelectorAll("input[name='prescription[expiration_option]']");
+    const durationBlock = document.querySelector("[data-expiration-duration]");
+    const dateBlock = document.querySelector("[data-expiration-date]");
+    if (!radios.length) return;
+
+    function toggleExpirationInputs() {
+      const selected = document.querySelector("input[name='prescription[expiration_option]']:checked")?.value;
+      if (durationBlock) durationBlock.classList.toggle("hidden", selected !== "duration");
+      if (dateBlock) dateBlock.classList.toggle("hidden", selected !== "date");
+    }
+
+    radios.forEach(function(radio) {
+      radio.addEventListener("change", toggleExpirationInputs);
+    });
+
+    toggleExpirationInputs();
+  });
 </script>
 
 <script>
