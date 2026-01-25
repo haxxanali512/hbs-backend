@@ -19,6 +19,7 @@ class Prescription < ApplicationRecord
 
   # Virtual attributes for form handling
   attr_accessor :diagnosis_code_ids
+  attr_accessor :expiration_option, :expiration_duration_value, :expiration_duration_unit, :expiration_date
 
   # Validations
   validates :expires_on, presence: true
@@ -29,6 +30,7 @@ class Prescription < ApplicationRecord
   validates :procedure_code_id, presence: true
   validate :date_written_not_in_future
   validate :expires_after_written
+  validate :validate_nyship_expiration_inputs
 
   # Scopes
   scope :active, -> { kept.where(expired: false, archived: false) }
@@ -41,6 +43,7 @@ class Prescription < ApplicationRecord
   scope :by_procedure_code, ->(procedure_code_id) { where(procedure_code_id: procedure_code_id) }
 
   # Callbacks
+  before_validation :apply_nyship_expiration_rules
   before_save :set_archived_at_if_archived
   after_save :associate_diagnosis_codes
 
@@ -66,6 +69,73 @@ class Prescription < ApplicationRecord
   end
 
   private
+  def nyship_insurance?
+    return false unless patient
+
+    patient.patient_insurance_coverages
+           .active_only
+           .joins(:insurance_plan)
+           .left_joins(insurance_plan: :payer)
+           .where("insurance_plans.name ILIKE ? OR payers.name ILIKE ?", "%NYSHIP%", "%NYSHIP%")
+           .exists?
+  end
+
+  def massage_therapy_code?
+    code = procedure_code&.code.to_s
+    %w[97124 97140].include?(code)
+  end
+
+  def nyship_massage_rule_applicable?
+    nyship_insurance? && massage_therapy_code?
+  end
+
+  def validate_nyship_expiration_inputs
+    return unless nyship_massage_rule_applicable?
+
+    case expiration_option.to_s
+    when "duration"
+      if expiration_duration_value.to_i <= 0
+        errors.add(:expires_on, "Duration is required")
+      end
+    when "date"
+      if expiration_date.blank? && expires_on.blank?
+        errors.add(:expires_on, "Expiration date is required")
+      end
+    end
+  end
+
+  def apply_nyship_expiration_rules
+    return unless nyship_massage_rule_applicable?
+    return unless date_written.present?
+
+    max_date = date_written + 6.months
+    target = max_date
+
+    case expiration_option.to_s
+    when "duration"
+      value = expiration_duration_value.to_i
+      unit = expiration_duration_unit.to_s
+      if value.positive?
+        duration =
+          case unit
+          when "days" then value.days
+          when "weeks" then value.weeks
+          when "months" then value.months
+          else value.days
+          end
+        target = date_written + duration
+      end
+    when "date"
+      date = expiration_date.presence || expires_on
+      target = date if date.present?
+    else
+      target = max_date
+    end
+
+    target = max_date if target > max_date
+    self.expires_on = target
+  end
+
 
   def date_written_not_in_future
     return unless date_written.present?

@@ -59,6 +59,10 @@ class Tenant::EncounterPolicy < ApplicationPolicy
     create?
   end
 
+  def prescriptions_for_patient?
+    create?
+  end
+
   def procedure_codes_search?
     submit_for_billing?
   end

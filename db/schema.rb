@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_22_150000) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_23_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -434,6 +434,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_22_150000) do
     t.integer "tenant_status", default: 0, null: false
     t.integer "internal_status"
     t.integer "shared_status"
+    t.bigint "prescription_id"
     t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
     t.index ["cascaded"], name: "index_encounters_on_cascaded"
     t.index ["claim_id"], name: "index_encounters_on_claim_id"
@@ -448,6 +449,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_22_150000) do
     t.index ["patient_insurance_coverage_id"], name: "index_encounters_on_patient_insurance_coverage_id"
     t.index ["patient_invoice_id"], name: "index_encounters_on_patient_invoice_id"
     t.index ["place_of_service_code"], name: "index_encounters_on_place_of_service_code"
+    t.index ["prescription_id"], name: "index_encounters_on_prescription_id"
     t.index ["provider_id"], name: "index_encounters_on_provider_id"
     t.index ["shared_status"], name: "index_encounters_on_shared_status"
     t.index ["specialty_id"], name: "index_encounters_on_specialty_id"
@@ -1245,6 +1247,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_22_150000) do
   add_foreign_key "encounters", "organizations"
   add_foreign_key "encounters", "patient_insurance_coverages"
   add_foreign_key "encounters", "patients"
+  add_foreign_key "encounters", "prescriptions"
   add_foreign_key "encounters", "providers"
   add_foreign_key "encounters", "specialties"
   add_foreign_key "insurance_plans", "payers"
