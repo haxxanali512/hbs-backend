@@ -90,8 +90,6 @@ class Prescription < ApplicationRecord
   end
 
   def validate_nyship_expiration_inputs
-    return unless nyship_massage_rule_applicable?
-
     case expiration_option.to_s
     when "duration"
       if expiration_duration_value.to_i <= 0
@@ -105,7 +103,6 @@ class Prescription < ApplicationRecord
   end
 
   def apply_nyship_expiration_rules
-    return unless nyship_massage_rule_applicable?
     return unless date_written.present?
 
     max_date = date_written + 6.months
@@ -126,13 +123,28 @@ class Prescription < ApplicationRecord
         target = date_written + duration
       end
     when "date"
-      date = expiration_date.presence || expires_on
-      target = date if date.present?
+      # Parse expiration_date string to Date if present
+      if expiration_date.present?
+        parsed_date = begin
+          Date.parse(expiration_date.to_s)
+        rescue ArgumentError
+          nil
+        end
+        target = parsed_date if parsed_date.present?
+      elsif expires_on.present?
+        target = expires_on
+      end
+      # If neither expiration_date nor expires_on is set, target remains max_date (6 months)
     else
+      # "none" option - default to 6 months
       target = max_date
     end
 
-    target = max_date if target > max_date
+    # For NYSHIP massage prescriptions, cap at 6 months
+    if nyship_massage_rule_applicable? && target > max_date
+      target = max_date
+    end
+
     self.expires_on = target
   end
 
