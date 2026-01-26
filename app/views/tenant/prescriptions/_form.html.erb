@@ -107,15 +107,6 @@
       <h3 class="text-lg font-medium text-gray-900">Prescription Details</h3>
       
       <div>
-        <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :provider_id,
-                     options_for_select([["None", ""]] + @providers.map { |p| [p.full_name, p.id] }, prescription.provider_id),
-                     {},
-                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
-                     data: { current_specialty_id: prescription.specialty_id } %>
-      </div>
-
-      <div>
         <%= f.label :specialty_id, "Specialty", class: "block text-sm font-medium text-gray-700 mb-1" do %>
           Specialty <span class="text-red-500">*</span>
         <% end %>
@@ -474,10 +465,6 @@
         var durationUnit = document.getElementById("prescription_expiration_duration_unit");
         if (durationUnit) durationUnit.value = "weeks";
         
-        // Reset provider
-        var providerSelect = document.getElementById("prescription_provider_id");
-        if (providerSelect) providerSelect.value = "";
-        
         // Reset specialty
         var specialtySelect = document.getElementById("prescription_specialty_id");
         if (specialtySelect) {
@@ -541,55 +528,17 @@
 
 <script>
   document.addEventListener("turbo:load", function() {
-    const providerSelect = document.getElementById("prescription_provider_id");
     const specialtySelect = document.getElementById("prescription_specialty_id");
     const procedureSelect = document.getElementById("prescription_procedure_code_id");
-    const currentSpecialtyId = providerSelect?.dataset?.currentSpecialtyId;
     const currentProcedureId = procedureSelect?.dataset?.currentProcedureId;
     const allSpecialties = specialtySelect?.dataset?.allSpecialties
       ? JSON.parse(specialtySelect.dataset.allSpecialties)
       : [];
 
-    if (!providerSelect || !specialtySelect || !procedureSelect) return;
-
-    function resetSpecialties(selectedId = null) {
-      specialtySelect.innerHTML = '<option value="">Select specialty...</option>';
-      allSpecialties.forEach(function(spec) {
-        const option = document.createElement("option");
-        option.value = spec.id;
-        option.textContent = spec.name;
-        if (selectedId && selectedId.toString() === spec.id.toString()) {
-          option.selected = true;
-        }
-        specialtySelect.appendChild(option);
-      });
-    }
+    if (!specialtySelect || !procedureSelect) return;
 
     function resetProcedureCodes() {
       procedureSelect.innerHTML = '<option value="">Select specialty first</option>';
-    }
-
-    async function loadSpecialties(providerId, selectedId) {
-      if (!providerId) {
-        resetSpecialties();
-        resetProcedureCodes();
-        return;
-      }
-      const url = "<%= specialties_for_provider_tenant_prescriptions_path %>?provider_id=" + encodeURIComponent(providerId);
-      const response = await fetch(url, { headers: { "Accept": "application/json" } });
-      const data = await response.json();
-
-      resetSpecialties();
-      if (!data.success) return;
-      data.specialties.forEach(function(spec) {
-        const option = document.createElement("option");
-        option.value = spec.id;
-        option.textContent = spec.name;
-        if (selectedId && selectedId.toString() === spec.id.toString()) {
-          option.selected = true;
-        }
-        specialtySelect.appendChild(option);
-      });
     }
 
     async function loadProcedureCodes(specialtyId, selectedId) {
@@ -614,24 +563,9 @@
       });
     }
 
-    providerSelect.addEventListener("change", function() {
-      if (providerSelect.value) {
-        loadSpecialties(providerSelect.value, null);
-      } else {
-        resetSpecialties();
-        resetProcedureCodes();
-      }
-    });
-
     specialtySelect.addEventListener("change", function() {
       loadProcedureCodes(specialtySelect.value, null);
     });
-
-    if (providerSelect.value) {
-      loadSpecialties(providerSelect.value, currentSpecialtyId);
-    } else {
-      resetSpecialties(currentSpecialtyId);
-    }
 
     if (specialtySelect.value) {
       loadProcedureCodes(specialtySelect.value, currentProcedureId);

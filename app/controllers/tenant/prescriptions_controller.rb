@@ -118,7 +118,6 @@ class Tenant::PrescriptionsController < Tenant::BaseController
     @patients = @current_organization.patients.active.order(:last_name, :first_name)
     @specialties = Specialty.active.kept.order(:name)
     @procedure_codes = ProcedureCode.active.order(:code)
-    @providers = @current_organization.providers.kept.active.order(:first_name, :last_name)
   end
 
   def prescription_params
