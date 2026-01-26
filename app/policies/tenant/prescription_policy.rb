@@ -23,6 +23,10 @@ class Tenant::PrescriptionPolicy < ApplicationPolicy
     update?
   end
 
+  def procedure_codes_for_specialty?
+    accessible?("tenant", "specialties", "index")
+  end
+
   def destroy?
     accessible?("tenant", "prescriptions", "destroy")
   end
