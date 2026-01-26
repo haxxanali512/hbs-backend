@@ -167,7 +167,7 @@
 
     <!-- Selected diagnosis codes display -->
     <div id="prescriptionSelectedDiagnosisCodes" class="mt-2 flex flex-wrap gap-2">
-      <% if prescription.diagnosis_codes.any? %>
+      <% if prescription.persisted? && prescription.diagnosis_codes.any? %>
         <% prescription.diagnosis_codes.each do |dc| %>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                 data-code-id="<%= dc.id %>">
@@ -182,11 +182,13 @@
 
     <!-- Hidden inputs for submission -->
     <div id="prescriptionDiagnosisHiddenInputs">
-      <% Array(prescription.diagnosis_code_ids).each do |dc_id| %>
-        <input type="hidden"
-               name="prescription[diagnosis_code_ids][]"
-               value="<%= dc_id %>"
-               id="prescriptionDiagnosisHidden<%= dc_id %>">
+      <% if prescription.persisted? %>
+        <% Array(prescription.diagnosis_code_ids).each do |dc_id| %>
+          <input type="hidden"
+                 name="prescription[diagnosis_code_ids][]"
+                 value="<%= dc_id %>"
+                 id="prescriptionDiagnosisHidden<%= dc_id %>">
+        <% end %>
       <% end %>
     </div>
 
@@ -229,16 +231,33 @@
     <% end %>
   </div>
 
-  <div class="flex justify-end pt-4 border-t border-gray-100">
-    <%= link_to "Cancel", prescription.persisted? ? tenant_prescription_path(prescription) : tenant_prescriptions_path, class: "mr-3 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50" %>
-    <%= f.submit prescription.persisted? ? "Update Prescription" : "Create Prescription",
-                 class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer" %>
+  <div class="flex justify-between pt-4 border-t border-gray-100">
+    <div>
+      <% unless prescription.persisted? %>
+        <button type="button" 
+                onclick="clearPrescriptionForm()" 
+                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Clear Form
+        </button>
+      <% end %>
+    </div>
+    <div class="flex gap-3">
+      <%= link_to "Cancel", prescription.persisted? ? tenant_prescription_path(prescription) : tenant_prescriptions_path, class: "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+      <%= f.submit prescription.persisted? ? "Update Prescription" : "Create Prescription",
+                   class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer" %>
+    </div>
   </div>
 <% end %>
 
 <script>
   // Diagnosis code search for prescription form
   (function() {
+    // Reset global variable for new prescriptions
+    var isNewForm = document.querySelector('form[action*="/prescriptions"][method="post"]') !== null;
+    if (isNewForm) {
+      window.prescriptionSelectedDiagnosisCodes = [];
+    }
+    
     if (window.prescriptionDiagnosisInitialized) return;
     window.prescriptionDiagnosisInitialized = true;
 
@@ -385,10 +404,19 @@
       }).join("");
     }
 
-    // Initialize from server-side selected codes on first load
+    // Initialize from server-side selected codes on first load (only for persisted prescriptions)
     function initializePrescriptionDiagnosisCodes() {
       if (!Array.isArray(window.prescriptionSelectedDiagnosisCodes)) {
         window.prescriptionSelectedDiagnosisCodes = [];
+      }
+      
+      // Only initialize if this is an edit form (prescription is persisted)
+      var isEditForm = document.querySelector('form[action*="/prescriptions/"][method="patch"]') !== null;
+      if (!isEditForm) {
+        // Clear any persisted codes for new prescriptions
+        window.prescriptionSelectedDiagnosisCodes = [];
+        prescriptionUpdateDiagnosisDisplay();
+        return;
       }
       
       var initialChips = document.querySelectorAll("#prescriptionSelectedDiagnosisCodes [data-code-id]");
@@ -401,8 +429,74 @@
           return { id: id, code: code, description: description };
         });
         prescriptionUpdateDiagnosisDisplay();
+      } else {
+        // Ensure empty for new prescriptions
+        window.prescriptionSelectedDiagnosisCodes = [];
+        prescriptionUpdateDiagnosisDisplay();
       }
     }
+
+    // Clear form function
+    window.clearPrescriptionForm = function() {
+      // Clear diagnosis codes
+      window.prescriptionSelectedDiagnosisCodes = [];
+      prescriptionUpdateDiagnosisDisplay();
+      
+      // Clear form fields
+      var form = document.querySelector('form[action*="/prescriptions"]');
+      if (form) {
+        // Reset patient select
+        var patientSelect = document.getElementById("prescription_patient_id");
+        if (patientSelect) patientSelect.value = "";
+        
+        // Reset title
+        var titleInput = document.getElementById("prescription_title");
+        if (titleInput) titleInput.value = "";
+        
+        // Reset date written to today
+        var dateWritten = document.getElementById("prescription_date_written");
+        if (dateWritten) dateWritten.value = new Date().toISOString().split('T')[0];
+        
+        // Reset expiration options
+        var expirationRadios = document.querySelectorAll('input[name="prescription[expiration_option]"]');
+        expirationRadios.forEach(function(radio) {
+          if (radio.value === "date") radio.checked = true;
+          else radio.checked = false;
+        });
+        
+        // Reset expiration date
+        var expirationDate = document.getElementById("prescription_expiration_date");
+        if (expirationDate) expirationDate.value = "";
+        
+        // Reset expiration duration
+        var durationValue = document.getElementById("prescription_expiration_duration_value");
+        if (durationValue) durationValue.value = "";
+        var durationUnit = document.getElementById("prescription_expiration_duration_unit");
+        if (durationUnit) durationUnit.value = "weeks";
+        
+        // Reset provider
+        var providerSelect = document.getElementById("prescription_provider_id");
+        if (providerSelect) providerSelect.value = "";
+        
+        // Reset specialty
+        var specialtySelect = document.getElementById("prescription_specialty_id");
+        if (specialtySelect) {
+          specialtySelect.value = "";
+          specialtySelect.innerHTML = '<option value="">Select specialty...</option>';
+        }
+        
+        // Reset procedure code
+        var procedureSelect = document.getElementById("prescription_procedure_code_id");
+        if (procedureSelect) {
+          procedureSelect.value = "";
+          procedureSelect.innerHTML = '<option value="">Select specialty first</option>';
+        }
+        
+        // Clear diagnosis input
+        var diagnosisInput = document.getElementById("prescriptionDiagnosisInput");
+        if (diagnosisInput) diagnosisInput.value = "";
+      }
+    };
 
     document.addEventListener("turbo:load", initializePrescriptionDiagnosisCodes);
     document.addEventListener("DOMContentLoaded", initializePrescriptionDiagnosisCodes);

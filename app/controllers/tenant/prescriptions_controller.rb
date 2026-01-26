@@ -34,6 +34,8 @@ class Tenant::PrescriptionsController < Tenant::BaseController
       date_written: Date.current,
       patient_id: params[:patient_id]
     )
+    # Ensure diagnosis codes are not loaded from previous entries
+    @prescription.diagnosis_code_ids = []
     @patient = @current_organization.patients.find(params[:patient_id]) if params[:patient_id].present?
   end
 
