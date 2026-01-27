@@ -1,10 +1,13 @@
 class Tenant::ActivationController < Tenant::BaseController
+  include ActivationStepsConcern
+  
   # before_action :authenticate_user!
   # before_action :set_organization
   before_action :check_activation_status
 
   def index
     @steps = build_activation_steps(@current_organization)
+    @organization = @current_organization
   end
   def billing_setup
     @billing = @current_organization.organization_billing || @current_organization.build_organization_billing

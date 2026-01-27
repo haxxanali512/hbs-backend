@@ -36,6 +36,10 @@ module Admin
     accessible?("admin", "organizations", "suspend_tenant")
   end
 
+  def toggle_checklist_step?
+    accessible?("admin", "organizations", "create")
+  end
+
   def users_search?
     index?
   end

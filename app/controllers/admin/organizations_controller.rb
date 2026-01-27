@@ -1,7 +1,8 @@
 class Admin::OrganizationsController < Admin::BaseController
   include Admin::Concerns::OrganizationConcern
+  include ActivationStepsConcern
 
-  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :activate_tenant, :suspend_tenant ]
+  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :activate_tenant, :suspend_tenant, :toggle_checklist_step, :toggle_plan_step ]
 
   def index
     @organizations = build_organizations_index_query
@@ -10,7 +11,9 @@ class Admin::OrganizationsController < Admin::BaseController
     @pagy, @organizations = pagy(@organizations, items: 20)
   end
 
-  def show; end
+  def show
+    @onboarding_steps = build_detailed_activation_steps(@organization) if @organization.activated?
+  end
 
   def new
     @organization = Organization.new
@@ -69,6 +72,56 @@ class Admin::OrganizationsController < Admin::BaseController
 
     redirect_to admin_organization_path(@organization),
                 notice: "Organization suspended successfully."
+  end
+
+  def toggle_checklist_step
+    checklist = @organization.activation_checklist || @organization.create_activation_checklist
+    step = params[:step]
+
+    case step
+    when 'waystar_child_account'
+      checklist.update!(waystar_child_account_completed: !checklist.waystar_child_account_completed?)
+      send_checklist_step_notification(checklist, 'Waystar Child Account', checklist.waystar_child_account_completed?)
+    when 'ezclaim_record'
+      checklist.update!(ezclaim_record_completed: !checklist.ezclaim_record_completed?)
+      send_checklist_step_notification(checklist, 'EZClaim Record', checklist.ezclaim_record_completed?)
+    when 'initial_encounter_billed'
+      checklist.update!(initial_encounter_billed_completed: !checklist.initial_encounter_billed_completed?)
+      send_checklist_step_notification(checklist, 'Initial Encounter Billed', checklist.initial_encounter_billed_completed?)
+    when 'name_match'
+      checklist.update!(name_match_completed: !checklist.name_match_completed?)
+      send_checklist_step_notification(checklist, 'Name Match', checklist.name_match_completed?)
+    else
+      redirect_to admin_organization_path(@organization), alert: "Invalid step."
+      return
+    end
+
+    redirect_to admin_organization_path(@organization), notice: "Checklist step updated successfully."
+  end
+
+  def toggle_plan_step
+    plan = @organization.org_accepted_plans.find(params[:plan_id])
+    step_type = params[:step_type]
+
+    step = OrganizationActivationPlanStep.find_or_initialize_by(
+      org_accepted_plan_id: plan.id,
+      step_type: step_type
+    )
+
+    if step.persisted?
+      if step.completed?
+        step.mark_pending!
+      else
+        step.mark_completed!(current_user)
+      end
+    else
+      step.save!
+      step.mark_completed!(current_user)
+    end
+
+    send_plan_step_notification(plan, step_type, step.completed?)
+
+    redirect_to admin_organization_path(@organization), notice: "Plan step updated successfully."
   end
 
   def users_search
@@ -144,5 +197,17 @@ class Admin::OrganizationsController < Admin::BaseController
         :identifiers_change_effective_on
       ]
     )
+  end
+
+  def send_checklist_step_notification(checklist, step_name, completed)
+    if completed
+      OrganizationMailer.checklist_step_completed(@organization, step_name).deliver_now
+    end
+  end
+
+  def send_plan_step_notification(plan, step_type, completed)
+    if completed
+      OrganizationMailer.plan_step_completed(@organization, plan, step_type).deliver_now
+    end
   end
 end

@@ -47,6 +47,7 @@ class Organization < ApplicationRecord
   has_one :organization_contact, dependent: :destroy
   has_one :organization_identifier, dependent: :destroy
   has_one :organization_setting, dependent: :destroy
+  has_one :activation_checklist, dependent: :destroy
   has_many :invoices, dependent: :restrict_with_error
   has_many :payments, dependent: :restrict_with_error
   has_many :provider_assignments, dependent: :destroy
@@ -234,9 +235,26 @@ class Organization < ApplicationRecord
   end
 
   def has_accepted_plans?
-    # Placeholder - will be implemented when AcceptedPlan model exists
-    # For now, return true as this is insurance-specific
-    true
+    org_accepted_plans.active_only.current.any?
+  end
+
+  def has_billing_address?
+    organization_locations.billing.active.any?
+  end
+
+  def has_fee_schedule_items?
+    organization_fee_schedules.kept.joins(:organization_fee_schedule_items)
+                             .where(organization_fee_schedule_items: { active: true })
+                             .any?
+  end
+
+  def compliance_signed?
+    organization_compliance&.gsa_signed_at.present? && 
+    organization_compliance&.baa_signed_at.present?
+  end
+
+  def initial_encounter_prepared?
+    encounters.exists?
   end
 
   # Insurance plans eligible for patient coverage selection.

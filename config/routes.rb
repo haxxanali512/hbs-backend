@@ -47,6 +47,8 @@ Rails.application.routes.draw do
         member do
           post :activate_tenant
           post :suspend_tenant
+          patch :toggle_checklist_step
+          patch :toggle_plan_step
         end
         collection do
           get :users_search

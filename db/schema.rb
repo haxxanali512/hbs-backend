@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_23_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_23_130010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "activation_checklists", force: :cascade do |t|
+    t.bigint "organization_id", null: false
+    t.boolean "waystar_child_account_completed", default: false, null: false
+    t.boolean "ezclaim_record_completed", default: false, null: false
+    t.boolean "initial_encounter_billed_completed", default: false, null: false
+    t.boolean "name_match_completed", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organization_id"], name: "index_activation_checklists_on_organization_id"
+  end
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
@@ -582,6 +593,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_23_120000) do
     t.index ["organization_id", "status"], name: "index_org_accepted_plans_on_organization_id_and_status"
     t.index ["organization_id"], name: "index_org_accepted_plans_on_organization_id"
     t.index ["status"], name: "index_org_accepted_plans_on_status"
+  end
+
+  create_table "organization_activation_plan_steps", force: :cascade do |t|
+    t.bigint "org_accepted_plan_id", null: false
+    t.integer "step_type", null: false
+    t.boolean "completed", default: false, null: false
+    t.datetime "completed_at"
+    t.bigint "completed_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["completed"], name: "index_organization_activation_plan_steps_on_completed"
+    t.index ["completed_by_id"], name: "index_organization_activation_plan_steps_on_completed_by_id"
+    t.index ["org_accepted_plan_id", "step_type"], name: "idx_activation_plan_step_unique", unique: true
+    t.index ["org_accepted_plan_id"], name: "idx_on_org_accepted_plan_id_9dc6129ada"
+    t.index ["step_type"], name: "index_organization_activation_plan_steps_on_step_type"
   end
 
   create_table "organization_addresses", force: :cascade do |t|
@@ -1187,6 +1213,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_23_120000) do
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
   end
 
+  add_foreign_key "activation_checklists", "organizations"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "appointments", "organization_locations"
@@ -1261,6 +1288,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_23_120000) do
   add_foreign_key "org_accepted_plans", "insurance_plans"
   add_foreign_key "org_accepted_plans", "organizations"
   add_foreign_key "org_accepted_plans", "users", column: "added_by_id"
+  add_foreign_key "organization_activation_plan_steps", "org_accepted_plans"
+  add_foreign_key "organization_activation_plan_steps", "users", column: "completed_by_id"
   add_foreign_key "organization_addresses", "organization_locations"
   add_foreign_key "organization_billings", "organizations"
   add_foreign_key "organization_compliances", "organizations"

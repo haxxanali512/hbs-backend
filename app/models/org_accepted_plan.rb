@@ -11,6 +11,7 @@ class OrgAcceptedPlan < ApplicationRecord
            -> { order(created_at: :desc) },
            class_name: "OrgAcceptedPlanNote",
            dependent: :destroy
+  has_many :organization_activation_plan_steps, dependent: :destroy
 
   # =========================
   # Enums
