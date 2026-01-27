@@ -80,6 +80,70 @@
     </div>
   </div>
 
+  <!-- Active Organizations: Onboarding Checklist Status -->
+  <% if @activated_organizations.any? %>
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Active Organizations - Onboarding Checklist Status</h2>
+      <p class="text-sm text-gray-600 mb-4">Track tenant completion status and HBS tasks across all active organizations.</p>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Form Completion</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Organization Setup</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Internal System Setup</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Initial Encounter</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment Completion</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% @activated_organizations.each do |org| %>
+                <% steps = @organizations_onboarding_status[org.id] || [] %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <span class="text-indigo-700 font-semibold text-xs"><%= org.name.first.upcase %></span>
+                      </div>
+                      <div class="ml-3">
+                        <div class="text-sm font-medium text-gray-900">
+                          <%= link_to org.name, admin_organization_path(org), class: "text-indigo-600 hover:text-indigo-800" %>
+                        </div>
+                        <div class="text-xs text-gray-500"><%= org.owner&.email %></div>
+                      </div>
+                    </div>
+                  </td>
+                  <% steps.each do |step| %>
+                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                      <% if step[:status] == :completed %>
+                        <svg class="w-5 h-5 text-green-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                      <% elsif step[:status] == :in_progress %>
+                        <span class="text-gray-500 text-lg">—</span>
+                      <% else %>
+                        <svg class="w-5 h-5 text-red-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      <% end %>
+                      <div class="text-xs text-gray-500 mt-1"><%= step[:completed_items] %>/<%= step[:total_items] %></div>
+                    </td>
+                  <% end %>
+                  <td class="px-4 py-3 whitespace-nowrap text-center">
+                    <%= link_to "View Details", admin_organization_path(org), class: "text-xs text-indigo-600 hover:text-indigo-800 font-medium" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Latest Organizations: Activation Steps -->
   <div class="mb-8">
     <h2 class="text-xl font-semibold text-gray-900 mb-4">Latest Organizations</h2>

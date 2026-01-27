@@ -1,0 +1,100 @@
+<% admin_view = local_assigns.fetch(:admin_view, false) %>
+<div class="space-y-4">
+  <% steps.each do |step| %>
+    <% status = step[:status] %>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-start justify-between">
+      <div class="flex-1">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-semibold text-gray-900"><%= step[:name] %></h4>
+          <span class="text-xs text-gray-500"><%= step[:completed_items] %>/<%= step[:total_items] %> complete</span>
+        </div>
+        <ul class="mt-3 space-y-2 text-sm text-gray-700">
+          <% step[:substeps].each do |sub| %>
+            <% 
+              # Determine if this substep has items (plan-based steps)
+              has_items = sub[:items].present? && sub[:available] != false
+              if has_items
+                items_completed = sub[:items].count { |item| item[:completed] }
+                items_total = sub[:items].size
+                substep_completed = items_completed == items_total && items_total > 0
+                substep_in_progress = items_completed > 0 && items_completed < items_total
+              else
+                substep_completed = sub[:completed]
+                substep_in_progress = false
+              end
+              
+              # Determine if this is a tenant task (auto) or HBS task (manual)
+              is_tenant_task = sub[:auto] == true
+              is_hbs_task = sub[:manual] == true
+            %>
+            <li class="flex items-start gap-2">
+              <% if substep_completed %>
+                <svg class="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              <% elsif sub[:available] == false %>
+                <span class="h-4 w-4 text-gray-300 mt-0.5 flex-shrink-0">—</span>
+              <% elsif substep_in_progress %>
+                <span class="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0">—</span>
+              <% else %>
+                <svg class="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              <% end %>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <span><%= sub[:name] %></span>
+                  <% if admin_view %>
+                    <% if is_tenant_task %>
+                      <span class="text-xs text-blue-600 font-medium">(Tenant Task)</span>
+                    <% elsif is_hbs_task %>
+                      <span class="text-xs text-amber-600 font-medium">(HBS Task)</span>
+                    <% end %>
+                  <% elsif sub[:action_path].present? && !admin_view %>
+                    <%= link_to(sub[:completed] ? "Manage" : "Complete",
+                      public_send(sub[:action_path]),
+                      class: "text-xs text-blue-600 hover:text-blue-700 font-medium") %>
+                  <% end %>
+                </div>
+                <% if sub[:available] == false %>
+                  <div class="text-xs text-gray-400 mt-1">Available after Waystar child account is created</div>
+                <% end %>
+                <% if has_items %>
+                  <ul class="mt-1 space-y-1 text-xs text-gray-600 ml-6">
+                    <% sub[:items].each do |item| %>
+                      <li class="flex items-center gap-2">
+                        <% if item[:completed] %>
+                          <svg class="h-3.5 w-3.5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        <% else %>
+                          <svg class="h-3.5 w-3.5 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        <% end %>
+                        <span><%= item[:name] %></span>
+                      </li>
+                    <% end %>
+                  </ul>
+                <% end %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+      <div class="ml-4">
+        <% if status == :completed %>
+          <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        <% elsif status == :in_progress %>
+          <span class="h-6 w-6 text-gray-400">—</span>
+        <% else %>
+          <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

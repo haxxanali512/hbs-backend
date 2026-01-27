@@ -144,7 +144,7 @@
               form: { data: { turbo_confirm: "Are you sure you want to activate this organization? This will bypass all activation steps and activate immediately." } } %>
         <% end %>
         
-        <% if @organization.owner && policy(@organization.owner).masquerade? %>
+        <% if @organization.owner && policy([:admin, @organization.owner]).masquerade? %>
           <%= link_to "Visit Organization Portal", masquerade_path(@organization.owner),
               target: '_blank',
               rel: 'noopener noreferrer',
@@ -161,6 +161,153 @@
             method: :delete,
             class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md",
             data: { confirm: "Are you sure you want to delete this organization? This action cannot be undone." } %>
+      </div>
+    </div>
+
+    <!-- Onboarding Progress Tracker (for activated organizations) -->
+    <% if @organization.activated? && @onboarding_steps.present? %>
+      <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+        <h3 class="text-base font-semibold text-gray-900 mb-2">Onboarding Progress Tracker</h3>
+        <p class="text-sm text-gray-600 mb-4">View what the tenant has completed and what Holistic Business Solutions needs to do for this organization.</p>
+        <div class="mb-4 flex items-center gap-4 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-blue-600 font-medium">(Tenant Task)</span>
+            <span class="text-gray-500">- Completed by tenant</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-amber-600 font-medium">(Holistic Business Solutions Task)</span>
+            <span class="text-gray-500">- To be completed by Holistic Business Solutions</span>
+          </div>
+        </div>
+        <%= render "shared/activation_tracker", steps: @onboarding_steps, admin_view: true %>
+      </div>
+    <% end %>
+
+    <!-- Activation Checklist (HBS Tasks Management) -->
+    <% checklist = @organization.activation_checklist || @organization.build_activation_checklist %>
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-2">Holistic Business Solutions Tasks Checklist</h3>
+      <p class="text-sm text-gray-600 mb-4">Mark Holistic Business Solutions tasks as complete when finished. These are manual tasks that require HBS admin action.</p>
+      <div class="space-y-4">
+        <!-- Manual Steps -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+            <div class="flex items-center gap-3">
+              <% if checklist.waystar_child_account_completed? %>
+                <svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              <% else %>
+                <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              <% end %>
+              <span class="text-sm font-medium text-gray-900">Create Waystar Child Account</span>
+            </div>
+            <%= button_to checklist.waystar_child_account_completed? ? "Mark Incomplete" : "Mark Complete",
+                toggle_checklist_step_admin_organization_path(@organization, step: 'waystar_child_account'),
+                method: :patch,
+                class: "text-xs px-3 py-1 rounded #{checklist.waystar_child_account_completed? ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-green-600 text-white hover:bg-green-700'}" %>
+          </div>
+
+          <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+            <div class="flex items-center gap-3">
+              <% if checklist.ezclaim_record_completed? %>
+                <svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              <% else %>
+                <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              <% end %>
+              <span class="text-sm font-medium text-gray-900">Create EZClaim Record</span>
+            </div>
+            <%= button_to checklist.ezclaim_record_completed? ? "Mark Incomplete" : "Mark Complete",
+                toggle_checklist_step_admin_organization_path(@organization, step: 'ezclaim_record'),
+                method: :patch,
+                class: "text-xs px-3 py-1 rounded #{checklist.ezclaim_record_completed? ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-green-600 text-white hover:bg-green-700'}" %>
+          </div>
+
+          <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+            <div class="flex items-center gap-3">
+              <% if checklist.initial_encounter_billed_completed? %>
+                <svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              <% else %>
+                <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              <% end %>
+              <span class="text-sm font-medium text-gray-900">Holistic Business Solutions bills initial encounter</span>
+            </div>
+            <%= button_to checklist.initial_encounter_billed_completed? ? "Mark Incomplete" : "Mark Complete",
+                toggle_checklist_step_admin_organization_path(@organization, step: 'initial_encounter_billed'),
+                method: :patch,
+                class: "text-xs px-3 py-1 rounded #{checklist.initial_encounter_billed_completed? ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-green-600 text-white hover:bg-green-700'}" %>
+          </div>
+
+          <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+            <div class="flex items-center gap-3">
+              <% if checklist.name_match_completed? %>
+                <svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              <% else %>
+                <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              <% end %>
+              <span class="text-sm font-medium text-gray-900">Holistic Business Solutions executes a name match in Waystar</span>
+            </div>
+            <%= button_to checklist.name_match_completed? ? "Mark Incomplete" : "Mark Complete",
+                toggle_checklist_step_admin_organization_path(@organization, step: 'name_match'),
+                method: :patch,
+                class: "text-xs px-3 py-1 rounded #{checklist.name_match_completed? ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-green-600 text-white hover:bg-green-700'}" %>
+          </div>
+        </div>
+
+        <!-- Plan-based Steps -->
+        <% accepted_plans = @organization.org_accepted_plans.active_only.current.includes(:insurance_plan) %>
+        <% if accepted_plans.any? %>
+          <div class="mt-6 pt-6 border-t border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-900 mb-4">Plan Enrollment Steps</h4>
+            <div class="space-y-4">
+              <% accepted_plans.each do |plan| %>
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <h5 class="text-sm font-medium text-gray-900 mb-3"><%= plan.insurance_plan&.name || "Plan ##{plan.id}" %></h5>
+                  <div class="space-y-2">
+                    <% OrganizationActivationPlanStep.step_types.keys.each do |step_type| %>
+                      <% step = OrganizationActivationPlanStep.find_or_initialize_by(
+                            org_accepted_plan_id: plan.id,
+                            step_type: step_type
+                          ) %>
+                      <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div class="flex items-center gap-2">
+                          <% if step.completed? %>
+                            <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                          <% else %>
+                            <svg class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          <% end %>
+                          <span class="text-xs text-gray-700"><%= step_type.humanize %></span>
+                        </div>
+                        <%= button_to step.completed? ? "Mark Incomplete" : "Mark Complete",
+                            toggle_plan_step_admin_organization_path(@organization, plan_id: plan.id, step_type: step_type),
+                            method: :patch,
+                            class: "text-xs px-2 py-1 rounded #{step.completed? ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' : 'bg-green-600 text-white hover:bg-green-700'}" %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
       </div>
     </div>
 
