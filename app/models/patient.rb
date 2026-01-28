@@ -65,11 +65,11 @@ class Patient < ApplicationRecord
   validates :first_name, :last_name, length: { minimum: 2, maximum: 100 }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone_number, format: { with: /\A\+?[1-9]\d{1,14}\z/ }, allow_blank: true
-  validates :mrn, uniqueness: { scope: :organization_id, case_sensitive: false }, allow_blank: true
+  # validates :mrn, uniqueness: { scope: :organization_id, case_sensitive: false }, allow_blank: true
   validates :external_id, uniqueness: { scope: :organization_id }, allow_blank: true
   validate :date_of_birth_not_in_future
   validate :address_required
-  validate :mrn_required_if_org_enabled
+  # validate :mrn_required_if_org_enabled
   validate :immutable_fields_if_deceased_or_merged
   validate :can_edit_demographics
   validate :merge_target_valid, if: :merging?
