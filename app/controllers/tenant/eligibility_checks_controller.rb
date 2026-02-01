@@ -42,6 +42,10 @@ class Tenant::EligibilityChecksController < Tenant::BaseController
     @payers = Payer.active_only.order(:name)
     @providers = @current_organization.providers.kept.active.order(:first_name, :last_name)
     @procedure_codes = ProcedureCode.active.kept.order(:code).limit(500)
+    loc = @current_organization.organization_locations.billing.active.first
+    @default_billing_address = loc ? [ loc.address_line_1, loc.address_line_2, loc.city, loc.state, loc.postal_code ].compact_blank.join(", ") : ""
+    ident = @current_organization.organization_identifier
+    @default_tax_id = ident&.tax_identification_number.to_s
   end
 
   def eligibility_check_params
@@ -50,6 +54,7 @@ class Tenant::EligibilityChecksController < Tenant::BaseController
       :patient_first_name, :patient_last_name, :patient_date_of_birth, :patient_relationship,
       :subscriber_member_id, :subscriber_first_name, :subscriber_last_name, :subscriber_date_of_birth,
       :payer_id, :provider_id, :place_of_service_code,
+      :provider_billing_address, :provider_tax_id, :provider_is_specialist,
       procedure_code_ids: []
     )
   end

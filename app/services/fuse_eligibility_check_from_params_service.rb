@@ -79,10 +79,13 @@ class FuseEligibilityCheckFromParamsService
     loc = @organization.organization_locations.billing.active.first
     ident = @organization.organization_identifier
     pos_code = @params[:place_of_service_code].presence || "11"
+    billing_address = @params[:provider_billing_address].presence || format_billing_address(loc)
+    tax_id = @params[:provider_tax_id].presence || ident&.tax_identification_number.to_s
     {
       "npi" => (provider.npi || loc&.billing_npi).to_s,
-      "billingAddress" => format_billing_address(loc),
-      "taxId" => ident&.tax_identification_number.to_s,
+      "billingAddress" => non_empty_string(billing_address),
+      "taxId" => non_empty_string(tax_id),
+      "isSpecialist" => is_specialist_value_from_params(provider),
       "placeOfService" => { "code" => pos_code.to_s.rjust(2, "0"), "label" => place_of_service_label(pos_code) },
       "organizationName" => @organization.name.presence
     }.compact
@@ -109,6 +112,19 @@ class FuseEligibilityCheckFromParamsService
     return "" unless loc
     parts = [ loc.address_line_1, loc.address_line_2, loc.city, loc.state, loc.postal_code ].compact_blank
     parts.join(", ")
+  end
+
+  # Fuse requires non-empty strings for billingAddress and taxId
+  def non_empty_string(val)
+    s = val.to_s.strip
+    s.present? ? s : "N/A"
+  end
+
+  # Fuse requires isSpecialist (boolean). Use form param if present, else provider attribute, else false.
+  def is_specialist_value_from_params(provider)
+    return true if @params[:provider_is_specialist].to_s == "1"
+    return false unless provider
+    provider.respond_to?(:is_specialist?) && provider.is_specialist?
   end
 
   def place_of_service_label(code)

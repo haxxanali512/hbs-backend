@@ -188,7 +188,7 @@ class Admin::ProvidersController < Admin::BaseController
 
   def provider_params
     params.require(:provider).permit(
-      :first_name, :last_name, :npi, :license_number, :license_state,
+      :first_name, :last_name, :npi, :license_number, :license_state, :is_specialist,
       :metadata, specialty_ids: [], documents: [],
       provider_assignments_attributes: [ :id, :organization_id, :role, :active, :_destroy ]
     )
