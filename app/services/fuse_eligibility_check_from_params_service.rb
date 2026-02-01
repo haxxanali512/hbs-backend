@@ -10,8 +10,8 @@ class FuseEligibilityCheckFromParamsService
   POLL_INTERVAL_SECONDS = 2
   MAX_POLL_ATTEMPTS = 45 # ~90 seconds max wait
 
-  def self.submit(organization:, user:, params:)
-    new(organization: organization, user: user, params: params).submit
+  def self.submit(organization:, user:, params:, poll: true)
+    new(organization: organization, user: user, params: params).submit(poll: poll)
   end
 
   def initialize(organization:, user:, params:)
@@ -20,12 +20,14 @@ class FuseEligibilityCheckFromParamsService
     @params = params
   end
 
-  def submit
+  def submit(poll: true)
     payload = build_payload
     check_id = @params[:check_id].presence || "fuse-#{@organization.id}-#{SecureRandom.hex(8)}"
     response = fuse_api.submit_check(payload: payload, check_id: check_id)
     check_id_from_response = response["checkId"]
-    check_result = poll_until_completed(check_id_from_response) if check_id_from_response.present?
+    check_result = if poll && check_id_from_response.present?
+      poll_until_completed(check_id_from_response)
+    end
     { response: response, check_id: check_id_from_response, check_result: check_result }
   end
 

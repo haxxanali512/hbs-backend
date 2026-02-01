@@ -1,0 +1,80 @@
+<%
+  check_id = local_assigns[:check_id].to_s
+  poll_id = "eligibility-poll-#{check_id.gsub(/[^a-zA-Z0-9_-]/, '_')}"
+  status_url = status_tenant_eligibility_checks_path(check_id: check_id)
+  result_url = result_tenant_eligibility_checks_path(check_id: check_id)
+%>
+<div id="<%= poll_id %>" class="eligibility-pending bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4" data-check-id="<%= check_id %>" data-status-url="<%= status_url %>" data-result-url="<%= result_url %>">
+  <div class="flex items-center gap-3">
+    <svg class="animate-spin h-6 w-6 text-blue-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <div>
+      <p class="font-medium text-gray-900 eligibility-pending-message">Checking eligibility status…</p>
+      <p class="text-sm text-gray-500 mt-0.5">This usually takes 10–60 seconds. The result will appear here automatically.</p>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  var el = document.getElementById("<%= poll_id %>");
+  if (!el) return;
+  var statusUrl = el.getAttribute("data-status-url");
+  var resultUrl = el.getAttribute("data-result-url");
+  var messageEl = el.querySelector(".eligibility-pending-message");
+  var startedAt = Date.now();
+  var maxWaitMs = 90000;
+
+  function updateMessage(seconds) {
+    if (messageEl) messageEl.textContent = "Checking eligibility status… (" + seconds + " s)";
+  }
+
+  function stopPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = null;
+  }
+
+  var pollInterval = setInterval(function() {
+    if (!el.isConnected) { stopPolling(); return; }
+    if (Date.now() - startedAt > maxWaitMs) {
+      stopPolling();
+      if (messageEl) messageEl.textContent = "Still waiting after 90 s. You can refresh and try again or check back later.";
+      return;
+    }
+    fetch(statusUrl, { headers: { "Accept": "application/json" }, credentials: "same-origin" })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          stopPolling();
+          if (messageEl) messageEl.textContent = "Error: " + (data.error || "Unknown error");
+          return;
+        }
+        var elapsed = Math.round((Date.now() - startedAt) / 1000);
+        if (data.completed === true) {
+          stopPolling();
+          fetch(resultUrl, { headers: { "Accept": "text/html" }, credentials: "same-origin" })
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+              var wrap = document.createElement("div");
+              wrap.innerHTML = html.trim();
+              var replacement = wrap.firstChild;
+              if (el.parentNode && replacement) el.parentNode.replaceChild(replacement, el);
+            })
+            .catch(function() {
+              if (messageEl) messageEl.textContent = "Result ready but could not load. Refresh the page.";
+            });
+        } else {
+          updateMessage(elapsed);
+        }
+      })
+      .catch(function() {
+        updateMessage(Math.round((Date.now() - startedAt) / 1000));
+      });
+  }, 2000);
+
+  setTimeout(function() {
+    if (messageEl && el.isConnected) updateMessage(2);
+  }, 2000);
+})();
+</script>

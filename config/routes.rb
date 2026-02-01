@@ -485,7 +485,12 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :eligibility_checks, only: [ :index, :create ], path: "eligibility-checks"
+        resources :eligibility_checks, only: [ :index, :create ], path: "eligibility-checks" do
+          collection do
+            get :status
+            get :result
+          end
+        end
 
         # Claims index removed per request; comment out tenant claims routes
         # resources :claims, only: [ :index, :show ]
