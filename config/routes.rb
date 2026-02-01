@@ -481,8 +481,11 @@ Rails.application.routes.draw do
             post :mark_deceased
             post :reactivate
             post :push_to_ezclaim
+            post :check_eligibility
           end
         end
+
+        resources :eligibility_checks, only: [ :index, :create ], path: "eligibility-checks"
 
         # Claims index removed per request; comment out tenant claims routes
         # resources :claims, only: [ :index, :show ]

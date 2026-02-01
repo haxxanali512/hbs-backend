@@ -1,6 +1,6 @@
 class Tenant::PatientsController < Tenant::BaseController
   before_action :set_current_organization
-  before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate, :push_to_ezclaim ]
+  before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate, :push_to_ezclaim, :check_eligibility ]
 
   def index
     @patients = @current_organization.patients.includes(:organization).kept
@@ -55,6 +55,13 @@ class Tenant::PatientsController < Tenant::BaseController
   def show
     # Eager load insurance coverages to avoid N+1 queries
     @patient.patient_insurance_coverages.load
+    # Encounters with insurance (for manual eligibility check)
+    @eligibility_encounters = @patient.encounters.kept
+      .where.not(patient_insurance_coverage_id: nil)
+      .includes(:provider, :specialty, :organization)
+      .includes(patient_insurance_coverage: :insurance_plan)
+      .order(date_of_service: :desc)
+      .limit(20)
   end
 
   def new
@@ -142,6 +149,26 @@ class Tenant::PatientsController < Tenant::BaseController
     else
       redirect_to tenant_patient_path(@patient), alert: "Failed to reactivate patient: #{@patient.errors.full_messages.join(', ')}"
     end
+  end
+
+  def check_eligibility
+    encounter = @current_organization.encounters.kept.find_by(id: params[:encounter_id], patient_id: @patient.id)
+    unless encounter
+      redirect_to tenant_patient_path(@patient), alert: "Encounter not found or does not belong to this patient."
+      return
+    end
+    unless encounter.patient_insurance_coverage_id.present?
+      redirect_to tenant_patient_path(@patient), alert: "This encounter has no insurance coverage. Select an insurance coverage on the encounter to check eligibility."
+      return
+    end
+    payer = encounter.patient_insurance_coverage&.insurance_plan&.payer
+    check_id = payer.present? ? "payer-#{payer.id}-#{encounter.id}" : nil
+
+    result = FuseEligibilitySubmitService.submit(encounter: encounter, check_id: check_id)
+    redirect_to tenant_patient_path(@patient),
+                notice: "Eligibility check submitted. Check ID: #{result['checkId']}. You will receive results via webhook."
+  rescue FuseEligibilitySubmitService::Error, FuseApiService::Error => e
+    redirect_to tenant_patient_path(@patient), alert: "Eligibility check failed: #{e.message}"
   end
 
   def push_to_ezclaim

@@ -1,0 +1,27 @@
+<div id="eligibility-result-<%= Time.current.to_i %>" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+  <h3 class="text-lg font-medium text-gray-900 mb-4">Eligibility result</h3>
+  <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+    <div>
+      <dt class="font-medium text-gray-500">Check ID</dt>
+      <dd class="mt-1 text-gray-900 font-mono text-xs"><%= check_result["checkId"] %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Completed</dt>
+      <dd class="mt-1 text-gray-900"><%= check_result["completed"] == true ? "Yes" : "No" %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Created</dt>
+      <dd class="mt-1 text-gray-900"><%= check_result["createdAt"] %></dd>
+    </div>
+    <div>
+      <dt class="font-medium text-gray-500">Updated</dt>
+      <dd class="mt-1 text-gray-900"><%= check_result["updatedAt"] %></dd>
+    </div>
+  </dl>
+  <% if check_result["results"].present? %>
+    <details class="mt-2">
+      <summary class="text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800">View raw results</summary>
+      <pre class="mt-2 text-xs bg-gray-50 p-3 rounded-md overflow-x-auto max-h-64 border border-gray-200"><%= JSON.pretty_generate(check_result["results"]) %></pre>
+    </details>
+  <% end %>
+</div>

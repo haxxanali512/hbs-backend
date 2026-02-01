@@ -291,6 +291,7 @@
           <% coverages_active = controller_path == 'tenant/patient_insurance_coverages' %>
           <% encounters_active = controller_path == 'tenant/encounters' && action_name != 'workflow' %>
           <% prescriptions_active = controller_path == 'tenant/prescriptions' %>
+          <% eligibility_checks_active = controller_path == 'tenant/eligibility_checks' %>
           <% procedure_codes_active = controller_path == 'tenant/procedure_codes' %>
           <% diagnosis_codes_active = controller_path == 'tenant/diagnosis_codes' %>
           <% invoices_active = controller_path == 'tenant/invoices' %>
@@ -298,7 +299,7 @@
           <% settings_active = controller_path == 'tenant/organization_settings' %>
 
           <% practice_active = providers_active || specialties_active || fee_schedules_active || accepted_plans_active || org_locations_active %>
-          <% clinical_active = patients_active || coverages_active || encounters_active || prescriptions_active %>
+          <% clinical_active = patients_active || coverages_active || encounters_active || prescriptions_active || eligibility_checks_active %>
           <% codes_active = procedure_codes_active || diagnosis_codes_active %>
           <% financial_active = invoices_active || support_tickets_active || settings_active %>
 
@@ -401,6 +402,11 @@
                   <% end %>
                 </li>
               <% end %>
+              <li>
+                <%= link_to tenant_eligibility_checks_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{eligibility_checks_active ? 'active' : ''} #{eligibility_checks_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
+                  <span>Eligibility Check</span>
+                <% end %>
+              </li>
             </ul>
           </li>
 
