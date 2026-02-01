@@ -81,8 +81,9 @@ class FuseEligibilitySubmitService
     pos_code = @encounter.place_of_service_code.presence || @encounter.organization_location&.place_of_service_code || "11"
     {
       "npi" => (prov&.npi || loc&.billing_npi).to_s,
-      "billingAddress" => format_billing_address(loc),
-      "taxId" => ident&.tax_identification_number.to_s,
+      "billingAddress" => non_empty_string(format_billing_address(loc)),
+      "taxId" => non_empty_string(ident&.tax_identification_number.to_s),
+      "isSpecialist" => is_specialist_value(prov),
       "placeOfService" => { "code" => pos_code.to_s.rjust(2, "0"), "label" => place_of_service_label(pos_code) },
       "organizationName" => org&.name.presence
     }.compact
@@ -129,6 +130,18 @@ class FuseEligibilitySubmitService
     return "" unless loc
     parts = [ loc.address_line_1, loc.address_line_2, loc.city, loc.state, loc.postal_code ].compact_blank
     parts.join(", ")
+  end
+
+  # Fuse requires non-empty strings for billingAddress and taxId
+  def non_empty_string(val)
+    s = val.to_s.strip
+    s.present? ? s : "N/A"
+  end
+
+  # Fuse requires isSpecialist (boolean); default false if not stored
+  def is_specialist_value(provider)
+    return false unless provider
+    provider.respond_to?(:is_specialist?) ? provider.is_specialist? : false
   end
 
   def place_of_service_label(code)

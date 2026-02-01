@@ -75,6 +75,21 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Procedure code(s)</label>
               <%= select_tag "procedure_code_ids[]", options_for_select(@procedure_codes.map { |pc| [ "#{pc.code} - #{pc.description}", pc.id ] }, params[:procedure_code_ids]), include_blank: "Default (99213)", class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", multiple: true %>
             </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Billing address (optional)</label>
+              <%= text_field_tag :provider_billing_address, params[:provider_billing_address].presence || @default_billing_address, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Defaults to organization billing address" %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tax ID (optional)</label>
+              <%= text_field_tag :provider_tax_id, params[:provider_tax_id].presence || @default_tax_id, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Defaults to organization tax ID" %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Provider is specialist (optional)</label>
+              <div class="flex items-center gap-2 pt-2">
+                <%= check_box_tag :provider_is_specialist, "1", ActiveModel::Type::Boolean.new.cast(params[:provider_is_specialist]), class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                <span class="text-sm text-gray-600">Treat provider as specialist for this check</span>
+              </div>
+            </div>
           </div>
         </div>
 

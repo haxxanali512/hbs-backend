@@ -75,6 +75,6 @@ class Tenant::ProvidersController < Tenant::BaseController
   end
 
   def provider_params
-    params.require(:provider).permit(:first_name, :last_name, :npi, :license_number, :license_state, :metadata, specialty_ids: [], documents: [])
+    params.require(:provider).permit(:first_name, :last_name, :npi, :license_number, :license_state, :is_specialist, :metadata, specialty_ids: [], documents: [])
   end
 end
