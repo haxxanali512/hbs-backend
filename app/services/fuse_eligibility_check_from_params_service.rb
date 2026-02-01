@@ -1,11 +1,14 @@
 # Builds Fuse SubmitCheckRequest from form params (no Patient/Encounter in DB) and submits via FuseApiService.
-# Real-time: after submit, call get_check to fetch current status/result.
+# After submit (201 or 202), polls get_check until the eligibility check is completed or max attempts reached.
 #
 # Usage:
 #   result = FuseEligibilityCheckFromParamsService.submit(organization:, user:, params: params)
-#   # => { response: fuse_api_response, check_result: get_check_result or nil }
+#   # => { response: fuse_api_response, check_id:, check_result: completed result or last poll }
 class FuseEligibilityCheckFromParamsService
   class Error < StandardError; end
+
+  POLL_INTERVAL_SECONDS = 2
+  MAX_POLL_ATTEMPTS = 45 # ~90 seconds max wait
 
   def self.submit(organization:, user:, params:)
     new(organization: organization, user: user, params: params).submit
@@ -22,8 +25,7 @@ class FuseEligibilityCheckFromParamsService
     check_id = @params[:check_id].presence || "fuse-#{@organization.id}-#{SecureRandom.hex(8)}"
     response = fuse_api.submit_check(payload: payload, check_id: check_id)
     check_id_from_response = response["checkId"]
-    # Optionally fetch result once (real-time)
-    check_result = fetch_check_result(check_id_from_response) if check_id_from_response.present?
+    check_result = poll_until_completed(check_id_from_response) if check_id_from_response.present?
     { response: response, check_id: check_id_from_response, check_result: check_result }
   end
 
@@ -131,9 +133,27 @@ class FuseEligibilityCheckFromParamsService
     { "10" => "Telehealth", "11" => "Office", "12" => "Patient's Home" }.fetch(code.to_s, "Office")
   end
 
-  def fetch_check_result(check_id)
+  # Poll get_check until completed or max attempts. Returns last get_check response.
+  def poll_until_completed(check_id)
+    attempt = 0
+    loop do
+      result = fuse_api.get_check(check_id: check_id)
+      return result if result["completed"] == true
+      return result if terminal_status?(result["status"])
+
+      attempt += 1
+      break if attempt >= MAX_POLL_ATTEMPTS
+
+      sleep(POLL_INTERVAL_SECONDS)
+    end
+
+    # Return last known state after timeout
     fuse_api.get_check(check_id: check_id)
   rescue FuseApiService::Error
     nil
+  end
+
+  def terminal_status?(status)
+    %w[FAILED CANCELLED ERROR].include?(status.to_s.upcase)
   end
 end

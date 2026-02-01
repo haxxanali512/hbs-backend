@@ -60,6 +60,7 @@ class FuseApiService
   # Eligibility Checks
   # ===========================================================
 
+  # Fuse may return 201 (Created) or 202 (Accepted) for async eligibility checks
   def submit_check(payload:, check_id: nil)
     body = payload.deep_dup
     body["checkId"] ||= check_id if check_id.present?
@@ -69,7 +70,7 @@ class FuseApiService
       "/eligibility-checks",
       body: body,
       scope: eligibility_scope,
-      expected_status: 201
+      expected_status: [ 201, 202 ]
     )
   end
 
@@ -245,9 +246,10 @@ class FuseApiService
 
   def parse_response(response, expected_status:, expect_body: true)
     status = response.code
+    expected = Array(expected_status)
 
     case status
-    when expected_status
+    when *expected
       expect_body ? safe_parse_json(response.body) : true
     when 401
       raise AuthenticationError, response.body
