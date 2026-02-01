@@ -315,6 +315,47 @@ class DataImportService
 
     associated_model = association.class_name.constantize
 
+    # CSV format is "last_name, first_name". Resolve Patient by last_name + first_name (case-insensitive).
+    if associated_model == Patient
+      parsed = parse_last_name_comma_first_name(value)
+      if parsed
+        scope = Patient.kept
+        scope = scope.where(organization_id: options[:organization_id]) if options[:organization_id].present?
+        record = scope.where(
+          "LOWER(TRIM(last_name)) = ? AND LOWER(TRIM(first_name)) = ?",
+          parsed[:last_name].downcase.strip,
+          parsed[:first_name].downcase.strip
+        ).first
+        return record.id if record
+      end
+      # Fallback: try "First Last" as full_name (e.g. concatenated first_name + " " + last_name)
+      scope = Patient.kept
+      scope = scope.where(organization_id: options[:organization_id]) if options[:organization_id].present?
+      scope.find_each do |p|
+        return p.id if p.full_name.to_s.downcase.strip == value.to_s.downcase.strip
+      end
+      return nil
+    end
+
+    # Provider: CSV format is "last_name, first_name"; resolve by last_name + first_name or full name (case-insensitive).
+    if associated_model == Provider
+      scope = Provider.kept
+      scope = scope.joins(:provider_assignments).where(provider_assignments: { organization_id: options[:organization_id] }).distinct if options[:organization_id].present?
+      parsed = parse_last_name_comma_first_name(value)
+      if parsed
+        record = scope.where(
+          "LOWER(TRIM(last_name)) = ? AND LOWER(TRIM(first_name)) = ?",
+          parsed[:last_name].downcase.strip,
+          parsed[:first_name].downcase.strip
+        ).first
+        return record.id if record
+      end
+      scope.find_each do |p|
+        return p.id if p.full_name.to_s.downcase.strip == value.to_s.downcase.strip
+      end
+      return nil
+    end
+
     # Special handling for User (owner association)
     if associated_model == User
       # Try to find by email first
@@ -350,6 +391,14 @@ class DataImportService
     end
 
     nil
+  end
+
+  # CSV format is "last_name, first_name". Returns { last_name:, first_name: } or nil.
+  def parse_last_name_comma_first_name(value)
+    return nil if value.blank?
+    parts = value.to_s.split(",", 2).map(&:strip).reject(&:blank?)
+    return nil unless parts.length == 2
+    { last_name: parts[0], first_name: parts[1] }
   end
 
   def extract_find_by_attributes(attributes)
