@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_23_130010) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_31_103247) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -904,6 +904,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_23_130010) do
     t.datetime "updated_at", null: false
     t.string "hbs_payer_key"
     t.text "search_tokens"
+    t.string "fuse_eligibility_check_id"
+    t.string "fuse_eligibility_status"
+    t.jsonb "fuse_eligibility_response"
+    t.datetime "fuse_eligibility_updated_at"
+    t.index ["fuse_eligibility_check_id"], name: "index_payers_on_fuse_eligibility_check_id", where: "((fuse_eligibility_check_id IS NOT NULL) AND ((fuse_eligibility_check_id)::text <> ''::text))"
   end
 
   create_table "payment_applications", force: :cascade do |t|

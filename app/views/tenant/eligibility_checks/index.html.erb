@@ -1,0 +1,105 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Eligibility Check</h1>
+          <p class="mt-2 text-gray-600">Check eligibility by entering patient and insurance details. No patient record is required.</p>
+        </div>
+        <div>
+          <%= link_to "Back to Dashboard", tenant_dashboard_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    </div>
+
+    <div id="eligibility_results" class="mb-6"></div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <%= form_with url: tenant_eligibility_checks_path, method: :post, class: "space-y-6", data: { turbo_frame: "_top" }, id: "eligibility_check_form" do |f| %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <h3 class="text-lg font-medium text-gray-900">Patient</h3>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Patient first name <span class="text-red-500">*</span></label>
+              <%= text_field_tag :patient_first_name, params[:patient_first_name], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Patient last name <span class="text-red-500">*</span></label>
+              <%= text_field_tag :patient_last_name, params[:patient_last_name], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Patient date of birth <span class="text-red-500">*</span></label>
+              <%= date_field_tag :patient_date_of_birth, params[:patient_date_of_birth], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Relationship to subscriber</label>
+              <%= select_tag :patient_relationship, options_for_select([ [ "Self", "SELF" ], [ "Dependent", "DEPENDENT" ] ], params[:patient_relationship]), include_blank: "Select...", class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <h3 class="text-lg font-medium text-gray-900">Subscriber</h3>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Member ID <span class="text-red-500">*</span></label>
+              <%= text_field_tag :subscriber_member_id, params[:subscriber_member_id], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Subscriber first name</label>
+              <%= text_field_tag :subscriber_first_name, params[:subscriber_first_name], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Subscriber last name</label>
+              <%= text_field_tag :subscriber_last_name, params[:subscriber_last_name], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4 border-t border-gray-100 pt-6">
+          <h3 class="text-lg font-medium text-gray-900">Payer &amp; encounter</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Payer <span class="text-red-500">*</span></label>
+              <%= select_tag :payer_id, options_for_select(@payers.map { |p| [ p.name, p.id ] }, params[:payer_id]), include_blank: "Select payer...", class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Provider <span class="text-red-500">*</span></label>
+              <%= select_tag :provider_id, options_for_select(@providers.map { |p| [ p.full_name, p.id ] }, params[:provider_id]), include_blank: "Select provider...", class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Place of service</label>
+              <%= select_tag :place_of_service_code, options_for_select([ [ "Office (11)", "11" ], [ "Patient's Home (12)", "12" ], [ "Telehealth (10)", "10" ] ], params[:place_of_service_code] || "11"), class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Procedure code(s)</label>
+              <%= select_tag "procedure_code_ids[]", options_for_select(@procedure_codes.map { |pc| [ "#{pc.code} - #{pc.description}", pc.id ] }, params[:procedure_code_ids]), include_blank: "Default (99213)", class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", multiple: true %>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <%= link_to "Cancel", tenant_dashboard_path, class: "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+          <%= submit_tag "Check eligibility", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var form = document.getElementById("eligibility_check_form");
+  var results = document.getElementById("eligibility_results");
+  if (!form || !results) return;
+  var loaderHtml = '<div id="eligibility-loader" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4 flex items-center gap-3">' +
+    '<svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">' +
+    '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+    '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>' +
+    '<span class="text-sm font-medium text-blue-800">Checking eligibility with Fuse…</span></div>';
+  form.addEventListener("turbo:submit-start", function() {
+    if (document.getElementById("eligibility-loader")) return;
+    results.insertAdjacentHTML("afterbegin", loaderHtml);
+  });
+})();
+</script>
