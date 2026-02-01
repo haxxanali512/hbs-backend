@@ -246,10 +246,9 @@ class FuseApiService
 
   def parse_response(response, expected_status:, expect_body: true)
     status = response.code
-    expected = Array(expected_status)
 
     case status
-    when *expected
+    when expected_status
       expect_body ? safe_parse_json(response.body) : true
     when 401
       raise AuthenticationError, response.body
