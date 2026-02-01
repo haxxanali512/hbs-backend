@@ -5,24 +5,49 @@ class Tenant::EligibilityChecksController < Tenant::BaseController
   def index
   end
 
+  def status
+    check_id = params[:check_id].presence
+    unless check_id
+      return render json: { error: "check_id required" }, status: :bad_request
+    end
+    result = FuseApiService.new.get_check(check_id: check_id)
+    render json: {
+      completed: result["completed"] == true,
+      status: result["status"],
+      check_result: result["completed"] == true ? result : nil
+    }
+  rescue FuseApiService::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def result
+    check_id = params[:check_id].presence
+    unless check_id
+      return head :bad_request
+    end
+    check_result = FuseApiService.new.get_check(check_id: check_id)
+    render partial: "tenant/eligibility_checks/result", locals: { check_result: check_result }, layout: false
+  rescue FuseApiService::Error
+    render partial: "tenant/eligibility_checks/result_error", locals: { message: "Could not load result." }, layout: false
+  end
+
   def create
     result = FuseEligibilityCheckFromParamsService.submit(
       organization: @current_organization,
       user: current_user,
-      params: eligibility_check_params
+      params: eligibility_check_params,
+      poll: false
     )
-    @check_result = result[:check_result]
+    check_id = result[:check_id]
     respond_to do |format|
       format.turbo_stream do
-        streams = [ turbo_stream.remove("eligibility-loader") ]
-        if @check_result.present?
-          streams << turbo_stream.append("eligibility_results", partial: "tenant/eligibility_checks/result", locals: { check_result: @check_result })
-        else
-          streams << turbo_stream.append("eligibility_results", partial: "tenant/eligibility_checks/result", locals: { check_result: { "checkId" => result[:check_id], "completed" => false, "createdAt" => nil, "updatedAt" => nil, "results" => nil } })
-        end
+        streams = [
+          turbo_stream.remove("eligibility-loader"),
+          turbo_stream.append("eligibility_results", partial: "tenant/eligibility_checks/pending", locals: { check_id: check_id })
+        ]
         render turbo_stream: streams
       end
-      format.html { redirect_to tenant_eligibility_checks_path, notice: "Eligibility check completed." }
+      format.html { redirect_to tenant_eligibility_checks_path, notice: "Eligibility check submitted." }
     end
   rescue FuseEligibilityCheckFromParamsService::Error, FuseApiService::Error => e
     respond_to do |format|

@@ -10,4 +10,12 @@ class Tenant::EligibilityCheckPolicy < ApplicationPolicy
   def new?
     true
   end
+
+  def status?
+    true
+  end
+
+  def result?
+    true
+  end
 end
