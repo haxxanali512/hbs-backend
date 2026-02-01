@@ -226,7 +226,7 @@ class FileProcessingJob < ApplicationJob
     row.transform_values do |v|
       v.is_a?(String) ? v.strip : v
     end.tap do |normalized|
-      normalized["Remit Patient Name"] = normalize_name(normalized["Remit Patient Name"])
+      # Keep formatted (title-case) patient name for display/export; matching uses normalize_name in match_patient_xano_style
       normalized["Remit Service From Date"] = parse_date(normalized["Remit Service From Date"])
       normalized["Remit Service to Date"] = parse_date(normalized["Remit Service to Date"])
       normalized["Remit Received Date"] = parse_date(normalized["Remit Received Date"])
@@ -244,15 +244,16 @@ class FileProcessingJob < ApplicationJob
     end
 
     input_name = raw_name.strip
-    normalized_input = normalize_name(input_name)
+    # Case-insensitive matching: normalize both input and DB names to same form for comparison
+    normalized_input = normalize_name_for_matching(input_name)
 
     # Get all patients with their full names
     all_patients = Patient.kept.select(:id, :first_name, :last_name)
 
-    # Build matches with exact and fuzzy flags
+    # Build matches with exact and fuzzy flags (case-insensitive)
     matches = all_patients.map do |p|
       full_name = p.full_name
-      normalized_full = normalize_name(full_name)
+      normalized_full = normalize_name_for_matching(full_name)
 
       {
         patient: p,
@@ -371,9 +372,17 @@ class FileProcessingJob < ApplicationJob
     path.to_s
   end
 
+  # For display/export: unused in matching; normalize_row keeps formatted name.
   def normalize_name(name)
     return nil if name.blank?
     name.to_s.strip.downcase.squeeze(" ")
+  end
+
+  # Case-insensitive patient name matching: normalize to lowercase, single spaces, and consistent order (first last)
+  def normalize_name_for_matching(name)
+    return nil if name.blank?
+    formatted = format_patient_name(name.to_s.strip)
+    formatted.to_s.downcase.squeeze(" ")
   end
 
   def parse_date(value)
@@ -404,32 +413,31 @@ class FileProcessingJob < ApplicationJob
     d[m][n]
   end
 
+  # CSV format is "last_name, first_name". We parse accordingly and return title-case "First Last".
   def format_patient_name(input)
     return "" if input.blank?
 
-    # Split by comma and trim whitespace
-    name_parts = input.split(",").map(&:strip)
+    s = input.to_s.strip
+    # Format: last_name, first_name (comma-separated)
+    name_parts = s.split(",").map(&:strip).reject(&:blank?)
 
-    # If we don't have exactly 2 parts, return original
-    return input if name_parts.length != 2
-
-    last_name, first_name = name_parts
-
-    # Capitalize each part (first letter uppercase, rest lowercase)
-    formatted_first_name = capitalize_name(first_name)
-    formatted_last_name = capitalize_name(last_name)
-
-    # Return as "FirstName LastName"
-    "#{formatted_first_name} #{formatted_last_name}"
+    if name_parts.length == 2
+      last_name, first_name = name_parts
+      formatted_first = capitalize_name_part(first_name)
+      formatted_last = capitalize_name_part(last_name)
+      "#{formatted_first} #{formatted_last}"
+    else
+      # No comma: treat as "First Last" and title-case
+      capitalize_name_part(s)
+    end
   end
 
-  def capitalize_name(name)
+  # Title-case a name (first letter up, rest down); supports multiple words.
+  def capitalize_name_part(name)
     return "" if name.blank?
 
-    name.strip.split(" ").map do |part|
-      part.chars.each_with_index.map do |char, index|
-        index == 0 ? char.upcase : char.downcase
-      end.join
+    name.to_s.strip.split(/\s+/).map do |part|
+      part.chars.each_with_index.map { |char, i| i == 0 ? char.upcase : char.downcase }.join
     end.join(" ")
   end
 
