@@ -1,4 +1,4 @@
-<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col">
+<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 min-w-[17rem] md:w-72 bg-white border-r border-gray-200 flex-col flex-shrink-0">
   <div class="h-16 flex items-center justify-center border-b border-gray-200">
     <%= link_to (current_user.super_admin? && current_organization.nil? ? admin_dashboard_path : tenant_dashboard_path), class: "flex items-center space-x-3" do %>
       <%= image_tag "HBS-logo-scaled (1).png", alt: "Holistic Business Solution", class: "h-8 w-auto" %>
@@ -45,7 +45,7 @@
             </span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
-          <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-practice">
+          <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-practice">
             <% if current_user.permissions_for("admin", "organizations", "index") %>
               <li>
                 <% orgs_active = controller_path == 'admin/organizations' %>
@@ -106,7 +106,7 @@
             </span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
-          <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-revenue">
+          <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-revenue">
             <% if current_user.permissions_for("admin", "encounters", "index") %>
               <li>
                 <% encounters_active = controller_path == 'admin/encounters' && action_name == 'index' %>
@@ -158,7 +158,7 @@
             </span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
-          <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-patients">
+          <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-patients">
             <% if current_user.permissions_for("admin", "patients", "index") %>
               <li>
                 <% patients_active = controller_path == 'admin/patients' %>
@@ -192,7 +192,7 @@
             </span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
-          <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-reference">
+          <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-reference">
             <% if current_user.permissions_for("admin", "encounter_templates", "index") %>
               <li>
                 <% templates_active = controller_path == 'admin/encounter_templates' %>
@@ -271,7 +271,7 @@
             </span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
-          <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-platform">
+          <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="admin-platform">
             <% if current_user.permissions_for("admin", "organization_billings", "index") %>
               <li>
                 <% organization_billings_active = controller_path == 'admin/organization_billings' %>
@@ -383,7 +383,7 @@
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
-            <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="practice">
+            <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="practice">
               <% if current_user.permissions_for("tenant", "providers", "index") %>
                 <li>
                   <%= link_to tenant_providers_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{providers_active ? 'active' : ''} #{providers_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
@@ -433,7 +433,7 @@
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
-            <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="clinical">
+            <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="clinical">
               <% if current_user.permissions_for("tenant", "patients", "index") %>
                 <li>
                   <%= link_to tenant_patients_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{patients_active ? 'active' : ''} #{patients_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
@@ -481,7 +481,7 @@
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
-            <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="codes">
+            <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="codes">
               <% if current_user.permissions_for("tenant", "procedure_codes", "index") %>
                 <li>
                   <%= link_to tenant_procedure_codes_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{procedure_codes_active ? 'active' : ''} #{procedure_codes_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
@@ -510,7 +510,7 @@
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-current transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
-            <ul class="space-y-1 pl-7 overflow-x-visible overflow-y-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="financial">
+            <ul class="space-y-1 pl-7 overflow-hidden transition-[max-height] duration-200 ease-out" data-sidebar-section-content="financial">
               <% if current_user.permissions_for("tenant", "invoices", "index") %>
                 <li>
                   <%= link_to tenant_invoices_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{invoices_active ? 'active' : ''} #{invoices_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
