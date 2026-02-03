@@ -5,8 +5,12 @@ class FileProcessingJob < ApplicationJob
   queue_as :default
 
 
-  def perform(file_path, file_type, job_id = nil, user_id = nil)
+  # Valid CARC codes: Paid (2, 242), Deductible (1), Denied (0). Only these are accepted for posting.
+  VALID_CARC_CODES = %w[0 1 2 242].freeze
+
+  def perform(file_path, file_type, job_id = nil, user_id = nil, options = {})
     job_id ||= SecureRandom.uuid
+    @allow_overwrite = options[:allow_overwrite] == true
     Rails.logger.info "Starting file processing for #{file_path} (Job ID: #{job_id})"
     @errors = []
     @line_number = 1
@@ -149,6 +153,9 @@ class FileProcessingJob < ApplicationJob
       row_data = row_data.to_h
     end
 
+    # Keep a copy of original row for error sheet (before formatting)
+    original_row = row_data.transform_values { |v| v.is_a?(String) ? v.strip : v }
+
     # Format Remit Patient Name if present
     if row_data["Remit Patient Name"].present?
       formatted_name = format_patient_name(row_data["Remit Patient Name"])
@@ -158,18 +165,35 @@ class FileProcessingJob < ApplicationJob
 
     normalized = normalize_row(row_data)
 
-    # Step 1: Patient Matching (exact first, then fuzzy)
+    # Safeguard: Validate date formats before use
+    if normalized["Remit Service From Date"].nil? && original_row["Remit Service From Date"].present?
+      record_error("Invalid date format", original_row, "Use a valid date format (e.g. YYYY-MM-DD) for Remit Service From Date", normalized)
+      return
+    end
+    if normalized["Remit Received Date"].nil? && original_row["Remit Received Date"].present?
+      record_error("Invalid date format", original_row, "Use a valid date format for Remit Received Date", normalized)
+      return
+    end
+
+    # Safeguard: Require valid status (CARC) – only Denied, Paid, Deductible
+    carc_value = normalized["Service Line Adjustment CARC"] || normalized["Servie Line Adjustment CARC"]
+    if carc_value.present? && !VALID_CARC_CODES.include?(carc_value.to_s.strip)
+      record_error("Invalid status/CARC code", original_row, "Use only Denied (0), Paid (2 or 242), or Deductible (1)", normalized)
+      return
+    end
+
+    # Step 1: Patient Matching (exact first, then single fuzzy accepted)
     patient_result = match_patient_xano_style(normalized)
     if patient_result[:success] == false
-      record_error(patient_result[:error], normalized, patient_result[:suggested_fix])
+      record_error(patient_result[:error], original_row, patient_result[:suggested_fix], normalized)
       return
     end
     patient = patient_result[:patient]
 
-    # Step 2: Encounter Date Validation
+    # Step 2: Encounter Date – missing or invalid
     encounter_date = normalized["Remit Service From Date"]
     if encounter_date.nil?
-      record_error("Encounter Date is Required", normalized, "Provide service date")
+      record_error("Missing Encounter Date", original_row, "Provide Remit Service From Date", normalized)
       return
     end
 
@@ -177,12 +201,12 @@ class FileProcessingJob < ApplicationJob
     service_from = normalized["Remit Service From Date"]
     service_to = normalized["Remit Service to Date"]
     if service_from.present? && service_to.present? && service_from != service_to
-      record_error("Service Start Date is different than Service End Date, Flagged!", normalized, "Verify service dates match")
+      record_error("Service Start Date differs from Service End Date", original_row, "Verify service dates match", normalized)
       return
     end
 
-    # Step 3: Encounter Matching
-    encounter = match_encounter_xano_style(patient, encounter_date, normalized)
+    # Step 3: Encounter Matching (Patient + Encounter Date)
+    encounter = match_encounter_xano_style(patient, encounter_date, original_row, normalized)
     if encounter.nil?
       return # Error already recorded
     end
@@ -190,13 +214,13 @@ class FileProcessingJob < ApplicationJob
     # Step 4: Procedure Code Validation
     procedure_code = normalized["Service Line Procedure Code"]
     if procedure_code.blank?
-      record_error("Missing Procedure Code.", normalized, "Provide procedure code")
+      record_error("Missing Procedure Code", original_row, "Provide procedure code", normalized)
       return
     end
 
     procedure_code_record = ProcedureCode.where(code: procedure_code.to_s.strip).first
     if procedure_code_record.nil?
-      record_error("Procedure code does not match,", normalized, "Verify procedure code exists")
+      record_error("Procedure code does not match", original_row, "Verify procedure code exists", normalized)
       return
     end
 
@@ -204,7 +228,7 @@ class FileProcessingJob < ApplicationJob
     organization_name = clean_organization_name(normalized["Remit Account"])
     organization = Organization.where("LOWER(name) = ?", organization_name.downcase).first if organization_name.present?
     if organization.nil?
-      record_error("Organization not found, flagged!", normalized, "Verify organization name")
+      record_error("Organization not found", original_row, "Verify organization name", normalized)
       return
     end
 
@@ -238,19 +262,17 @@ class FileProcessingJob < ApplicationJob
     unless raw_name
       return {
         success: false,
-        error: "Patient name missing",
+        error: "Patient not found",
         suggested_fix: "Provide patient name"
       }
     end
 
     input_name = raw_name.strip
-    # Case-insensitive matching: normalize both input and DB names to same form for comparison
+    # Case-insensitive, extra spaces normalized, common typos handled via fuzzy
     normalized_input = normalize_name_for_matching(input_name)
 
-    # Get all patients with their full names
     all_patients = Patient.kept.select(:id, :first_name, :last_name)
 
-    # Build matches with exact and fuzzy flags (case-insensitive)
     matches = all_patients.map do |p|
       full_name = p.full_name
       normalized_full = normalize_name_for_matching(full_name)
@@ -264,54 +286,54 @@ class FileProcessingJob < ApplicationJob
       }
     end
 
-    # Find exact matches
     exact_matches = matches.select { |m| m[:exact_match] }
 
     if exact_matches.count == 1
-      return {
-        success: true,
-        patient: exact_matches.first[:patient],
-        error: "Exact Match found"
-      }
-    elsif exact_matches.count > 1
+      return { success: true, patient: exact_matches.first[:patient] }
+    end
+
+    if exact_matches.count > 1
       return {
         success: false,
-        error: "More than one patient found with the exact same name",
+        error: "Multiple possible matches",
         suggested_fix: "Select correct patient: #{exact_matches.map { |m| "#{m[:patient].id}-#{m[:full_name]}" }.join('; ')}"
       }
     end
 
-    # Find fuzzy matches (excluding exact matches)
     fuzzy_matches = matches.select { |m| m[:fuzzy_match] && !m[:exact_match] }
 
-    if fuzzy_matches.count > 0
-      {
+    if fuzzy_matches.count == 1
+      # Single fuzzy match: accept to reduce issues from typos/extra spaces
+      return { success: true, patient: fuzzy_matches.first[:patient] }
+    end
+
+    if fuzzy_matches.count > 1
+      return {
         success: false,
-        error: "Fuzzy match found (spacing/typo/duplication)",
+        error: "Multiple possible matches",
         suggested_fix: "Select correct patient: #{fuzzy_matches.map { |m| "#{m[:patient].id}-#{m[:full_name]}" }.join('; ')}"
       }
-    else
-      {
-        success: false,
-        error: "No matching patient found",
-        suggested_fix: "Verify spelling or add patient"
-      }
     end
+
+    {
+      success: false,
+      error: "Patient not found",
+      suggested_fix: "Verify spelling or add patient"
+    }
   end
 
-  def match_encounter_xano_style(patient, encounter_date, row)
+  def match_encounter_xano_style(patient, encounter_date, original_row, normalized)
     scope = Encounter.kept.where(patient_id: patient.id, date_of_service: encounter_date)
 
     if scope.count == 1
       encounter = scope.first
-      # Update encounter status to "Finalized" (matching Xano logic)
       encounter.update(status: :completed_confirmed) if encounter.respond_to?(:status)
       encounter
     elsif scope.count > 1
-      record_error("Encounter not found", row, "Multiple encounters found for this date - manual review required")
+      record_error("Multiple encounters for this date", original_row, "Manual review required – select correct encounter", normalized)
       nil
     else
-      record_error("Encounter not found", row, "Verify encounter date matches patient record")
+      record_error("Encounter Date doesn't match any record", original_row, "Verify encounter date matches patient record", normalized)
       nil
     end
   end
@@ -327,12 +349,13 @@ class FileProcessingJob < ApplicationJob
     similarity >= threshold
   end
 
-  def record_error(reason, row, suggested_fix = nil)
+  def record_error(reason, original_row, suggested_fix = nil, normalized_row = nil)
     @errors << {
       line_number: @line_number,
       reason: reason,
       suggested_fix: suggested_fix,
-      row: row
+      original_row: original_row,
+      normalized_row: normalized_row
     }
   end
 
@@ -351,16 +374,20 @@ class FileProcessingJob < ApplicationJob
   end
 
   def write_error_csv(job_id)
-    headers = [ "Line Number", "Error Reason", "Suggested Fix" ] + processing_sample_headers
+    # Build column set: Line Number, Error Reason, Suggested Fix, then all original CSV columns
+    fixed_headers = [ "Line Number", "Error Reason", "Suggested Fix" ]
+    all_keys = @errors.flat_map { |e| (e[:original_row] || {}).keys }.uniq.sort
+    headers = fixed_headers + all_keys
+
     csv_content = CSV.generate do |csv|
       csv << headers
       @errors.each do |err|
-        row = err[:row] || {}
+        orig = err[:original_row] || {}
         csv << [
           err[:line_number],
           err[:reason],
           err[:suggested_fix]
-        ] + processing_sample_headers.map { |h| row[h] }
+        ] + all_keys.map { |k| orig[k] }
       end
     end
 
@@ -442,12 +469,12 @@ class FileProcessingJob < ApplicationJob
   end
 
   def process_payment_grouping(valid_records)
-    # Status mapping for CARC codes - only these specific codes are valid
+    # Status mapping for CARC codes – valid only: Paid, Deductible, Denied
     status_map = {
       "242" => "Paid",
       "2" => "Paid",
       "1" => "Deductible",
-      "0" => "Denial"
+      "0" => "Denied"
     }
 
     # Valid CARC codes that should be processed
@@ -691,16 +718,23 @@ class FileProcessingJob < ApplicationJob
           next
         end
 
+        source_hash = Digest::SHA256.hexdigest("#{job_id}|#{payment_data[:encounter_id]}|#{payment_data[:procedure_code_id]}|#{payment_data[:Date_Processed]}|#{payment_data[:Amount]}")
+
+        # Safeguard: prevent overwriting previously logged payments unless explicitly permitted
+        if Payment.exists?(source_hash: source_hash) && !@allow_overwrite
+          Rails.logger.info "Skipping duplicate payment (already logged) for encounter #{payment_data[:encounter_id]}"
+          next
+        end
+
         # Build payment record (matching Xano payment_line structure)
-        # Note: invoice_id is optional for remit-based payments
         payment = Payment.new(
-          invoice_id: nil, # Remit-based payments don't require invoice
+          invoice_id: nil,
           organization_id: payment_data[:owned_by] || encounter.organization_id,
           payer_id: payer_id,
           payment_date: payment_data[:Date_Processed] || payment_data[:Date_Logged],
           amount_total: payment_data[:Amount] || 0.0,
           remit_reference: payment_data[:organization] || "UNKNOWN",
-          source_hash: Digest::SHA256.hexdigest("#{job_id}|#{payment_data[:encounter_id]}|#{payment_data[:procedure_code_id]}|#{payment_data[:Date_Processed]}|#{payment_data[:Amount]}"),
+          source_hash: source_hash,
           payment_status: payment_status,
           payment_method: :manual,
           processed_by_user_id: payment_data[:user_id],
