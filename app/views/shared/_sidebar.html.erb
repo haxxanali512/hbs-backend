@@ -1,4 +1,4 @@
-<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 min-w-[17rem] md:w-72 bg-white border-r border-gray-200 flex-col flex-shrink-0">
+<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col">
   <div class="h-16 flex items-center justify-center border-b border-gray-200">
     <%= link_to (current_user.super_admin? && current_organization.nil? ? admin_dashboard_path : tenant_dashboard_path), class: "flex items-center space-x-3" do %>
       <%= image_tag "HBS-logo-scaled (1).png", alt: "Holistic Business Solution", class: "h-8 w-auto" %>
