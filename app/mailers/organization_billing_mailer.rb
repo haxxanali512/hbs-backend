@@ -1,5 +1,5 @@
 class OrganizationBillingMailer < ApplicationMailer
-  default from: "noreply@hbsdata.com"
+  default from: "support@holisticbusinesssolution.com"
 
   def manual_payment_request(organization_billing)
     organization = organization_billing.organization

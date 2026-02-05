@@ -1,5 +1,5 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: ENV.fetch("MAIL_FROM", "noreply@holisticbusinesssolution.com")
+  default from: "support@holisticbusinesssolution.com"
   layout "mailer"
 
   private

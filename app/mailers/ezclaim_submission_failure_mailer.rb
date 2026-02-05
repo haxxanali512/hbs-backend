@@ -1,6 +1,6 @@
 # Mailer to notify superadmin when EZClaim submissions fail
 class EzclaimSubmissionFailureMailer < ApplicationMailer
-  default from: "noreply@hbsdata.com"
+  default from: "support@holisticbusinesssolution.com"
 
   def notify_failures(organization:, results:)
     @organization = organization

@@ -1,5 +1,5 @@
 class OrganizationMailer < ApplicationMailer
-  default from: "noreply@hbsdata.com"
+  default from: "support@holisticbusinesssolution.com"
 
   def organization_created(organization)
     owner = organization.owner
@@ -12,7 +12,7 @@ class OrganizationMailer < ApplicationMailer
       template_key: "organization.organization_created",
       to: owner.email,
       placeholders: placeholders,
-      reply_to: "noreply@hbsdata.com"
+      reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
@@ -27,7 +27,7 @@ class OrganizationMailer < ApplicationMailer
       template_key: "organization.billing_setup_required",
       to: owner.email,
       placeholders: placeholders,
-      reply_to: "noreply@hbsdata.com"
+      reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
@@ -42,7 +42,7 @@ class OrganizationMailer < ApplicationMailer
       template_key: "organization.compliance_setup_required",
       to: owner.email,
       placeholders: placeholders,
-      reply_to: "noreply@hbsdata.com"
+      reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
