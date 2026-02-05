@@ -35,8 +35,8 @@ Rails.application.configure do
   config.assume_ssl = ENV.fetch("ASSUME_SSL", "false") == "true"
   config.force_ssl = ENV.fetch("FORCE_SSL", "false") == "true"
 
-  # Set default URL options for URL generation
-  Rails.application.routes.default_url_options = { host: ENV.fetch("HOST", "localhost") }
+  # Set default URL options for URL generation (domain for links in mail, etc.)
+  Rails.application.routes.default_url_options = { host: "holisticbusinesssolution.com" }
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -66,12 +66,13 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
-  config.action_mailer.default_url_options = { host: ENV.fetch("HOST", "localhost") }
+  config.action_mailer.default_url_options = { host: "holisticbusinesssolution.com" }
+  config.action_mailer.default_options = { from: "noreply@holisticbusinesssolution.com" }
 
   config.action_mailer.smtp_settings = {
     address: "smtp.sendgrid.net",
     port: 587,
-    domain: "holisticbusinesssolutions.com",
+    domain: "holisticbusinesssolution.com",
     user_name: "apikey",
     password: Rails.application.credentials.dig(:sendgrid, :api_key),
     authentication: :plain,
