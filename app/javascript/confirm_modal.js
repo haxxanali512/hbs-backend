@@ -50,7 +50,21 @@ function bindConfirmModalListeners() {
 
   cancelBtn?.addEventListener("click", closeConfirmModal);
   confirmBtn?.addEventListener("click", () => {
-    document.getElementById("confirmModalForm")?.submit();
+    const form = document.getElementById("confirmModalForm");
+    if (form) {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+      if (token) {
+        let input = form.querySelector('input[name="authenticity_token"]');
+        if (!input) {
+          input = document.createElement("input");
+          input.setAttribute("type", "hidden");
+          input.setAttribute("name", "authenticity_token");
+          form.appendChild(input);
+        }
+        input.setAttribute("value", token);
+      }
+      form.submit();
+    }
     closeConfirmModal();
   });
   modal.addEventListener("click", (e) => {
