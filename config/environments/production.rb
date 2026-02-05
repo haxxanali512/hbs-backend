@@ -70,9 +70,7 @@ Rails.application.configure do
   config.action_mailer.default_options = { from: "support@holisticbusinesssolution.com" }
 
   config.action_mailer.delivery_method = :sendgrid_api
-  config.action_mailer.sendgrid_api_settings = {
-    api_key: Rails.application.credentials.dig(:sendgrid, :api_key) || ENV["SENDGRID_API_KEY"]
-  }
+  # API key is read by SendgridApiDelivery from credentials or ENV (Rails has no sendgrid_api_settings= for custom delivery methods)
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
