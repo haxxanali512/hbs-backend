@@ -1,5 +1,5 @@
 class FileProcessingMailer < ApplicationMailer
-  default from: "noreply@hbsdata.com"
+  default from: "support@holisticbusinesssolution.com"
 
   def errors_report(user:, job_id:, error_path:, error_count:)
     @user = user

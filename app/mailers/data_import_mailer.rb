@@ -1,5 +1,5 @@
 class DataImportMailer < ApplicationMailer
-  default from: "noreply@hbsdata.com"
+  default from: "support@holisticbusinesssolution.com"
 
   def import_complete(user:, model_name:, result:)
     @user = user
