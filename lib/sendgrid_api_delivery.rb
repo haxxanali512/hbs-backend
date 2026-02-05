@@ -30,7 +30,9 @@ class SendgridApiDelivery
     status = response.status_code.to_i
 
     if (200..299).cover?(status)
-      Rails.logger.info "[SendGrid] Delivered to=#{to} status=#{status}"
+      # 202 = accepted and queued; email may still be dropped if sender unverified or sandbox/compliance
+      body = response.body.to_s
+      Rails.logger.info "[SendGrid] Accepted to=#{to} status=#{status} body=#{body.presence || '(empty)'}"
       return true
     end
 
