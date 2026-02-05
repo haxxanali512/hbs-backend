@@ -62,22 +62,16 @@ Rails.application.configure do
   # config.active_job.queue_adapter = :solid_queue
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Email delivery - SendGrid in production.
-  # To test without emailing real users: set MAIL_INTERCEPT_TO=your@email.com so all mail goes there (see config/initializers/mail_interceptor.rb).
-  config.action_mailer.delivery_method = :smtp
+  # Email delivery - SendGrid via Web API (sendgrid-ruby gem). Test email worked with API; SMTP was not sending.
+  # To test without emailing real users: set MAIL_INTERCEPT_TO=your@email.com (see config/initializers/mail_interceptor.rb).
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
   config.action_mailer.default_url_options = { host: "holisticbusinesssolution.com" }
-  config.action_mailer.default_options = { from: "noreply@holisticbusinesssolution.com" }
+  config.action_mailer.default_options = { from: "support@holisticbusinesssolution.com" }
 
-  config.action_mailer.smtp_settings = {
-    address: "smtp.sendgrid.net",
-    port: 587,
-    domain: "holisticbusinesssolution.com",
-    user_name: "apikey",
-    password: Rails.application.credentials.dig(:sendgrid, :api_key),
-    authentication: :plain,
-    enable_starttls_auto: true
+  config.action_mailer.delivery_method = :sendgrid_api
+  config.action_mailer.sendgrid_api_settings = {
+    api_key: Rails.application.credentials.dig(:sendgrid, :api_key) || ENV["SENDGRID_API_KEY"]
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
