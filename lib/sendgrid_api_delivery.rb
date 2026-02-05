@@ -10,10 +10,16 @@ class SendgridApiDelivery
   def initialize(settings = {})
     @api_key = settings[:api_key].to_s.strip
     @api_key = nil if @api_key.empty?
+    # Rails does not provide sendgrid_api_settings= for custom delivery methods; read from credentials/ENV if not in settings
+    if @api_key.blank? && defined?(Rails.application)
+      @api_key = Rails.application.credentials.dig(:sendgrid, :api_key).to_s.strip
+      @api_key = nil if @api_key.empty?
+    end
+    @api_key = ENV["SENDGRID_API_KEY"].to_s.strip.presence if @api_key.blank?
   end
 
   def deliver!(mail)
-    raise ArgumentError, "SendGrid API key not set. Set sendgrid_api_settings[:api_key] or SENDGRID_API_KEY." if @api_key.blank?
+    raise ArgumentError, "SendGrid API key not set. Set in credentials (sendgrid.api_key) or SENDGRID_API_KEY." if @api_key.blank?
 
     sg_mail = build_sendgrid_mail(mail)
     sg = SendGrid::API.new(api_key: @api_key)
