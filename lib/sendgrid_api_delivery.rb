@@ -42,8 +42,6 @@ class SendgridApiDelivery
   private
 
   def build_sendgrid_mail(mail)
-    include SendGrid
-
     from_addr = mail.from&.first || mail.header["From"]&.value
     from_email = parse_email(from_addr)
 
