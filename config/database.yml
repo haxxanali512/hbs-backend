@@ -29,6 +29,15 @@ test:
   host: localhost
   port: 5432
 
+# Staging database (use RAILS_ENV=staging)
+staging:
+  <<: *default
+  host: <%= ENV.fetch("DB_HOST", "127.0.0.1") %>
+  port: <%= ENV.fetch("DB_PORT", "5432") %>
+  database: <%= ENV.fetch("DB_NAME", "hbs_staging") %>
+  username: <%= Rails.application.credentials.dig(:database, :username) || ENV["DB_USERNAME"] %>
+  password: <%= Rails.application.credentials.dig(:database, :password) || ENV["DB_PASSWORD"] %>
+
 # Store production database configuration
 production:
   <<: *default
