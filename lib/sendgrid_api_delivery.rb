@@ -21,14 +21,22 @@ class SendgridApiDelivery
   def deliver!(mail)
     raise ArgumentError, "SendGrid API key not set. Set in credentials (sendgrid.api_key) or SENDGRID_API_KEY." if @api_key.blank?
 
+    to = mail.to.is_a?(Array) ? mail.to.join(", ") : mail.to.to_s
+    Rails.logger.info "[SendGrid] Sending to=#{to} subject=#{mail.subject}"
+
     sg_mail = build_sendgrid_mail(mail)
     sg = SendGrid::API.new(api_key: @api_key)
     response = sg.client.mail._("send").post(request_body: sg_mail.to_json)
+    status = response.status_code.to_i
 
-    return true if (200..299).cover?(response.status_code.to_i)
+    if (200..299).cover?(status)
+      Rails.logger.info "[SendGrid] Delivered to=#{to} status=#{status}"
+      return true
+    end
 
     body = response.body.to_s
-    raise "SendGrid API error (#{response.status_code}): #{body}"
+    Rails.logger.error "[SendGrid] Failed to=#{to} status=#{status} body=#{body}"
+    raise "SendGrid API error (#{status}): #{body}"
   end
 
   private

@@ -199,12 +199,9 @@ class Organization < ApplicationRecord
     begin
       owner.invite!
     rescue => e
-      # Log error but don't fail if it's a mail delivery issue
-      if e.message.include?("Connection refused") || e.message.include?("SMTP")
-        Rails.logger.warn("Could not send owner invitation email: #{e.message}")
-      else
-        raise
-      end
+      # Log all mail/invite errors so SendGrid and other failures are visible in logs
+      Rails.logger.warn("Could not send owner invitation email: #{e.class} - #{e.message}")
+      raise
     end
   end
 
