@@ -18,6 +18,9 @@ Rails.application.routes.draw do
     end
   end
 
+  # Temporary webhook for Google Forms (organization user invite / form completion)
+  post "webhooks/google_forms", to: "webhooks#google_forms"
+
   # API routes
   namespace :api do
     namespace :v1 do

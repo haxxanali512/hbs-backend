@@ -99,14 +99,15 @@ class EmailService
   end
 
   def ensure_template_key!
-    EmailTemplateKey.find_or_create_by!(key: template_key) do |key|
-      key.name = template_name
-      key.description = description
-      key.default_subject = default_subject
-      key.default_body_html = default_body_html
-      key.default_body_text = default_body_text
-      key.default_locale = locale
-    end
+    key_record = EmailTemplateKey.find_or_initialize_by(key: template_key)
+    key_record.name = template_name
+    key_record.description = description if description.present?
+    key_record.default_subject = default_subject if default_subject.present?
+    key_record.default_body_html = default_body_html if default_body_html.present?
+    key_record.default_body_text = default_body_text if default_body_text.present?
+    key_record.default_locale = locale if locale.present?
+    key_record.save!
+    key_record
   end
 
   class Renderer

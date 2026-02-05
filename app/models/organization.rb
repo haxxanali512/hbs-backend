@@ -305,4 +305,51 @@ class Organization < ApplicationRecord
       accepted_plans: { present: has_accepted_plans?, count: 0 } # Placeholder
     }
   end
+
+  # Temporary: handle Google Forms webhook payload (who completed the form).
+  # Finds user by email in payload and sends Devise invitation (same email as org invite).
+  def self.receive_google_forms_webhook(payload)
+    Rails.logger.info "[Webhook] Google Forms submission: #{payload.to_json}"
+
+    email = extract_email_from_payload(payload)
+    unless email.present?
+      Rails.logger.warn "[Webhook] No email found in payload"
+      return { received: true, invited: false, error: "No email in payload" }
+    end
+
+    user = User.find_by("LOWER(email) = ?", email.to_s.strip.downcase)
+    unless user
+      Rails.logger.warn "[Webhook] User not found for email: #{email}"
+      return { received: true, invited: false, error: "User not found for #{email}" }
+    end
+
+    inviter = User.joins(:role).find_by(roles: { role_name: "Super Admin" })
+    user.invite!(inviter)
+    Rails.logger.info "[Webhook] Invitation sent to #{email} (user_id=#{user.id})"
+    { received: true, invited: true, email: email }
+  rescue => e
+    Rails.logger.error "[Webhook] Failed: #{e.class} - #{e.message}"
+    { received: true, invited: false, error: e.message }
+  end
+
+  # Extract email from Google Forms–style payload (keys may be question titles, e.g. "Email", "Your email").
+  def self.extract_email_from_payload(payload)
+    return nil if payload.blank?
+
+    flat = flatten_hash(payload.with_indifferent_access)
+    key = flat.keys.find { |k| k.to_s.match?(/\bemail\b/i) }
+    val = key ? flat[key] : nil
+    val.to_s.strip.presence
+  end
+
+  def self.flatten_hash(hash, prefix = nil)
+    hash.each_with_object({}) do |(k, v), acc|
+      key = prefix ? "#{prefix}.#{k}" : k
+      if v.is_a?(Hash) && v.present?
+        acc.merge!(flatten_hash(v.with_indifferent_access, key))
+      else
+        acc[key] = v
+      end
+    end
+  end
 end
