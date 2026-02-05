@@ -34,8 +34,8 @@ Rails.application.configure do
   config.assume_ssl = ENV.fetch("ASSUME_SSL", "false") == "true"
   config.force_ssl = ENV.fetch("FORCE_SSL", "false") == "true"
 
-  # Set default URL options for URL generation
-  Rails.application.routes.default_url_options = { host: ENV.fetch("HOST", "localhost") }
+  # Set default URL options for URL generation (domain for links in mail, etc.)
+  Rails.application.routes.default_url_options = { host: ENV.fetch("DOMAIN", "staging.example.com") }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
@@ -59,7 +59,8 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
-  config.action_mailer.default_url_options = { host: ENV.fetch("HOST", "localhost") }
+  config.action_mailer.default_url_options = { host: ENV.fetch("DOMAIN", "staging.example.com") }
+  config.action_mailer.default_options = { from: ENV.fetch("MAIL_FROM", "admin@holisticbusinesssolutions.com") }
 
   config.action_mailer.smtp_settings = {
     user_name: ENV.fetch("SMTP_USER_NAME", "f08f0eb24d9514"),
