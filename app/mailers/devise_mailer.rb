@@ -3,14 +3,13 @@ class DeviseMailer < ApplicationMailer
   include Devise::Controllers::UrlHelpers
   default template_path: "devise/mailer"
 
+  # Render the invitation view and send directly via ActionMailer (no EmailService/DB template).
   def invitation_instructions(record, token, opts = {})
-    send_devise_email(
-      template_key: "devise.invitation_instructions",
-      record: record,
-      placeholders: {
-        invitation_url: accept_user_invitation_url(invitation_token: token)
-      },
-      to: opts[:to]
+    @resource = record
+    @token = token
+    mail(
+      to: opts[:to].presence || record.email,
+      subject: "You're invited to Holistic Business Solutions"
     )
   end
 
