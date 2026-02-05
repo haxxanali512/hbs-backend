@@ -394,11 +394,14 @@ GEM
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
+    ruby_http_client (3.6.0)
     rubyzip (3.2.2)
     rvm1-capistrano3 (1.4.1)
       capistrano (~> 3.0)
       sshkit (>= 1.2)
     securerandom (0.4.1)
+    sendgrid-ruby (6.7.0)
+      ruby_http_client (~> 3.4)
     shoulda-matchers (6.5.0)
       activesupport (>= 5.2.0)
     sidekiq (6.5.12)
@@ -508,6 +511,7 @@ DEPENDENCIES
   rubocop-rails-omakase
   rubyzip
   rvm1-capistrano3
+  sendgrid-ruby
   shoulda-matchers (~> 6.0)
   sidekiq (~> 6.5.12)
   simplecov

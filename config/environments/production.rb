@@ -62,7 +62,8 @@ Rails.application.configure do
   # config.active_job.queue_adapter = :solid_queue
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Email delivery - SendGrid in production
+  # Email delivery - SendGrid in production.
+  # To test without emailing real users: set MAIL_INTERCEPT_TO=your@email.com so all mail goes there (see config/initializers/mail_interceptor.rb).
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
