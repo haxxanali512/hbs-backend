@@ -18,9 +18,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # Temporary webhook for Google Forms (organization user invite / form completion)
-  post "webhooks/google_forms", to: "webhooks#google_forms"
-
   # API routes
   namespace :api do
     namespace :v1 do
@@ -29,11 +26,11 @@ Rails.application.routes.draw do
       end
     end
   end
-
+  
   # Sidekiq dashboard
   require "sidekiq/web"
   mount Sidekiq::Web => "/sidekiq"
-
+  
   # ===========================================================
   # ADMIN Routes
   # ===========================================================
@@ -45,6 +42,9 @@ Rails.application.routes.draw do
       root "dashboard#index", as: :root
 
       get "dashboard", to: "dashboard#index"
+
+      # Temporary webhook for Google Forms (organization user invite); unauthenticated
+      post "webhooks/google_forms", to: "webhooks#google_forms"
 
       resources :organizations do
         member do
