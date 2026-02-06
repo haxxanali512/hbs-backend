@@ -174,7 +174,7 @@ class OrganizationMailer < ApplicationMailer
     subdomain_display = if Rails.env.development?
       "#{organization.subdomain}.localhost:3000"
     else
-      "#{organization.subdomain}.holisticbusinesssolution.net"
+      "#{organization.subdomain}.holisticbusinesssolution.com"
     end
 
     placeholders = {

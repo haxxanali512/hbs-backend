@@ -64,7 +64,7 @@ module ApplicationHelper
       "#{subdomain}.localhost:3000"
     else
       # Hardcoded base domain - always use this for tenant URLs (no admin subdomain)
-      "#{subdomain}.holisticbusinesssolution.net"
+      "#{subdomain}.holisticbusinesssolution.com"
     end
   end
 
@@ -74,7 +74,7 @@ module ApplicationHelper
       "#{subdomain}.localhost:3000"
     else
       # Hardcoded base domain - always use this for tenant URLs (no admin subdomain)
-      "#{subdomain}.holisticbusinesssolution.net"
+      "#{subdomain}.holisticbusinesssolution.com"
     end
   end
 

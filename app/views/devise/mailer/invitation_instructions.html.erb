@@ -20,14 +20,14 @@
     <% end %>
 
     <div style="text-align: center; margin: 24px 0;">
-      <%# Build accept URL with org subdomain (e.g. abc.holisticbusinesssolution.net) when user has an org %>
+      <%# Build accept URL with org subdomain (e.g. abc.holisticbusinesssolution.com) when user has an org %>
       <% accept_url = nil %>
       <% if invited_org.present? %>
         <% if Rails.env.development? %>
           <% tenant_host = "#{invited_org.subdomain}.localhost" %>
           <% tenant_port = Rails.application.config.action_mailer.default_url_options[:port] || 3000 %>
         <% else %>
-          <% tenant_host = "#{invited_org.subdomain}.holisticbusinesssolution.net" %>
+          <% tenant_host = "#{invited_org.subdomain}.holisticbusinesssolution.com" %>
           <% tenant_port = nil %>
         <% end %>
         <% url_opts = { host: tenant_host, protocol: Rails.env.development? ? "http" : "https" } %>
