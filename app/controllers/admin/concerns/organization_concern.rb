@@ -27,10 +27,16 @@ module Admin
         Organization.kept.includes(:owner).order(created_at: :desc)
       end
 
-      # Apply search filter to organizations
+      # Apply search filter to organizations (name, subdomain, owner email, owner name)
       def apply_organizations_search(organizations)
         return organizations unless params[:search].present?
-        organizations.where("name ILIKE ?", "%#{params[:search]}%")
+        term = "%#{Organization.sanitize_sql_like(params[:search].to_s.strip)}%"
+        organizations
+          .left_joins(:owner)
+          .where(
+            "organizations.name ILIKE :term OR organizations.subdomain ILIKE :term OR users.email ILIKE :term OR users.first_name ILIKE :term OR users.last_name ILIKE :term OR (users.first_name || ' ' || users.last_name) ILIKE :term",
+            term: term
+          )
       end
 
       # Apply status filter to organizations

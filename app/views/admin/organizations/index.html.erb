@@ -8,7 +8,7 @@
 
   <!-- Filters -->
   <% 
-    @search_placeholder = "Organization name..."
+    @search_placeholder = "Name, subdomain, owner or email..."
     @status_options = Organization.activation_statuses.keys
   %>
   <%= render "shared/filters" %>
