@@ -102,8 +102,14 @@ class DataImportService
   def process_rows(data)
     data.each_with_index do |row_data, index|
       begin
+        @pending_provider_org_id = nil
+        @pending_provider_specialty_ids = nil
         record = build_record(row_data)
         if record.save
+          # Explicitly create provider_assignments and provider_specialties after save so they persist
+          if record.is_a?(Provider) && (@pending_provider_org_id.present? || @pending_provider_specialty_ids.present?)
+            create_provider_associations_after_save(record)
+          end
           @results[:success_count] += 1
         else
           @results[:error_count] += 1
@@ -143,6 +149,10 @@ class DataImportService
       end
     end
 
+    # Provider: extract internal keys before assign_attributes (they are not columns)
+    provider_org_id = attributes.delete("_organization_id")
+    provider_specialty_ids = attributes.delete("_specialty_ids")
+
     # Find or initialize record
     find_by_attributes = extract_find_by_attributes(attributes)
     record = if find_by_attributes.any?
@@ -153,6 +163,23 @@ class DataImportService
 
     # Assign attributes
     record.assign_attributes(attributes.except(*find_by_attributes.keys))
+
+    # Provider: build provider_assignments and provider_specialties from CSV / options; store for explicit create after save
+    if @model_class == Provider
+      @pending_provider_org_id = provider_org_id.presence
+      @pending_provider_specialty_ids = Array(provider_specialty_ids).uniq
+      if @pending_provider_specialty_ids.empty?
+        default_spec = Specialty.active.first
+        @pending_provider_specialty_ids = default_spec ? [ default_spec.id ] : []
+      end
+      if @pending_provider_org_id.present? && !record.provider_assignments.any? { |pa| pa.organization_id == @pending_provider_org_id.to_i }
+        record.provider_assignments.build(organization_id: @pending_provider_org_id.to_i, active: true, role: :primary)
+      end
+      @pending_provider_specialty_ids.each do |sid|
+        next if record.provider_specialties.any? { |ps| ps.specialty_id == sid.to_i }
+        record.provider_specialties.build(specialty_id: sid.to_i)
+      end
+    end
 
     # Assign nested OrganizationIdentifier / OrganizationSetting for Organization imports
     if @model_class == Organization
@@ -192,10 +219,19 @@ class DataImportService
     normalized_data.each do |key, value|
       next if value.blank?
 
-      # Check if it's a direct column
+      # 1) Direct column on the model
       if @model_class.column_names.include?(key)
         attributes[key] = parse_value(key, value)
-      # Check if it's an association (e.g., "organization_name")
+      # 2) Provider-specific virtual fields from CSV (handled BEFORE generic *_name logic)
+      elsif @model_class == Provider && key == "organization_name"
+        # Use robust org resolution and store for provider_assignments, not as a column.
+        org = resolve_organization_by_name(value)
+        attributes["_organization_id"] = org.id if org
+      elsif @model_class == Provider && (key == "specialty_name" || key == "specialty")
+        # Use specialty resolver (creates Specialty with validate: false if missing).
+        spec = resolve_specialty_by_name(value)
+        attributes["_specialty_ids"] = (attributes["_specialty_ids"] || []).push(spec.id).uniq if spec
+      # 3) Generic association by *_name (for models that actually have that association)
       elsif key.end_with?("_name")
         association_name = key.gsub("_name", "")
         association_id = find_association_id(association_name, value)
@@ -225,7 +261,15 @@ class DataImportService
     options.each do |key, value|
       if @model_class.column_names.include?(key.to_s)
         attributes[key.to_s] = value
+      elsif @model_class == Provider && key.to_s == "organization_id" && value.present?
+        # Provider has no organization_id column; use for provider_assignments
+        attributes["_organization_id"] ||= value
       end
+    end
+
+    # Provider: default status when importing
+    if @model_class == Provider && attributes["status"].blank?
+      attributes["status"] = "approved"
     end
 
     # Special handling for User password
@@ -441,5 +485,106 @@ class DataImportService
     end
 
     find_by
+  end
+
+  # After saving a Provider, ensure provider_assignments and provider_specialties exist (create if autosave didn't persist them).
+  def create_provider_associations_after_save(provider)
+    provider.provider_assignments.reload
+    provider.provider_specialties.reload
+    if @pending_provider_org_id.present? && !provider.provider_assignments.any? { |pa| pa.organization_id == @pending_provider_org_id.to_i }
+      provider.provider_assignments.create!(organization_id: @pending_provider_org_id.to_i, active: true, role: :primary)
+    end
+    Array(@pending_provider_specialty_ids).uniq.each do |sid|
+      next if provider.provider_specialties.exists?(specialty_id: sid.to_i)
+      provider.provider_specialties.create!(specialty_id: sid.to_i)
+    end
+  end
+
+  # Resolve Organization by name (for Provider imports).
+  # Tries several case-insensitive strategies and, if nothing is found,
+  # creates a minimal Organization record for import purposes (skipping validations).
+  def resolve_organization_by_name(value)
+    return nil if value.blank?
+
+    name = value.to_s.strip
+    return nil if name.empty?
+
+    scope = Organization.kept
+
+    # 1) Exact case-insensitive match on full name
+    org = scope.where("LOWER(name) = ?", name.downcase).first
+    return org if org
+
+    # 2) Try without common company suffixes (LLC, PLLC, PC, INC, CORP, CO, LTD, etc.)
+    simplified = name.gsub(/[,\.]/, "").gsub(/\b(llc|pllc|pc|inc|corp|corporation|company|co|ltd)\b/i, "").squeeze(" ").strip
+    if simplified.present?
+      org = scope.where("LOWER(name) = ?", simplified.downcase).first
+      return org if org
+
+      # 3) Partial match on simplified name
+      org = scope.where("name ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(simplified)}%").first
+      return org if org
+    end
+
+    # 4) Fallback: partial match on original name
+    org = scope.where("name ILIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(name)}%").first
+    return org if org
+
+    # 5) If still not found, create a minimal Organization record so providers
+    # can be assigned. We intentionally skip validations because the import
+    # CSV does not contain all required fields (owner, tier, etc.).
+    create_organization_for_import(name)
+  end
+
+  # Resolve Specialty by name (case-insensitive: same spelling in any case matches one record).
+  # Only creates a new specialty when no existing active specialty matches (any case).
+  def resolve_specialty_by_name(value)
+    return nil if value.blank?
+    name = value.to_s.strip
+    return nil if name.empty?
+
+    normalized = name.downcase
+    # 1) Exact match ignoring case (so "Massage Therapy", "MASSAGE THERAPY", "massage therapy" → same)
+    spec = Specialty.active.where("LOWER(TRIM(name)) = ?", normalized).first
+    return spec if spec
+
+    # 2) Partial match ignoring case
+    spec = Specialty.active.where("LOWER(name) LIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(normalized)}%").first
+    return spec if spec
+
+    # 3) Only create when no match: use titleized name so DB has consistent casing and we don't get case-duplicates
+    canonical_name = name.titleize
+    Specialty.new(name: canonical_name, status: :active, description: "Created during provider import").tap { |s| s.save(validate: false) }
+  end
+
+  # Create a minimal Organization record for imported providers when no match is found.
+  # Uses a generated unique subdomain and a default owner (Super Admin or first User).
+  def create_organization_for_import(name)
+    base_subdomain = name.to_s.parameterize.presence || "org"
+    subdomain = base_subdomain
+    suffix = 1
+
+    # Ensure subdomain uniqueness
+    while Organization.where(subdomain: subdomain).exists?
+      suffix += 1
+      subdomain = "#{base_subdomain}-#{suffix}"
+    end
+
+    owner = begin
+      User.joins(:role).find_by(roles: { role_name: "Super Admin" }) || User.first
+    rescue
+      User.first
+    end
+
+    Organization.new(
+      name: name,
+      subdomain: subdomain,
+      owner: owner,
+      tier: "6%",
+      activation_status: "pending"
+    ).tap do |org|
+      org.save(validate: false)
+      Rails.logger.info "[Import] Created Organization #{org.id} for name '#{name}' (subdomain=#{subdomain})"
+    end
   end
 end

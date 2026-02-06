@@ -40,11 +40,21 @@ class ProviderAssignment < ApplicationRecord
   # Unlock procedure codes when provider is assigned to organization
   def unlock_procedure_codes_for_specialty
     return unless active?
-    return unless provider.present? && provider.specialty.present?
+    return unless provider.present?
+
+    # Providers can have many specialties; pick a sensible one to unlock codes for.
+    primary_specialty =
+      if provider.respond_to?(:specialties)
+        provider.specialties.active.first || provider.specialties.first
+      elsif provider.respond_to?(:specialty)
+        provider.specialty
+      end
+
+    return unless primary_specialty.present?
 
     FeeScheduleUnlockService.unlock_procedure_codes_for_organization(
       organization,
-      provider.specialty
+      primary_specialty
     )
   end
 
