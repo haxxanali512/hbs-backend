@@ -205,7 +205,7 @@ class OrganizationMailer < ApplicationMailer
       protocol = "http"
       port = ActionMailer::Base.default_url_options[:port] || 3000
     else
-      tenant_host = "#{organization.subdomain}.holisticbusinesssolution.net"
+      tenant_host = "#{organization.subdomain}.holisticbusinesssolution.com"
       protocol = "https"
       port = nil
     end
@@ -222,7 +222,7 @@ class OrganizationMailer < ApplicationMailer
     end
 
     portal_url = port.present? ? "#{protocol}://#{tenant_host}:#{port}" : "#{protocol}://#{tenant_host}"
-    subdomain_display = Rails.env.development? ? "#{organization.subdomain}.localhost:3000" : "#{organization.subdomain}.holisticbusinesssolution.net"
+    subdomain_display = Rails.env.development? ? "#{organization.subdomain}.localhost:3000" : "#{organization.subdomain}.holisticbusinesssolution.com"
 
     ph = {
       owner_first_name: owner.first_name.presence || owner.email,
