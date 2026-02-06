@@ -164,6 +164,12 @@ class DataImportService
     # Assign attributes
     record.assign_attributes(attributes.except(*find_by_attributes.keys))
 
+    # For Encounter imports, allow skipping certain heavy validations (e.g. diagnosis codes)
+    # to make historical data migration possible.
+    if @model_class == Encounter && record.respond_to?(:skip_import_validations=)
+      record.skip_import_validations = true
+    end
+
     # Provider: build provider_assignments and provider_specialties from CSV / options; store for explicit create after save
     if @model_class == Provider
       @pending_provider_org_id = provider_org_id.presence
@@ -359,12 +365,15 @@ class DataImportService
 
     associated_model = association.class_name.constantize
 
-    # CSV format is "last_name, first_name". Resolve Patient by last_name + first_name (case-insensitive).
+    # CSV format is typically "last_name, first_name", but we also support "First Last".
+    # Resolve Patient by name (case-insensitive); if none exists and an organization_id
+    # is provided, auto-create a minimal Patient for import purposes.
     if associated_model == Patient
       parsed = parse_last_name_comma_first_name(value)
+      scope = Patient.kept
+      scope = scope.where(organization_id: options[:organization_id]) if options[:organization_id].present?
+
       if parsed
-        scope = Patient.kept
-        scope = scope.where(organization_id: options[:organization_id]) if options[:organization_id].present?
         record = scope.where(
           "LOWER(TRIM(last_name)) = ? AND LOWER(TRIM(first_name)) = ?",
           parsed[:last_name].downcase.strip,
@@ -372,12 +381,31 @@ class DataImportService
         ).first
         return record.id if record
       end
+
       # Fallback: try "First Last" as full_name (e.g. concatenated first_name + " " + last_name)
       scope = Patient.kept
       scope = scope.where(organization_id: options[:organization_id]) if options[:organization_id].present?
       scope.find_each do |p|
         return p.id if p.full_name.to_s.downcase.strip == value.to_s.downcase.strip
       end
+
+      # As a last resort during imports, auto-create a minimal Patient when we know
+      # the organization. This is primarily for data migration where patients have
+      # not been pre-loaded via a dedicated import.
+      if options[:organization_id].present?
+        first_name, last_name = infer_patient_names_from_value(value, parsed)
+        if first_name.present? || last_name.present?
+          patient = Patient.new(
+            organization_id: options[:organization_id],
+            first_name: first_name.presence || "Unknown",
+            last_name: last_name.presence || "Unknown",
+            status: :active
+          )
+          patient.save(validate: false)
+          return patient.id
+        end
+      end
+
       return nil
     end
 
@@ -443,6 +471,23 @@ class DataImportService
     parts = value.to_s.split(",", 2).map(&:strip).reject(&:blank?)
     return nil unless parts.length == 2
     { last_name: parts[0], first_name: parts[1] }
+  end
+
+  # Infer first_name / last_name from the raw value and/or parsed hash.
+  # - If parsed (from "Last, First") is present, use that.
+  # - Otherwise, treat value as "First Last" and split on spaces.
+  def infer_patient_names_from_value(value, parsed)
+    return [ parsed[:first_name], parsed[:last_name] ] if parsed
+
+    s = value.to_s.strip
+    return [ nil, nil ] if s.blank?
+
+    parts = s.split(/\s+/)
+    return [ s, nil ] if parts.length == 1
+
+    first_name = parts[0]
+    last_name = parts[1..].join(" ")
+    [ first_name, last_name ]
   end
 
   def extract_find_by_attributes(attributes)

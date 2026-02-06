@@ -42,6 +42,11 @@ class Encounter < ApplicationRecord
   attr_accessor :diagnosis_code_ids
   attr_accessor :procedure_units, :procedure_modifiers
 
+  # When importing historical encounters, we may choose to skip certain
+  # heavy-weight validations (e.g. requiring diagnosis codes) so that
+  # legacy data can be seeded without blocking on full clinical detail.
+  attr_accessor :skip_import_validations
+
 
   # ===========================================================
   # ENUMS
@@ -413,6 +418,7 @@ class Encounter < ApplicationRecord
   end
 
   def diagnosis_codes_required
+    return if skip_import_validations
     # Check virtual attribute first (for workflow form), then association
     dx_ids = Array(diagnosis_code_ids).reject(&:blank?)
 
