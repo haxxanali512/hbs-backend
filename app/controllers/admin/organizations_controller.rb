@@ -220,7 +220,7 @@ class Admin::OrganizationsController < Admin::BaseController
     return if owner.nil?
 
     # Generate an invitation token for the owner WITHOUT sending Devise's default
-    # invitation email. We'll send a custom onboarding email via EmailService instead.
+    # invitation email. We send a custom onboarding email via OrganizationMailer (direct mail).
     # This matches what Devise Invitable does internally but skips the mailer.
     raw_token, enc_token = Devise.token_generator.generate(User, :invitation_token)
 

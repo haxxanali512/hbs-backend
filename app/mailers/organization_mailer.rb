@@ -5,147 +5,207 @@ class OrganizationMailer < ApplicationMailer
 
   def organization_created(organization)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
-      organization_name: organization.name
-    }
-
-    send_email_via_service(
-      template_key: "organization.organization_created",
+    return if owner.blank?
+    ph = { owner_first_name: owner.first_name.presence || owner.email, organization_name: organization.name }
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
+      subject: "Your organization has been created",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>Your organization <strong>{{organization_name}}</strong> has been created in Holistic Business Solutions.</p><p>You can sign in to complete setup from your organization portal.</p>",
+      body_text: "Hello {{owner_first_name}}, Your organization {{organization_name}} has been created in Holistic Business Solutions. You can sign in to complete setup from your organization portal.",
+      placeholders: ph,
       reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   def billing_setup_required(organization)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
-      organization_name: organization.name
-    }
-
-    send_email_via_service(
-      template_key: "organization.billing_setup_required",
+    return if owner.blank?
+    ph = { owner_first_name: owner.first_name.presence || owner.email, organization_name: organization.name }
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
+      subject: "Billing setup required for #{organization.name}",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>Your organization <strong>{{organization_name}}</strong> requires billing setup. Please complete this step in your organization portal.</p>",
+      body_text: "Hello {{owner_first_name}}, Your organization {{organization_name}} requires billing setup. Please complete this step in your organization portal.",
+      placeholders: ph,
       reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   def compliance_setup_required(organization)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
-      organization_name: organization.name
-    }
-
-    send_email_via_service(
-      template_key: "organization.compliance_setup_required",
+    return if owner.blank?
+    ph = { owner_first_name: owner.first_name.presence || owner.email, organization_name: organization.name }
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
+      subject: "Compliance setup required for #{organization.name}",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>Your organization <strong>{{organization_name}}</strong> requires compliance setup. Please complete this step in your organization portal.</p>",
+      body_text: "Hello {{owner_first_name}}, Your organization {{organization_name}} requires compliance setup. Please complete this step in your organization portal.",
+      placeholders: ph,
       reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   def document_signing_required(organization)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
-      organization_name: organization.name
-    }
-
-    send_email_via_service(
-      template_key: "organization.document_signing_required",
+    return if owner.blank?
+    ph = { owner_first_name: owner.first_name.presence || owner.email, organization_name: organization.name }
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
+      subject: "Document signing required for #{organization.name}",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>Your organization <strong>{{organization_name}}</strong> has documents that require your signature. Please sign in to your organization portal to complete them.</p>",
+      body_text: "Hello {{owner_first_name}}, Your organization {{organization_name}} has documents that require your signature. Please sign in to your organization portal to complete them.",
+      placeholders: ph,
       reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   def organization_activated(organization)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
-      organization_name: organization.name
-    }
-
-    send_email_via_service(
-      template_key: "organization.organization_activated",
+    return if owner.blank?
+    ph = { owner_first_name: owner.first_name.presence || owner.email, organization_name: organization.name }
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
+      subject: "Your organization has been activated",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>Your organization <strong>{{organization_name}}</strong> has been activated. You can now use all features in your organization portal.</p>",
+      body_text: "Hello {{owner_first_name}}, Your organization {{organization_name}} has been activated. You can now use all features in your organization portal.",
+      placeholders: ph,
       reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   def activation_completed(organization)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
-      organization_name: organization.name
-    }
-
-    send_email_via_service(
-      template_key: "organization.activation_completed",
+    return if owner.blank?
+    ph = { owner_first_name: owner.first_name.presence || owner.email, organization_name: organization.name }
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
+      subject: "Activation completed for #{organization.name}",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>Activation has been completed for your organization <strong>{{organization_name}}</strong>. Thank you for completing the setup.</p>",
+      body_text: "Hello {{owner_first_name}}, Activation has been completed for your organization {{organization_name}}. Thank you for completing the setup.",
+      placeholders: ph,
       reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   def checklist_step_completed(organization, step_name)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
+    return if owner.blank?
+    ph = {
+      owner_first_name: owner.first_name.presence || owner.email,
       organization_name: organization.name,
       step_name: step_name
     }
-
-    send_email_via_service(
-      template_key: "organization.checklist_step_completed",
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
-      reply_to: "support@holisticbusinesssolution.com",
-      default_subject: "Activation Step Completed: #{step_name}",
-      default_body_html: "<p>Hello #{owner&.first_name || 'there'},</p><p>The activation step '#{step_name}' has been completed for your organization #{organization.name}.</p><p>You can view your activation progress in your organization portal.</p>"
+      subject: "Activation Step Completed: #{step_name}",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>The activation step '{{step_name}}' has been completed for your organization {{organization_name}}.</p><p>You can view your activation progress in your organization portal.</p>",
+      body_text: "Hello {{owner_first_name}}, The activation step '{{step_name}}' has been completed for your organization {{organization_name}}. You can view your activation progress in your organization portal.",
+      placeholders: ph,
+      reply_to: "support@holisticbusinesssolution.com"
+    )
+  end
+
+  def provider_approved(provider)
+    organization = provider.organizations.first
+    return if organization.blank? || organization.owner.blank?
+    ph = { provider_name: provider.full_name, organization_name: organization.name }
+    direct_mail(
+      to: organization.owner.email,
+      subject: "Provider approved: #{provider.full_name}",
+      body_html: "<p>Provider <strong>{{provider_name}}</strong> has been approved and is now active for {{organization_name}}.</p>",
+      body_text: "Provider {{provider_name}} has been approved and is now active for {{organization_name}}.",
+      placeholders: ph,
+      reply_to: "support@holisticbusinesssolution.com"
+    )
+  end
+
+  def provider_rejected(provider)
+    organization = provider.organizations.first
+    return if organization.blank? || organization.owner.blank?
+    ph = { provider_name: provider.full_name, organization_name: organization.name }
+    direct_mail(
+      to: organization.owner.email,
+      subject: "Provider rejected: #{provider.full_name}",
+      body_html: "<p>Provider <strong>{{provider_name}}</strong> has been rejected for {{organization_name}}.</p>",
+      body_text: "Provider {{provider_name}} has been rejected for {{organization_name}}.",
+      placeholders: ph,
+      reply_to: "support@holisticbusinesssolution.com"
+    )
+  end
+
+  def provider_suspended(provider)
+    organization = provider.organizations.first
+    return if organization.blank? || organization.owner.blank?
+    ph = { provider_name: provider.full_name, organization_name: organization.name }
+    direct_mail(
+      to: organization.owner.email,
+      subject: "Provider suspended: #{provider.full_name}",
+      body_html: "<p>Provider <strong>{{provider_name}}</strong> has been suspended for {{organization_name}}.</p>",
+      body_text: "Provider {{provider_name}} has been suspended for {{organization_name}}.",
+      placeholders: ph,
+      reply_to: "support@holisticbusinesssolution.com"
+    )
+  end
+
+  def provider_reactivated(provider)
+    organization = provider.organizations.first
+    return if organization.blank? || organization.owner.blank?
+    ph = { provider_name: provider.full_name, organization_name: organization.name }
+    direct_mail(
+      to: organization.owner.email,
+      subject: "Provider reactivated: #{provider.full_name}",
+      body_html: "<p>Provider <strong>{{provider_name}}</strong> has been reactivated for {{organization_name}}.</p>",
+      body_text: "Provider {{provider_name}} has been reactivated for {{organization_name}}.",
+      placeholders: ph,
+      reply_to: "support@holisticbusinesssolution.com"
+    )
+  end
+
+  def provider_deactivated(provider)
+    organization = provider.organizations.first
+    return if organization.blank? || organization.owner.blank?
+    ph = { provider_name: provider.full_name, organization_name: organization.name }
+    direct_mail(
+      to: organization.owner.email,
+      subject: "Provider deactivated: #{provider.full_name}",
+      body_html: "<p>Provider <strong>{{provider_name}}</strong> has been deactivated for {{organization_name}}.</p>",
+      body_text: "Provider {{provider_name}} has been deactivated for {{organization_name}}.",
+      placeholders: ph,
+      reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   def plan_step_completed(organization, plan, step_type)
     owner = organization.owner
-    placeholders = {
-      owner_first_name: owner&.first_name || owner&.email,
+    return if owner.blank?
+    plan_name = plan.insurance_plan&.name || "Plan"
+    ph = {
+      owner_first_name: owner.first_name.presence || owner.email,
       organization_name: organization.name,
-      plan_name: plan.insurance_plan&.name || "Plan",
-      step_type: step_type.humanize
+      plan_name: plan_name,
+      step_type: step_type.to_s.humanize
     }
-
-    send_email_via_service(
-      template_key: "organization.plan_step_completed",
+    direct_mail(
       to: owner.email,
-      placeholders: placeholders,
-      reply_to: "support@holisticbusinesssolution.com",
-      default_subject: "Plan Enrollment Step Completed: #{step_type.humanize}",
-      default_body_html: "<p>Hello #{owner&.first_name || 'there'},</p><p>The enrollment step '#{step_type.humanize}' has been completed for plan '#{plan.insurance_plan&.name || 'Plan'}' in your organization #{organization.name}.</p><p>You can view your activation progress in your organization portal.</p>"
+      subject: "Plan Enrollment Step Completed: #{step_type.to_s.humanize}",
+      body_html: "<p>Hello {{owner_first_name}},</p><p>The enrollment step '{{step_type}}' has been completed for plan '{{plan_name}}' in your organization {{organization_name}}.</p><p>You can view your activation progress in your organization portal.</p>",
+      body_text: "Hello {{owner_first_name}}, The enrollment step '{{step_type}}' has been completed for plan '{{plan_name}}' in your organization {{organization_name}}. You can view your activation progress in your organization portal.",
+      placeholders: ph,
+      reply_to: "support@holisticbusinesssolution.com"
     )
   end
 
   # Custom first-time access email for org owners when an org is activated directly.
-  # This email includes:
-  # - A one-time invitation link to set password
-  # - The tenant portal URL (with subdomain)
-  # - Basic guidance on how to access the portal
   def owner_activation_invite(organization, invitation_token)
     owner = organization.owner
     return if owner.nil?
 
-    # Build tenant host for the org (same logic as elsewhere for subdomain URLs)
     if Rails.env.development?
       tenant_host = "#{organization.subdomain}.localhost"
       protocol = "http"
       port = ActionMailer::Base.default_url_options[:port] || 3000
     else
-      tenant_host = "#{organization.subdomain}.holisticbusinesssolution.com"
+      tenant_host = "#{organization.subdomain}.holisticbusinesssolution.net"
       protocol = "https"
       port = nil
     end
@@ -153,31 +213,18 @@ class OrganizationMailer < ApplicationMailer
     url_opts = { host: tenant_host, protocol: protocol }
     url_opts[:port] = port if port.present?
 
-    # Build the invitation acceptance URL on the tenant subdomain
-    # This ensures the user accepts the invitation and sets password on their org's portal
     begin
       invite_link = accept_user_invitation_url(url_opts.merge(invitation_token: invitation_token))
     rescue => e
       Rails.logger.error "[OrganizationMailer] Failed to build invite URL: #{e.message}"
-      # Fallback: build URL manually if helper fails
       base_url = port.present? ? "#{protocol}://#{tenant_host}:#{port}" : "#{protocol}://#{tenant_host}"
       invite_link = "#{base_url}/users/invitation/accept?invitation_token=#{invitation_token}"
     end
-    portal_url =
-      if port.present?
-        "#{protocol}://#{tenant_host}:#{port}"
-      else
-        "#{protocol}://#{tenant_host}"
-      end
 
-    # Build subdomain display string (same logic as ApplicationHelper)
-    subdomain_display = if Rails.env.development?
-      "#{organization.subdomain}.localhost:3000"
-    else
-      "#{organization.subdomain}.holisticbusinesssolution.com"
-    end
+    portal_url = port.present? ? "#{protocol}://#{tenant_host}:#{port}" : "#{protocol}://#{tenant_host}"
+    subdomain_display = Rails.env.development? ? "#{organization.subdomain}.localhost:3000" : "#{organization.subdomain}.holisticbusinesssolution.net"
 
-    placeholders = {
+    ph = {
       owner_first_name: owner.first_name.presence || owner.email,
       organization_name: organization.name,
       invite_link: invite_link,
@@ -185,9 +232,7 @@ class OrganizationMailer < ApplicationMailer
       subdomain_display: subdomain_display
     }
 
-    default_subject = "Your Holistic Business Solutions portal is ready"
-
-    default_body_html = <<~HTML
+    html = interpolate(<<~HTML, ph)
       <p>Hello {{owner_first_name}},</p>
       <p>Your organization <strong>{{organization_name}}</strong> has been activated in Holistic Business Solutions.</p>
       <p>To access your portal for the first time:</p>
@@ -206,7 +251,7 @@ class OrganizationMailer < ApplicationMailer
       <p>If you did not expect this email, you can safely ignore it.</p>
     HTML
 
-    default_body_text = <<~TEXT
+    text = interpolate(<<~TEXT, ph)
       Hello {{owner_first_name}},
 
       Your organization {{organization_name}} has been activated in Holistic Business Solutions.
@@ -226,15 +271,24 @@ class OrganizationMailer < ApplicationMailer
       If you did not expect this email, you can safely ignore it.
     TEXT
 
-    mail = send_email_via_service(
-      template_key: "organization.owner_activation_invite",
+    mail(
       to: owner.email,
-      placeholders: placeholders,
-      reply_to: "support@holisticbusinesssolution.com",
-      default_subject: default_subject,
-      default_body_html: default_body_html,
-      default_body_text: default_body_text
-    )
-    mail.deliver_now
+      subject: "Your Holistic Business Solutions portal is ready",
+      reply_to: "support@holisticbusinesssolution.com"
+    ) do |format|
+      format.html { render html: html.html_safe }
+      format.text { render plain: text }
+    end
+  end
+
+  private
+
+  def direct_mail(to:, subject:, body_html:, body_text:, placeholders: {}, reply_to: nil)
+    html = interpolate(body_html, placeholders)
+    text = interpolate(body_text, placeholders)
+    mail(to: to, subject: subject, reply_to: reply_to) do |format|
+      format.html { render html: html.html_safe }
+      format.text { render plain: text }
+    end
   end
 end
