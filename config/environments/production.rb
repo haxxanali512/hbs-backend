@@ -62,15 +62,23 @@ Rails.application.configure do
   # config.active_job.queue_adapter = :solid_queue
   # config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Email delivery - SendGrid via Web API (sendgrid-ruby gem). Test email worked with API; SMTP was not sending.
-  # To test without emailing real users: set MAIL_INTERCEPT_TO=your@email.com (see config/initializers/mail_interceptor.rb).
+  # Email delivery - SendGrid via SMTP (no API/EmailService). Use SENDGRID_API_KEY in credentials or ENV.
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.perform_deliveries = true
   config.action_mailer.default_url_options = { host: "holisticbusinesssolution.com" }
   config.action_mailer.default_options = { from: "support@holisticbusinesssolution.com" }
-
-  config.action_mailer.delivery_method = :sendgrid_api
-  # API key is read by SendgridApiDelivery from credentials or ENV (Rails has no sendgrid_api_settings= for custom delivery methods)
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address: "smtp.sendgrid.net",
+    port: 587,
+    domain: "holisticbusinesssolution.com",
+    authentication: :plain,
+    user_name: "apikey",
+    password: ENV.fetch("SENDGRID_API_KEY") { Rails.application.credentials.dig(:sendgrid, :api_key).to_s },
+    enable_starttls_auto: true,
+    open_timeout: 20,
+    read_timeout: 20
+  }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

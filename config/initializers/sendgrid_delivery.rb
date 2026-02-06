@@ -1,8 +1,6 @@
-# Register SendGrid API delivery method so Action Mailer can use the sendgrid-ruby gem
-# instead of SMTP. Enable in production with:
-#   config.action_mailer.delivery_method = :sendgrid_api
-#   config.action_mailer.sendgrid_api_settings = { api_key: ... }
+# SendGrid API delivery method disabled; using SMTP instead (see config/environments/production.rb).
+# To re-enable API delivery: uncomment below and set config.action_mailer.delivery_method = :sendgrid_api
 #
-Rails.application.config.after_initialize do
-  ActionMailer::Base.add_delivery_method :sendgrid_api, SendgridApiDelivery
-end
+# Rails.application.config.after_initialize do
+#   ActionMailer::Base.add_delivery_method :sendgrid_api, SendgridApiDelivery
+# end
