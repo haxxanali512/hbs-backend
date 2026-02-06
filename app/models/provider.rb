@@ -25,7 +25,7 @@ class Provider < ApplicationRecord
   validates :npi, length: { is: 10 }, allow_nil: true
   validates :npi, uniqueness: true, allow_nil: true
   validates :license_number, length: { maximum: 50 }
-  validates :license_state, length: { is: 2 }
+  validates :license_state, length: { is: 2 }, allow_blank: true
   validates :status, inclusion: { in: %w[drafted pending approved deactivated] }
   validate :at_least_one_specialty
   validate :specialties_must_be_active
