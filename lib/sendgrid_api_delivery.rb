@@ -58,12 +58,12 @@ class SendgridApiDelivery
     Array(mail.bcc).each { |addr| personalization.add_bcc(parse_sendgrid_email(addr)) }
     sg_mail.add_personalization(personalization)
 
-    # Content: prefer html, fallback to text
-    if mail.html_part
-      sg_mail.add_content(SendGrid::Content.new(type: "text/html", value: mail.html_part.body.to_s))
-    end
+    # Content: SendGrid requires text/plain first, then text/html, then any other content
     if mail.text_part
       sg_mail.add_content(SendGrid::Content.new(type: "text/plain", value: mail.text_part.body.to_s))
+    end
+    if mail.html_part
+      sg_mail.add_content(SendGrid::Content.new(type: "text/html", value: mail.html_part.body.to_s))
     end
     if sg_mail.contents.nil? || sg_mail.contents.empty?
       body = mail.body.to_s
