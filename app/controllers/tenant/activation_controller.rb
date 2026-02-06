@@ -1,6 +1,6 @@
 class Tenant::ActivationController < Tenant::BaseController
   include ActivationStepsConcern
-  
+
   # before_action :authenticate_user!
   # before_action :set_organization
   before_action :check_activation_status
@@ -247,8 +247,11 @@ class Tenant::ActivationController < Tenant::BaseController
   end
 
   def check_activation_status
+    # Use @current_organization (set by set_tenant_context); @organization is set in individual actions
+    org = @current_organization
+    return redirect_to new_user_session_path, alert: "No organization context available." if org.nil?
     # Flow: pending → compliance_setup → billing_setup → terms_agreement → activated
-    case @organization.activation_status
+    case org.activation_status
     when "pending"
       redirect_to tenant_activation_compliance_path unless action_name == "index" || action_name == "compliance_setup" || action_name == "update_compliance" || action_name == "send_agreement" || action_name == "check_docusign_status"
     when "compliance_setup"
