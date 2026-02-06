@@ -2,7 +2,11 @@
 require "ostruct"
 
 class DataImportJob < ApplicationJob
-  include Sidekiq::Job if defined?(Sidekiq::Job)
+  # Allow Sidekiq to assign a jid when (incorrectly) running this
+  # class directly as a worker. This keeps Sidekiq from crashing,
+  # while we still use ActiveJob normally via perform_later.
+  attr_accessor :jid
+
   queue_as :default
 
   def perform(file_path, model_name, user_id, options = {}, send_email: false)
