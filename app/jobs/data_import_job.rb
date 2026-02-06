@@ -10,11 +10,6 @@ class DataImportJob < ApplicationJob
   queue_as :default
 
   def perform(file_path, model_name, user_id, options = {}, send_email: false)
-    if file_path.blank? || model_name.blank? || user_id.blank?
-      Rails.logger.error("DataImportJob: Skipping job with missing required arguments (file_path: #{file_path.present?}, model_name: #{model_name.present?}, user_id: #{user_id.present?}). Ensure the job is enqueued via perform_later with correct arguments.")
-      return
-    end
-
     user = User.find(user_id)
 
     # Normalize file path (handle spaces and special characters)
