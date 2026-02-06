@@ -1,0 +1,98 @@
+<% organization = local_assigns[:organization] %>
+<% activate_url = activate_tenant_admin_organization_path(organization) %>
+
+<!-- Activate Organization Modal -->
+<div id="activateOrganizationModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="activateOrganizationModal-title" role="dialog" aria-modal="true">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <div id="activateOrganizationModalOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out" onclick="closeActivateOrganizationModal()"></div>
+
+    <div id="activateOrganizationModalContent" class="relative z-10 w-full max-w-md rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900" id="activateOrganizationModal-title">Activate Organization</h3>
+          <button type="button" onclick="closeActivateOrganizationModal()" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <%= form_with url: activate_url, method: :post, id: "activateOrganizationForm", data: { turbo: false } do |f| %>
+          <div class="space-y-4">
+            <div class="bg-amber-50 border border-amber-200 rounded-md p-4">
+              <p class="text-sm text-amber-800">
+                This will activate <strong><%= organization.name %></strong> immediately and bypass all activation steps (billing, compliance, document signing).
+              </p>
+            </div>
+
+            <div class="flex items-start">
+              <div class="flex items-center h-5">
+                <%= check_box_tag "invite_owner", "1", false, id: "activate_org_invite_owner", class: "h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" %>
+              </div>
+              <div class="ml-3 text-sm">
+                <label for="activate_org_invite_owner" class="font-medium text-gray-700">Invite the owner via email</label>
+                <p class="text-gray-500">Send a detailed email to <strong><%= organization.owner&.email %></strong> with sign-in link, organization portal URL, and how to access their account.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeActivateOrganizationModal()" class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              Cancel
+            </button>
+            <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+              Activate
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openActivateOrganizationModal() {
+    const modal = document.getElementById('activateOrganizationModal');
+    const overlay = document.getElementById('activateOrganizationModalOverlay');
+    const content = document.getElementById('activateOrganizationModalContent');
+
+    if (!modal || !overlay || !content) return;
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    requestAnimationFrame(function() {
+      overlay.classList.remove('opacity-0');
+      overlay.classList.add('opacity-100');
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    });
+  }
+
+  function closeActivateOrganizationModal() {
+    const modal = document.getElementById('activateOrganizationModal');
+    const overlay = document.getElementById('activateOrganizationModalOverlay');
+    const content = document.getElementById('activateOrganizationModalContent');
+
+    if (!modal || !overlay || !content) return;
+
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(function() {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }, 300);
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('activateOrganizationModal');
+      if (modal && !modal.classList.contains('hidden')) {
+        closeActivateOrganizationModal();
+      }
+    }
+  });
+</script>

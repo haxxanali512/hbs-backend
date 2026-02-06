@@ -58,8 +58,12 @@ class Admin::OrganizationsController < Admin::BaseController
     ).call
 
     if result[:success]
-      redirect_to admin_organization_path(@organization),
-                  notice: "Organization activated successfully (bypassed activation workflow)."
+      if params[:invite_owner].present? && @organization.owner.present?
+        send_owner_activation_invite
+      end
+      notice = "Organization activated successfully (bypassed activation workflow)."
+      notice += " An invite email has been sent to the owner." if params[:invite_owner].present? && @organization.owner.present?
+      redirect_to admin_organization_path(@organization), notice: notice
     else
       redirect_to admin_organization_path(@organization),
                   alert: "Cannot activate organization: #{result[:errors].join(', ')}"
@@ -79,18 +83,18 @@ class Admin::OrganizationsController < Admin::BaseController
     step = params[:step]
 
     case step
-    when 'waystar_child_account'
+    when "waystar_child_account"
       checklist.update!(waystar_child_account_completed: !checklist.waystar_child_account_completed?)
-      send_checklist_step_notification(checklist, 'Waystar Child Account', checklist.waystar_child_account_completed?)
-    when 'ezclaim_record'
+      send_checklist_step_notification(checklist, "Waystar Child Account", checklist.waystar_child_account_completed?)
+    when "ezclaim_record"
       checklist.update!(ezclaim_record_completed: !checklist.ezclaim_record_completed?)
-      send_checklist_step_notification(checklist, 'EZClaim Record', checklist.ezclaim_record_completed?)
-    when 'initial_encounter_billed'
+      send_checklist_step_notification(checklist, "EZClaim Record", checklist.ezclaim_record_completed?)
+    when "initial_encounter_billed"
       checklist.update!(initial_encounter_billed_completed: !checklist.initial_encounter_billed_completed?)
-      send_checklist_step_notification(checklist, 'Initial Encounter Billed', checklist.initial_encounter_billed_completed?)
-    when 'name_match'
+      send_checklist_step_notification(checklist, "Initial Encounter Billed", checklist.initial_encounter_billed_completed?)
+    when "name_match"
       checklist.update!(name_match_completed: !checklist.name_match_completed?)
-      send_checklist_step_notification(checklist, 'Name Match', checklist.name_match_completed?)
+      send_checklist_step_notification(checklist, "Name Match", checklist.name_match_completed?)
     else
       redirect_to admin_organization_path(@organization), alert: "Invalid step."
       return
@@ -209,5 +213,30 @@ class Admin::OrganizationsController < Admin::BaseController
     if completed
       OrganizationMailer.plan_step_completed(@organization, plan, step_type).deliver_now
     end
+  end
+
+  def send_owner_activation_invite
+    owner = @organization.owner
+    return if owner.nil?
+
+    # Generate an invitation token for the owner WITHOUT sending Devise's default
+    # invitation email. We'll send a custom onboarding email via EmailService instead.
+    # This matches what Devise Invitable does internally but skips the mailer.
+    raw_token, enc_token = Devise.token_generator.generate(User, :invitation_token)
+
+    owner.invitation_token = enc_token
+    owner.invitation_created_at = Time.current
+    owner.invitation_sent_at = Time.current
+    owner.invited_by = current_user
+    owner.save!(validate: false)
+
+    # Reload to ensure we have the latest state
+    owner.reload
+    mail = OrganizationMailer.owner_activation_invite(@organization, raw_token)
+    mail.deliver_now
+  rescue => e
+    Rails.logger.error "[Admin::OrganizationsController] Failed to send owner activation invite: #{e.message}"
+    Rails.logger.error e.backtrace.first(10).join("\n")
+    flash[:alert] = "Organization activated, but the owner invite email could not be sent: #{e.message}"
   end
 end
