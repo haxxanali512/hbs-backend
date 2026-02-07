@@ -28,6 +28,14 @@ class Tenant::OrgAcceptedPlanPolicy < ApplicationPolicy
     false
   end
 
+  def insurance_plans_search?
+    index?
+  end
+
+  def accept_plans?
+    create?
+  end
+
   def activate?
     accessible?("tenant", "org_accepted_plans", "activate")
   end

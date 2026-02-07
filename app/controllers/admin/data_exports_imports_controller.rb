@@ -131,6 +131,25 @@ class Admin::DataExportsImportsController < Admin::BaseController
     end
   end
 
+  # Temporary: import prescriptions from Xano API (fetches JSON, creates Prescription records, downloads images to S3).
+  # Organization is taken from each prescription's organization object in the response.
+  def import_xano_prescriptions
+    result = XanoPrescriptionImportService.new(api_url: "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/prescription").call
+
+    notice = "#{result[:created]} prescription(s) imported."
+    notice += " Errors: #{result[:errors].first(5).join('; ')}" if result[:errors].any?
+    if result[:errors].any?
+      redirect_to admin_data_exports_imports_path, alert: notice
+    else
+      redirect_to admin_data_exports_imports_path, notice: notice
+    end
+  rescue XanoPrescriptionImportService::Error => e
+    redirect_to admin_data_exports_imports_path, alert: "Xano import failed: #{e.message}"
+  rescue => e
+    Rails.logger.error("import_xano_prescriptions: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+    redirect_to admin_data_exports_imports_path, alert: "Import failed: #{e.message}"
+  end
+
   # Provides a CSV with the expected headers for processing
   def download_processing_sample
     format = params[:format].presence || "csv"
