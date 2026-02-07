@@ -1,0 +1,118 @@
+<div id="acceptPlansModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="acceptPlansModal-title" role="dialog" aria-modal="true">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <div id="acceptPlansModalOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out" onclick="closeAcceptPlansModal()"></div>
+    <div id="acceptPlansModalContent" class="relative z-10 w-full max-w-2xl rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900" id="acceptPlansModal-title">Accept insurance plans</h3>
+          <button type="button" onclick="closeAcceptPlansModal()" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <%= form_with url: insurance_plans_search_tenant_org_accepted_plans_path, method: :get, id: "accept_plans_search_form", data: { turbo_frame: "insurance_plans_modal_list" }, class: "mb-4" do |f| %>
+          <label for="insurance_plans_search_q" class="sr-only">Search plans</label>
+          <input type="search"
+                 name="q"
+                 id="insurance_plans_search_q"
+                 value="<%= params[:q] %>"
+                 placeholder="Search by plan or payer name..."
+                 class="block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                 autocomplete="off">
+        <% end %>
+
+        <%= form_with url: accept_plans_tenant_org_accepted_plans_path, method: :post, id: "accept_plans_form", data: { turbo: false } do %>
+          <turbo-frame id="insurance_plans_modal_list" src="<%= insurance_plans_search_tenant_org_accepted_plans_path %>" loading="lazy">
+            <div class="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm">Loading plans…</div>
+          </turbo-frame>
+          <div class="mt-6 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeAcceptPlansModal()" class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              Cancel
+            </button>
+            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Accept plans
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openAcceptPlansModal() {
+    var modal = document.getElementById('acceptPlansModal');
+    var overlay = document.getElementById('acceptPlansModalOverlay');
+    var content = document.getElementById('acceptPlansModalContent');
+    if (!modal || !overlay || !content) return;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function() {
+      overlay.classList.remove('opacity-0');
+      overlay.classList.add('opacity-100');
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+    });
+  }
+  function closeAcceptPlansModal() {
+    var modal = document.getElementById('acceptPlansModal');
+    var overlay = document.getElementById('acceptPlansModalOverlay');
+    var content = document.getElementById('acceptPlansModalContent');
+    if (!modal || !overlay || !content) return;
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(function() {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }, 300);
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    var acceptForm = document.getElementById('accept_plans_form');
+    if (acceptForm) {
+      acceptForm.addEventListener('change', function(e) {
+        if (e.target.id === 'insurance_plans_select_all') {
+          document.querySelectorAll('.insurance-plan-checkbox').forEach(function(cb) {
+            cb.checked = e.target.checked;
+          });
+        }
+      });
+    }
+    var searchInput = document.getElementById('insurance_plans_search_q');
+    var searchForm = document.getElementById('accept_plans_search_form');
+    if (searchInput && searchForm) {
+      var searchTimeout;
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() { searchForm.requestSubmit(); }, 300);
+      });
+    }
+  });
+  document.addEventListener('turbo:load', function() {
+    var openBtn = document.getElementById('open_accept_plans_modal');
+    if (openBtn && !openBtn._acceptModalBound) {
+      openBtn._acceptModalBound = true;
+      openBtn.addEventListener('click', openAcceptPlansModal);
+    }
+    var acceptForm = document.getElementById('accept_plans_form');
+    if (acceptForm && !acceptForm._selectAllBound) {
+      acceptForm._selectAllBound = true;
+      acceptForm.addEventListener('change', function(e) {
+        if (e.target.id === 'insurance_plans_select_all') {
+          document.querySelectorAll('.insurance-plan-checkbox').forEach(function(cb) {
+            cb.checked = e.target.checked;
+          });
+        }
+      });
+    }
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var modal = document.getElementById('acceptPlansModal');
+      if (modal && !modal.classList.contains('hidden')) closeAcceptPlansModal();
+    }
+  });
+</script>

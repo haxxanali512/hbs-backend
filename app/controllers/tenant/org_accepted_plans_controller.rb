@@ -1,6 +1,6 @@
 class Tenant::OrgAcceptedPlansController < Tenant::BaseController
   before_action :set_org_accepted_plan, only: [ :show, :edit, :update, :activate, :inactivate ]
-  before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
+  before_action :load_form_options, only: [ :index, :new, :edit, :create, :update, :insurance_plans_search ]
 
 
   def index
@@ -84,6 +84,45 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
     else
       redirect_to tenant_org_accepted_plan_path(@org_accepted_plan), alert: "Cannot inactivate plan: #{@org_accepted_plan.errors.full_messages.join(', ')}"
     end
+  end
+
+  def insurance_plans_search
+    @insurance_plans = InsurancePlan.active_only
+      .includes(:payer)
+      .where.not(id: @accepted_plan_ids)
+      .order("payers.name", "insurance_plans.name")
+    if params[:q].to_s.strip.present?
+      q = "%#{ActiveRecord::Base.sanitize_sql_like(params[:q].strip)}%"
+      @insurance_plans = @insurance_plans
+        .left_joins(:payer)
+        .where("insurance_plans.name ILIKE :q OR payers.name ILIKE :q", q: q)
+    end
+    render partial: "insurance_plans_modal_list",
+           locals: { insurance_plans: @insurance_plans, search_query: params[:q].to_s.strip },
+           layout: false,
+           content_type: "text/html"
+  end
+
+  def accept_plans
+    ids = Array(params[:insurance_plan_ids]).reject(&:blank?).map(&:to_i).uniq
+    accepted_ids = @current_organization.org_accepted_plans.pluck(:insurance_plan_id)
+    to_add = ids - accepted_ids
+    added = 0
+    to_add.each do |insurance_plan_id|
+      plan = @current_organization.org_accepted_plans.build(
+        insurance_plan_id: insurance_plan_id,
+        status: :draft,
+        network_type: :out_of_network,
+        enrollment_status: :pending,
+        effective_date: Date.current,
+        added_by_id: current_user.id
+      )
+      added += 1 if plan.save
+    end
+    skipped = to_add.size - added
+    notice = "#{added} plan(s) added to accepted plans."
+    notice += " #{skipped} skipped (already accepted or invalid)." if skipped.positive?
+    redirect_to tenant_org_accepted_plans_path, notice: notice
   end
 
   private

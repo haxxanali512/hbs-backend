@@ -311,6 +311,18 @@
             </div>
           <% end %>
         </div>
+
+        <!-- Temporary: Import prescriptions from Xano API -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">Import from Xano (temporary)</h2>
+          <p class="text-sm text-gray-500 mb-4">Fetch prescriptions from your Xano API. Organization, patient, procedure, and diagnosis codes are taken from each record in the response; prescription images are uploaded to S3.</p>
+          <%= form_with url: import_xano_prescriptions_admin_data_exports_imports_path, method: :post, local: true, data: { turbo: false } do %>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+              Import prescriptions from Xano
+            </button>
+          <% end %>
+          <p class="mt-2 text-xs text-gray-500">Set <code>XANO_PRESCRIPTIONS_API_URL</code> in your environment to the Xano API endpoint that returns prescriptions JSON.</p>
+        </div>
       </div>
     <% end %>
   </div>

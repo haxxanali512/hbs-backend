@@ -15,6 +15,10 @@ class Admin::DataExportsImportPolicy < ApplicationPolicy
     accessible?("admin", "data_exports_imports", "import")
   end
 
+  def import_xano_prescriptions?
+    index?
+  end
+
   def download_processing_sample?
     accessible?("admin", "data_exports_imports", "waystar_import")
   end

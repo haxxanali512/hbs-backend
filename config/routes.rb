@@ -81,6 +81,7 @@ Rails.application.routes.draw do
         collection do
           get :invite
           post :send_invitation
+          post :quick_create
         end
       end
 
@@ -124,6 +125,7 @@ Rails.application.routes.draw do
           post :export
           post :import
           post :upload_processing_file
+          post :import_xano_prescriptions
         end
       end
 
@@ -465,6 +467,10 @@ Rails.application.routes.draw do
         resources :payer_enrollments, only: [ :index ]
 
         resources :org_accepted_plans do
+          collection do
+            get :insurance_plans_search
+            post :accept_plans
+          end
           member do
             post :activate
             post :inactivate
