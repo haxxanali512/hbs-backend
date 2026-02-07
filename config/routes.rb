@@ -26,11 +26,11 @@ Rails.application.routes.draw do
       end
     end
   end
-  
+
   # Sidekiq dashboard
   require "sidekiq/web"
   mount Sidekiq::Web => "/sidekiq"
-  
+
   # ===========================================================
   # ADMIN Routes
   # ===========================================================
@@ -42,9 +42,6 @@ Rails.application.routes.draw do
       root "dashboard#index", as: :root
 
       get "dashboard", to: "dashboard#index"
-
-      # Temporary webhook for Google Forms (organization user invite); unauthenticated
-      post "webhooks/google_forms", to: "webhooks#google_forms"
 
       resources :organizations do
         member do
@@ -314,9 +311,26 @@ Rails.application.routes.draw do
   end
 
   # ===========================================================
-  # TENANT (org subdomains)
+  # TENANT (org subdomains, or localhost in development)
+  # Only subdomains in ALLOWED_TENANT_SUBDOMAINS (if set) or that have an Organization can access.
   # ===========================================================
-  constraints subdomain: /^(?!www|admin$).+/ do
+  tenant_constraint = lambda do |req|
+    subdomain = req.subdomain.presence
+    if Rails.env.development? &&
+       (req.host == "localhost" || req.host.start_with?("127.0.0.1"))
+      true
+    else
+      return false if subdomain.blank?
+      return false if %w[www admin].include?(subdomain.downcase)
+
+      # Cached lookup (VERY important)
+      Rails.cache.fetch("tenant_subdomain:#{subdomain}", expires_in: 10.minutes) do
+        Organization.exists?(subdomain: subdomain)
+      end
+    end
+  end
+
+  constraints tenant_constraint do
     root "tenant/dashboard#index", as: :tenant_root
     get "dashboard", to: "tenant/dashboard#index"
 
