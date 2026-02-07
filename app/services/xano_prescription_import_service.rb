@@ -154,12 +154,14 @@ class XanoPrescriptionImportService
     )
     return existing if existing
 
-    organization.patients.create!(
+    patient = organization.patients.new(
       first_name: first_name,
       last_name: last_name,
       dob: dob || Date.current,
       sex_at_birth: patient_payload["Gender"].to_s.presence
     )
+    patient.save!(validate: false)
+    patient
   end
 
   def procedure_code_from(procedure)
