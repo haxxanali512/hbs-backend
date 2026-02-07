@@ -74,7 +74,11 @@
                         <%= item.organization_fee_schedule.name || "Standard Fee Schedule" %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        $<%= sprintf("%.2f", item.unit_price) %> / <%= item.pricing_rule.humanize %>
+                        <% if item.unit_price.present? %>
+                          $<%= sprintf("%.2f", item.unit_price) %> / <%= item.pricing_rule.humanize %>
+                        <% else %>
+                          <span class="text-gray-400 italic">Not set</span> / <%= item.pricing_rule.humanize %>
+                        <% end %>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= item.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">

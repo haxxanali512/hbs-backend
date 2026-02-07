@@ -95,84 +95,83 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Handle inline rate editing
-    document.querySelectorAll('.inline-edit-rate').forEach(function(input) {
-      let timeout;
-      
-      input.addEventListener('blur', function() {
-        const itemId = this.dataset.itemId;
-        const updateUrl = this.dataset.updateUrl;
-        const newValue = parseFloat(this.value) || null;
-        const originalValue = this.dataset.originalValue;
-        
-        // Only update if value changed
-        if (newValue != originalValue) {
-          updateRate(itemId, updateUrl, newValue);
-        }
-      });
-      
-      input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          this.blur();
-        }
-      });
-    });
-    
+  (function() {
     function updateRate(itemId, updateUrl, value) {
-      const savingIndicator = document.querySelector(`.saving-indicator[data-item-id="${itemId}"]`);
-      const savedIndicator = document.querySelector(`.saved-indicator[data-item-id="${itemId}"]`);
-      const errorIndicator = document.querySelector(`.error-indicator[data-item-id="${itemId}"]`);
-      const input = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
-      
-      // Show saving indicator
-      savingIndicator.classList.remove('hidden');
-      savedIndicator.classList.add('hidden');
-      errorIndicator.classList.add('hidden');
-      
-      // Prepare form data
+      const savingIndicator = document.querySelector('.saving-indicator[data-item-id="' + itemId + '"]');
+      const savedIndicator = document.querySelector('.saved-indicator[data-item-id="' + itemId + '"]');
+      const errorIndicator = document.querySelector('.error-indicator[data-item-id="' + itemId + '"]');
+      const input = document.querySelector('.inline-edit-rate[data-item-id="' + itemId + '"]');
+      if (!input) return;
+
+      if (savingIndicator) savingIndicator.classList.remove('hidden');
+      if (savedIndicator) savedIndicator.classList.add('hidden');
+      if (errorIndicator) { errorIndicator.classList.add('hidden'); errorIndicator.textContent = ''; }
+
       const formData = new FormData();
-      formData.append('organization_fee_schedule_item[unit_price]', value || '');
-      
-      // Send update request
+      formData.append('organization_fee_schedule_item[unit_price]', value !== null && value !== undefined ? value : '');
+
+      const csrf = document.querySelector('meta[name="csrf-token"]');
       fetch(updateUrl, {
         method: 'PATCH',
         headers: {
-          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+          'X-CSRF-Token': csrf ? csrf.content : '',
           'Accept': 'application/json'
         },
         body: formData
       })
-      .then(response => response.json())
-      .then(data => {
-        savingIndicator.classList.add('hidden');
-        
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (savingIndicator) savingIndicator.classList.add('hidden');
         if (data.success) {
-          // Update original value
-          input.dataset.originalValue = value || '';
-          
-          // Show saved indicator
-          savedIndicator.classList.remove('hidden');
-          setTimeout(() => {
-            savedIndicator.classList.add('hidden');
-          }, 2000);
+          input.dataset.originalValue = value !== null && value !== undefined ? value : '';
+          if (savedIndicator) {
+            savedIndicator.classList.remove('hidden');
+            setTimeout(function() { savedIndicator.classList.add('hidden'); }, 2000);
+          }
         } else {
-          // Show error
-          errorIndicator.textContent = data.errors ? data.errors.join(', ') : 'Error saving rate';
-          errorIndicator.classList.remove('hidden');
-          
-          // Revert to original value
+          if (errorIndicator) {
+            errorIndicator.textContent = data.errors ? data.errors.join(', ') : 'Error saving rate';
+            errorIndicator.classList.remove('hidden');
+          }
           input.value = input.dataset.originalValue || '';
         }
       })
-      .catch(error => {
-        savingIndicator.classList.add('hidden');
-        errorIndicator.textContent = 'Error saving rate';
-        errorIndicator.classList.remove('hidden');
-        
-        // Revert to original value
+      .catch(function() {
+        if (savingIndicator) savingIndicator.classList.add('hidden');
+        if (errorIndicator) {
+          errorIndicator.textContent = 'Error saving rate';
+          errorIndicator.classList.remove('hidden');
+        }
         input.value = input.dataset.originalValue || '';
       });
     }
-  });
+
+    function initInlineRateEditing() {
+      document.querySelectorAll('.inline-edit-rate').forEach(function(input) {
+        if (input.dataset.rateHandlersAttached) return;
+        input.dataset.rateHandlersAttached = 'true';
+
+        input.addEventListener('blur', function() {
+          const itemId = this.dataset.itemId;
+          const updateUrl = this.dataset.updateUrl;
+          const newValue = this.value === '' ? null : parseFloat(this.value);
+          const originalValue = this.dataset.originalValue;
+          if (String(newValue) !== String(originalValue)) {
+            updateRate(itemId, updateUrl, newValue);
+          }
+        });
+
+        input.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') this.blur();
+        });
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initInlineRateEditing);
+    } else {
+      initInlineRateEditing();
+    }
+    document.addEventListener('turbo:load', initInlineRateEditing);
+  })();
 </script>
