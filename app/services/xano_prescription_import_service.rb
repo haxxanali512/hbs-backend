@@ -205,18 +205,18 @@ class XanoPrescriptionImportService
 
   def download_to_file(url, dest_io)
     uri = URI(url)
-    response = nil
     Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 15, read_timeout: 60) do |http|
       request = Net::HTTP::Get.new(uri.request_uri)
-      response = http.request(request)
-      # Follow one redirect (e.g. Xano signed URL)
-      if response.is_a?(Net::HTTPRedirection) && response["location"].present?
-        redirect_uri = URI(response["location"])
-        redirect_uri = URI.join(uri, redirect_uri) if redirect_uri.relative?
-        return download_to_file(redirect_uri.to_s, dest_io)
+      # Block form yields response before body is read, so we can stream with read_body once
+      http.request(request) do |response|
+        if response.is_a?(Net::HTTPRedirection) && response["location"].present?
+          redirect_uri = URI(response["location"])
+          redirect_uri = URI.join(uri, redirect_uri) if redirect_uri.relative?
+          return download_to_file(redirect_uri.to_s, dest_io)
+        end
+        raise "Failed to download: #{response.code} #{response.message}" unless response.is_a?(Net::HTTPSuccess)
+        response.read_body { |chunk| dest_io.write(chunk) }
       end
-      raise "Failed to download: #{response.code} #{response.message}" unless response.is_a?(Net::HTTPSuccess)
-      response.read_body { |chunk| dest_io.write(chunk) }
     end
   end
 end
