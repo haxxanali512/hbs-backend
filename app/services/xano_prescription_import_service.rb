@@ -190,17 +190,33 @@ class XanoPrescriptionImportService
     return unless image_payload.is_a?(Hash) && image_payload["url"].present?
 
     url = image_payload["url"]
-    name = image_payload["name"].presence || File.basename(URI.parse(url).path) rescue "prescription.pdf"
-    uri = URI(url)
-    io = nil
-    Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 10, read_timeout: 30) do |http|
-      request = Net::HTTP::Get.new(uri.request_uri)
-      response = http.request(request)
-      raise "Failed to download image: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
-      io = StringIO.new(response.body)
+    name = image_payload["name"].presence || (File.basename(URI.parse(url).path) rescue "prescription.pdf")
+    ext = File.extname(name).presence || ".pdf"
+
+    Tempfile.create([ "xano_prescription_", ext ], binmode: true) do |tmp|
+      download_to_file(url, tmp)
+      tmp.rewind
+      prescription.documents.attach(io: tmp, filename: name)
+      Rails.logger.info "[XanoPrescriptionImport] Attached document #{name} to prescription id=#{prescription.id}"
     end
-    prescription.documents.attach(io: io, filename: name)
   rescue => e
     Rails.logger.warn "Could not attach Prescription_Image for prescription #{prescription.id}: #{e.message}"
+  end
+
+  def download_to_file(url, dest_io)
+    uri = URI(url)
+    response = nil
+    Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 15, read_timeout: 60) do |http|
+      request = Net::HTTP::Get.new(uri.request_uri)
+      response = http.request(request)
+      # Follow one redirect (e.g. Xano signed URL)
+      if response.is_a?(Net::HTTPRedirection) && response["location"].present?
+        redirect_uri = URI(response["location"])
+        redirect_uri = URI.join(uri, redirect_uri) if redirect_uri.relative?
+        return download_to_file(redirect_uri.to_s, dest_io)
+      end
+      raise "Failed to download: #{response.code} #{response.message}" unless response.is_a?(Net::HTTPSuccess)
+      response.read_body { |chunk| dest_io.write(chunk) }
+    end
   end
 end
