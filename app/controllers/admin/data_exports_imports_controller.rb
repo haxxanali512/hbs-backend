@@ -131,23 +131,19 @@ class Admin::DataExportsImportsController < Admin::BaseController
     end
   end
 
-  # Temporary: import prescriptions from Xano API (fetches JSON, creates Prescription records, downloads images to S3).
-  # Organization is taken from each prescription's organization object in the response.
+  # Temporary: enqueue Xano prescription import (Sidekiq). Handles large runs (e.g. 5000 records).
+  # Organization is taken from each prescription's organization object in the response. Check logs for "[XanoPrescriptionImport]".
   def import_xano_prescriptions
-    result = XanoPrescriptionImportService.new(api_url: "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/prescription").call
-
-    notice = "#{result[:created]} prescription(s) imported."
-    notice += " Errors: #{result[:errors].first(5).join('; ')}" if result[:errors].any?
-    if result[:errors].any?
-      redirect_to admin_data_exports_imports_path, alert: notice
-    else
-      redirect_to admin_data_exports_imports_path, notice: notice
+    unless ENV["XANO_PRESCRIPTIONS_API_URL"].present?
+      redirect_to admin_data_exports_imports_path, alert: "XANO_PRESCRIPTIONS_API_URL is not set."
+      return
     end
-  rescue XanoPrescriptionImportService::Error => e
-    redirect_to admin_data_exports_imports_path, alert: "Xano import failed: #{e.message}"
+    XanoPrescriptionImportJob.perform_later(api_url: ENV["XANO_PRESCRIPTIONS_API_URL"])
+    redirect_to admin_data_exports_imports_path,
+                notice: "Xano prescription import started in the background. Check logs for [XanoPrescriptionImport] for progress."
   rescue => e
     Rails.logger.error("import_xano_prescriptions: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
-    redirect_to admin_data_exports_imports_path, alert: "Import failed: #{e.message}"
+    redirect_to admin_data_exports_imports_path, alert: "Failed to enqueue import: #{e.message}"
   end
 
   # Provides a CSV with the expected headers for processing
