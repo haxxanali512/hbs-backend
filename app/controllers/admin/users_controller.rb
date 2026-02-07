@@ -151,6 +151,25 @@ class Admin::UsersController < ::ApplicationController
     @organizations = Organization.kept.order(:name)
   end
 
+  def quick_create
+    password = SecureRandom.uuid
+    @user = User.new(quick_create_params.merge(
+      password: password,
+      password_confirmation: password,
+      status: "pending"
+    ))
+    if @user.save
+      render json: {
+        id: @user.id,
+        display_name: @user.display_name,
+        email: @user.email,
+        label: "#{@user.display_name} (#{@user.email})"
+      }, status: :created
+    else
+      render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   def send_invitation
     mode = params.dig(:user, :invite_organization_mode)
     organization_id = params.dig(:user, :organization_id)
@@ -197,6 +216,10 @@ class Admin::UsersController < ::ApplicationController
 
   def user_params
     params.require(:user).permit(:email, :first_name, :last_name, :username, :role_id)
+  end
+
+  def quick_create_params
+    params.require(:user).permit(:email, :first_name, :last_name, :username)
   end
 
   def invite_params
