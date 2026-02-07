@@ -7,9 +7,11 @@
           <h1 class="text-3xl font-bold text-gray-900">Accepted Insurance Plans</h1>
           <p class="mt-2 text-gray-600">Manage your organization's accepted insurance plans</p>
         </div>
-        <div>
-          <%= link_to "New Accepted Plan", new_tenant_org_accepted_plan_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
-        </div>
+        <% if current_user.permissions_for("tenant", "org_accepted_plans", "create") %>
+          <div>
+            <%= link_to "New Accepted Plan", new_tenant_org_accepted_plan_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          </div>
+        <% end %>
       </div>
     </div>
 
