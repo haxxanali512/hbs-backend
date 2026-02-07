@@ -37,6 +37,9 @@ class XanoPrescriptionImportService
       end
     end
 
+    Rails.logger.info "[XanoPrescriptionImport] Completed: created=#{created} errors=#{errors.size} total_items=#{items.size}"
+    Rails.logger.warn "[XanoPrescriptionImport] Errors: #{errors.join('; ')}" if errors.any?
+
     { created: created, errors: errors }
   end
 
@@ -103,6 +106,8 @@ class XanoPrescriptionImportService
     end
 
     attach_image(prescription, payload["Prescription_Image"])
+
+    Rails.logger.info "[XanoPrescriptionImport] Added prescription id=#{prescription.id} org=#{organization.name} (id=#{organization.id}) patient=#{patient.first_name} #{patient.last_name} (id=#{patient.id}) procedure=#{procedure_code.code} date_written=#{date_written} xano_id=#{payload['id']}"
     { created: true }
   rescue => e
     Rails.logger.error "XanoPrescriptionImportService: #{e.message}"
