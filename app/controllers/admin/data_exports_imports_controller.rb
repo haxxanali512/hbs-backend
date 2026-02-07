@@ -138,7 +138,7 @@ class Admin::DataExportsImportsController < Admin::BaseController
       redirect_to admin_data_exports_imports_path, alert: "XANO_PRESCRIPTIONS_API_URL is not set."
       return
     end
-    XanoPrescriptionImportJob.perform_later(api_url: ENV["XANO_PRESCRIPTIONS_API_URL"])
+    XanoPrescriptionImportJob.perform_later(api_url: "https://xhnq-ezxv-7zvm.n7d.xano.io/api:AmT5eNEe:v2/prescription")
     redirect_to admin_data_exports_imports_path,
                 notice: "Xano prescription import started in the background. Check logs for [XanoPrescriptionImport] for progress."
   rescue => e
