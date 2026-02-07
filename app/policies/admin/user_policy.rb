@@ -28,6 +28,10 @@ module Admin
       accessible?("admin", "users", "destroy")
     end
 
+    def quick_create?
+      create?
+    end
+
     def invite?
       accessible?("admin", "users", "create")
     end
