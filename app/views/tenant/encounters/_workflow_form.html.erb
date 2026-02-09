@@ -109,20 +109,20 @@
   </div>
 
   <script>
-    document.addEventListener("turbo:load", function() {
+    (function() {
+    function initEncounterTemplatesBlock() {
       if (window.encounterTemplatesInitialized) return;
-      window.encounterTemplatesInitialized = true;
-
       const providerSelect = document.getElementById("encounter_provider_id");
       const specialtySelect = document.getElementById("encounter_specialty_id");
       const templateSelect = document.getElementById("encounter_encounter_template_id");
-      const currentSpecialtyId = providerSelect?.dataset?.currentSpecialtyId;
+      if (!providerSelect || !specialtySelect) return;
+      window.encounterTemplatesInitialized = true;
+
+      const currentSpecialtyId = providerSelect.dataset?.currentSpecialtyId;
       const currentTemplateId = templateSelect?.dataset?.currentTemplateId;
       const templatesUrl = "<%= templates_for_specialty_tenant_encounters_path %>";
       let templatesIndex = {};
       let templatesRequestId = 0;
-
-      if (!providerSelect || !specialtySelect) return;
 
       function resetSpecialties() {
         specialtySelect.innerHTML = '<option value="">Select provider first</option>';
@@ -250,7 +250,15 @@
       }
 
       initializeTemplates();
-    });
+    }
+    document.addEventListener("turbo:load", initEncounterTemplatesBlock);
+    if (window.workflowFormFrameJustReplaced) {
+      window.workflowFormFrameJustReplaced = false;
+      initEncounterTemplatesBlock();
+    } else {
+      setTimeout(initEncounterTemplatesBlock, 0);
+    }
+  })();
   </script>
 
   <script>
