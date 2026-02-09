@@ -12,6 +12,20 @@ module Admin
       super
     end
 
+    # Override back so that on tenant subdomain (where we have no stored original user)
+    # we sign out and redirect to admin portal instead of failing.
+    def back
+      if on_tenant_subdomain? && session[:devise_masquerade_user_id].blank?
+        Rails.logger.info "Masquerade: Stopping impersonation on tenant subdomain, redirecting to admin"
+        sign_out(current_user) if current_user.present?
+        url = admin_portal_url
+        url += (url.include?("?") ? "&" : "?") + "impersonation_ended=1"
+        redirect_to url, allow_other_host: true
+        return
+      end
+      super
+    end
+
     def show
       # Check if we're on a tenant subdomain (cross-subdomain redirect scenario)
       # In this case, we need to process the masquerade manually since there's no session
@@ -184,6 +198,22 @@ module Admin
 
     def after_back_masquerade_path_for(resource)
       admin_users_path
+    end
+
+    # Full URL for the admin portal (used when stopping impersonation from tenant subdomain)
+    def admin_portal_url
+      if Rails.env.development?
+        port = request.port || 3000
+        # Match tenant URL pattern: tenant is at subdomain.hbs.localhost, so admin is at admin.hbs.localhost
+        base = request.host.include?("hbs.localhost") ? "admin.hbs.localhost" : "admin.localhost"
+        "#{request.protocol}#{base}:#{port}"
+      else
+        # Production: admin subdomain on the same base domain as tenant
+        host_parts = request.host.split(".")
+        base_host = host_parts.length > 2 ? host_parts.drop(1).join(".") : request.host
+        base_host = "#{base_host}:#{request.port}" if request.port.present? && request.port != 80 && request.port != 443
+        "#{request.protocol}admin.#{base_host}"
+      end
     end
   end
 end

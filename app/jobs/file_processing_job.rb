@@ -9,6 +9,9 @@ class FileProcessingJob < ApplicationJob
   VALID_CARC_CODES = %w[0 1 2 242].freeze
 
   def perform(file_path, file_type, job_id = nil, user_id = nil, options = {})
+    # Prefer the ActiveJob job_id for correlation when none is provided explicitly,
+    # otherwise fall back to a generated UUID for backwards compatibility.
+    job_id ||= (respond_to?(:job_id) ? self.job_id : nil)
     job_id ||= SecureRandom.uuid
     @allow_overwrite = options[:allow_overwrite] == true
     Rails.logger.info "Starting file processing for #{file_path} (Job ID: #{job_id})"

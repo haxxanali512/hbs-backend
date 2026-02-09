@@ -6,6 +6,7 @@ class ApplicationController < ActionController::Base
 
   # Catch 500-level errors and send email notifications
   rescue_from StandardError, with: :handle_server_error
+  before_action :set_impersonation_ended_flash
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
   around_action :set_tenant_context, unless: -> { devise_controller? || controller_name == "notifications" }
@@ -13,6 +14,11 @@ class ApplicationController < ActionController::Base
   helper_method :current_organization
 
   protected
+
+  def set_impersonation_ended_flash
+    return unless params[:impersonation_ended].present?
+    flash[:notice] = "You have stopped impersonating. Sign in to the admin portal if needed."
+  end
 
   def user_not_authorized
     flash[:alert] = "You are not authorized to perform this action."
@@ -142,12 +148,15 @@ class ApplicationController < ActionController::Base
     if Rails.env.production?
       org = find_org_by_subdomain
       return org if org
-    else
-      org = find_org_by_localhost
-      return org if org
+      # Subdomain didn't match any org — don't fall back; user will get "No organization context"
+      return nil
     end
 
-    # Fallback to user's first organization
-    current_user.organizations.first
+    org = find_org_by_localhost
+    return org if org
+    # Development: only fall back to user's first org when on plain localhost (no subdomain)
+    # so /tenant/dashboard works. If we had a subdomain in the host and it didn't match, don't assign wrong org.
+    on_plain_localhost = (request.host == "localhost" || request.host.start_with?("127.0.0.1")) && request.subdomain.blank?
+    on_plain_localhost ? current_user.organizations.first : nil
   end
 end

@@ -20,7 +20,7 @@
     <% end %>
 
     <div style="text-align: center; margin: 24px 0;">
-      <%# Build accept URL with org subdomain (e.g. abc.holisticbusinesssolution.com) when user has an org %>
+      <%# Build accept URL: tenant subdomain when user has an org, otherwise admin portal (e.g. super admin) %>
       <% accept_url = nil %>
       <% if invited_org.present? %>
         <% if Rails.env.development? %>
@@ -34,7 +34,17 @@
         <% url_opts[:port] = tenant_port if tenant_port.present? %>
         <% accept_url = accept_user_invitation_url(url_opts.merge(invitation_token: @token)) %>
       <% else %>
-        <% accept_url = accept_user_invitation_url(invitation_token: @token) %>
+        <%# No org (e.g. super admin): use admin portal host so the link is valid %>
+        <% if Rails.env.development? %>
+          <% admin_host = "admin.localhost" %>
+          <% admin_port = Rails.application.config.action_mailer.default_url_options[:port] || 3000 %>
+        <% else %>
+          <% admin_host = "admin.holisticbusinesssolution.com" %>
+          <% admin_port = nil %>
+        <% end %>
+        <% url_opts = { host: admin_host, protocol: Rails.env.development? ? "http" : "https" } %>
+        <% url_opts[:port] = admin_port if admin_port.present? %>
+        <% accept_url = accept_user_invitation_url(url_opts.merge(invitation_token: @token)) %>
       <% end %>
       <a href="<%= accept_url %>" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept Invitation</a>
     </div>
