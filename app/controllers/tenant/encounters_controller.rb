@@ -306,11 +306,14 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   def load_workflow_collections
-    # Show encounters that are ready to submit (ready_to_submit but not yet cascaded)
+    # Show encounters in workflow states (planned → ready_to_submit) that are still pending (not sent for billing)
+    # When user sends for billing, internal_status becomes queued_for_billing and they leave this table
+    # Include nil internal_status so existing records before "pending" was added still appear
     @queued_encounters = @current_organization.encounters
                                              .kept
                                              .where(status: :ready_to_submit)
                                              .where(cascaded: false)
+                                             .where(internal_status: [ nil, :pending ])
                                              .includes(:patient, :provider, :diagnosis_codes, :encounter_procedure_items, :procedure_codes, claim: { claim_lines: :procedure_code })
                                              .order(created_at: :desc)
   end
@@ -345,12 +348,12 @@ class Tenant::EncountersController < Tenant::BaseController
       return
     end
 
-    # Validate that all encounters belong to the current organization and are ready to submit
-    # Only ready_to_submit encounters that haven't been cascaded can be submitted
+    # Validate that all encounters belong to the current organization, are ready to submit, and still pending (not yet sent for billing)
     valid_encounters = @current_organization.encounters
                                             .where(id: encounter_ids)
                                             .where(status: :ready_to_submit)
                                             .where(cascaded: false)
+                                            .where(internal_status: :pending)
                                             .to_a
 
     if valid_encounters.size != encounter_ids.count
@@ -395,12 +398,19 @@ class Tenant::EncountersController < Tenant::BaseController
         redirect_to tenant_encounters_path(submitted_filter: "queued"), status: :see_other
       end
       format.turbo_stream do
-        # Reload the queued encounters table (should now be empty or show remaining items)
-        @show_queued_only = true
-        params[:submitted_filter] = "queued"
-        build_encounters_index
         flash.now[:notice] = "#{valid_encounters.size} encounter(s) queued for billing submission."
-        render :index
+        if params[:from_workflow].present?
+          load_workflow_collections
+          render turbo_stream: [
+            turbo_stream.replace("queued_encounters_frame", partial: "tenant/encounters/queued_encounters_frame", locals: { queued_encounters: @queued_encounters }),
+            turbo_stream.replace("flash_container", partial: "shared/toast_flash")
+          ]
+        else
+          @show_queued_only = true
+          params[:submitted_filter] = "queued"
+          build_encounters_index
+          render :index
+        end
       end
     end
   end

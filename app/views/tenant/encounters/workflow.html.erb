@@ -52,6 +52,7 @@
                         id: "submit-queued-form",
                         class: "inline" do |f| %>
             <%= f.hidden_field :encounter_ids, value: "", id: "encounter_ids_input" %>
+            <%= hidden_field_tag :from_workflow, "1" %>
             <%= f.submit "Send for Billing",
                         id: "submit_queued_button",
                         class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed",
@@ -67,177 +68,109 @@
     </div>
   </div>
 </div>
-
 <script>
-  // Wait for TurboAware to be available, or use fallback
-  (function() {
-    // Helper functions that work with or without TurboAware
-    function query(selector) {
-      if (window.TurboAware) {
-        return TurboAware.query(selector);
-      }
-      return document.querySelector(selector);
+(function() {
+  var delegationBound = false;
+
+  function getTableBody() {
+    var frame = document.getElementById('queued_encounters_frame');
+    if (frame) {
+      var tbody = frame.querySelector('tbody');
+      if (tbody) return tbody;
     }
+    return document.querySelector('[data-workflow-queued-target="tableBody"]') || null;
+  }
 
-    function getElement(id) {
-      if (window.TurboAware) {
-        return TurboAware.getElement(id);
-      }
-      return document.getElementById(id);
-    }
-
-    function delegate(eventType, selector, handler) {
-      if (window.TurboAware) {
-        TurboAware.delegate(eventType, selector, handler);
-      } else {
-        // Fallback: use document-level event delegation
-        document.addEventListener(eventType, function(event) {
-          const target = event.target.closest(selector);
-          if (target) {
-            handler.call(target, event);
-          }
-        }, true);
-      }
-    }
-
-    function onLoad(callback) {
-      if (window.TurboAware) {
-        TurboAware.onLoad(callback);
-      } else {
-        // Fallback: standard initialization
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', callback);
-        } else {
-          callback();
-        }
-        document.addEventListener('turbo:load', callback);
-        document.addEventListener('turbo:after-stream-render', function() {
-          setTimeout(callback, 50);
-        });
-        document.addEventListener('turbo:frame-load', function() {
-          setTimeout(callback, 50);
-        });
-      }
-    }
-
-    // Use helper functions for dynamic content
-    function updateSubmitState() {
-      // Always query fresh elements - don't cache
-      const tableBody = query('[data-workflow-queued-target="tableBody"]');
-      const submitButton = getElement('submit_queued_button');
-      const encounterIdsInput = getElement('encounter_ids_input');
-      
-      if (!tableBody) {
-        if (submitButton) submitButton.disabled = true;
-        return;
-      }
-
-      const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
-      const hasSelections = checkedBoxes.length > 0;
-      
-      if (submitButton) {
-        submitButton.disabled = !hasSelections;
-      }
-
-      // Update hidden input with selected IDs
-      if (encounterIdsInput) {
-        const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
-        encounterIdsInput.value = selectedIds.join(',');
-      }
-
-      // Update select all checkbox state
-      const selectAll = getElement('select_all_queued');
-      if (selectAll && tableBody) {
-        const allCheckboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
-        const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
-        selectAll.checked = allCheckboxes.length > 0 && checkedBoxes.length === allCheckboxes.length;
-        selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < allCheckboxes.length;
-      }
-    }
-
-    function collectSelectedIds() {
-      const tableBody = query('[data-workflow-queued-target="tableBody"]');
-      if (!tableBody) return [];
-      const checkedBoxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]:checked');
-      return Array.from(checkedBoxes).map(cb => cb.value);
-    }
-
-    function toggleAll(event) {
-      const tableBody = query('[data-workflow-queued-target="tableBody"]');
-      if (!tableBody) return;
-      
-      const checkboxes = tableBody.querySelectorAll('input[name="encounter_ids[]"]');
-      const isChecked = event.target.checked;
-      
-      checkboxes.forEach(checkbox => {
-        checkbox.checked = isChecked;
-      });
-      
-      updateSubmitState();
-    }
-
-    // Use event delegation for checkboxes - works with dynamic content
-    delegate('change', 'input[name="encounter_ids[]"]', function(event) {
-      updateSubmitState();
-    });
-
-    // Use event delegation for select all checkbox
-    delegate('change', '#select_all_queued', function(event) {
-      toggleAll(event);
-    });
-
-    // Initialize state on load and after Turbo updates
-    function initialize() {
-      updateSubmitState();
-    }
-
-    // Use onLoad to ensure it runs on initial load and after updates
-    onLoad(initialize);
-
-    // Ensure selected IDs are captured at submit time
-    const submitForm = getElement('submit-queued-form');
-    if (submitForm) {
-      submitForm.addEventListener('submit', function(event) {
-        const encounterIdsInput = getElement('encounter_ids_input');
-        const selectedIds = collectSelectedIds();
-        if (encounterIdsInput) {
-          encounterIdsInput.value = selectedIds.join(',');
-        }
-        if (selectedIds.length === 0) {
-          event.preventDefault();
-        }
-      });
-    }
-
-    // Also specifically listen for queued table frame updates
-    document.addEventListener('turbo:frame-load', function(event) {
-      if (event.target.id === 'queued_encounters_frame') {
-        setTimeout(initialize, 50);
-      }
-    });
-
-    document.addEventListener('turbo:after-stream-render', function() {
-      // Check if the queued table was updated
-      const frame = getElement('queued_encounters_frame');
-      if (frame) {
-        setTimeout(initialize, 50);
-      }
-    });
-  })();
-
-  // Handle row click to edit encounter
-  function handleRowClick(event, encounterId) {
-    // Don't navigate if clicking on checkbox, link, or button
-    if (event.target.tagName === 'INPUT' || 
-        event.target.tagName === 'A' || 
-        event.target.tagName === 'BUTTON' ||
-        event.target.closest('a') ||
-        event.target.closest('button')) {
+  function updateSubmitState() {
+    var tableBody = getTableBody();
+    var submitButton = document.getElementById('submit_queued_button');
+    var encounterIdsInput = document.getElementById('encounter_ids_input');
+    if (!tableBody) {
+      if (submitButton) submitButton.disabled = true;
       return;
     }
-    
-    // Navigate to edit page
-    window.location.href = '/tenant/encounters/' + encounterId + '/edit';
+    var checkboxes = tableBody.querySelectorAll('input.queued-encounter-checkbox');
+    var checked = tableBody.querySelectorAll('input.queued-encounter-checkbox:checked');
+    var hasSelections = checked.length > 0;
+    if (submitButton) submitButton.disabled = !hasSelections;
+    if (encounterIdsInput) {
+      var ids = [];
+      for (var i = 0; i < checked.length; i++) ids.push(checked[i].value);
+      encounterIdsInput.value = ids.join(',');
+    }
+    var selectAll = document.getElementById('select_all_queued');
+    if (selectAll && checkboxes.length > 0) {
+      selectAll.checked = checked.length === checkboxes.length;
+      selectAll.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+    }
   }
+
+  function toggleAll(ev) {
+    var tableBody = getTableBody();
+    if (!tableBody) return;
+    var checkboxes = tableBody.querySelectorAll('input.queued-encounter-checkbox');
+    var checked = ev.target.checked;
+    for (var i = 0; i < checkboxes.length; i++) checkboxes[i].checked = checked;
+    updateSubmitState();
+  }
+
+  function bindDelegation() {
+    if (delegationBound) return;
+    delegationBound = true;
+    document.addEventListener('change', function(ev) {
+      var el = ev.target;
+      if (!el || el.type !== 'checkbox') return;
+      if (el.id === 'select_all_queued') {
+        toggleAll(ev);
+      } else {
+        var tableBody = getTableBody();
+        if (tableBody && tableBody.contains(el)) updateSubmitState();
+      }
+    });
+  }
+
+  function bindSubmitForm() {
+    var form = document.getElementById('submit-queued-form');
+    if (!form || form.getAttribute('data-workflow-queued-bound') === 'true') return;
+    form.setAttribute('data-workflow-queued-bound', 'true');
+    form.addEventListener('submit', function(ev) {
+      var tableBody = getTableBody();
+      var encounterIdsInput = document.getElementById('encounter_ids_input');
+      if (encounterIdsInput && tableBody) {
+        var checked = tableBody.querySelectorAll('input.queued-encounter-checkbox:checked');
+        var ids = [];
+        for (var i = 0; i < checked.length; i++) ids.push(checked[i].value);
+        encounterIdsInput.value = ids.join(',');
+      }
+      if (!encounterIdsInput || !encounterIdsInput.value) ev.preventDefault();
+    });
+  }
+
+  function init() {
+    if (!document.getElementById('submit-queued-form')) return;
+    bindDelegation();
+    bindSubmitForm();
+    updateSubmitState();
+  }
+
+  window.handleRowClick = function(event, encounterId) {
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'A' || event.target.tagName === 'BUTTON' || event.target.closest('a') || event.target.closest('button')) return;
+    var base = window.location.pathname.replace(/\/workflow\/?$/, '') || '/tenant/encounters';
+    window.location.href = base + '/' + encounterId + '/edit';
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  document.addEventListener('turbo:load', init);
+  document.addEventListener('turbo:after-stream-render', function() {
+    setTimeout(init, 50);
+  });
+  document.addEventListener('turbo:frame-load', function(ev) {
+    if (ev.target.id === 'queued_encounters_frame') setTimeout(init, 50);
+  });
+})();
 </script>
 

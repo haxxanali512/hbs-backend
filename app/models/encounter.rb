@@ -90,8 +90,9 @@ class Encounter < ApplicationRecord
   }, prefix: true
 
   enum :internal_status, {
-    queued_for_billing: 0,
-    billed: 1
+    pending: 0,
+    queued_for_billing: 1,
+    billed: 2
   }, prefix: true
 
   enum :shared_status, {
@@ -207,6 +208,7 @@ class Encounter < ApplicationRecord
   # CALLBACKS
   # ===========================================================
 
+  before_validation :set_default_internal_status, on: :create
   before_validation :apply_prescription_diagnosis_codes
   before_save :ensure_cascade_fields_locked, if: :cascaded?
   after_save :associate_diagnosis_codes, if: -> { diagnosis_code_ids.present? }
@@ -436,6 +438,11 @@ class Encounter < ApplicationRecord
       # No diagnosis codes provided
       errors.add(:base, "ENC_DX_REQUIRED - At least one diagnosis code is required")
     end
+  end
+
+  def set_default_internal_status
+    return if internal_status.present?
+    self.internal_status = :pending
   end
 
   def apply_prescription_diagnosis_codes
