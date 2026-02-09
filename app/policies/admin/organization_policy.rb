@@ -40,6 +40,10 @@ module Admin
     accessible?("admin", "organizations", "create")
   end
 
+  def toggle_plan_step?
+    accessible?("admin", "organizations", "update")
+  end
+
   def users_search?
     index?
   end
