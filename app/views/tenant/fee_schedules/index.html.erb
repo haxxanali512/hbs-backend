@@ -135,15 +135,9 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize: Lock all rates that have saved values
-    document.querySelectorAll('.inline-edit-rate').forEach(function(input) {
-      if (input.dataset.originalValue && input.dataset.originalValue !== '') {
-        const itemId = input.dataset.itemId;
-        lockRate(itemId);
-      }
-    });
-    
+  function initInlineRateEditing() {
+    if (!document.querySelector('.inline-edit-rate')) return;
+
     // Lock/unlock rate input
     function lockRate(itemId) {
       const rateInput = document.querySelector(`.inline-edit-rate[data-item-id="${itemId}"]`);
@@ -302,5 +296,15 @@
         checkForChanges(itemId);
       });
     }
-  });
+
+    // Initialize: Lock all rates that have saved values
+    document.querySelectorAll('.inline-edit-rate').forEach(function(input) {
+      if (input.dataset.originalValue && input.dataset.originalValue !== '') {
+        const itemId = input.dataset.itemId;
+        lockRate(itemId);
+      }
+    });
+  }
+
+  document.addEventListener('turbo:load', initInlineRateEditing);
 </script>
