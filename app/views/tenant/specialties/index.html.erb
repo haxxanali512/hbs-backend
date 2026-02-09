@@ -96,32 +96,33 @@
       </button>
     </div>
 
-    <!-- Confirmation Modal -->
-    <div id="confirm-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
-            <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h3 class="text-lg leading-6 font-medium text-gray-900 mt-5">Confirm Action</h3>
-          <div class="mt-2 px-7 py-3">
-            <p class="text-sm text-gray-500">
-              Are you sure you want to include this speciality? Once added specialties cannot be removed
+    <!-- Confirmation Modal (matches shared modal pattern) -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="confirm-modal-title" role="dialog" aria-modal="true">
+      <div class="relative flex min-h-full items-center justify-center p-4">
+        <div id="confirm-modal-overlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out"></div>
+        <div id="confirm-modal-content" class="relative z-10 w-full max-w-md rounded-lg bg-white shadow-xl">
+          <div class="px-8 py-8">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-amber-100">
+                <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900" id="confirm-modal-title">Confirm Action</h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-8">
+              Are you sure you want to add the selected specialties? Once added, specialties cannot be removed.
             </p>
-          </div>
-          <div class="items-center px-4 py-3">
-            <%= form_with url: add_selected_tenant_specialties_path, method: :post, id: "add-specialties-form", local: true do |f| %>
-              <div class="flex justify-end space-x-3">
-                <button type="button" 
+            <%= form_with url: add_selected_tenant_specialties_path, method: :post, id: "add-specialties-form", local: true, data: { turbo: false } do |f| %>
+              <div class="flex items-center justify-end gap-3 pt-1">
+                <button type="button"
                         id="cancel-btn"
-                        class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                   Cancel
                 </button>
-                <button type="submit" 
+                <button type="submit"
                         id="confirm-btn"
-                        class="px-4 py-2 bg-primary-blue hover:bg-primary-blue-50 text-white text-base font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-blue">
+                        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                   Confirm
                 </button>
               </div>
@@ -132,12 +133,14 @@
     </div>
 
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      function initAddSelectedSpecialties() {
         const addBtn = document.getElementById('add-selected-btn');
         const modal = document.getElementById('confirm-modal');
         const cancelBtn = document.getElementById('cancel-btn');
         const form = document.getElementById('add-specialties-form');
         const checkboxes = document.querySelectorAll('.specialty-checkbox:not(:disabled)');
+
+        if (!addBtn || !form) return;
 
         function updateButtonState() {
           const hasSelection = Array.from(checkboxes).some(cb => cb.checked);
@@ -164,9 +167,10 @@
 
         addBtn.addEventListener('click', function(e) {
           e.preventDefault();
-          
-          // Get selected specialty IDs (only unchecked ones)
-          const selectedIds = Array.from(checkboxes)
+
+          // Re-query checkboxes in case DOM was updated
+          const currentCheckboxes = document.querySelectorAll('.specialty-checkbox:not(:disabled)');
+          const selectedIds = Array.from(currentCheckboxes)
             .filter(cb => cb.checked && !cb.disabled)
             .map(cb => cb.value);
 
@@ -175,9 +179,8 @@
             return;
           }
 
-          // Clear existing hidden inputs
-          const existingInputs = form.querySelectorAll('input[type="hidden"]');
-          existingInputs.forEach(input => input.remove());
+          // Clear only our specialty_ids[] hidden inputs (leave authenticity_token etc.)
+          form.querySelectorAll('input[name="specialty_ids[]"]').forEach(input => input.remove());
 
           // Add hidden inputs for selected specialties
           selectedIds.forEach(id => {
@@ -197,13 +200,24 @@
           modal.classList.add('hidden');
         });
 
-        // Close modal on outside click
+        // Close modal on overlay click
+        const overlay = document.getElementById('confirm-modal-overlay');
+        if (overlay) {
+          overlay.addEventListener('click', function() {
+            modal.classList.add('hidden');
+          });
+        }
+
+        // Close modal on outside click (backdrop)
         modal.addEventListener('click', function(e) {
           if (e.target === modal) {
             modal.classList.add('hidden');
           }
         });
-      });
+      }
+
+      // Use turbo:load so this runs on both initial load and Turbo Drive navigations
+      document.addEventListener('turbo:load', initAddSelectedSpecialties);
     </script>
 
     <!-- Pagination -->

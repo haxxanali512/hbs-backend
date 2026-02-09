@@ -15,6 +15,10 @@ class Tenant::SpecialtyPolicy < ApplicationPolicy
     update?
   end
 
+  def add_selected?
+    update?
+  end
+
   def update?
     accessible?("tenant", "specialties", "update")
   end
