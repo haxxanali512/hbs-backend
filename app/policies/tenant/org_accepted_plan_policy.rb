@@ -33,7 +33,7 @@ class Tenant::OrgAcceptedPlanPolicy < ApplicationPolicy
   end
 
   def accept_plans?
-    create?
+    index?
   end
 
   def activate?
