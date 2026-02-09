@@ -3,7 +3,7 @@ class Api::V1::FileUploadsController < ApplicationController
 
   def create
     begin
-      # Generate unique job ID
+      # Generate unique job ID for tracking this upload/processing request
       job_id = SecureRandom.uuid
 
       # Handle file upload or URL download
