@@ -150,7 +150,14 @@
 </div>
 
 <!-- Pagination -->
-<div class="mt-6" id="encounters_pagination">
-  <%== pagination_info(pagy) %>
-</div>
+<% if pagy %>
+  <div class="mt-6 flex items-center justify-between" id="encounters_pagination">
+    <div class="text-sm text-gray-700">
+      <%== pagination_info(pagy) %>
+    </div>
+    <div>
+      <%== pagy_nav(pagy) if pagy.pages > 1 %>
+    </div>
+  </div>
+<% end %>
 
