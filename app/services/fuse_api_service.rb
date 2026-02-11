@@ -245,19 +245,22 @@ class FuseApiService
   end
 
   def parse_response(response, expected_status:, expect_body: true)
-    status = response.code
+    status = response.code.to_i
+    allowed = Array(expected_status)
 
-    case status
-    when expected_status
+    if allowed.include?(status)
       expect_body ? safe_parse_json(response.body) : true
-    when 401
-      raise AuthenticationError, response.body
-    when 404
-      raise NotFoundError, response.body
-    when 429
-      raise RateLimitError, response.body
     else
-      raise Error, "Fuse API error (#{status}): #{response.body}"
+      case status
+      when 401
+        raise AuthenticationError, response.body
+      when 404
+        raise NotFoundError, response.body
+      when 429
+        raise RateLimitError, response.body
+      else
+        raise Error, "Fuse API error (#{status}): #{response.body}"
+      end
     end
   end
 
