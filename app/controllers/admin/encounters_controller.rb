@@ -61,7 +61,6 @@ class Admin::EncountersController < Admin::BaseController
   def edit; end
 
   def update
-    byebug
     if @encounter.update(encounter_params)
       redirect_to admin_encounter_path(@encounter), notice: "Encounter updated successfully."
     else
