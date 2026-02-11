@@ -104,10 +104,24 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
   end
 
   def accept_plans
+    unless @current_organization.providers.kept.exists?
+      redirect_to tenant_org_accepted_plans_path, alert: "Please create a provider before accepting plans."
+      return
+    end
+
+    provider_id = params[:provider_id].presence
+    provider = @current_organization.providers.kept.find_by(id: provider_id)
+
+    unless provider
+      redirect_to tenant_org_accepted_plans_path, alert: "Please select a valid provider for these plans."
+      return
+    end
+
     ids = Array(params[:insurance_plan_ids]).reject(&:blank?).map(&:to_i).uniq
     accepted_ids = @current_organization.org_accepted_plans.pluck(:insurance_plan_id)
     to_add = ids - accepted_ids
     added = 0
+
     to_add.each do |insurance_plan_id|
       plan = @current_organization.org_accepted_plans.build(
         insurance_plan_id: insurance_plan_id,
@@ -117,7 +131,25 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
         effective_date: Date.current,
         added_by_id: current_user.id
       )
-      added += 1 if plan.save
+
+      if plan.save
+        added += 1
+
+        insurance_plan = plan.insurance_plan
+        payer = insurance_plan&.payer
+
+        if payer
+          PayerEnrollment.find_or_create_by!(
+            organization: @current_organization,
+            payer: payer,
+            enrollment_type: :claims,
+            provider_id: provider.id,
+            organization_location_id: nil
+          ) do |enrollment|
+            enrollment.status = :draft
+          end
+        end
+      end
     end
     skipped = to_add.size - added
     notice = "#{added} plan(s) added to accepted plans."

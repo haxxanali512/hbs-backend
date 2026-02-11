@@ -61,6 +61,8 @@ class OrgAcceptedPlan < ApplicationRecord
   after_save :inactivate_if_date_passed
   after_save :create_enrollment_task_if_in_network
   after_commit :create_enrollment_support_ticket, on: :create
+  after_commit :ensure_payer_enrollment_placeholder, on: :create
+  after_commit :notify_enrollment_verification_needed, on: :create
 
   # =========================
   # Business Logic
@@ -216,5 +218,37 @@ class OrgAcceptedPlan < ApplicationRecord
     )
   rescue => e
     Rails.logger.error("Failed to create enrollment support ticket for OrgAcceptedPlan #{id}: #{e.message}")
+  end
+
+  def ensure_payer_enrollment_placeholder
+    return unless organization && insurance_plan && insurance_plan.payer
+
+    # Only create a placeholder enrollment if none exists yet for this organization/payer/type
+    existing = PayerEnrollment.for_scope(
+      organization.id,
+      insurance_plan.payer_id,
+      :claims,
+      nil,
+      nil
+    ).first
+
+    return if existing.present?
+
+    PayerEnrollment.create!(
+      organization: organization,
+      payer: insurance_plan.payer,
+      enrollment_type: :claims,
+      status: :draft
+    )
+  rescue => e
+    Rails.logger.error("Failed to create payer enrollment placeholder for OrgAcceptedPlan #{id}: #{e.message}")
+  end
+
+  def notify_enrollment_verification_needed
+    return unless requires_enrollment_verification?
+
+    NotificationService.notify_org_accepted_plan_needs_enrollment(self)
+  rescue => e
+    Rails.logger.error("Failed to notify enrollment verification for OrgAcceptedPlan #{id}: #{e.message}")
   end
 end

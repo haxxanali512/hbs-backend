@@ -160,6 +160,8 @@ Rails.application.routes.draw do
           post :inactivate
           post :lock
           post :unlock
+          post :approve_enrollment
+          post :deny_enrollment
         end
       end
 
@@ -175,6 +177,7 @@ Rails.application.routes.draw do
       resources :payer_enrollments do
         member do
           post :submit
+          post :approve
           post :cancel
           post :resubmit
         end
@@ -382,7 +385,11 @@ Rails.application.routes.draw do
           end
         end
 
-        resources :providers
+        resources :providers do
+          member do
+            post :remind_approval
+          end
+        end
         resources :specialties do
           collection do
             post :add_selected

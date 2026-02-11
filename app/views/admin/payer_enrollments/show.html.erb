@@ -114,9 +114,12 @@
     <!-- Actions -->
     <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <% if @payer_enrollment.draft? && current_user.permissions_for("admin", "payer_enrollments", "update") %>
           <%= button_to "Submit", submit_admin_payer_enrollment_path(@payer_enrollment), method: :post, class: "px-4 py-2 rounded-md text-sm text-white bg-blue-600 hover:bg-blue-700", data: { confirm: "Submit this enrollment to clearinghouse?" } %>
+        <% end %>
+        <% if @payer_enrollment.active? && !@payer_enrollment.approved? && current_user.permissions_for("admin", "payer_enrollments", "update") %>
+          <%= button_to "Approve", approve_admin_payer_enrollment_path(@payer_enrollment), method: :post, class: "px-4 py-2 rounded-md text-sm text-white bg-green-600 hover:bg-green-700", data: { confirm: "Approve this enrollment? This marks it as approved without going through the clearinghouse." } %>
         <% end %>
         <% if @payer_enrollment.rejected? && current_user.permissions_for("admin", "payer_enrollments", "update") %>
           <%= button_to "Resubmit", resubmit_admin_payer_enrollment_path(@payer_enrollment), method: :post, class: "px-4 py-2 rounded-md text-sm text-white bg-indigo-600 hover:bg-indigo-700", data: { confirm: "Resubmit this enrollment?" } %>

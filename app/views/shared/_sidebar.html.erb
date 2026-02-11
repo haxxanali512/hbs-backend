@@ -31,7 +31,7 @@
         <% revenue_admin_active = (controller_path == 'admin/encounters' && action_name == 'index') || controller_path == 'admin/claims' || controller_path == 'admin/payments' || controller_path == 'admin/appointments' %>
         <% patients_admin_active = controller_path == 'admin/patients' || controller_path == 'admin/patient_insurance_coverages' %>
         <% reference_admin_active = controller_path == 'admin/encounter_templates' || controller_path == 'admin/payers' || controller_path == 'admin/insurance_plans' || controller_path == 'admin/org_accepted_plans' || controller_path == 'admin/specialties' || controller_path == 'admin/procedure_codes' || controller_path == 'admin/diagnosis_codes' %>
-        <% platform_admin_active = controller_path == 'admin/organization_billings' || controller_path == 'admin/invoices' || controller_path == 'admin/users' || controller_path == 'admin/roles' || controller_path == 'admin/email_template_keys' || controller_path == 'admin/data_exports_imports' || controller_path == 'admin/support_tickets' %>
+        <% platform_admin_active = controller_path == 'admin/organization_billings' || controller_path == 'admin/invoices' || controller_path == 'admin/users' || controller_path == 'admin/roles' || controller_path == 'admin/email_template_keys' || controller_path == 'admin/data_exports_imports' || controller_path == 'admin/support_tickets' || controller_path == 'admin/payer_enrollments' %>
 
         <!-- Practice Administration (collapsible) -->
         <li class="mt-5">
@@ -335,6 +335,15 @@
                 <% end %>
               </li>
             <% end %>
+            <% if current_user.permissions_for("admin", "payer_enrollments", "index") %>
+              <li>
+                <% payer_enrollments_active = controller_path == 'admin/payer_enrollments' %>
+                <%= link_to admin_payer_enrollments_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{payer_enrollments_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{payer_enrollments_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5 1.343 5 3-2.239 3-5 3M12 5v2m0 10v2"/></svg>
+                  <span>Payer Enrollments</span>
+                <% end %>
+              </li>
+            <% end %>
           </ul>
         </li>
 
@@ -347,6 +356,7 @@
           <% fee_schedules_active = controller_path == 'tenant/fee_schedules' %>
           <% org_locations_active = controller_path == 'tenant/organization_locations' %>
           <% accepted_plans_active = controller_path == 'tenant/org_accepted_plans' %>
+          <%# <% payer_enrollments_active = controller_path == 'tenant/payer_enrollments' %>
           <% patients_active = controller_path == 'tenant/patients' %>
           <% coverages_active = controller_path == 'tenant/patient_insurance_coverages' %>
           <% encounters_active = controller_path == 'tenant/encounters' && action_name != 'workflow' %>
@@ -358,7 +368,7 @@
           <% support_tickets_active = controller_path == 'tenant/support_tickets' %>
           <% settings_active = controller_path == 'tenant/organization_settings' %>
 
-          <% practice_active = providers_active || specialties_active || fee_schedules_active || accepted_plans_active || org_locations_active %>
+          <% practice_active = providers_active || specialties_active || fee_schedules_active || accepted_plans_active || org_locations_active || payer_enrollments_active %>
           <% clinical_active = patients_active || coverages_active || encounters_active || prescriptions_active || eligibility_checks_active %>
           <% codes_active = procedure_codes_active || diagnosis_codes_active %>
           <% financial_active = invoices_active || support_tickets_active || settings_active %>

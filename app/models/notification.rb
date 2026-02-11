@@ -14,9 +14,12 @@ class Notification < ApplicationRecord
     provider_approved: "provider_approved",
     provider_rejected: "provider_rejected",
     provider_suspended: "provider_suspended",
+    provider_submitted: "provider_submitted",
+    provider_resubmitted: "provider_resubmitted",
     user_invited: "user_invited",
     user_role_changed: "user_role_changed",
-    encounters_submitted_for_billing: "encounters_submitted_for_billing"
+    encounters_submitted_for_billing: "encounters_submitted_for_billing",
+    org_accepted_plan_needs_enrollment: "org_accepted_plan_needs_enrollment"
   }.freeze
 
   scope :unread, -> { where(read: false) }

@@ -89,9 +89,12 @@
       <% end %>
     </div>
 
-    <div class="flex items-center space-x-3">
-      <%= f.submit (@provider.new_record? ? "Create Provider" : "Update Provider"), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
-      <%= link_to "Cancel", (@provider.new_record? ? tenant_providers_path : tenant_provider_path(@provider)), class: "text-gray-600 hover:text-gray-800" %>
+    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+      <%= link_to "Cancel",
+                  (@provider.new_record? ? tenant_providers_path : tenant_provider_path(@provider)),
+                  class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+      <%= f.submit (@provider.new_record? ? "Create Provider" : "Update Provider"),
+                   class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
     </div>
   <% end %>
 </div>

@@ -61,12 +61,12 @@ class PayerEnrollment < ApplicationRecord
     update!(status: :submitted, submitted_at: Time.current)
   end
 
-  def approve!(approved_at: Time.current, external_enrollment_id: nil)
+  def approve!(approved_at: Time.current, external_enrollment_id: nil, bypass_clearinghouse: false)
     # Set external_enrollment_id if provided (from clearinghouse)
     self.external_enrollment_id = external_enrollment_id if external_enrollment_id.present?
 
-    # Allow clearinghouse webhooks to bypass validation if external_enrollment_id is set
-    if external_enrollment_id.present?
+    # Allow clearinghouse webhooks or admin manual approval to bypass validation
+    if external_enrollment_id.present? || bypass_clearinghouse
       self._skip_approval_validation = true
     end
 

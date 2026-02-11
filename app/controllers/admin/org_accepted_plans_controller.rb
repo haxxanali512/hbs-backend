@@ -1,5 +1,5 @@
 class Admin::OrgAcceptedPlansController < Admin::BaseController
-  before_action :set_org_accepted_plan, only: [ :show, :edit, :update, :activate, :inactivate, :lock, :unlock ]
+  before_action :set_org_accepted_plan, only: [ :show, :edit, :update, :activate, :inactivate, :lock, :unlock, :approve_enrollment, :deny_enrollment ]
   before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
 
   def index
@@ -84,6 +84,30 @@ class Admin::OrgAcceptedPlansController < Admin::BaseController
       redirect_to admin_org_accepted_plan_path(@org_accepted_plan), notice: "Plan unlocked."
     else
       redirect_to admin_org_accepted_plan_path(@org_accepted_plan), alert: "Cannot unlock plan: #{@org_accepted_plan.errors.full_messages.join(', ')}"
+    end
+  end
+
+  def approve_enrollment
+    unless @org_accepted_plan.pending?
+      redirect_to admin_org_accepted_plan_path(@org_accepted_plan), alert: "Enrollment status is not pending; no action taken."
+      return
+    end
+    if @org_accepted_plan.update(enrollment_status: :verified)
+      redirect_to admin_org_accepted_plan_path(@org_accepted_plan), notice: "Enrollment status set to Verified."
+    else
+      redirect_to admin_org_accepted_plan_path(@org_accepted_plan), alert: "Could not update enrollment status: #{@org_accepted_plan.errors.full_messages.join(', ')}"
+    end
+  end
+
+  def deny_enrollment
+    unless @org_accepted_plan.pending?
+      redirect_to admin_org_accepted_plan_path(@org_accepted_plan), alert: "Enrollment status is not pending; no action taken."
+      return
+    end
+    if @org_accepted_plan.update(enrollment_status: :denied)
+      redirect_to admin_org_accepted_plan_path(@org_accepted_plan), notice: "Enrollment status set to Denied."
+    else
+      redirect_to admin_org_accepted_plan_path(@org_accepted_plan), alert: "Could not update enrollment status: #{@org_accepted_plan.errors.full_messages.join(', ')}"
     end
   end
 

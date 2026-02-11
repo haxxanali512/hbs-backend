@@ -13,8 +13,8 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 space-y-6">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
           <div class="grid grid-cols-2 gap-4">
@@ -65,12 +65,43 @@
       </div>
 
       <div class="space-y-6">
+        <!-- Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+          <div class="space-y-2">
+            <% if @provider.drafted? || @provider.pending? %>
+              <%= button_to "Send Approval Reminder",
+                            remind_approval_tenant_provider_path(@provider),
+                            method: :post,
+                            class: "w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-md cursor-pointer",
+                            data: { turbo_confirm: "Send a reminder to HBS to review and approve this provider?" } %>
+              <p class="text-xs text-gray-500">
+                This sends a reminder to HBS to review this provider and complete enrollment.
+              </p>
+            <% else %>
+              <p class="text-xs text-gray-500">
+                This provider has already been reviewed by HBS; no action is required.
+              </p>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- System Information -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">System Information</h2>
           <div class="space-y-2 text-sm text-gray-900">
-            <div class="flex justify-between"><span class="text-gray-600">Provider ID</span><span class="font-mono"><%= @provider.id %></span></div>
-            <div class="flex justify-between"><span class="text-gray-600">Created At</span><span><%= @provider.created_at.strftime('%b %d, %Y %I:%M %p') %></span></div>
-            <div class="flex justify-between"><span class="text-gray-600">Updated At</span><span><%= @provider.updated_at.strftime('%b %d, %Y %I:%M %p') %></span></div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Provider ID</span>
+              <span class="font-mono"><%= @provider.id %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Created At</span>
+              <span><%= @provider.created_at.strftime('%b %d, %Y %I:%M %p') %></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Updated At</span>
+              <span><%= @provider.updated_at.strftime('%b %d, %Y %I:%M %p') %></span>
+            </div>
           </div>
         </div>
 

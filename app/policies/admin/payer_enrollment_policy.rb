@@ -27,16 +27,20 @@ class Admin::PayerEnrollmentPolicy < Admin::BasePolicy
     accessible?("admin", "payer_enrollments", "destroy")
   end
 
+  def approve?
+    update?
+  end
+
   def submit?
-    accessible?("admin", "payer_enrollments", "submit")
+    create?
   end
 
   def cancel?
-    accessible?("admin", "payer_enrollments", "cancel")
+    update?
   end
 
   def resubmit?
-    accessible?("admin", "payer_enrollments", "resubmit")
+    update?
   end
 
   class Scope < ApplicationPolicy::Scope

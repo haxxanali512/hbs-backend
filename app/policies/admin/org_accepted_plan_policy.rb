@@ -32,6 +32,14 @@ class Admin::OrgAcceptedPlanPolicy < ApplicationPolicy
     accessible?("admin", "org_accepted_plans", "activate")
   end
 
+  def approve_enrollment?
+    update?
+  end
+
+  def deny_enrollment?
+    update?
+  end
+
   def inactivate?
     accessible?("admin", "org_accepted_plans", "inactivate")
   end

@@ -205,5 +205,102 @@ class NotificationService
         Rails.logger.info "Notification created for super admin: #{admin.email}"
       end
     end
+
+    # Notify super admins when an organization accepts a plan that needs enrollment verification
+    def notify_org_accepted_plan_needs_enrollment(org_accepted_plan)
+      organization = org_accepted_plan.organization
+      return unless organization
+
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      if super_admins.empty?
+        Rails.logger.warn "No super admin users found to notify about org accepted plan enrollment verification"
+        return
+      end
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:org_accepted_plan_needs_enrollment],
+          title: "Plan Accepted – Enrollment Verification Needed",
+          message: "Organization #{organization.name} accepted plan #{org_accepted_plan.insurance_plan.name}. Please verify enrollment and update the enrollment status.",
+          action_url: "/admin/org_accepted_plans/#{org_accepted_plan.id}",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            org_accepted_plan_id: org_accepted_plan.id,
+            insurance_plan_id: org_accepted_plan.insurance_plan_id
+          }
+        )
+      end
+    end
+
+    # Notify super admins when a provider is submitted for approval
+    def notify_provider_submitted(provider)
+      organization = provider.organizations.first
+      return unless organization
+
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      if super_admins.empty?
+        Rails.logger.warn "No super admin users found to notify about provider submission"
+        return
+      end
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:provider_submitted],
+          title: "Provider Submitted for Approval",
+          message: "Organization #{organization.name} submitted provider #{provider.full_name} for HBS approval.",
+          action_url: "/admin/providers/#{provider.id}",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            provider_id: provider.id
+          }
+        )
+      end
+    end
+
+    # Notify super admins when a provider is resubmitted for approval
+    def notify_provider_resubmitted(provider)
+      organization = provider.organizations.first
+      return unless organization
+
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      if super_admins.empty?
+        Rails.logger.warn "No super admin users found to notify about provider resubmission"
+        return
+      end
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:provider_resubmitted],
+          title: "Provider Resubmitted for Approval",
+          message: "Organization #{organization.name} resubmitted provider #{provider.full_name} for HBS approval.",
+          action_url: "/admin/providers/#{provider.id}",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            provider_id: provider.id
+          }
+        )
+      end
+    end
   end
 end

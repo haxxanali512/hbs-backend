@@ -19,6 +19,10 @@ class Tenant::ProviderPolicy < ApplicationPolicy
     accessible?("tenant", "providers", "create")
   end
 
+  def remind_approval?
+    create?
+  end
+
   def update?
     accessible?("tenant", "providers", "update")
   end

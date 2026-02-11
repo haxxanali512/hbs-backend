@@ -1,5 +1,5 @@
 class Admin::PayerEnrollmentsController < Admin::BaseController
-  before_action :set_payer_enrollment, only: [ :show, :edit, :update, :destroy, :submit, :cancel, :resubmit ]
+  before_action :set_payer_enrollment, only: [ :show, :edit, :update, :destroy, :submit, :approve, :cancel, :resubmit ]
   before_action :load_form_options, only: [ :index, :new, :edit, :create, :update ]
 
   def index
@@ -52,6 +52,19 @@ class Admin::PayerEnrollmentsController < Admin::BaseController
     end
   end
 
+  def approve
+    unless @payer_enrollment.active? && !@payer_enrollment.approved?
+      redirect_to admin_payer_enrollment_path(@payer_enrollment), alert: "Enrollment cannot be approved in its current status."
+      return
+    end
+    begin
+      @payer_enrollment.approve!(bypass_clearinghouse: true)
+      redirect_to admin_payer_enrollment_path(@payer_enrollment), notice: "Enrollment approved."
+    rescue => e
+      redirect_to admin_payer_enrollment_path(@payer_enrollment), alert: "Could not approve enrollment: #{@payer_enrollment.errors.full_messages.join(', ')}"
+    end
+  end
+
   def cancel
     reason = params[:cancellation_reason] || "Cancelled by admin"
     begin
@@ -82,6 +95,19 @@ class Admin::PayerEnrollmentsController < Admin::BaseController
     @payers = Payer.active_only.order(:name)
     @providers = Provider.active.order(:last_name, :first_name)
     @locations = OrganizationLocation.active.order(:name)
+
+    # Shared filters configuration for admin index views
+    @organization_options = @organizations
+    @payer_options = @payers.map { |p| [p.name, p.id] }
+    @status_options = PayerEnrollment.statuses.keys
+    @use_status_for_action_type = true
+    @custom_selects = [
+      {
+        param: :enrollment_type,
+        label: "Type",
+        options: [["All Types", ""]] + PayerEnrollment.enrollment_types.keys.map { |k| [k.humanize, k] }
+      }
+    ]
   end
 
   def apply_filters(enrollments)

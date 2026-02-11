@@ -43,10 +43,7 @@ class Provider < ApplicationRecord
   aasm column: "status", enum: true do
     state :drafted, initial: true
     state :pending
-    # Approved: HBS has verified addition to all external systems
     state :approved
-    # Deactivated: Provider has left organization, historical records remain.
-    # Cannot be added to encounter until or unless reactivated.
     state :deactivated
 
     event :submit_for_approval do
@@ -171,7 +168,10 @@ class Provider < ApplicationRecord
     return unless assign_to_organization_id.present?
     return if provider_assignments.exists?(organization_id: assign_to_organization_id)
 
-    provider_assignments.create!(organization_id: assign_to_organization_id)
+    provider_assignments.create!(
+      organization_id: assign_to_organization_id,
+      active: true
+    )
   end
 
   def at_least_one_specialty

@@ -1,8 +1,8 @@
 class ProviderNotificationService
   def self.notify_submission(provider)
-    # Notify HBS admin about new provider submission
-    AdminMailer.provider_submitted(provider).deliver_now
-    Rails.logger.info "Provider submission notification sent for #{provider.full_name}"
+    # Web notification only: notify HBS super admins about new provider submission
+    NotificationService.notify_provider_submitted(provider)
+    Rails.logger.info "Provider submission notification (in-app) sent for #{provider.full_name}"
   end
 
   def self.notify_approval(provider)
@@ -30,9 +30,9 @@ class ProviderNotificationService
   end
 
   def self.notify_resubmission(provider)
-    # Notify HBS admin about provider resubmission
-    AdminMailer.provider_resubmitted(provider).deliver_now
-    Rails.logger.info "Provider resubmission notification sent for #{provider.full_name}"
+    # Web notification only: notify HBS super admins about provider resubmission
+    NotificationService.notify_provider_resubmitted(provider)
+    Rails.logger.info "Provider resubmission notification (in-app) sent for #{provider.full_name}"
   end
 
   def self.notify_deactivation(provider)

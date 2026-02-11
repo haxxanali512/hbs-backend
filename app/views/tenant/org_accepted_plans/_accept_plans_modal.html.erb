@@ -3,6 +3,10 @@
     <div id="acceptPlansModalOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out" onclick="closeAcceptPlansModal()"></div>
     <div id="acceptPlansModalContent" class="relative z-10 w-full max-w-2xl rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out">
       <div class="bg-white px-6 py-8">
+        <% all_providers = current_organization.providers.kept %>
+        <% has_providers = all_providers.exists? %>
+        <% approved_providers = all_providers.active %>
+        <% pending_or_drafted_providers = all_providers.where(status: %w[drafted pending]) %>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900" id="acceptPlansModal-title">Accept insurance plans</h3>
           <button type="button" onclick="closeAcceptPlansModal()" class="text-gray-400 hover:text-gray-500">
@@ -12,29 +16,79 @@
           </button>
         </div>
 
-        <%= form_with url: insurance_plans_search_tenant_org_accepted_plans_path, method: :get, id: "accept_plans_search_form", data: { turbo_frame: "insurance_plans_modal_list" }, class: "mb-4" do |f| %>
-          <label for="insurance_plans_search_q" class="sr-only">Search plans</label>
-          <input type="search"
-                 name="q"
-                 id="insurance_plans_search_q"
-                 value="<%= params[:q] %>"
-                 placeholder="Search by plan or payer name..."
-                 class="block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                 autocomplete="off">
+        <% unless has_providers %>
+          <div class="mb-6 rounded-md border border-yellow-200 bg-yellow-50 p-4">
+            <h4 class="text-sm font-semibold text-yellow-800 mb-1">
+              Providers required before accepting plans
+            </h4>
+            <p class="text-sm text-yellow-700 mb-3">
+              You must create at least one provider for your organization before accepting insurance plans. 
+              Providers are required so Holistic Business Services can complete payer enrollment for billing.
+            </p>
+            <%= link_to "Create Provider",
+                        new_tenant_provider_path,
+                        class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700" %>
+          </div>
         <% end %>
 
-        <%= form_with url: accept_plans_tenant_org_accepted_plans_path, method: :post, id: "accept_plans_form", data: { turbo: false } do %>
-          <turbo-frame id="insurance_plans_modal_list" src="<%= insurance_plans_search_tenant_org_accepted_plans_path %>" loading="lazy">
-            <div class="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm">Loading plans…</div>
-          </turbo-frame>
-          <div class="mt-6 flex items-center justify-end gap-3">
-            <button type="button" onclick="closeAcceptPlansModal()" class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              Cancel
-            </button>
-            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              Accept plans
-            </button>
-          </div>
+        <% if has_providers %>
+          <%= form_with url: insurance_plans_search_tenant_org_accepted_plans_path, method: :get, id: "accept_plans_search_form", data: { turbo_frame: "insurance_plans_modal_list" }, class: "mb-4" do |f| %>
+            <label for="insurance_plans_search_q" class="sr-only">Search plans</label>
+            <input type="search"
+                   name="q"
+                   id="insurance_plans_search_q"
+                   value="<%= params[:q] %>"
+                   placeholder="Search by plan or payer name..."
+                   class="block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                   autocomplete="off">
+          <% end %>
+
+          <% if pending_or_drafted_providers.any? && approved_providers.empty? %>
+            <div class="mb-4 rounded-md border border-blue-100 bg-blue-50 p-3">
+              <p class="text-xs text-blue-700">
+                You have providers that are still being reviewed by HBS (draft or pending). You can accept plans now; payer enrollment will be completed after your providers are approved.
+              </p>
+            </div>
+          <% elsif approved_providers.any? %>
+            <div class="mb-4 rounded-md border border-green-100 bg-green-50 p-3">
+              <p class="text-xs text-green-700">
+                You have approved providers. Accepted plans will be ready for HBS to complete payer enrollment.
+              </p>
+            </div>
+          <% end %>
+
+          <%= form_with url: accept_plans_tenant_org_accepted_plans_path, method: :post, id: "accept_plans_form", data: { turbo: false } do %>
+            <turbo-frame id="insurance_plans_modal_list" src="<%= insurance_plans_search_tenant_org_accepted_plans_path %>" loading="lazy">
+              <div class="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm">Loading plans…</div>
+            </turbo-frame>
+
+            <div class="mt-4">
+              <label for="accept_plans_provider_id" class="block text-sm font-medium text-gray-700 mb-1">
+                Provider for these plans
+              </label>
+              <select name="provider_id"
+                      id="accept_plans_provider_id"
+                      class="block w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required>
+                <option value="">Select provider…</option>
+                <% all_providers.order(:first_name, :last_name).each do |provider| %>
+                  <option value="<%= provider.id %>"><%= provider.full_name %></option>
+                <% end %>
+              </select>
+              <p class="mt-1 text-xs text-gray-500">
+                This provider will be used to initialize payer enrollment for the selected plans.
+              </p>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+              <button type="button" onclick="closeAcceptPlansModal()" class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Cancel
+              </button>
+              <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Accept plans
+              </button>
+            </div>
+          <% end %>
         <% end %>
       </div>
     </div>
@@ -78,6 +132,15 @@
           document.querySelectorAll('.insurance-plan-checkbox').forEach(function(cb) {
             cb.checked = e.target.checked;
           });
+        }
+      });
+
+      acceptForm.addEventListener('submit', function(e) {
+        var providerSelect = document.getElementById('accept_plans_provider_id');
+        if (providerSelect && !providerSelect.value) {
+          e.preventDefault();
+          alert("Please select a provider before accepting plans.");
+          providerSelect.focus();
         }
       });
     }
