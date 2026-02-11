@@ -348,12 +348,14 @@ class Tenant::EncountersController < Tenant::BaseController
       return
     end
 
-    # Validate that all encounters belong to the current organization, are ready to submit, and still pending (not yet sent for billing)
+    # Validate that all encounters belong to the current organization, are ready to submit,
+    # and still pending (not yet sent for billing). Include nil internal_status to support
+    # older or imported encounters that predate the internal_status default.
     valid_encounters = @current_organization.encounters
                                             .where(id: encounter_ids)
                                             .where(status: :ready_to_submit)
                                             .where(cascaded: false)
-                                            .where(internal_status: :pending)
+                                            .where(internal_status: [ nil, :pending ])
                                             .to_a
 
     if valid_encounters.size != encounter_ids.count
