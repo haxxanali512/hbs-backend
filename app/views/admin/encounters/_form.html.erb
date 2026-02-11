@@ -106,10 +106,667 @@
     </div>
   </div>
 
+  <!-- Billing Queue Coding (Template, Diagnosis & Procedures) -->
+  <div class="space-y-6 pt-6 border-t border-gray-200">
+    <h3 class="text-lg font-medium text-gray-900">Billing Queue Coding</h3>
+
+    <!-- Template selection -->
+    <div class="space-y-2">
+      <%= f.label :encounter_template_id, "Template (Optional)", class: "block text-sm font-medium text-gray-700" %>
+      <%= f.select :encounter_template_id,
+                   options_for_select(
+                     (@encounter_templates || EncounterTemplate.active.includes(:specialty).order(:name)).map do |t|
+                       label = t.specialty.present? ? "#{t.name} (#{t.specialty.name})" : t.name
+                       [label, t.id]
+                     end,
+                     @encounter.encounter_template_id
+                   ),
+                   { prompt: "Select template..." },
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      <p class="text-xs text-gray-500">
+        Choosing a template is optional and helps standardize common encounter setups for billing.
+      </p>
+    </div>
+
+    <!-- Diagnosis & Procedure side-by-side on wide screens -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Diagnosis Codes (search + chips) -->
+      <div class="space-y-2">
+        <h4 class="text-sm font-medium text-gray-900">Diagnosis Codes</h4>
+
+        <div class="relative admin-diagnosis-code-search">
+          <input type="text"
+                 id="adminBillingDiagnosisInput"
+                 class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 placeholder="Type to search diagnosis codes..."
+                 autocomplete="off"
+                 onfocus="adminBillingShowDiagnosisDropdown()"
+                 oninput="adminBillingSearchDiagnosisCodes(this.value)">
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+
+          <!-- Dropdown results -->
+          <div id="admin_billing_diagnosis_results"
+               class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
+          </div>
+        </div>
+
+        <!-- Selected diagnosis chips -->
+        <div id="adminBillingSelectedDiagnosisCodes" class="mt-2 flex flex-wrap gap-2">
+          <% if @encounter.diagnosis_codes.any? %>
+            <% @encounter.diagnosis_codes.limit(4).each do |dc| %>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                    data-code-id="<%= dc.id %>">
+                <%= dc.code %> - <%= truncate(dc.description.to_s, length: 30) %>
+                <button type="button"
+                        onclick="adminBillingRemoveDiagnosisCode(<%= dc.id %>)"
+                        class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
+              </span>
+            <% end %>
+          <% else %>
+            <span class="text-xs text-gray-500">No diagnosis codes selected</span>
+          <% end %>
+        </div>
+
+        <!-- Hidden inputs for submission -->
+        <div id="adminBillingDiagnosisHiddenInputs">
+          <% Array(@encounter.try(:diagnosis_code_ids)).first(4).each do |dc_id| %>
+            <input type="hidden"
+                   name="encounter[diagnosis_code_ids][]"
+                   value="<%= dc_id %>"
+                   id="adminBillingDiagnosisHidden<%= dc_id %>">
+          <% end %>
+        </div>
+
+      <% if @encounter.errors[:diagnosis_code_ids].present? %>
+        <p class="text-xs text-red-600">
+          <%= @encounter.errors[:diagnosis_code_ids].join(", ") %>
+        </p>
+      <% end %>
+      <p class="text-xs text-gray-500">
+        Select up to 4 diagnosis codes. At least one is recommended for insurance billing.
+      </p>
+      </div>
+
+      <!-- Procedure Codes (search + table) -->
+      <div class="space-y-4">
+        <h4 class="text-sm font-medium text-gray-900">Procedure Codes</h4>
+
+        <div class="relative admin-procedure-code-search">
+          <input type="text"
+                 id="adminBillingProcedureInput"
+                 class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 placeholder="Type to search procedure codes..."
+                 autocomplete="off"
+                 onfocus="adminBillingShowProcedureDropdown()"
+                 oninput="adminBillingSearchProcedureCodes(this.value)">
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+
+          <!-- Dropdown results -->
+          <div id="admin_billing_procedure_results"
+               class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto text-sm">
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedure Code</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modifier</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
+                  <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminBillingServiceLinesBody" class="bg-white divide-y divide-gray-200">
+                <% if @encounter.encounter_procedure_items.any? %>
+                  <% @encounter.encounter_procedure_items.includes(:procedure_code).each do |item| %>
+                    <tr data-procedure-id="<%= item.procedure_code_id %>">
+                      <td class="px-4 py-2 text-sm text-gray-900">
+                        <%= item.procedure_code.code %> - <%= truncate(item.procedure_code.description.to_s, length: 30) %>
+                        <input type="hidden" name="encounter[procedure_code_ids][]" value="<%= item.procedure_code_id %>">
+                      </td>
+                      <td class="px-4 py-2">
+                        <select name="encounter[procedure_modifiers][<%= item.procedure_code_id %>]"
+                                class="w-full border border-gray-300 rounded-md px-2 py-1 text-sm">
+                          <option value="">None</option>
+                          <% %w[GP GT 95 25 59].each do |mod| %>
+                            <option value="<%= mod %>" <%= item.modifiers&.first.to_s == mod ? "selected" : "" %>><%= mod %></option>
+                          <% end %>
+                        </select>
+                      </td>
+                      <td class="px-4 py-2">
+                        <input type="number"
+                               name="encounter[procedure_units][<%= item.procedure_code_id %>]"
+                               min="1"
+                               step="1"
+                               value="<%= item.units || 1 %>"
+                               class="w-full border border-gray-300 rounded-md px-2 py-1 text-sm" />
+                      </td>
+                      <td class="px-4 py-2 text-right">
+                        <button type="button"
+                                onclick="adminBillingRemoveProcedureCode(<%= item.procedure_code_id %>)"
+                                class="text-red-600 hover:text-red-800 text-sm">Remove</button>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">No procedure codes selected.</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <% if @encounter.errors[:procedure_code_ids].present? %>
+          <p class="text-xs text-red-600">
+            <%= @encounter.errors[:procedure_code_ids].join(", ") %>
+          </p>
+        <% end %>
+        <p class="text-xs text-gray-500">
+          Add all procedure codes that should be billed for this encounter.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
     <%= link_to "Cancel", admin_encounter_path(@encounter), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
     <%= f.submit "Update Encounter", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
   </div>
 <% end %>
+
+<script>
+  // -------------------------
+  // Templates index for admin billing (used to apply templates to procedures)
+  // -------------------------
+  window.adminBillingTemplates = <%= raw(
+    (@encounter_templates || []).map do |t|
+      {
+        id: t.id,
+        name: t.name,
+        lines: t.encounter_template_lines.map do |line|
+          {
+            id: line.id,
+            procedure_code_id: line.procedure_code_id,
+            code: line.procedure_code&.code,
+            description: line.procedure_code&.description,
+            units: line.units,
+            modifiers: line.modifiers
+          }
+        end
+      }
+    end.to_json
+  ) %>;
+
+  // -------------------------
+  // Diagnosis code search (admin billing)
+  // -------------------------
+  (function() {
+    if (window.adminBillingDiagnosisInitialized) return;
+    window.adminBillingDiagnosisInitialized = true;
+
+    const MAX_DIAGNOSIS_CODES = 4;
+    window.adminBillingSelectedDiagnosisCodes = window.adminBillingSelectedDiagnosisCodes || [];
+    let adminBillingDiagnosisTimeout = null;
+    const searchUrl = "<%= diagnosis_codes_search_admin_encounter_path(@encounter) %>";
+
+    window.adminBillingShowDiagnosisDropdown = function() {
+      const resultsDiv = document.getElementById("admin_billing_diagnosis_results");
+      if (!resultsDiv) return;
+      resultsDiv.classList.remove("hidden");
+      if (resultsDiv.children.length === 0) {
+        adminBillingSearchDiagnosisCodes("");
+      }
+    };
+
+    window.adminBillingSearchDiagnosisCodes = function(query) {
+      const resultsDiv = document.getElementById("admin_billing_diagnosis_results");
+      if (!resultsDiv || !searchUrl) return;
+
+      if (adminBillingDiagnosisTimeout) {
+        clearTimeout(adminBillingDiagnosisTimeout);
+      }
+
+      adminBillingDiagnosisTimeout = setTimeout(function() {
+        resultsDiv.classList.remove("hidden");
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">Searching...</div>';
+
+        const url = searchUrl + "?q=" + encodeURIComponent(query || "");
+
+        fetch(url, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name=\"csrf-token\"]')?.content || ""
+          },
+          credentials: "same-origin"
+        })
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.success && data.results) {
+              adminBillingDisplayDiagnosisResults(resultsDiv, data.results);
+            } else {
+              resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No diagnosis codes found</div>';
+            }
+          })
+          .catch(function(error) {
+            console.error("Error searching diagnosis codes:", error);
+            resultsDiv.innerHTML = '<div class="p-3 text-xs text-red-500 text-center">Error searching diagnosis codes</div>';
+          });
+      }, (query && query.length > 0) ? 250 : 0);
+    };
+
+    function adminBillingDisplayDiagnosisResults(resultsDiv, results) {
+      if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No diagnosis codes found</div>';
+        return;
+      }
+
+      var selectedArray = Array.isArray(window.adminBillingSelectedDiagnosisCodes)
+        ? window.adminBillingSelectedDiagnosisCodes
+        : [];
+      const selectedIds = selectedArray.map(function(s) { return s.id; });
+
+      const html = results.map(function(result) {
+        const code = result.code || "N/A";
+        const description = result.description || "No description";
+        const isSelected = selectedIds.indexOf(result.id) >= 0;
+
+        return (
+          '<div class="p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors ' +
+          (isSelected ? 'bg-indigo-100' : '') + '" ' +
+          'onclick="adminBillingSelectDiagnosisCode(' + result.id + ', \'' + code.replace(/'/g, "\\'") + '\', \'' + description.replace(/'/g, "\\'") + '\')">' +
+            '<div class="text-xs font-medium text-gray-900">' + code +
+              (isSelected ? ' <span class=\"text-[10px] text-green-600\">(Selected)</span>' : '') +
+            '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">' + description + '</div>' +
+          '</div>'
+        );
+      }).join("");
+
+      resultsDiv.innerHTML =
+        '<div class="p-2 border-b border-gray-200"><div class="text-[11px] text-gray-500">Select diagnosis codes (up to ' +
+        MAX_DIAGNOSIS_CODES + ')</div></div>' + html;
+    }
+
+    window.adminBillingSelectDiagnosisCode = function(id, code, description) {
+      if (!Array.isArray(window.adminBillingSelectedDiagnosisCodes)) {
+        window.adminBillingSelectedDiagnosisCodes = [];
+      }
+
+      var selected = window.adminBillingSelectedDiagnosisCodes;
+      var existingIndex = selected.findIndex(function(s) { return s.id === id; });
+
+      if (existingIndex >= 0) {
+        selected.splice(existingIndex, 1);
+      } else {
+        if (selected.length >= MAX_DIAGNOSIS_CODES) {
+          alert("You can only select up to " + MAX_DIAGNOSIS_CODES + " diagnosis codes.");
+          return;
+        }
+        selected.push({ id: id, code: code, description: description });
+      }
+
+      adminBillingUpdateDiagnosisDisplay();
+
+      var input = document.getElementById("adminBillingDiagnosisInput");
+      if (input) input.value = "";
+
+      var resultsDiv = document.getElementById("admin_billing_diagnosis_results");
+      if (resultsDiv) resultsDiv.classList.add("hidden");
+    };
+
+    window.adminBillingRemoveDiagnosisCode = function(id) {
+      if (!window.adminBillingSelectedDiagnosisCodes) return;
+      var selected = window.adminBillingSelectedDiagnosisCodes;
+      var index = selected.findIndex(function(s) { return s.id === id; });
+      if (index >= 0) {
+        selected.splice(index, 1);
+        adminBillingUpdateDiagnosisDisplay();
+      }
+    };
+
+    function adminBillingUpdateDiagnosisDisplay() {
+      var container = document.getElementById("adminBillingSelectedDiagnosisCodes");
+      var hiddenInputs = document.getElementById("adminBillingDiagnosisHiddenInputs");
+      if (!container || !hiddenInputs) return;
+
+      var selected = window.adminBillingSelectedDiagnosisCodes || [];
+
+      if (selected.length === 0) {
+        container.innerHTML = '<span class="text-xs text-gray-500">No diagnosis codes selected</span>';
+      } else {
+        container.innerHTML = selected.map(function(item) {
+          var displayText = item.description
+            ? (item.code + " - " + (item.description.length > 30 ? item.description.substring(0, 30) + "..." : item.description))
+            : item.code;
+          return (
+            '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" data-code-id="' + item.id + '">' +
+              displayText +
+              '<button type="button" onclick="adminBillingRemoveDiagnosisCode(' + item.id + ')" class="ml-1 text-indigo-600 hover:text-indigo-800">×</button>' +
+            '</span>'
+          );
+        }).join(" ");
+      }
+
+      hiddenInputs.innerHTML = selected.map(function(item) {
+        return '<input type="hidden" name="encounter[diagnosis_code_ids][]" value="' + item.id + '" id="adminBillingDiagnosisHidden' + item.id + '">';
+      }).join("");
+    }
+    window.adminBillingUpdateDiagnosisDisplay = adminBillingUpdateDiagnosisDisplay;
+
+    function initializeAdminBillingDiagnosis() {
+      if (!Array.isArray(window.adminBillingSelectedDiagnosisCodes)) {
+        window.adminBillingSelectedDiagnosisCodes = [];
+      }
+
+      var initialChips = document.querySelectorAll("#adminBillingSelectedDiagnosisCodes [data-code-id]");
+      if (initialChips && initialChips.length > 0) {
+        window.adminBillingSelectedDiagnosisCodes = Array.prototype.map.call(initialChips, function(el) {
+          var id = parseInt(el.getAttribute("data-code-id"), 10);
+          var text = el.textContent.trim().replace("×", "").trim();
+          var code = text.split(" - ")[0];
+          var description = text.split(" - ").slice(1).join(" - ");
+          return { id: id, code: code, description: description };
+        });
+        adminBillingUpdateDiagnosisDisplay();
+      }
+    }
+
+    document.addEventListener("turbo:load", initializeAdminBillingDiagnosis);
+    document.addEventListener("DOMContentLoaded", initializeAdminBillingDiagnosis);
+
+    document.addEventListener("click", function(event) {
+      var searchWrapper = document.querySelector(".admin-diagnosis-code-search");
+      if (searchWrapper && !searchWrapper.contains(event.target)) {
+        var resultsDiv = document.getElementById("admin_billing_diagnosis_results");
+        if (resultsDiv) resultsDiv.classList.add("hidden");
+      }
+    });
+  })();
+
+  // -------------------------
+  // Procedure code search (admin billing)
+  // -------------------------
+  (function() {
+    if (window.adminBillingProcedureInitialized) return;
+    window.adminBillingProcedureInitialized = true;
+
+    window.adminBillingSelectedProcedureCodes = window.adminBillingSelectedProcedureCodes || [];
+    let adminBillingProcedureTimeout = null;
+    const procedureSearchUrl = "<%= procedure_codes_search_admin_encounter_path(@encounter) %>";
+
+    window.adminBillingShowProcedureDropdown = function() {
+      const resultsDiv = document.getElementById("admin_billing_procedure_results");
+      if (!resultsDiv) return;
+      resultsDiv.classList.remove("hidden");
+      if (resultsDiv.children.length === 0) {
+        adminBillingSearchProcedureCodes("");
+      }
+    };
+
+    window.adminBillingSearchProcedureCodes = function(query) {
+      const resultsDiv = document.getElementById("admin_billing_procedure_results");
+      if (!resultsDiv || !procedureSearchUrl) return;
+
+      if (adminBillingProcedureTimeout) {
+        clearTimeout(adminBillingProcedureTimeout);
+      }
+
+      adminBillingProcedureTimeout = setTimeout(function() {
+        resultsDiv.classList.remove("hidden");
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">Searching...</div>';
+
+        const url = procedureSearchUrl + "?q=" + encodeURIComponent(query || "");
+
+        fetch(url, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name=\"csrf-token\"]')?.content || ""
+          },
+          credentials: "same-origin"
+        })
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.success && data.results) {
+              adminBillingDisplayProcedureResults(resultsDiv, data.results);
+            } else {
+              resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No procedure codes found</div>';
+            }
+          })
+          .catch(function(error) {
+            console.error("Error searching procedure codes:", error);
+            resultsDiv.innerHTML = '<div class="p-3 text-xs text-red-500 text-center">Error searching procedure codes</div>';
+          });
+      }, (query && query.length > 0) ? 250 : 0);
+    };
+
+    function adminBillingDisplayProcedureResults(resultsDiv, results) {
+      if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">No procedure codes found</div>';
+        return;
+      }
+
+      if (!Array.isArray(window.adminBillingSelectedProcedureCodes)) {
+        window.adminBillingSelectedProcedureCodes = [];
+      }
+      const selectedIds = window.adminBillingSelectedProcedureCodes.map(function(s) { return s.id; });
+
+      const html = results.map(function(result) {
+        const code = result.code || "N/A";
+        const description = result.description || "No description";
+        const isSelected = selectedIds.indexOf(result.id) >= 0;
+
+        return (
+          '<div class="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-200 last:border-b-0 transition-colors ' +
+          (isSelected ? 'bg-blue-100' : '') + '" ' +
+          'onclick="adminBillingSelectProcedureCode(' + result.id + ', \'' + code.replace(/'/g, "\\'") + '\', \'' + description.replace(/'/g, "\\'") + '\')">' +
+            '<div class="text-xs font-medium text-gray-900">' + code +
+              (isSelected ? ' <span class=\"text-[10px] text-green-600\">(Selected)</span>' : '') +
+            '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">' + description + '</div>' +
+          '</div>'
+        );
+      }).join("");
+
+      resultsDiv.innerHTML =
+        '<div class="p-2 border-b border-gray-200"><div class="text-[11px] text-gray-500">Select procedure codes</div></div>' + html;
+    }
+
+    window.adminBillingSelectProcedureCode = function(id, code, description) {
+      if (!Array.isArray(window.adminBillingSelectedProcedureCodes)) {
+        window.adminBillingSelectedProcedureCodes = [];
+      }
+
+      var selected = window.adminBillingSelectedProcedureCodes;
+      var existingIndex = selected.findIndex(function(s) { return s.id === id; });
+
+      if (existingIndex >= 0) {
+        selected.splice(existingIndex, 1);
+      } else {
+        selected.push({ id: id, code: code, description: description });
+      }
+
+      adminBillingUpdateProcedureDisplay();
+
+      var input = document.getElementById("adminBillingProcedureInput");
+      if (input) input.value = "";
+
+      var resultsDiv = document.getElementById("admin_billing_procedure_results");
+      if (resultsDiv) resultsDiv.classList.add("hidden");
+    };
+
+    window.adminBillingRemoveProcedureCode = function(id) {
+      if (!Array.isArray(window.adminBillingSelectedProcedureCodes)) {
+        window.adminBillingSelectedProcedureCodes = [];
+      }
+      var selected = window.adminBillingSelectedProcedureCodes;
+      var index = selected.findIndex(function(s) { return s.id === id; });
+      if (index >= 0) {
+        selected.splice(index, 1);
+        adminBillingUpdateProcedureDisplay();
+      }
+    };
+
+    function adminBillingUpdateProcedureDisplay() {
+      var container = document.getElementById("adminBillingServiceLinesBody");
+      if (!container) return;
+
+      if (!Array.isArray(window.adminBillingSelectedProcedureCodes)) {
+        window.adminBillingSelectedProcedureCodes = [];
+      }
+      var selected = window.adminBillingSelectedProcedureCodes;
+
+      if (selected.length === 0) {
+        container.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">No procedure codes selected.</td></tr>';
+      } else {
+        const modifierOptions = [ "GP", "GT", "95", "25", "59" ];
+        container.innerHTML = selected.map(function(item) {
+          var displayText = item.description
+            ? (item.code + " - " + (item.description.length > 30 ? item.description.substring(0, 30) + "..." : item.description))
+            : item.code;
+          var modifierSelect = '<select name="encounter[procedure_modifiers][' + item.id + ']" class="w-full border border-gray-300 rounded-md px-2 py-1 text-sm">' +
+            '<option value=\"\">None</option>' +
+            modifierOptions.map(function(code) {
+              var selectedAttr = item.modifier && item.modifier.toString() === code.toString() ? ' selected' : '';
+              return '<option value=\"' + code + '\"' + selectedAttr + '>' + code + '</option>';
+            }).join("") +
+            '</select>';
+          return (
+            '<tr data-procedure-id=\"' + item.id + '\">' +
+              '<td class=\"px-4 py-2 text-sm text-gray-900\">' +
+                displayText +
+                '<input type=\"hidden\" name=\"encounter[procedure_code_ids][]\" value=\"' + item.id + '\">' +
+              '</td>' +
+              '<td class=\"px-4 py-2\">' + modifierSelect + '</td>' +
+              '<td class=\"px-4 py-2\">' +
+                '<input type=\"number\" name=\"encounter[procedure_units][' + item.id + ']\" min=\"1\" step=\"1\" value=\"' + (item.units || 1) + '\" class=\"w-full border border-gray-300 rounded-md px-2 py-1 text-sm\" />' +
+              '</td>' +
+              '<td class=\"px-4 py-2 text-right\">' +
+                '<button type=\"button\" onclick=\"adminBillingRemoveProcedureCode(' + item.id + ')\" class=\"text-red-600 hover:text-red-800 text-sm\">Remove</button>' +
+              '</td>' +
+            '</tr>'
+          );
+        }).join("");
+      }
+    }
+    window.adminBillingUpdateProcedureDisplay = adminBillingUpdateProcedureDisplay;
+
+    function initializeAdminBillingProcedures() {
+      if (!Array.isArray(window.adminBillingSelectedProcedureCodes)) {
+        window.adminBillingSelectedProcedureCodes = [];
+      }
+
+      // Initialize from existing table rows
+      var rows = document.querySelectorAll("#adminBillingServiceLinesBody tr[data-procedure-id]");
+      if (rows && rows.length > 0) {
+        window.adminBillingSelectedProcedureCodes = Array.prototype.map.call(rows, function(row) {
+          var id = parseInt(row.getAttribute("data-procedure-id"), 10);
+          var textCell = row.querySelector("td");
+          var text = textCell ? textCell.textContent.trim() : "";
+          var code = text.split(" - ")[0];
+          var description = text.split(" - ").slice(1).join(" - ");
+          var unitsInput = row.querySelector('input[name^=\"encounter[procedure_units]\"]');
+          var units = unitsInput ? parseInt(unitsInput.value, 10) || 1 : 1;
+          var modifierSelect = row.querySelector('select[name^=\"encounter[procedure_modifiers]\"]');
+          var modifier = modifierSelect ? modifierSelect.value : "";
+          return { id: id, code: code, description: description, units: units, modifier: modifier };
+        });
+        adminBillingUpdateProcedureDisplay();
+      }
+    }
+
+    document.addEventListener("turbo:load", initializeAdminBillingProcedures);
+    document.addEventListener("DOMContentLoaded", initializeAdminBillingProcedures);
+
+    document.addEventListener("click", function(event) {
+      var searchWrapper = document.querySelector(".admin-procedure-code-search");
+      if (searchWrapper && !searchWrapper.contains(event.target)) {
+        var resultsDiv = document.getElementById("admin_billing_procedure_results");
+        if (resultsDiv) resultsDiv.classList.add("hidden");
+      }
+    });
+  })();
+
+  // -------------------------
+  // Apply templates to procedure codes (admin billing)
+  // -------------------------
+  (function() {
+    function buildTemplateIndex() {
+      window.adminBillingTemplatesIndex = window.adminBillingTemplatesIndex || {};
+      (window.adminBillingTemplates || []).forEach(function(t) {
+        if (t && t.id != null) {
+          window.adminBillingTemplatesIndex[t.id.toString()] = t;
+        }
+      });
+    }
+
+    function adminBillingApplyTemplate(templateId) {
+      buildTemplateIndex();
+
+      if (!templateId) {
+        window.adminBillingSelectedProcedureCodes = [];
+        if (window.adminBillingUpdateProcedureDisplay) {
+          window.adminBillingUpdateProcedureDisplay();
+        }
+        return;
+      }
+
+      var key = templateId.toString();
+      var template = window.adminBillingTemplatesIndex[key];
+
+      if (!template) {
+        window.adminBillingSelectedProcedureCodes = [];
+      } else {
+        window.adminBillingSelectedProcedureCodes = (template.lines || []).map(function(line) {
+          return {
+            id: line.procedure_code_id,
+            code: line.code,
+            description: line.description,
+            units: line.units,
+            modifier: (line.modifiers && line.modifiers.length > 0) ? line.modifiers[0] : ""
+          };
+        });
+      }
+
+      if (window.adminBillingUpdateProcedureDisplay) {
+        window.adminBillingUpdateProcedureDisplay();
+      }
+    }
+
+    function attachTemplateListener() {
+      var templateSelect = document.getElementById("encounter_encounter_template_id");
+      if (!templateSelect) return;
+
+      templateSelect.addEventListener("change", function() {
+        var value = templateSelect.value;
+        if (value) {
+          adminBillingApplyTemplate(parseInt(value, 10));
+        } else {
+          adminBillingApplyTemplate(null);
+        }
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", attachTemplateListener);
+    } else {
+      attachTemplateListener();
+    }
+    document.addEventListener("turbo:load", attachTemplateListener);
+  })();
+</script>
 

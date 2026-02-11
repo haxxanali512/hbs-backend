@@ -61,6 +61,7 @@ class Admin::EncountersController < Admin::BaseController
   def edit; end
 
   def update
+    byebug
     if @encounter.update(encounter_params)
       redirect_to admin_encounter_path(@encounter), notice: "Encounter updated successfully."
     else
@@ -290,6 +291,7 @@ class Admin::EncountersController < Admin::BaseController
     @specialties = Specialty.active.kept.order(:name)
     @locations = OrganizationLocation.active.order(:name)
     @diagnosis_codes = DiagnosisCode.active.order(:code)
+    @encounter_templates = EncounterTemplate.active.includes(:specialty, encounter_template_lines: :procedure_code).order(:name)
 
     if action_name == "index"
       @statuses = Encounter.statuses.keys
@@ -307,9 +309,15 @@ class Admin::EncountersController < Admin::BaseController
       :specialty_id,
       :date_of_service,
       :billing_channel,
+      :encounter_template_id,
+      :place_of_service_code,
+      :prescription_id,
       :notes,
       :display_status,
-      diagnosis_code_ids: []
+      diagnosis_code_ids: [],
+      procedure_code_ids: [],
+      procedure_units: {},
+      procedure_modifiers: {}
     )
   end
 end

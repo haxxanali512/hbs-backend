@@ -680,18 +680,25 @@ class Encounter < ApplicationRecord
     items = encounter_procedure_items.includes(:procedure_code)
     return if proc_ids.empty? && items.empty?
 
-    # Create or find claim
+    # Create or find claim. When creating a brand-new claim here, skip the
+    # CLAIM_LINES_REQUIRED validation on the initial save; we'll add lines
+    # immediately afterward.
     pos_code = resolved_place_of_service_code
-    claim_record = claim || Claim.create!(
-      organization_id: organization_id,
-      encounter_id: id,
-      patient_id: patient_id,
-      provider_id: provider_id,
-      specialty_id: specialty_id,
-      place_of_service_code: pos_code,
-      status: :generated,
-      generated_at: Time.current
-    )
+    claim_record = claim || begin
+      record = Claim.new(
+        organization_id: organization_id,
+        encounter_id: id,
+        patient_id: patient_id,
+        provider_id: provider_id,
+        specialty_id: specialty_id,
+        place_of_service_code: pos_code,
+        status: :generated,
+        generated_at: Time.current
+      )
+      record.skip_claim_lines_required = true
+      record.save!
+      record
+    end
 
     # Clear existing claim lines if any
     claim_record.claim_lines.destroy_all

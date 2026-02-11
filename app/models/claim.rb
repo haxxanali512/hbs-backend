@@ -33,6 +33,10 @@ class Claim < ApplicationRecord
   validates :place_of_service_code, presence: { message: "POS_REQUIRED" }
   validates :encounter_id, uniqueness: { message: "DUPLICATE_CLAIM_FOR_ENCOUNTER" }
 
+  # Allow some flows (like encounter-side draft claim generation) to skip
+  # the "must have claim lines" check by setting this virtual flag.
+  attr_accessor :skip_claim_lines_required
+
   validate :validate_has_lines
   validate :validate_totals_match_rollup
   validate :validate_dx_pointer_policy_claim_wide
@@ -112,6 +116,8 @@ class Claim < ApplicationRecord
 
 
   def validate_has_lines
+    return if skip_claim_lines_required
+
     if claim_lines.blank? || claim_lines.empty?
       errors.add(:base, "CLAIM_LINES_REQUIRED")
     end

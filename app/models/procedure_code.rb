@@ -38,7 +38,12 @@ class ProcedureCode < ApplicationRecord
   scope :by_status, ->(status) { where(status: status) }
   scope :active, -> { where(status: "active") }
   scope :retired, -> { where(status: "retired") }
-  scope :search, ->(term) { where("code ILIKE ? OR description ILIKE ?", "%#{term}%", "%#{term}%") }
+  scope :search, ->(term) {
+    where(
+      "procedure_codes.code ILIKE ? OR procedure_codes.description ILIKE ?",
+      "%#{term}%", "%#{term}%"
+    )
+  }
 
   def can_be_retired?
     active? && !referenced_by_claims?
