@@ -239,6 +239,42 @@ class NotificationService
       end
     end
 
+    # Notify super admins when a payer enrollment is created and needs verification
+    def notify_payer_enrollment_needs_verification(payer_enrollment)
+      organization = payer_enrollment.organization
+      return unless organization
+
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      if super_admins.empty?
+        Rails.logger.warn "No super admin users found to notify about payer enrollment verification"
+        return
+      end
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:payer_enrollment_needs_verification],
+          title: "Payer Enrollment Needs Verification",
+          message: "Organization #{organization.name} created a payer enrollment with #{payer_enrollment.payer.name}. Please verify and update the enrollment status.",
+          action_url: "/admin/payer_enrollments/#{payer_enrollment.id}",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            payer_enrollment_id: payer_enrollment.id,
+            payer_id: payer_enrollment.payer_id,
+            provider_id: payer_enrollment.provider_id,
+            enrollment_type: payer_enrollment.enrollment_type,
+            status: payer_enrollment.status
+          }
+        )
+      end
+    end
+
     # Notify super admins when a provider is submitted for approval
     def notify_provider_submitted(provider)
       organization = provider.organizations.first

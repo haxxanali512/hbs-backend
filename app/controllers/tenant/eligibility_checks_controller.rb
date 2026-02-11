@@ -31,6 +31,8 @@ class Tenant::EligibilityChecksController < Tenant::BaseController
     render partial: "tenant/eligibility_checks/result_error", locals: { message: "Could not load result." }, layout: false
   end
 
+  # POST create: submits to Fuse. 201/202 both mean "accepted"; we show pending UI and rely on client-side
+  # polling (status + result) to display the outcome when the check completes.
   def create
     result = FuseEligibilityCheckFromParamsService.submit(
       organization: @current_organization,
@@ -41,10 +43,12 @@ class Tenant::EligibilityChecksController < Tenant::BaseController
     check_id = result[:check_id]
     respond_to do |format|
       format.turbo_stream do
-        streams = [
-          turbo_stream.remove("eligibility-loader"),
-          turbo_stream.append("eligibility_results", partial: "tenant/eligibility_checks/pending", locals: { check_id: check_id })
-        ]
+        streams = [ turbo_stream.remove("eligibility-loader") ]
+        if check_id.present?
+          streams << turbo_stream.append("eligibility_results", partial: "tenant/eligibility_checks/pending", locals: { check_id: check_id })
+        else
+          streams << turbo_stream.append("eligibility_results", partial: "tenant/eligibility_checks/result_error", locals: { message: "Check was accepted but no check ID was returned. Please try again." })
+        end
         render turbo_stream: streams
       end
       format.html { redirect_to tenant_eligibility_checks_path, notice: "Eligibility check submitted." }

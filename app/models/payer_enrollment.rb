@@ -42,6 +42,11 @@ class PayerEnrollment < ApplicationRecord
   validate :approval_only_from_clearinghouse, on: :update
 
   # =========================
+  # Callbacks
+  # =========================
+  after_commit :notify_needs_verification, on: :create
+
+  # =========================
   # Scopes
   # =========================
   scope :active, -> { where(status: [ :draft, :submitted, :pending, :approved ]) }
@@ -134,6 +139,17 @@ class PayerEnrollment < ApplicationRecord
   # Private Validations
   # =========================
   private
+
+  def notify_needs_verification
+    # Only notify for real, provider-specific claim enrollments in draft/pending/submitted
+    return unless provider_id.present?
+    return unless enrollment_type == "claims"
+    return unless %w[draft submitted pending].include?(status.to_s)
+
+    NotificationService.notify_payer_enrollment_needs_verification(self)
+  rescue => e
+    Rails.logger.error("Failed to notify payer enrollment verification for PayerEnrollment #{id}: #{e.message}")
+  end
 
   def no_duplicate_active_enrollment
     return unless organization_id.present? && payer_id.present? && enrollment_type.present?

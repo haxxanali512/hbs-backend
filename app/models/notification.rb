@@ -19,7 +19,8 @@ class Notification < ApplicationRecord
     user_invited: "user_invited",
     user_role_changed: "user_role_changed",
     encounters_submitted_for_billing: "encounters_submitted_for_billing",
-    org_accepted_plan_needs_enrollment: "org_accepted_plan_needs_enrollment"
+    org_accepted_plan_needs_enrollment: "org_accepted_plan_needs_enrollment",
+    payer_enrollment_needs_verification: "payer_enrollment_needs_verification"
   }.freeze
 
   scope :unread, -> { where(read: false) }

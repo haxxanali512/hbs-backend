@@ -22,13 +22,14 @@ class FuseEligibilityCheckFromParamsService
 
   def submit(poll: true)
     payload = build_payload
-    check_id = @params[:check_id].presence || "fuse-#{@organization.id}-#{SecureRandom.hex(8)}"
-    response = fuse_api.submit_check(payload: payload, check_id: check_id)
-    check_id_from_response = response["checkId"]
-    check_result = if poll && check_id_from_response.present?
-      poll_until_completed(check_id_from_response)
+    check_id_sent = @params[:check_id].presence || "fuse-#{@organization.id}-#{SecureRandom.hex(8)}"
+    response = fuse_api.submit_check(payload: payload, check_id: check_id_sent)
+    # 201 returns checkId in body; 202 (Accepted) may have empty/minimal body — use id we sent so client can poll
+    check_id = response["checkId"].presence || check_id_sent
+    check_result = if poll && check_id.present?
+      poll_until_completed(check_id)
     end
-    { response: response, check_id: check_id_from_response, check_result: check_result }
+    { response: response, check_id: check_id, check_result: check_result }
   end
 
   private
