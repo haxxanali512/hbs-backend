@@ -18,12 +18,12 @@ class Tenant::ProvidersController < Tenant::BaseController
   def show; end
 
   def new
-    @provider = Provider.new(status: :drafted)
+    @provider = Provider.new(status: "drafted")
     @specialties = Specialty.active.order(:name)
   end
 
   def create
-    @provider = Provider.new(provider_params.except(:specialty_ids))
+    @provider = Provider.new(provider_params.except(:specialty_ids).merge(status: "pending"))
     @provider.assign_to_organization_id = @current_organization.id
 
     # Handle specialty assignments

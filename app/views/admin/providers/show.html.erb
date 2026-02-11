@@ -26,21 +26,27 @@
         
         <div class="flex space-x-2">
           <% if @provider.can_be_approved? %>
-            <%= link_to "Approve", approve_admin_provider_path(@provider), method: :post, 
-                class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors", 
-                data: { confirm: "Are you sure you want to approve this provider? This confirms HBS has verified addition to all external systems." } %>
+            <%= button_to "Approve",
+                  approve_admin_provider_path(@provider),
+                  method: :post,
+                  class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer",
+                  data: { turbo_confirm: "Are you sure you want to approve this provider? This confirms HBS has verified addition to all external systems." } %>
           <% end %>
           
           <% if @provider.can_be_deactivated? %>
-            <%= link_to "Deactivate", admin_provider_path(@provider), method: :delete, 
-                class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors", 
-                data: { confirm: "Are you sure you want to deactivate this provider? Provider has left organization. Historical records will remain, but the provider cannot be added to encounters until reactivated." } %>
+            <%= button_to "Deactivate",
+                  admin_provider_path(@provider),
+                  method: :delete,
+                  class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer",
+                  data: { turbo_confirm: "Are you sure you want to deactivate this provider? Provider has left organization. Historical records will remain, but the provider cannot be added to encounters until reactivated." } %>
           <% end %>
           
           <% if @provider.can_be_reactivated? %>
-            <%= link_to "Reactivate", reactivate_admin_provider_path(@provider), method: :post, 
-                class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors", 
-                data: { confirm: "Are you sure you want to reactivate this provider?" } %>
+            <%= button_to "Reactivate",
+                  reactivate_admin_provider_path(@provider),
+                  method: :post,
+                  class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer",
+                  data: { turbo_confirm: "Are you sure you want to reactivate this provider?" } %>
           <% end %>
         </div>
       </div>
