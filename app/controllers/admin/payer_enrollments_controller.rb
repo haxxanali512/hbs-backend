@@ -93,8 +93,17 @@ class Admin::PayerEnrollmentsController < Admin::BaseController
   def load_form_options
     @organizations = Organization.where(activation_status: :activated).order(:name)
     @payers = Payer.active_only.order(:name)
-    @providers = Provider.active.order(:last_name, :first_name)
-    @locations = OrganizationLocation.active.order(:name)
+    org_id = @payer_enrollment&.organization_id || params.dig(:payer_enrollment, :organization_id) || params[:organization_id]
+    @providers = if org_id.present?
+      Organization.find(org_id).providers.kept.active.order(:last_name, :first_name)
+    else
+      Provider.kept.active.order(:last_name, :first_name)
+    end
+    @locations = if org_id.present?
+      OrganizationLocation.kept.active.by_organization(org_id).order(:name)
+    else
+      OrganizationLocation.kept.active.order(:name)
+    end
 
     # Shared filters configuration for admin index views
     @organization_options = @organizations
