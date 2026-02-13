@@ -139,14 +139,26 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
         payer = insurance_plan&.payer
 
         if payer
-          PayerEnrollment.find_or_create_by!(
+          # Reuse org/payer placeholder (no provider) if it exists, so we keep a single record per org + payer + provider
+          placeholder = PayerEnrollment.active.find_by(
             organization: @current_organization,
             payer: payer,
             enrollment_type: :claims,
-            provider_id: provider.id,
+            provider_id: nil,
             organization_location_id: nil
-          ) do |enrollment|
-            enrollment.status = :draft
+          )
+          if placeholder
+            placeholder.update!(provider_id: provider.id, status: :draft)
+          else
+            PayerEnrollment.find_or_create_by!(
+              organization: @current_organization,
+              payer: payer,
+              enrollment_type: :claims,
+              provider_id: provider.id,
+              organization_location_id: nil
+            ) do |enrollment|
+              enrollment.status = :draft
+            end
           end
         end
       end

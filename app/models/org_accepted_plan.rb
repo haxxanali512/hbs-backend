@@ -223,16 +223,13 @@ class OrgAcceptedPlan < ApplicationRecord
   def ensure_payer_enrollment_placeholder
     return unless organization && insurance_plan && insurance_plan.payer
 
-    # Only create a placeholder enrollment if none exists yet for this organization/payer/type
-    existing = PayerEnrollment.for_scope(
-      organization.id,
-      insurance_plan.payer_id,
-      :claims,
-      nil,
-      nil
-    ).first
+    # Only create a placeholder if no active enrollment exists for this org/payer/claims (any provider or none)
+    any_existing = PayerEnrollment
+      .active
+      .where(organization_id: organization.id, payer_id: insurance_plan.payer_id, enrollment_type: :claims)
+      .exists?
 
-    return if existing.present?
+    return if any_existing
 
     PayerEnrollment.create!(
       organization: organization,

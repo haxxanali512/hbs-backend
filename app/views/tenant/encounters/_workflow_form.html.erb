@@ -410,6 +410,12 @@
     const form = document.getElementById("encounter_workflow_form");
     if (form) form.reset();
 
+    // Reset one-time init flags so dropdowns (specialty, template, diagnosis, procedure, prescription) re-initialize when returning to workflow
+    window.encounterTemplatesInitialized = false;
+    window.workflowDiagnosisInitialized = false;
+    window.workflowProcedureInitialized = false;
+    window.workflowPrescriptionInitialized = false;
+
     // Clear diagnosis codes UI/hidden inputs
     window.workflowSelectedDiagnosisCodes = [];
     const dxContainer = document.getElementById("workflowSelectedDiagnosisCodes");
@@ -654,12 +660,19 @@
     }
     document.addEventListener("turbo:load", bindClearHandlers);
 
-    // Clear form when navigating away
+    // Clear form and reset init flags when navigating away so returning to workflow re-runs inits
     document.addEventListener("turbo:before-cache", function() {
       resetEncounterWorkflowForm();
     });
     window.addEventListener("pagehide", function() {
       resetEncounterWorkflowForm();
+    });
+
+    // When page is restored from Turbo cache (back/forward), re-run inits so dropdowns show values again
+    window.addEventListener("pageshow", function(ev) {
+      if (ev.persisted && document.getElementById("encounter_workflow_form")) {
+        document.dispatchEvent(new Event("turbo:load"));
+      }
     });
   })();
 
