@@ -7,7 +7,7 @@ class Prescription < ApplicationRecord
   belongs_to :organization
   belongs_to :patient
   belongs_to :specialty
-  belongs_to :procedure_code
+  belongs_to :procedure_code, optional: true
   belongs_to :provider, optional: true
 
   # Many-to-many associations
@@ -27,7 +27,6 @@ class Prescription < ApplicationRecord
   validates :date_written, presence: true
   validates :organization_id, presence: true
   validates :specialty_id, presence: true
-  validates :procedure_code_id, presence: true
   validate :date_written_not_in_future
   validate :expires_after_written
   validate :validate_nyship_expiration_inputs
