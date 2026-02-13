@@ -111,12 +111,17 @@
   <script>
     (function() {
     function initEncounterTemplatesBlock() {
-      if (window.encounterTemplatesInitialized) return;
       const providerSelect = document.getElementById("encounter_provider_id");
       const specialtySelect = document.getElementById("encounter_specialty_id");
       const templateSelect = document.getElementById("encounter_encounter_template_id");
       if (!providerSelect || !specialtySelect) return;
-      window.encounterTemplatesInitialized = true;
+
+      // Already bound (e.g. same form still in DOM): just refresh specialty/template options
+      if (providerSelect.getAttribute("data-workflow-specialty-bound") === "true") {
+        runInitializeTemplates(providerSelect, specialtySelect, templateSelect);
+        return;
+      }
+      providerSelect.setAttribute("data-workflow-specialty-bound", "true");
 
       const currentSpecialtyId = providerSelect.dataset?.currentSpecialtyId;
       const currentTemplateId = templateSelect?.dataset?.currentTemplateId;
@@ -239,24 +244,82 @@
         });
       }
 
-      async function initializeTemplates() {
+      function initializeTemplates() {
         if (providerSelect.value) {
-          await loadSpecialties(providerSelect.value, currentSpecialtyId);
-          await loadTemplates(specialtySelect.value, currentTemplateId);
-        } else {
-          resetSpecialties();
-          await loadTemplates(null, currentTemplateId);
+          return loadSpecialties(providerSelect.value, currentSpecialtyId).then(function() {
+            return loadTemplates(specialtySelect.value, currentTemplateId);
+          });
         }
+        resetSpecialties();
+        return loadTemplates(null, currentTemplateId);
       }
 
-      initializeTemplates();
+      runInitializeTemplates(providerSelect, specialtySelect, templateSelect, initializeTemplates);
     }
-    document.addEventListener("turbo:load", initEncounterTemplatesBlock);
+
+    function runInitializeTemplates(providerSelect, specialtySelect, templateSelect, initializeTemplatesFn) {
+      if (initializeTemplatesFn) {
+        initializeTemplatesFn();
+        return;
+      }
+      var providerId = providerSelect && providerSelect.value;
+      var currentSpecialtyId = providerSelect && providerSelect.dataset && providerSelect.dataset.currentSpecialtyId;
+      var currentTemplateId = templateSelect && templateSelect.dataset && templateSelect.dataset.currentTemplateId;
+      var templatesUrl = "<%= templates_for_specialty_tenant_encounters_path %>";
+      var specialtiesUrl = "<%= specialties_for_provider_tenant_encounters_path %>";
+      if (providerId) {
+        fetch(specialtiesUrl + "?provider_id=" + encodeURIComponent(providerId), { headers: { "Accept": "application/json" } })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!data.success || !specialtySelect) return;
+            specialtySelect.innerHTML = '';
+            data.specialties.forEach(function(spec) {
+              var opt = document.createElement("option");
+              opt.value = spec.id;
+              opt.textContent = spec.name;
+              if (currentSpecialtyId && currentSpecialtyId.toString() === spec.id.toString()) opt.selected = true;
+              specialtySelect.appendChild(opt);
+            });
+            var sid = specialtySelect.value;
+            if (sid && templateSelect) {
+              fetch(templatesUrl + "?specialty_id=" + encodeURIComponent(sid), { headers: { "Accept": "application/json" } })
+                .then(function(r) { return r.json(); })
+                .then(function(tdata) {
+                  if (!tdata.success) return;
+                  templateSelect.innerHTML = '<option value="">Select template...</option>';
+                  (tdata.templates || []).forEach(function(t) {
+                    var o = document.createElement("option");
+                    o.value = t.id;
+                    o.textContent = t.specialty_name ? (t.name + " (" + t.specialty_name + ")") : t.name;
+                    if (currentTemplateId && currentTemplateId.toString() === t.id.toString()) o.selected = true;
+                    templateSelect.appendChild(o);
+                  });
+                });
+            }
+          });
+      } else if (specialtySelect) {
+        specialtySelect.innerHTML = '<option value="">Select provider first</option>';
+        if (templateSelect) templateSelect.innerHTML = '<option value="">Select template...</option>';
+      }
+    }
+
+    function runInitWhenReady() {
+      if (document.getElementById("encounter_workflow_form")) {
+        initEncounterTemplatesBlock();
+      } else {
+        setTimeout(runInitWhenReady, 50);
+      }
+    }
+
+    document.addEventListener("turbo:load", function() { setTimeout(runInitWhenReady, 0); });
+    document.addEventListener("turbo:frame-load", function(ev) {
+      if (ev.target.id === "prepare_encounter_frame") setTimeout(runInitWhenReady, 0);
+    });
     if (window.workflowFormFrameJustReplaced) {
       window.workflowFormFrameJustReplaced = false;
-      initEncounterTemplatesBlock();
+      runInitWhenReady();
     } else {
-      setTimeout(initEncounterTemplatesBlock, 0);
+      setTimeout(runInitWhenReady, 0);
     }
   })();
   </script>
