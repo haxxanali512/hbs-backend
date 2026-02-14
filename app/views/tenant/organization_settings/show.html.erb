@@ -40,6 +40,16 @@
       </div>
     <% end %>
 
+    <!-- Time Zone -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Time Zone</h2>
+      <p class="text-sm text-gray-700">
+        <% tz = @organization_setting.effective_time_zone %>
+        <%= ActiveSupport::TimeZone[tz]&.to_s || tz %>.
+        All date and time fields use this time zone.
+      </p>
+    </div>
+
     <!-- Settings Display -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Medical Record Number (MRN) Settings</h2>

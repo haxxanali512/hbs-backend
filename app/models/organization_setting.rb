@@ -1,7 +1,18 @@
 class OrganizationSetting < ApplicationRecord
   audited
 
+  DEFAULT_TIME_ZONE = "America/New_York"
+
   belongs_to :organization
+
+  # US time zones for dropdown: [ [ "Eastern Time (US & Canada)", "America/New_York" ], ... ]
+  def self.us_time_zone_options
+    ActiveSupport::TimeZone.us_zones.map { |z| [ z.to_s, z.tzinfo.name ] }
+  end
+
+  def effective_time_zone
+    time_zone.presence || DEFAULT_TIME_ZONE
+  end
 
   # Validations
   validates :mrn_format, format: { with: /\A\{prefix\}\{sequence\}\z|\A\{sequence\}\z/i }, allow_blank: true, unless: :mrn_disabled?

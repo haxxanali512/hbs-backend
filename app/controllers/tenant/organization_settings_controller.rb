@@ -30,6 +30,7 @@ class Tenant::OrganizationSettingsController < Tenant::BaseController
       :mrn_prefix,
       :mrn_sequence,
       :mrn_format,
+      :time_zone,
       feature_entitlements: {}
     )
   end

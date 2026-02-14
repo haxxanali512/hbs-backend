@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_01_110931) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_13_213823) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -666,7 +666,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_01_110931) do
     t.datetime "updated_at", null: false
     t.boolean "privacy_policy_accepted", default: false
     t.boolean "terms_of_use", default: false
+    t.string "pandadoc_document_id"
     t.index ["organization_id"], name: "index_organization_compliances_on_organization_id"
+    t.index ["pandadoc_document_id"], name: "index_organization_compliances_on_pandadoc_document_id"
   end
 
   create_table "organization_contacts", force: :cascade do |t|
@@ -796,6 +798,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_01_110931) do
     t.string "ezclaim_api_url", default: "https://ezclaimapiprod.azurewebsites.net/api/v2"
     t.string "ezclaim_api_version", default: "3.0.0"
     t.boolean "ezclaim_enabled", default: false
+    t.string "time_zone", default: "America/New_York"
     t.index ["organization_id"], name: "index_organization_settings_on_organization_id"
   end
 
