@@ -56,7 +56,7 @@
               <label class="block text-sm font-medium text-gray-700">Assigned To</label>
               <div class="mt-1 flex items-center gap-2">
                 <p class="text-sm text-gray-900"><%= @support_ticket.assigned_to_user&.display_name || "Unassigned" %></p>
-                <% if @support_ticket.assigned_to_user && policy(@support_ticket.assigned_to_user).masquerade? %>
+                <% if @support_ticket.assigned_to_user && policy([:admin, @support_ticket.assigned_to_user]).masquerade? %>
                   <%= link_to masquerade_path(@support_ticket.assigned_to_user), 
                       title: "Impersonate #{@support_ticket.assigned_to_user.display_name}",
                       target: '_blank',
@@ -76,7 +76,7 @@
               <label class="block text-sm font-medium text-gray-700">Created By</label>
               <div class="mt-1 flex items-center gap-2">
                 <p class="text-sm text-gray-900"><%= @support_ticket.created_by_user&.display_name %></p>
-                <% if @support_ticket.created_by_user && policy(@support_ticket.created_by_user).masquerade? %>
+                <% if @support_ticket.created_by_user && policy([:admin, @support_ticket.created_by_user]).masquerade? %>
                   <%= link_to masquerade_path(@support_ticket.created_by_user), 
                       title: "Impersonate #{@support_ticket.created_by_user.display_name}",
                       target: '_blank',
