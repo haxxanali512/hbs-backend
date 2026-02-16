@@ -197,6 +197,8 @@ class Encounter < ApplicationRecord
   scope :by_provider, ->(provider_id) { where(provider_id: provider_id) }
   scope :by_specialty, ->(specialty_id) { where(specialty_id: specialty_id) }
   scope :by_status, ->(status) { where(status: status) }
+  scope :by_tenant_status, ->(status) { where(tenant_status: status) }
+  scope :by_internal_status, ->(status) { where(internal_status: status) }
   scope :by_billing_channel, ->(channel) { where(billing_channel: channel) }
   scope :cascaded, -> { where(cascaded: true) }
   scope :not_cascaded, -> { where(cascaded: false) }
