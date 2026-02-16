@@ -40,6 +40,13 @@ set :bundle_jobs, 4
 puts "STAGE IS: #{fetch(:stage)}"
 puts "RAILS_ENV IS: #{fetch(:rails_env)}"
 puts "RACK_ENV IS: #{fetch(:rack_env)}"
+task :debug_linked_files do
+  puts "FINAL LINKED FILES:"
+  puts fetch(:linked_files)
+end
+
+before "deploy:check:linked_files", "debug_linked_files"
+
 
 
 # Sidekiq configuration
