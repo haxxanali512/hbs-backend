@@ -65,8 +65,8 @@ namespace :deploy do
   desc "Uploads required config files"
   task :upload_configs do
     on roles(:all) do
-      upload!("config/master.key", "#{deploy_to}/shared/config/credentials/production.key")
-      upload!("config/credentials/production.yml.enc", "#{deploy_to}/shared/config/credentials/production.yml.enc")
+      upload!("config/credentials/#{fetch(:stage)}.key", "#{deploy_to}/shared/config/credentials/#{fetch(:stage)}.key")
+      upload!("config/credentials/#{fetch(:stage)}.yml.enc", "#{deploy_to}/shared/config/credentials/#{fetch(:stage)}.yml.enc")
       upload!("config/database.yml", "#{deploy_to}/shared/config/database.yml")
     end
   end
