@@ -1,7 +1,7 @@
 lock "~> 3.19.1"
 
 set :application, "hbs-backend"
-set :stage, :production
+# set :stage, :production
 set :repo_url, "git@github.com:haxxanali512/hbs-backend.git"
 
 set :use_sudo, true
@@ -18,9 +18,15 @@ set :ssh_options, {
 }
 set :deploy_to, "/home/deployer/www/hbs-backend"
 set :sidekiq_service_unit_name, "hbs-backend-sidekiq"
-set :linked_files, %w[config/credentials/production.key config/database.yml config/puma.rb config/sidekiq.yml config/docusign_private_key.pem]
+# Linked files: credentials key is stage-specific (staging.key vs production.key); others are per-server.
+append :linked_files,
+  "config/database.yml",
+  "config/puma.rb",
+  "config/sidekiq.yml",
+  "config/docusign_private_key.pem"
+
 set :linked_dirs, %w[log tmp/pids tmp/cache tmp/sockets vendor/bundle]
-set :pm2_start_command, "bundle exec rails server -e production"
+set :pm2_start_command, "bundle exec rails server -e #{fetch(:stage)}"
 set :rvm1_ruby_version, "3.2.0"
 set :rvm_type, :user
 set :default_env, { rvm_bin_path: "~/.rvm/bin" }
@@ -31,10 +37,14 @@ set :bundle_flags, "--quiet"
 set :bundle_without, %w[development test].join(" ")
 set :bundle_jobs, 4
 
+puts "STAGE IS: #{fetch(:stage)}"
+puts "RAILS_ENV IS: #{fetch(:rails_env)}"
+puts "RACK_ENV IS: #{fetch(:rack_env)}"
+
 
 # Sidekiq configuration
 set :sidekiq_roles, :worker
-set :sidekiq_env, fetch(:rack_env, fetch(:rails_env, "production"))
+set :sidekiq_env, fetch(:rack_env, fetch(:rails_env, fetch(:stage)))
 set :sidekiq_log, -> { File.join(shared_path, "log", "sidekiq.log") }
 set :sidekiq_pid, -> { File.join(shared_path, "tmp", "pids", "sidekiq.pid") }
 set :sidekiq_cmd, "bundle exec sidekiq"
@@ -49,7 +59,7 @@ set :puma_pid, "#{shared_path}/tmp/pids/puma.pid"
 set :puma_access_log, "#{shared_path}/log/puma_access.log"
 set :puma_error_log, "#{shared_path}/log/puma_error.log"
 set :puma_role, :app
-set :puma_env, fetch(:rack_env, fetch(:rails_env, "production"))
+set :puma_env, fetch(:rack_env, fetch(:rails_env, fetch(:stage)))
 set :puma_threads, [ 4, 16 ]
 set :puma_workers, 2
 set :puma_worker_timeout, nil
@@ -62,11 +72,13 @@ set :sidekiq_deploy_label, -> { "#{fetch(:stage)}-#{fetch(:current_revision, "un
 # set :sidekiq_monit_conf_dir, '/etc/monit/conf.d'
 # set :sidekiq_monit_use_sudo, true
 namespace :deploy do
-  desc "Uploads required config files"
+  desc "Upload required config files for the current stage"
   task :upload_configs do
     on roles(:all) do
-      upload!("config/credentials/#{fetch(:stage)}.key", "#{deploy_to}/shared/config/credentials/#{fetch(:stage)}.key")
-      upload!("config/credentials/#{fetch(:stage)}.yml.enc", "#{deploy_to}/shared/config/credentials/#{fetch(:stage)}.yml.enc")
+      stage = fetch(:stage)
+      execute :mkdir, "-p", "#{deploy_to}/shared/config/credentials"
+      upload!("config/credentials/#{stage}.key", "#{deploy_to}/shared/config/credentials/#{stage}.key")
+      upload!("config/credentials/#{stage}.yml.enc", "#{deploy_to}/shared/config/credentials/#{stage}.yml.enc")
       upload!("config/database.yml", "#{deploy_to}/shared/config/database.yml")
     end
   end
@@ -81,23 +93,33 @@ namespace :deploy do
   end
 end
 
-# after "deploy:restart", "super_admin:sync_access"
+# namespace :credentials do
+#   desc "Fix credentials key symlink in current release (stage-specific: staging.key or production.key)"
+#   task :fix_symlink do
+#     on release_roles(:all) do
+#       stage = fetch(:stage)
+#       key_file = "config/credentials/#{stage}.key"
+#       execute :mkdir, "-p", "#{current_path}/config/credentials"
+#       execute :ln, "-sf", "#{shared_path}/#{key_file}", "#{current_path}/#{key_file}"
+#       info "Symlinked #{key_file}"
+#     end
+#   end
 
-namespace :credentials do
-  desc "Upload production.yml.enc to server"
-  task :push_production do
-    on roles(:all) do
-      source_file = "config/credentials/production.yml.enc"
-      target_file = "#{shared_path}/config/credentials/production.yml.enc"
+#   desc "Upload current stage credentials .yml.enc to server (e.g. staging.yml.enc or production.yml.enc)"
+#   task :push_encrypted do
+#     on roles(:all) do
+#       stage = fetch(:stage)
+#       source_file = "config/credentials/#{stage}.yml.enc"
+#       target_file = "#{shared_path}/config/credentials/#{stage}.yml.enc"
 
-      unless File.exist?(source_file)
-        error "File not found: #{source_file}"
-        exit 1
-      end
+#       unless File.exist?(source_file)
+#         error "File not found: #{source_file}"
+#         exit 1
+#       end
 
-      info "Uploading #{source_file} to #{target_file}"
-      upload!(source_file, target_file)
-      info "Successfully uploaded production.yml.enc"
-    end
-  end
-end
+#       info "Uploading #{source_file} -> #{target_file}"
+#       upload!(source_file, target_file)
+#       info "Uploaded #{stage}.yml.enc"
+#     end
+#   end
+# end
