@@ -53,13 +53,6 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700">Workflow Status</label>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.status_badge_color %>">
-                <%= @encounter.status.humanize %>
-              </span>
-            </div>
-
-            <div>
               <label class="block text-sm font-medium text-gray-700">Tenant Status</label>
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.tenant_visible_status_badge_color %>">
                 <%= @encounter.tenant_status&.humanize || "—" %>

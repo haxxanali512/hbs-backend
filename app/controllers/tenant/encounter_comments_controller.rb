@@ -27,6 +27,13 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
     @comment.author = current_user
     @comment.visibility = :shared_with_client
 
+    # Tenants may only update status (e.g. to info_request_answered) when current status is Information Request
+    if @comment.status_transition.present? && @comment.status_transition != "no_change"
+      unless @encounter.shared_status == "additional_info_requested"
+        @comment.status_transition = "no_change"
+      end
+    end
+
     if @comment.save
       redirect_to tenant_encounter_path(@encounter), notice: "Comment added successfully."
     else

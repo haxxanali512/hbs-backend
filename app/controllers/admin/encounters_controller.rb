@@ -18,6 +18,7 @@ class Admin::EncountersController < Admin::BaseController
 
   def billing_queue
     @encounters = Encounter
+      .kept
       .includes(:patient, :provider, :organization, :diagnosis_codes, encounter_procedure_items: :procedure_code)
       .where(internal_status: :queued_for_billing)
       .order(date_of_service: :desc, created_at: :desc)
@@ -242,13 +243,18 @@ class Admin::EncountersController < Admin::BaseController
   def bill_claim
     encounter = @encounter
 
+    # Set internal_status to billed first so the encounter is removed from the billing queue
+    # immediately, even if later workflow steps fail or run validations that block update!
+    encounter.update_columns(
+      internal_status: Encounter.internal_statuses[:billed],
+      updated_at: Time.current
+    )
+
     if encounter.may_mark_sent?
       encounter.mark_sent!
     else
       encounter.update!(status: :sent, display_status: :claim_submitted)
     end
-
-    encounter.update!(internal_status: :billed)
 
     if encounter.may_confirm_completed?
       encounter.confirm_completed!
@@ -293,7 +299,7 @@ class Admin::EncountersController < Admin::BaseController
     @encounter_templates = EncounterTemplate.active.includes(:specialty, encounter_template_lines: :procedure_code).order(:name)
 
     if action_name == "index"
-      @statuses = Encounter.statuses.keys
+      @internal_statuses = Encounter.internal_statuses.keys
       @billing_channels = Encounter.billing_channels.keys
     end
   end
@@ -313,6 +319,7 @@ class Admin::EncountersController < Admin::BaseController
       :prescription_id,
       :notes,
       :display_status,
+      :internal_status,
       diagnosis_code_ids: [],
       procedure_code_ids: [],
       procedure_units: {},

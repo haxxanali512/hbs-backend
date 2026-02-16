@@ -23,6 +23,10 @@ class Admin::EncounterPolicy < ApplicationPolicy
     update?
   end
 
+  def bill_claim?
+    accessible?("admin", "encounters", "update")
+  end
+
   def fetch_from_ezclaim?
     accessible?("admin", "encounters", "create")
   end

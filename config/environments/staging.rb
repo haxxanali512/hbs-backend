@@ -28,7 +28,7 @@ Rails.application.configure do
   # config.asset_host = "http://assets.example.com"
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :s3
+  config.active_storage.service = :local
 
   # SSL configuration - set via environment variables for manual deployment
   config.assume_ssl = ENV.fetch("ASSUME_SSL", "false") == "true"

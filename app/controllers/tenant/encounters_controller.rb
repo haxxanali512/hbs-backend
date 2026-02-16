@@ -619,7 +619,7 @@ class Tenant::EncountersController < Tenant::BaseController
     @diagnosis_codes = DiagnosisCode.active.order(:code)
 
     if action_name == "index"
-      @statuses = Encounter.statuses.keys
+      @statuses = Encounter.tenant_statuses.keys
       @billing_channels = Encounter.billing_channels.keys
       @show_time_filter = false
     end

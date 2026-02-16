@@ -14,7 +14,7 @@
     <!-- Filters -->
     <%
       @search_placeholder = "Patient name..."
-      @status_options = @statuses
+      @status_options = @internal_statuses
       @use_status_for_action_type = true
       @provider_options = @providers
       @specialty_options = @specialties
@@ -36,7 +36,7 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billing</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Internal Status</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -76,8 +76,8 @@
                     <% end %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.status_badge_color %>">
-                      <%= encounter.status.humanize %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.internal_status_badge_color %>">
+                      <%= encounter.internal_status&.humanize || "—" %>
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -125,5 +125,5 @@
     resource_name: "Encounters",
     fetch_url: fetch_from_ezclaim_admin_encounters_path,
     save_url: save_from_ezclaim_admin_encounters_path,
-    display_columns: [:date_of_service, :encounter_id, :patient_id, :provider_id, :status] %>
+    display_columns: [:date_of_service, :encounter_id, :patient_id, :provider_id, :internal_status] %>
 

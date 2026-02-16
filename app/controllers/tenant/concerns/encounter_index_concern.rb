@@ -47,9 +47,9 @@ module Tenant
         encounters
       end
 
-      # Apply basic filters (status, provider, patient, specialty, billing_channel)
+      # Apply basic filters (tenant_status, provider, patient, specialty, billing_channel)
       def apply_basic_encounters_filters(encounters)
-        encounters = encounters.by_status(params[:status]) if params[:status].present?
+        encounters = encounters.by_tenant_status(params[:status]) if params[:status].present?
         encounters = encounters.by_provider(params[:provider_id]) if params[:provider_id].present?
         encounters = encounters.by_patient(params[:patient_id]) if params[:patient_id].present?
         encounters = encounters.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
@@ -101,7 +101,7 @@ module Tenant
         when "date_asc"
           encounters.order(date_of_service: :asc)
         when "status"
-          encounters.order(status: :asc)
+          encounters.order(tenant_status: :asc)
         when "claim_status"
           @show_submitted_only ? encounters.joins(:claim).order("claims.status ASC, encounters.date_of_service DESC") : encounters
         else
