@@ -35,8 +35,8 @@ staging:
   host: <%= ENV.fetch("DB_HOST", "127.0.0.1") %>
   port: <%= ENV.fetch("DB_PORT", "5432") %>
   database: hbs_staging
-  username: <%= Rails.application.credentials.database.username %>
-  password: <%= Rails.application.credentials.database.password %>
+  username: <%= Rails.application.credentials.dig(:database, :username) %>
+  password: <%= Rails.application.credentials.dig(:database, :password) %>
 
 # Store production database configuration
 production:
