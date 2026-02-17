@@ -56,6 +56,13 @@
 
   <%= render 'shared/table', title: 'Users', columns: columns, collection: @users %>
 
+  <% if @users.empty? %>
+    <div class="mt-6 text-center py-12">
+      <div class="text-gray-500 text-lg">No users found</div>
+      <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or create a new user</div>
+    </div>
+  <% end %>
+
   <!-- Pagination -->
   <% if @pagy %>
     <div class="mt-6 flex items-center justify-between">
