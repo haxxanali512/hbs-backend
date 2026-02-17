@@ -186,7 +186,7 @@ class Encounter < ApplicationRecord
   validate :exactly_one_billing_document
   validate :patient_not_deceased
   validate :procedure_codes_required_for_submission
-  # validate :procedure_code_rules_compliance
+  validate :procedure_code_rules_compliance
   validate :prescription_required_for_nyship_massage
   validate :prescription_matches_procedure_and_dates
 
