@@ -681,8 +681,8 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   def attach_clinical_documentations(encounter)
-    files = params.dig(:encounter, :clinical_documentation_files)
-    return unless files.is_a?(Array)
+    files = Array(params.dig(:encounter, :clinical_documentation_files))
+    return if files.empty?
 
     files.each do |file|
       next if file.blank?
