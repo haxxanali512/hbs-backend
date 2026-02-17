@@ -1,0 +1,20 @@
+<%# Clinical documentation file uploads (PDF, images). Used in workflow and edit forms. %>
+<div class="space-y-4">
+  <%= render "shared/document_upload",
+      document_type: "clinical_documentation",
+      field_name: "encounter[clinical_documentation_files]",
+      label: "Clinical Documentation (PDF / Images)",
+      hint: "PDF or images (JPEG, PNG, GIF, WebP). Max 25MB per file." %>
+
+  <% if encounter.clinical_documentations.with_file.any? %>
+    <div class="mt-2 space-y-1">
+      <p class="text-xs font-medium text-gray-700">Existing clinical documentation</p>
+      <% encounter.clinical_documentations.with_file.each do |doc| %>
+        <div class="flex items-center justify-between text-sm text-gray-700">
+          <span class="truncate"><%= doc.file.filename %></span>
+          <%= link_to "View", rails_blob_path(doc.file), target: "_blank", rel: "noopener", class: "text-blue-600 hover:text-blue-800" %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

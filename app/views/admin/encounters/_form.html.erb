@@ -142,6 +142,28 @@
     </div>
   </div>
 
+  <!-- Clinical Documentation (PDF / images) -->
+  <div class="space-y-4 pt-4 border-t border-gray-200">
+    <h3 class="text-lg font-medium text-gray-900">Clinical Documentation</h3>
+    <p class="text-xs text-gray-500">PDF or images (JPEG, PNG, GIF, WebP). Max 25MB per file.</p>
+    <%= f.fields_for :clinical_documentations do |cf| %>
+      <% doc = cf.object %>
+      <div class="flex items-center gap-3 py-2">
+        <% if doc.persisted? && doc.file.attached? %>
+          <span class="text-sm text-gray-700 flex-1 truncate"><%= doc.file.filename %></span>
+          <%= link_to "View", rails_blob_path(doc.file), target: "_blank", rel: "noopener", class: "text-sm text-blue-600 hover:text-blue-800" %>
+          <label class="flex items-center gap-1 text-sm text-red-600 cursor-pointer">
+            <%= cf.check_box :_destroy %> Remove
+          </label>
+        <% else %>
+          <%= cf.file_field :file,
+              accept: ".pdf,image/jpeg,image/png,image/gif,image/webp",
+              class: "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
   <!-- Billing Queue Coding (Template, Diagnosis & Procedures) -->
   <div class="space-y-6 pt-6 border-t border-gray-200">
     <h3 class="text-lg font-medium text-gray-900">Billing Queue Coding</h3>

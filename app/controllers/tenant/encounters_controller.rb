@@ -116,16 +116,19 @@ class Tenant::EncountersController < Tenant::BaseController
           @encounter.mark_ready_to_submit! if @encounter.may_mark_ready_to_submit?
         end
       end
+      attach_clinical_documentations(@encounter)
       load_workflow_collections
 
       respond_to do |format|
         format.turbo_stream do
+          next_encounter = @current_organization.encounters.build(date_of_service: current_organization_date, billing_channel: :insurance)
+          next_encounter.clinical_documentations.build
           render turbo_stream: [
             turbo_stream.replace(
               "prepare_encounter_frame",
               partial: "tenant/encounters/workflow_form",
               locals: {
-                encounter: @current_organization.encounters.build(date_of_service: current_organization_date, billing_channel: :insurance),
+                encounter: next_encounter,
                 patients: @patients,
                 providers: @providers,
                 specialties: @specialties,
@@ -153,6 +156,7 @@ class Tenant::EncountersController < Tenant::BaseController
       end
     else
       load_workflow_collections
+      @encounter.clinical_documentations.build
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
@@ -179,12 +183,15 @@ class Tenant::EncountersController < Tenant::BaseController
     @encounter.diagnosis_code_ids = @encounter.diagnosis_codes.pluck(:id)
     @encounter.procedure_code_ids = @encounter.encounter_procedure_items.pluck(:procedure_code_id)
     @encounter.primary_procedure_code_id = @encounter.encounter_procedure_items.primary.first&.procedure_code_id
+    # One empty slot for new clinical documentation upload
+    @encounter.clinical_documentations.build
   end
 
   def update
     if @encounter.update(encounter_params)
       # Handle document uploads
       upload_documents if params.dig(:encounter, :documents).present?
+      attach_clinical_documentations(@encounter) if params.dig(:encounter, :clinical_documentation_files).present?
 
       # Ensure encounter is still ready_to_submit after update
       if @encounter.ready_for_review? && @encounter.may_mark_reviewed?
@@ -194,6 +201,7 @@ class Tenant::EncountersController < Tenant::BaseController
         @encounter.mark_ready_to_submit!
       end
 
+      @encounter.clinical_documentations.build
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
@@ -223,6 +231,7 @@ class Tenant::EncountersController < Tenant::BaseController
         format.html { redirect_to tenant_encounter_path(@encounter), notice: "Encounter updated successfully." }
       end
     else
+      @encounter.clinical_documentations.build
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
@@ -292,6 +301,8 @@ class Tenant::EncountersController < Tenant::BaseController
       end
     end
 
+    # One empty slot for new clinical documentation upload
+    @encounter.clinical_documentations.build
     load_workflow_collections
   end
 
@@ -643,7 +654,8 @@ class Tenant::EncountersController < Tenant::BaseController
       diagnosis_code_ids: [],
       procedure_code_ids: [],
       procedure_units: {},
-      procedure_modifiers: {}
+      procedure_modifiers: {},
+      clinical_documentations_attributes: [ :id, :file, :_destroy ]
     )
   end
 
@@ -665,6 +677,21 @@ class Tenant::EncountersController < Tenant::BaseController
           description: "Uploaded with encounter creation"
         }
       ).call
+    end
+  end
+
+  def attach_clinical_documentations(encounter)
+    files = params.dig(:encounter, :clinical_documentation_files)
+    return unless files.is_a?(Array)
+
+    files.each do |file|
+      next if file.blank?
+
+      doc = encounter.clinical_documentations.build
+      doc.file.attach(file)
+      doc.document_type ||= :file_upload
+      doc.status ||= :draft
+      doc.save
     end
   end
 end

@@ -25,17 +25,19 @@ class Encounter < ApplicationRecord
   has_one :primary_clinical_documentation, -> { where(is_primary: true) }, class_name: "ClinicalDocumentation"
 
   # has_many
+  has_many :clinical_documentations, dependent: :destroy
   has_many :encounter_diagnosis_codes, dependent: :destroy
   has_many :diagnosis_codes, through: :encounter_diagnosis_codes
   has_many :encounter_procedure_items, dependent: :destroy
   has_many :procedure_codes, through: :encounter_procedure_items
-  # has_many :clinical_documentations, as: :documentable, dependent: :restrict_with_error
   has_many :encounter_comments, dependent: :destroy
   has_many :encounter_comment_seens, dependent: :destroy
   has_many :provider_notes, dependent: :destroy
   # has_many :encounter_tasks, dependent: :destroy
   # Documents now use Active Storage
   has_many_attached :documents
+
+  accepts_nested_attributes_for :clinical_documentations, allow_destroy: true, reject_if: ->(attrs) { attrs[:file].blank? && attrs[:id].blank? }
 
   # Virtual attributes for workflow-based procedure capture
   attr_accessor :procedure_code_ids, :primary_procedure_code_id, :duration_minutes

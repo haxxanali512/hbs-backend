@@ -457,6 +457,11 @@
     </p>
   </div>
 
+  <!-- Clinical Documentation (PDF / images) -->
+  <div class="space-y-2 pt-4 border-t border-gray-100">
+    <%= render "tenant/encounters/clinical_documentation_fields", f: f, encounter: encounter %>
+  </div>
+
   <div class="flex justify-end pt-4 border-t border-gray-100 space-x-3">
     <button type="button"
             id="clear_workflow_form_button"
