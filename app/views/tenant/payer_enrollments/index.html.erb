@@ -62,8 +62,8 @@
                   <td class="px-6 py-4 text-sm text-gray-900"><%= enrollment.provider&.full_name || '—' %></td>
                   <td class="px-6 py-4 text-sm text-gray-900"><%= enrollment.organization_location&.name || '—' %></td>
                   <td class="px-6 py-4 text-sm text-gray-900 font-mono"><%= enrollment.external_enrollment_id || '—' %></td>
-                  <td class="px-6 py-4 text-sm text-gray-500"><%= enrollment.submitted_at&.strftime("%m/%d/%Y") || '—' %></td>
-                  <td class="px-6 py-4 text-sm text-gray-500"><%= enrollment.approved_at&.strftime("%m/%d/%Y") || '—' %></td>
+                  <td class="px-6 py-4 text-sm text-gray-500"><%= enrollment.submitted_at.present? ? format_in_organization_tz(enrollment.submitted_at, "%m/%d/%Y") : '—' %></td>
+                  <td class="px-6 py-4 text-sm text-gray-500"><%= enrollment.approved_at.present? ? format_in_organization_tz(enrollment.approved_at, "%m/%d/%Y") : '—' %></td>
                 </tr>
               <% end %>
             <% else %>

@@ -105,13 +105,13 @@
               <div>
                 <dt class="text-sm font-medium text-gray-500">Created</dt>
                 <dd class="mt-1 text-sm text-gray-900">
-                  <%= @fee_schedule_item.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+                  <%= format_in_organization_tz(@fee_schedule_item.created_at) %>
                 </dd>
               </div>
               <div>
                 <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
                 <dd class="mt-1 text-sm text-gray-900">
-                  <%= @fee_schedule_item.updated_at.strftime("%B %d, %Y at %I:%M %p") %>
+                  <%= format_in_organization_tz(@fee_schedule_item.updated_at) %>
                 </dd>
               </div>
             </dl>

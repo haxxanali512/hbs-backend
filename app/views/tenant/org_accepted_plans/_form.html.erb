@@ -98,7 +98,7 @@
           <% org_accepted_plan.plan_notes.each do |note| %>
             <div class="rounded-md border border-gray-200 p-3">
               <div class="text-xs text-gray-500 mb-1">
-                <%= note.created_by&.display_name || "System" %> · <%= note.created_at.strftime("%m/%d/%Y %I:%M %p") %>
+                <%= note.created_by&.display_name || "System" %> · <%= format_in_organization_tz(note.created_at, "%m/%d/%Y %I:%M %p") %>
               </div>
               <div class="text-sm text-gray-900 whitespace-pre-wrap"><%= note.body %></div>
             </div>

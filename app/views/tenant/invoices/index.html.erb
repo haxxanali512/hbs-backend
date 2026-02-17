@@ -48,7 +48,7 @@
                         class: "text-blue-600 hover:text-blue-800" %>
                   </div>
                   <div class="text-sm text-gray-500">
-                    <%= invoice.created_at.strftime("%b %d, %Y") %>
+                    <%= format_in_organization_tz(invoice.created_at, "%b %d, %Y") %>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">

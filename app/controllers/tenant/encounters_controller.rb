@@ -125,7 +125,7 @@ class Tenant::EncountersController < Tenant::BaseController
               "prepare_encounter_frame",
               partial: "tenant/encounters/workflow_form",
               locals: {
-                encounter: @current_organization.encounters.build(date_of_service: Date.current, billing_channel: :insurance),
+                encounter: @current_organization.encounters.build(date_of_service: current_organization_date, billing_channel: :insurance),
                 patients: @patients,
                 providers: @providers,
                 specialties: @specialties,
@@ -280,7 +280,7 @@ class Tenant::EncountersController < Tenant::BaseController
 
   def workflow
     @encounter = @current_organization.encounters.build(
-      date_of_service: Date.current,
+      date_of_service: current_organization_date,
       billing_channel: :insurance
     )
 

@@ -63,25 +63,25 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-700">Scheduled Start</label>
-              <p class="mt-1 text-sm text-gray-900"><%= @appointment.scheduled_start_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+              <p class="mt-1 text-sm text-gray-900"><%= format_in_organization_tz(@appointment.scheduled_start_at, "%B %d, %Y at %l:%M %p") %></p>
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700">Scheduled End</label>
-              <p class="mt-1 text-sm text-gray-900"><%= @appointment.scheduled_end_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+              <p class="mt-1 text-sm text-gray-900"><%= format_in_organization_tz(@appointment.scheduled_end_at, "%B %d, %Y at %l:%M %p") %></p>
             </div>
 
             <% if @appointment.actual_start_at.present? %>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Actual Start</label>
-                <p class="mt-1 text-sm text-gray-900"><%= @appointment.actual_start_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+                <p class="mt-1 text-sm text-gray-900"><%= format_in_organization_tz(@appointment.actual_start_at, "%B %d, %Y at %l:%M %p") %></p>
               </div>
             <% end %>
 
             <% if @appointment.actual_end_at.present? %>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Actual End</label>
-                <p class="mt-1 text-sm text-gray-900"><%= @appointment.actual_end_at.strftime("%B %d, %Y at %l:%M %p") %></p>
+                <p class="mt-1 text-sm text-gray-900"><%= format_in_organization_tz(@appointment.actual_end_at, "%B %d, %Y at %l:%M %p") %></p>
               </div>
             <% end %>
 
@@ -147,12 +147,12 @@
           <div class="space-y-3">
             <div>
               <label class="block text-sm font-medium text-gray-700">Created</label>
-              <p class="text-sm text-gray-900"><%= @appointment.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+              <p class="text-sm text-gray-900"><%= format_in_organization_tz(@appointment.created_at) %></p>
             </div>
             
             <div>
               <label class="block text-sm font-medium text-gray-700">Last Updated</label>
-              <p class="text-sm text-gray-900"><%= @appointment.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+              <p class="text-sm text-gray-900"><%= format_in_organization_tz(@appointment.updated_at) %></p>
             </div>
           </div>
         </div>

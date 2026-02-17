@@ -154,12 +154,12 @@
             
             <div>
               <label class="block text-sm font-medium text-gray-700">Created</label>
-              <p class="text-sm text-gray-900"><%= @organization_location.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+              <p class="text-sm text-gray-900"><%= format_in_organization_tz(@organization_location.created_at) %></p>
             </div>
             
             <div>
               <label class="block text-sm font-medium text-gray-700">Last Updated</label>
-              <p class="text-sm text-gray-900"><%= @organization_location.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+              <p class="text-sm text-gray-900"><%= format_in_organization_tz(@organization_location.updated_at) %></p>
             </div>
           </div>
         </div>
@@ -176,7 +176,7 @@
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-sm text-gray-900">New encounter created</p>
-                    <p class="text-xs text-gray-500"><%= encounter.created_at.strftime("%b %d, %Y") %></p>
+                    <p class="text-xs text-gray-500"><%= format_in_organization_tz(encounter.created_at, "%b %d, %Y") %></p>
                   </div>
                 </div>
               <% end %>

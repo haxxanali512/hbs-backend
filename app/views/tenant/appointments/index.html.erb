@@ -46,10 +46,10 @@
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">
-                      <%= appointment.scheduled_start_at.strftime("%b %d, %Y") %>
+                      <%= format_in_organization_tz(appointment.scheduled_start_at, "%b %d, %Y") %>
                     </div>
                     <div class="text-sm text-gray-500">
-                      <%= appointment.scheduled_start_at.strftime("%l:%M %p") %> - <%= appointment.scheduled_end_at.strftime("%l:%M %p") %>
+                      <%= format_in_organization_tz(appointment.scheduled_start_at, "%l:%M %p") %> - <%= format_in_organization_tz(appointment.scheduled_end_at, "%l:%M %p") %>
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
