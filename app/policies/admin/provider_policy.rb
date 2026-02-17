@@ -23,6 +23,10 @@ class Admin::ProviderPolicy < ApplicationPolicy
     accessible?("admin", "providers", "update")
   end
 
+  def bulk_approve?
+    approve?
+  end
+
   def destroy?
     accessible?("admin", "providers", "destroy")
   end

@@ -686,7 +686,6 @@ class Tenant::EncountersController < Tenant::BaseController
 
     files.each do |file|
       next if file.blank?
-
       doc = encounter.clinical_documentations.build
       doc.file.attach(file)
       doc.document_type ||= :file_upload

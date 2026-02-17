@@ -2,6 +2,7 @@
              url: encounter.persisted? ? tenant_encounter_path(encounter) : tenant_encounters_path,
              method: encounter.persisted? ? :patch : :post,
              data: { turbo_stream: true },
+             multipart: true,
              id: "encounter_workflow_form",
              class: "space-y-6 p-6") do |f| %>
   <% if encounter.errors.any? %>

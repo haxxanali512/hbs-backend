@@ -28,15 +28,15 @@ class ClinicalDocumentation < ApplicationRecord
     signed: 1
   }, prefix: true
 
-  before_validation :set_content_json_default, on: :create
+  before_validation :set_content_json_default
   before_validation :set_document_type_for_file_upload, on: :create
   before_validation :copy_associations_from_encounter, if: -> { encounter.present? && (new_record? || encounter_id_changed?) }
 
   validates :document_type, presence: true
-  validates :content_json, presence: true
+  # validates :content_json, presence: true
   validate :file_content_type_allowed
   validate :file_size_within_limit
-  validate :file_upload_requires_file, if: :file_upload?
+  validate :file_upload_requires_file, if: :document_type_file_upload?
 
   scope :with_file, -> { joins(:file_attachment) }
 
