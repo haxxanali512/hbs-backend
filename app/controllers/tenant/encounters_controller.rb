@@ -675,6 +675,23 @@ class Tenant::EncountersController < Tenant::BaseController
     end
   end
 
+  # After encounter is saved, create ClinicalDocumentation records from
+  # encounter[clinical_documentation_files] (for the clinical_documentations association).
+  def attach_clinical_documentations(encounter)
+    files = Array(params.dig(:encounter, :clinical_documentation_files))
+    return if files.empty?
+
+    files.each do |file|
+      next if file.blank?
+
+      doc = encounter.clinical_documentations.build
+      doc.file.attach(file)
+      doc.document_type ||= :file_upload
+      doc.status ||= :draft
+      doc.save
+    end
+  end
+
   def upload_documents
     documents = params.dig(:encounter, :documents)
     return unless documents.is_a?(Array)
