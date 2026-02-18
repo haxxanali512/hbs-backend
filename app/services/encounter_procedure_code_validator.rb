@@ -95,10 +95,13 @@ class EncounterProcedureCodeValidator
     return if required_codes.empty?
 
     all_codes = get_procedure_code_codes(all_procedure_codes)
-    missing_codes = required_codes - all_codes
+    present_required = required_codes & all_codes
 
-    if missing_codes.any?
-      @errors << "PROC_REQUIRES - #{proc_code.code} (#{rule.procedure_code.description}) requires: #{missing_codes.join(' or ')}"
+    # For rules like "Requires 20550 or 20552 or 20553", any ONE of the
+    # listed codes should satisfy the requirement. We only error if NONE
+    # of the required codes are present.
+    if present_required.empty?
+      @errors << "PROC_REQUIRES - #{proc_code.code} (#{rule.procedure_code.description}) requires: #{required_codes.join(' or ')}"
     end
   end
 
