@@ -311,6 +311,14 @@ class Admin::EncountersController < Admin::BaseController
     @diagnosis_codes = DiagnosisCode.active.order(:code)
     @encounter_templates = EncounterTemplate.active.includes(:specialty, encounter_template_lines: :procedure_code).order(:name)
 
+    if @encounter&.patient_id.present?
+      @prescriptions = @encounter.organization.prescriptions.kept
+        .where(patient_id: @encounter.patient_id, archived: false)
+        .order(expires_on: :desc)
+    else
+      @prescriptions = []
+    end
+
     if action_name == "index"
       @internal_statuses = Encounter.internal_statuses.keys
       @billing_channels = Encounter.billing_channels.keys

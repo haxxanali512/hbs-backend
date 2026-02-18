@@ -389,18 +389,29 @@
 
   </div>
 
-  <!-- Prescription (NYSHIP Massage) -->
+  <!-- Prescription (optional link; required for NYSHIP massage) -->
   <div id="workflowPrescriptionBlock" class="space-y-2 hidden">
     <h3 class="text-sm font-medium text-gray-900">Prescription</h3>
-    <div>
-      <%= f.select :prescription_id,
-                   [],
-                   { prompt: "Select prescription..." },
-                   class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
-                   data: { current_prescription_id: encounter.prescription_id } %>
+    <div class="flex items-center gap-3">
+      <div class="flex-1">
+        <%= f.select :prescription_id,
+                     [],
+                     { prompt: "Select prescription..." },
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                     data: { current_prescription_id: encounter.prescription_id } %>
+      </div>
+      <div class="flex-shrink-0">
+        <%= link_to "New Prescription",
+                    new_tenant_prescription_path,
+                    class: "inline-flex items-center px-3 py-2 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50",
+                    id: "workflowNewPrescriptionLink",
+                    data: { base_url: new_tenant_prescription_path },
+                    target: "_blank",
+                    rel: "noopener" %>
+      </div>
     </div>
     <p class="text-xs text-gray-500">
-      Required for NYSHIP massage encounters (CPT 97124/97140).
+      Optional. Link one prescription to this encounter. Required for NYSHIP massage (CPT 97124/97140).
     </p>
   </div>
 
@@ -982,6 +993,8 @@
     const specialtySelect = document.getElementById("encounter_specialty_id");
     const dateOfServiceInput = document.getElementById("encounter_date_of_service");
     const prescriptionsUrl = "<%= prescriptions_for_patient_tenant_encounters_path %>";
+    const newPrescriptionLink = document.getElementById("workflowNewPrescriptionLink");
+    const newPrescriptionBaseUrl = newPrescriptionLink?.dataset?.baseUrl || "";
     const currentPrescriptionId = prescriptionSelect?.dataset?.currentPrescriptionId;
     let prescriptionIndex = {};
 
@@ -993,6 +1006,11 @@
       prescriptionSelect.disabled = true;
       prescriptionBlock.classList.add("hidden");
       prescriptionIndex = {};
+
+      if (newPrescriptionLink) {
+        newPrescriptionLink.classList.add("opacity-50", "pointer-events-none");
+        newPrescriptionLink.href = newPrescriptionBaseUrl;
+      }
     }
 
     function massageSpecialtySelected() {
@@ -1009,22 +1027,24 @@
       });
     }
 
-    function buildRequestParams() {
+    function buildRequestParams(optionalLink) {
       const params = new URLSearchParams();
       const patientId = patientSelect?.value;
       const specialtyId = specialtySelect?.value;
       const dateOfService = dateOfServiceInput?.value;
       if (patientId) params.append("patient_id", patientId);
-      if (specialtyId) params.append("specialty_id", specialtyId);
       if (dateOfService) params.append("date_of_service", dateOfService);
-
+      if (optionalLink) {
+        params.append("scope", "all");
+        return params;
+      }
+      if (specialtyId) params.append("specialty_id", specialtyId);
       const selected = Array.isArray(window.workflowSelectedProcedureCodes)
         ? window.workflowSelectedProcedureCodes
         : [];
       selected.forEach(function(item) {
         params.append("procedure_code_ids[]", item.id);
       });
-
       return params;
     }
 
@@ -1041,13 +1061,18 @@
 
     function refreshPrescriptionOptions() {
       const patientId = patientSelect?.value;
-      const specialtyId = specialtySelect?.value;
-      if (!patientId || !specialtyId || !massageSpecialtySelected() || !massageCodeSelected()) {
+      if (!patientId) {
         clearPrescriptionOptions();
         return;
       }
 
-      const params = buildRequestParams();
+      if (newPrescriptionLink) {
+        newPrescriptionLink.classList.remove("opacity-50", "pointer-events-none");
+        newPrescriptionLink.href = newPrescriptionBaseUrl + "?patient_id=" + encodeURIComponent(patientId);
+      }
+
+      // Optional link: always fetch all prescriptions for this patient (scope=all)
+      const params = buildRequestParams(true);
       fetch(prescriptionsUrl + "?" + params.toString(), {
         method: "GET",
         headers: { "Accept": "application/json" },
@@ -1055,21 +1080,23 @@
       })
         .then(function(response) { return response.json(); })
         .then(function(data) {
-          clearPrescriptionOptions();
-          if (!data.success || !Array.isArray(data.prescriptions) || data.prescriptions.length === 0) return;
-
+          prescriptionSelect.innerHTML = '<option value="">Select prescription...</option>';
+          prescriptionIndex = {};
           prescriptionBlock.classList.remove("hidden");
           prescriptionSelect.disabled = false;
-          data.prescriptions.forEach(function(rx) {
-            const option = document.createElement("option");
-            const label = (rx.procedure_code ? rx.procedure_code + " - " : "") +
-              (rx.title || "Prescription") +
-              (rx.date_written && rx.expires_on ? (" (" + rx.date_written + " - " + rx.expires_on + ")") : "");
-            option.value = rx.id;
-            option.textContent = label;
-            prescriptionSelect.appendChild(option);
-            prescriptionIndex[rx.id] = rx;
-          });
+
+          if (data.success && Array.isArray(data.prescriptions) && data.prescriptions.length > 0) {
+            data.prescriptions.forEach(function(rx) {
+              const option = document.createElement("option");
+              const label = (rx.procedure_code ? rx.procedure_code + " - " : "") +
+                (rx.title || "Prescription") +
+                (rx.date_written && rx.expires_on ? (" (" + rx.date_written + " - " + rx.expires_on + ")") : "");
+              option.value = rx.id;
+              option.textContent = label;
+              prescriptionSelect.appendChild(option);
+              prescriptionIndex[rx.id] = rx;
+            });
+          }
 
           if (currentPrescriptionId) {
             prescriptionSelect.value = currentPrescriptionId;

@@ -49,6 +49,21 @@ class Tenant::EncountersController < Tenant::BaseController
     patient = @current_organization.patients.find_by(id: params[:patient_id])
     return render json: { success: true, prescriptions: [] } unless patient
 
+    # Optional link: return all prescriptions for this patient (for encounter create/edit dropdown)
+    if params[:scope] == "all"
+      prescriptions = @current_organization.prescriptions
+                                           .kept
+                                           .where(patient_id: patient.id)
+                                           .where(archived: false)
+      if params[:date_of_service].present?
+        dos = Date.parse(params[:date_of_service]) rescue nil
+        prescriptions = prescriptions.where("date_written <= ? AND expires_on >= ?", dos, dos) if dos
+      end
+      data = prescriptions.includes(:diagnosis_codes, :procedure_code).map { |rx| prescription_json(rx) }
+      return render json: { success: true, prescriptions: data }
+    end
+
+    # NYSHIP massage required: only return prescriptions when specialty is massage + procedure 97124/97140 + patient has NYSHIP
     specialty = Specialty.kept.active.find_by(id: params[:specialty_id])
     return render json: { success: true, prescriptions: [] } unless specialty&.name.to_s.downcase.include?("massage")
 
@@ -71,22 +86,10 @@ class Tenant::EncountersController < Tenant::BaseController
 
     if params[:date_of_service].present?
       dos = Date.parse(params[:date_of_service]) rescue nil
-      if dos
-        prescriptions = prescriptions.where("date_written <= ? AND expires_on >= ?", dos, dos)
-      end
+      prescriptions = prescriptions.where("date_written <= ? AND expires_on >= ?", dos, dos) if dos
     end
 
-    data = prescriptions.includes(:diagnosis_codes, :procedure_code).map do |rx|
-      {
-        id: rx.id,
-        title: rx.title,
-        procedure_code: rx.procedure_code&.code,
-        date_written: rx.date_written,
-        expires_on: rx.expires_on,
-        diagnosis_codes: rx.diagnosis_codes.map { |dc| { id: dc.id, code: dc.code, description: dc.description } }
-      }
-    end
-
+    data = prescriptions.includes(:diagnosis_codes, :procedure_code).map { |rx| prescription_json(rx) }
     render json: { success: true, prescriptions: data }
   end
 
@@ -103,6 +106,7 @@ class Tenant::EncountersController < Tenant::BaseController
 
   def create
     @encounter = @current_organization.encounters.build(encounter_params)
+    attach_pending_documents(@encounter)
 
     if @encounter.save
       # Skip review status and mark as ready_to_submit directly
@@ -188,8 +192,9 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   def update
+    attach_pending_documents(@encounter)
     if @encounter.update(encounter_params)
-      # Handle document uploads
+      # Handle document uploads (legacy DocumentUploadService path if used)
       upload_documents if params.dig(:encounter, :documents).present?
       attach_clinical_documentations(@encounter) if params.dig(:encounter, :clinical_documentation_files).present?
 
@@ -659,6 +664,17 @@ class Tenant::EncountersController < Tenant::BaseController
     )
   end
 
+  # Attach uploaded files to the encounter before save so procedure validations
+  # that require "clinical documentation" see them (encounter.documents.any?).
+  def attach_pending_documents(encounter)
+    files = Array(params.dig(:encounter, :documents)) + Array(params.dig(:encounter, :clinical_documentation_files))
+    files.each do |file|
+      next if file.blank?
+
+      encounter.documents.attach(file)
+    end
+  end
+
   def upload_documents
     documents = params.dig(:encounter, :documents)
     return unless documents.is_a?(Array)
@@ -680,17 +696,14 @@ class Tenant::EncountersController < Tenant::BaseController
     end
   end
 
-  def attach_clinical_documentations(encounter)
-    files = Array(params.dig(:encounter, :clinical_documentation_files))
-    return if files.empty?
-
-    files.each do |file|
-      next if file.blank?
-      doc = encounter.clinical_documentations.build
-      doc.file.attach(file)
-      doc.document_type ||= :file_upload
-      doc.status ||= :draft
-      doc.save
-    end
+  def prescription_json(rx)
+    {
+      id: rx.id,
+      title: rx.title,
+      procedure_code: rx.procedure_code&.code,
+      date_written: rx.date_written,
+      expires_on: rx.expires_on,
+      diagnosis_codes: rx.diagnosis_codes.map { |dc| { id: dc.id, code: dc.code, description: dc.description } }
+    }
   end
 end
