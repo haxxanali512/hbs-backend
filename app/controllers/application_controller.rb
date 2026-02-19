@@ -11,9 +11,38 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
   around_action :set_tenant_context, unless: -> { devise_controller? || controller_name == "notifications" }
   before_action :has_access?, unless: :devise_controller?
-  helper_method :current_organization
+  helper_method :current_organization, :current_organization_date, :current_organization_time_zone, :format_in_organization_tz
 
   protected
+
+  # Today's date in the current organization's time zone (for default encounter date, etc.).
+  # In tenant context this uses the org's setting; otherwise falls back to Date.current.
+  def current_organization_date
+    return Date.current unless current_organization
+
+    tz = current_organization.organization_setting&.effective_time_zone
+    tz = OrganizationSetting::DEFAULT_TIME_ZONE if tz.blank?
+    zone = ActiveSupport::TimeZone[tz] || ActiveSupport::TimeZone[OrganizationSetting::DEFAULT_TIME_ZONE]
+    zone ? zone.today : Date.current
+  end
+
+  # ActiveSupport::TimeZone for the current organization (for formatting datetimes in tables/detail pages).
+  def current_organization_time_zone
+    return Time.zone unless current_organization
+
+    tz = current_organization.organization_setting&.effective_time_zone
+    tz = OrganizationSetting::DEFAULT_TIME_ZONE if tz.blank?
+    ActiveSupport::TimeZone[tz] || ActiveSupport::TimeZone[OrganizationSetting::DEFAULT_TIME_ZONE] || Time.zone
+  end
+
+  # Format a datetime in the organization's time zone for display in tenant tables and detail pages.
+  # Pass optional format string (default long datetime); returns "—" if datetime is blank.
+  def format_in_organization_tz(datetime, format_string = "%B %d, %Y at %I:%M %p")
+    return "—" if datetime.blank?
+
+    zone = current_organization_time_zone
+    datetime.respond_to?(:in_time_zone) ? datetime.in_time_zone(zone).strftime(format_string) : datetime.to_s
+  end
 
   def set_impersonation_ended_flash
     return unless params[:impersonation_ended].present?
@@ -26,6 +55,13 @@ class ApplicationController < ActionController::Base
   end
 
   def handle_server_error(exception)
+    # Authorization failures should be treated as 403 with a friendly message,
+    # not as 500-level server errors.
+    if exception.is_a?(Pundit::NotAuthorizedError)
+      user_not_authorized
+      return
+    end
+
     # Skip email notification in development if showing local errors
     unless Rails.env.development? && config.consider_all_requests_local
       # Send error notification email
@@ -129,6 +165,13 @@ class ApplicationController < ActionController::Base
         redirect_to new_user_session_path, alert: "No organization context available."
         return
       end
+    end
+
+    # Use organization time zone for all date/time in the request (tenant only)
+    if @current_organization
+      tz = @current_organization.organization_setting&.effective_time_zone
+      tz = OrganizationSetting::DEFAULT_TIME_ZONE if tz.blank?
+      Time.zone = ActiveSupport::TimeZone[tz] || ActiveSupport::TimeZone[OrganizationSetting::DEFAULT_TIME_ZONE]
     end
 
     TenantContext.with_context(

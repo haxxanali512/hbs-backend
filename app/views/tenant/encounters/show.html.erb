@@ -155,12 +155,12 @@
           <div class="space-y-3">
             <div>
               <label class="block text-sm font-medium text-gray-700">Created</label>
-              <p class="text-sm text-gray-900"><%= @encounter.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+              <p class="text-sm text-gray-900"><%= format_in_organization_tz(@encounter.created_at) %></p>
             </div>
             
             <div>
               <label class="block text-sm font-medium text-gray-700">Last Updated</label>
-              <p class="text-sm text-gray-900"><%= @encounter.updated_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+              <p class="text-sm text-gray-900"><%= format_in_organization_tz(@encounter.updated_at) %></p>
             </div>
 
             <% if @encounter.prescription.present? %>
@@ -175,12 +175,26 @@
             <% if @encounter.cascaded? %>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Cascaded At</label>
-                <p class="text-sm text-gray-900"><%= @encounter.cascaded_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+                <p class="text-sm text-gray-900"><%= format_in_organization_tz(@encounter.cascaded_at) %></p>
               </div>
               
               <div>
                 <label class="block text-sm font-medium text-gray-700">Display Status</label>
                 <p class="text-sm text-gray-900"><%= @encounter.display_status_text %></p>
+              </div>
+            <% end %>
+
+            <% if @encounter.clinical_documentations.with_file.any? %>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Clinical Documentation</label>
+                <ul class="mt-1 space-y-1 text-sm text-gray-900">
+                  <% @encounter.clinical_documentations.with_file.each do |doc| %>
+                    <li class="flex items-center justify-between gap-2">
+                      <span class="truncate"><%= doc.file.filename %></span>
+                      <%= link_to "View", rails_blob_path(doc.file), target: "_blank", rel: "noopener", class: "text-xs text-blue-600 hover:text-blue-800 whitespace-nowrap" %>
+                    </li>
+                  <% end %>
+                </ul>
               </div>
             <% end %>
           </div>

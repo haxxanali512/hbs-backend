@@ -2,8 +2,7 @@ class Tenant::SpecialtiesController < Tenant::BaseController
   before_action :set_specialty, only: [ :show, :edit, :update, :destroy ]
 
   def index
-    # Show ALL specialties, not just enabled ones
-    @specialties = Specialty.kept.includes(:procedure_codes)
+    @specialties = Specialty.active.kept.includes(:procedure_codes)
                             .order(:name)
 
     # Apply filters

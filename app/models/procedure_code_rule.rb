@@ -60,14 +60,15 @@ class ProcedureCodeRule < ApplicationRecord
     codes = []
     parse_special_rules.each do |rule|
       rule_str = rule.to_s
-      # Match "Requires 97810 or 97813" or "Requires 96360" etc.
-      if rule_str.match(/requires (\d+[A-Z]?(?:\s+or\s+\d+[A-Z]?)*)/i)
+      # Match things like:
+      #   "Requires 20550"
+      #   "Requires 20550 or 20552 or 20553"
+      #   "Requires 20550, 20552 or 20553"
+      if rule_str.match(/requires\s+(.+)/i)
         codes_str = $1
-        # Extract codes (can be "or"-separated or space-separated)
-        codes_str.split(/\s+or\s+|\s+/).each do |code|
-          code = code.strip
-          # Match codes like "97810", "97813", "96360", etc.
-          codes << code if code.match(/^[\dA-Z]+$/)
+        # Extract all codes (allow comma / 'or' / whitespace separators)
+        codes_str.scan(/\b[\dA-Z]+\b/).each do |code|
+          codes << code
         end
       end
     end

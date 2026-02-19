@@ -116,11 +116,10 @@ class Admin::ProvidersController < Admin::BaseController
   def bulk_approve
     provider_ids = params[:provider_ids]
     if provider_ids.present?
-      providers = Provider.where(id: provider_ids, status: "pending")
+      providers = Provider.where(id: provider_ids)
       approved_count = 0
 
       providers.each do |provider|
-        authorize provider, :approve?
         if provider.approve!
           approved_count += 1
         end

@@ -50,7 +50,7 @@
                     <div class="text-sm text-gray-900"><%= ticket.priority.humanize %></div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900"><%= ticket.created_at.strftime("%b %d, %Y") %></div>
+                    <div class="text-sm text-gray-900"><%= format_in_organization_tz(ticket.created_at, "%b %d, %Y") %></div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex space-x-2">

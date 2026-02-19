@@ -96,11 +96,11 @@
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Created At</span>
-              <span><%= @provider.created_at.strftime('%b %d, %Y %I:%M %p') %></span>
+              <span><%= format_in_organization_tz(@provider.created_at, "%b %d, %Y %I:%M %p") %></span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Updated At</span>
-              <span><%= @provider.updated_at.strftime('%b %d, %Y %I:%M %p') %></span>
+              <span><%= format_in_organization_tz(@provider.updated_at, "%b %d, %Y %I:%M %p") %></span>
             </div>
           </div>
         </div>

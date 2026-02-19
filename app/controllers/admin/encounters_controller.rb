@@ -59,12 +59,25 @@ class Admin::EncountersController < Admin::BaseController
     end
   end
 
-  def edit; end
+  def edit
+    @encounter.clinical_documentations.build
+  end
 
   def update
     if @encounter.update(encounter_params)
+      files = Array(params.dig(:encounter, :clinical_documentation_files))
+      files.each do |file|
+        next if file.blank?
+
+        doc = @encounter.clinical_documentations.build
+        doc.file.attach(file)
+        doc.document_type ||= :file_upload
+        doc.status ||= :draft
+        doc.save
+      end
       redirect_to admin_encounter_path(@encounter), notice: "Encounter updated successfully."
     else
+      @encounter.clinical_documentations.build
       render :edit, status: :unprocessable_entity
     end
   end
@@ -298,6 +311,14 @@ class Admin::EncountersController < Admin::BaseController
     @diagnosis_codes = DiagnosisCode.active.order(:code)
     @encounter_templates = EncounterTemplate.active.includes(:specialty, encounter_template_lines: :procedure_code).order(:name)
 
+    if @encounter&.patient_id.present?
+      @prescriptions = @encounter.organization.prescriptions.kept
+        .where(patient_id: @encounter.patient_id, archived: false)
+        .order(expires_on: :desc)
+    else
+      @prescriptions = []
+    end
+
     if action_name == "index"
       @internal_statuses = Encounter.internal_statuses.keys
       @billing_channels = Encounter.billing_channels.keys
@@ -323,7 +344,8 @@ class Admin::EncountersController < Admin::BaseController
       diagnosis_code_ids: [],
       procedure_code_ids: [],
       procedure_units: {},
-      procedure_modifiers: {}
+      procedure_modifiers: {},
+      clinical_documentations_attributes: [ :id, :file, :_destroy ]
     )
   end
 end

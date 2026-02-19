@@ -49,6 +49,21 @@ class Tenant::EncountersController < Tenant::BaseController
     patient = @current_organization.patients.find_by(id: params[:patient_id])
     return render json: { success: true, prescriptions: [] } unless patient
 
+    # Optional link: return all prescriptions for this patient (for encounter create/edit dropdown)
+    if params[:scope] == "all"
+      prescriptions = @current_organization.prescriptions
+                                           .kept
+                                           .where(patient_id: patient.id)
+                                           .where(archived: false)
+      if params[:date_of_service].present?
+        dos = Date.parse(params[:date_of_service]) rescue nil
+        prescriptions = prescriptions.where("date_written <= ? AND expires_on >= ?", dos, dos) if dos
+      end
+      data = prescriptions.includes(:diagnosis_codes, :procedure_code).map { |rx| prescription_json(rx) }
+      return render json: { success: true, prescriptions: data }
+    end
+
+    # NYSHIP massage required: only return prescriptions when specialty is massage + procedure 97124/97140 + patient has NYSHIP
     specialty = Specialty.kept.active.find_by(id: params[:specialty_id])
     return render json: { success: true, prescriptions: [] } unless specialty&.name.to_s.downcase.include?("massage")
 
@@ -71,22 +86,10 @@ class Tenant::EncountersController < Tenant::BaseController
 
     if params[:date_of_service].present?
       dos = Date.parse(params[:date_of_service]) rescue nil
-      if dos
-        prescriptions = prescriptions.where("date_written <= ? AND expires_on >= ?", dos, dos)
-      end
+      prescriptions = prescriptions.where("date_written <= ? AND expires_on >= ?", dos, dos) if dos
     end
 
-    data = prescriptions.includes(:diagnosis_codes, :procedure_code).map do |rx|
-      {
-        id: rx.id,
-        title: rx.title,
-        procedure_code: rx.procedure_code&.code,
-        date_written: rx.date_written,
-        expires_on: rx.expires_on,
-        diagnosis_codes: rx.diagnosis_codes.map { |dc| { id: dc.id, code: dc.code, description: dc.description } }
-      }
-    end
-
+    data = prescriptions.includes(:diagnosis_codes, :procedure_code).map { |rx| prescription_json(rx) }
     render json: { success: true, prescriptions: data }
   end
 
@@ -103,6 +106,7 @@ class Tenant::EncountersController < Tenant::BaseController
 
   def create
     @encounter = @current_organization.encounters.build(encounter_params)
+    attach_pending_documents(@encounter)
 
     if @encounter.save
       # Skip review status and mark as ready_to_submit directly
@@ -116,16 +120,19 @@ class Tenant::EncountersController < Tenant::BaseController
           @encounter.mark_ready_to_submit! if @encounter.may_mark_ready_to_submit?
         end
       end
+      attach_clinical_documentations(@encounter)
       load_workflow_collections
 
       respond_to do |format|
         format.turbo_stream do
+          next_encounter = @current_organization.encounters.build(date_of_service: current_organization_date, billing_channel: :insurance)
+          next_encounter.clinical_documentations.build
           render turbo_stream: [
             turbo_stream.replace(
               "prepare_encounter_frame",
               partial: "tenant/encounters/workflow_form",
               locals: {
-                encounter: @current_organization.encounters.build(date_of_service: Date.current, billing_channel: :insurance),
+                encounter: next_encounter,
                 patients: @patients,
                 providers: @providers,
                 specialties: @specialties,
@@ -153,6 +160,7 @@ class Tenant::EncountersController < Tenant::BaseController
       end
     else
       load_workflow_collections
+      @encounter.clinical_documentations.build
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
@@ -179,12 +187,16 @@ class Tenant::EncountersController < Tenant::BaseController
     @encounter.diagnosis_code_ids = @encounter.diagnosis_codes.pluck(:id)
     @encounter.procedure_code_ids = @encounter.encounter_procedure_items.pluck(:procedure_code_id)
     @encounter.primary_procedure_code_id = @encounter.encounter_procedure_items.primary.first&.procedure_code_id
+    # One empty slot for new clinical documentation upload
+    @encounter.clinical_documentations.build
   end
 
   def update
+    attach_pending_documents(@encounter)
     if @encounter.update(encounter_params)
-      # Handle document uploads
+      # Handle document uploads (legacy DocumentUploadService path if used)
       upload_documents if params.dig(:encounter, :documents).present?
+      attach_clinical_documentations(@encounter) if params.dig(:encounter, :clinical_documentation_files).present?
 
       # Ensure encounter is still ready_to_submit after update
       if @encounter.ready_for_review? && @encounter.may_mark_reviewed?
@@ -194,6 +206,7 @@ class Tenant::EncountersController < Tenant::BaseController
         @encounter.mark_ready_to_submit!
       end
 
+      @encounter.clinical_documentations.build
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
@@ -223,6 +236,7 @@ class Tenant::EncountersController < Tenant::BaseController
         format.html { redirect_to tenant_encounter_path(@encounter), notice: "Encounter updated successfully." }
       end
     else
+      @encounter.clinical_documentations.build
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
@@ -280,7 +294,7 @@ class Tenant::EncountersController < Tenant::BaseController
 
   def workflow
     @encounter = @current_organization.encounters.build(
-      date_of_service: Date.current,
+      date_of_service: current_organization_date,
       billing_channel: :insurance
     )
 
@@ -292,6 +306,8 @@ class Tenant::EncountersController < Tenant::BaseController
       end
     end
 
+    # One empty slot for new clinical documentation upload
+    @encounter.clinical_documentations.build
     load_workflow_collections
   end
 
@@ -643,8 +659,37 @@ class Tenant::EncountersController < Tenant::BaseController
       diagnosis_code_ids: [],
       procedure_code_ids: [],
       procedure_units: {},
-      procedure_modifiers: {}
+      procedure_modifiers: {},
+      clinical_documentations_attributes: [ :id, :file, :_destroy ]
     )
+  end
+
+  # Attach uploaded files to the encounter before save so procedure validations
+  # that require "clinical documentation" see them (encounter.documents.any?).
+  def attach_pending_documents(encounter)
+    files = Array(params.dig(:encounter, :documents)) + Array(params.dig(:encounter, :clinical_documentation_files))
+    files.each do |file|
+      next if file.blank?
+
+      encounter.documents.attach(file)
+    end
+  end
+
+  # After encounter is saved, create ClinicalDocumentation records from
+  # encounter[clinical_documentation_files] (for the clinical_documentations association).
+  def attach_clinical_documentations(encounter)
+    files = Array(params.dig(:encounter, :clinical_documentation_files))
+    return if files.empty?
+
+    files.each do |file|
+      next if file.blank?
+
+      doc = encounter.clinical_documentations.build
+      doc.file.attach(file)
+      doc.document_type ||= :file_upload
+      doc.status ||= :draft
+      doc.save
+    end
   end
 
   def upload_documents
@@ -666,5 +711,16 @@ class Tenant::EncountersController < Tenant::BaseController
         }
       ).call
     end
+  end
+
+  def prescription_json(rx)
+    {
+      id: rx.id,
+      title: rx.title,
+      procedure_code: rx.procedure_code&.code,
+      date_written: rx.date_written,
+      expires_on: rx.expires_on,
+      diagnosis_codes: rx.diagnosis_codes.map { |dc| { id: dc.id, code: dc.code, description: dc.description } }
+    }
   end
 end
