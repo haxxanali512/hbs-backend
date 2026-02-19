@@ -189,6 +189,7 @@ class Encounter < ApplicationRecord
   validate :procedure_code_rules_compliance
   validate :prescription_required_for_nyship_massage
   validate :prescription_matches_procedure_and_dates
+  validate :no_duplicate_encounter
 
   # ===========================================================
   # SCOPES
@@ -215,6 +216,7 @@ class Encounter < ApplicationRecord
   before_validation :set_default_internal_status, on: :create
   before_validation :apply_prescription_diagnosis_codes
   before_save :ensure_cascade_fields_locked, if: :cascaded?
+  before_save :set_duplicate_check_fingerprint
   after_save :associate_diagnosis_codes, if: -> { diagnosis_code_ids.present? }
   after_save :associate_procedure_codes, if: -> { procedure_code_ids.present? }
   after_save :create_claim_from_procedure_codes, if: :should_create_claim?
@@ -561,6 +563,45 @@ class Encounter < ApplicationRecord
       result[:errors].each do |error|
         errors.add(:base, error)
       end
+    end
+  end
+
+  def no_duplicate_encounter
+    return if organization_id.blank? || patient_id.blank? || provider_id.blank? || date_of_service.blank?
+
+    current_proc_ids = if procedure_code_ids.present?
+      Array(procedure_code_ids).reject(&:blank?).map(&:to_i).sort
+    else
+      encounter_procedure_items.pluck(:procedure_code_id).sort
+    end
+    return if current_proc_ids.empty?
+
+    candidates = Encounter.kept.where(
+      organization_id: organization_id,
+      patient_id: patient_id,
+      provider_id: provider_id,
+      date_of_service: date_of_service
+    ).where.not(id: id).includes(:encounter_procedure_items)
+
+    candidates.find_each do |enc|
+      other_ids = enc.encounter_procedure_items.pluck(:procedure_code_id).sort
+      next unless other_ids == current_proc_ids
+
+      errors.add(:base, "An encounter with the same patient, provider, date of service, and CPT code(s) already exists. Please review the prepared queue before creating another.")
+      break
+    end
+  end
+
+  def set_duplicate_check_fingerprint
+    proc_ids = if procedure_code_ids.present?
+      Array(procedure_code_ids).reject(&:blank?).map(&:to_i).sort
+    else
+      encounter_procedure_items.pluck(:procedure_code_id).sort
+    end
+    if organization_id.present? && patient_id.present? && provider_id.present? && date_of_service.present? && proc_ids.any?
+      self.duplicate_check_fingerprint = [ organization_id, patient_id, provider_id, date_of_service.to_s, proc_ids.join(",") ].join("|")
+    else
+      self.duplicate_check_fingerprint = nil
     end
   end
 
