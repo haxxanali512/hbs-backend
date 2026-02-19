@@ -168,6 +168,7 @@ class Tenant::EncountersController < Tenant::BaseController
     else
       load_workflow_collections
       @encounter.clinical_documentations.build
+      flash.now[:alert] = @encounter.errors.full_messages.to_sentence if @encounter.errors.any?
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
@@ -188,8 +189,9 @@ class Tenant::EncountersController < Tenant::BaseController
               "queued_encounters_frame",
               partial: "tenant/encounters/queued_encounters_frame",
               locals: { queued_encounters: @queued_encounters }
-            )
-          ]
+            ),
+            turbo_stream.update("flash_container", partial: "shared/toast_flash")
+          ], status: :unprocessable_entity
         end
         format.html { render :workflow, status: :unprocessable_entity }
       end
