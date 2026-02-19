@@ -15,20 +15,28 @@ class XanoPatientPullService
   end
 
   def call
+    Rails.logger.info "[XanoPatientPull] Starting fetch from #{@api_url}"
     response_body = fetch_from_xano
     data = parse_response(response_body)
     items = Array(data)
+    Rails.logger.info "[XanoPatientPull] Fetched #{items.size} record(s)"
 
     created = 0
     skipped = 0
     errors = []
 
-    items.each do |payload|
+    items.each_with_index do |payload, idx|
       result = import_one(payload)
       case result[:status]
-      when :created then created += 1
-      when :skipped then skipped += 1
-      when :error then errors << result[:error]
+      when :created
+        created += 1
+        Rails.logger.info "[XanoPatientPull] [#{idx + 1}/#{items.size}] Created: #{result[:patient_name]} (org: #{result[:org_name]})"
+      when :skipped
+        skipped += 1
+        Rails.logger.info "[XanoPatientPull] [#{idx + 1}/#{items.size}] Skipped (existing): #{result[:patient_name]}"
+      when :error
+        errors << result[:error]
+        Rails.logger.warn "[XanoPatientPull] [#{idx + 1}/#{items.size}] Error: #{result[:error]}"
       end
     end
 
@@ -67,10 +75,9 @@ class XanoPatientPullService
       return { status: :error, error: "Organization not found: #{org_name} (xano_id=#{payload['id']})" }
     end
 
-    external_id = payload["id"].to_s.presence
-    if external_id.present?
-      existing = organization.patients.kept.find_by(external_id: external_id)
-      return { status: :skipped } if existing
+    existing = find_existing_patient(organization, payload)
+    if existing
+      return { status: :skipped, patient_name: "#{payload['First_Name']} #{payload['Last_Name']}".strip }
     end
 
     patient = build_patient(organization, payload)
@@ -78,11 +85,29 @@ class XanoPatientPullService
       return { status: :error, error: "Patient save failed: #{patient.errors.full_messages.join(', ')} (xano_id=#{payload['id']})" }
     end
 
-    Rails.logger.info "[XanoPatientPull] Created patient id=#{patient.id} org=#{organization.name} (#{organization.id}) #{patient.first_name} #{patient.last_name} external_id=#{external_id}"
-    { status: :created }
+    { status: :created, patient_name: patient.full_name, org_name: organization.name }
   rescue => e
     Rails.logger.error "[XanoPatientPull] #{e.message}"
     { status: :error, error: "#{e.message} (xano_id=#{payload['id']})" }
+  end
+
+  def find_existing_patient(organization, payload)
+    external_id = payload["id"].to_s.presence
+    if external_id.present?
+      existing = organization.patients.kept.find_by(external_id: external_id)
+      return existing if existing
+    end
+
+    first_name = payload["First_Name"].to_s.strip.presence
+    last_name = payload["Last_Name"].to_s.strip.presence
+    dob = parse_date(payload["Date_of_Birth"])
+    return nil if first_name.blank? || last_name.blank?
+
+    organization.patients.kept.find_by(
+      first_name: first_name,
+      last_name: last_name,
+      dob: dob
+    )
   end
 
   def resolve_organization(org_payload)
