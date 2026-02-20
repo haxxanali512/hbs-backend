@@ -55,7 +55,8 @@ class ProcedureCodeRule < ApplicationRecord
     codes.uniq
   end
 
-  # Get codes that are required for this code
+  # Get procedure codes that are required for this code (CPT/J-codes only).
+  # Excludes non-code tokens like "NYSHIP" (plan name) or "clinical documentation".
   def requires_codes
     codes = []
     parse_special_rules.each do |rule|
@@ -63,12 +64,13 @@ class ProcedureCodeRule < ApplicationRecord
       # Match things like:
       #   "Requires 20550"
       #   "Requires 20550 or 20552 or 20553"
-      #   "Requires 20550, 20552 or 20553"
+      #   "Requires NYSHIP" -> excluded (no digit; plan requirement, not procedure)
       if rule_str.match(/requires\s+(.+)/i)
         codes_str = $1
-        # Extract all codes (allow comma / 'or' / whitespace separators)
         codes_str.scan(/\b[\dA-Z]+\b/).each do |code|
-          codes << code
+          # Only treat as procedure code if it contains a digit (e.g. 97124, J0655).
+          # Exclude pure words like NYSHIP, "clinical documentation", etc.
+          codes << code if code =~ /\d/
         end
       end
     end
