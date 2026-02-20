@@ -283,9 +283,9 @@ class Admin::EncountersController < Admin::BaseController
       encounter.send(:fire_cascade_event) if encounter.respond_to?(:fire_cascade_event, true)
     end
 
-    redirect_to billing_queue_admin_encounters_path, notice: "Encounter marked as claim billed."
+    redirect_to billing_queue_admin_encounters_path(billing_queue_return_params), notice: "Encounter marked as claim billed."
   rescue => e
-    redirect_to billing_queue_admin_encounters_path, alert: "Failed to mark claim billed: #{e.message}"
+    redirect_to billing_queue_admin_encounters_path(billing_queue_return_params), alert: "Failed to mark claim billed: #{e.message}"
   end
 
   def fetch_from_ezclaim
@@ -323,6 +323,10 @@ class Admin::EncountersController < Admin::BaseController
       @internal_statuses = Encounter.internal_statuses.keys
       @billing_channels = Encounter.billing_channels.keys
     end
+  end
+
+  def billing_queue_return_params
+    params.permit(:organization_id, :provider_id, :procedure_code_id, :search, :page, :sort).to_h.compact
   end
 
   def encounter_params

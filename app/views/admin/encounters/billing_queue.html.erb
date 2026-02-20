@@ -59,8 +59,9 @@
                       <%= link_to "Edit",
                           edit_admin_encounter_path(encounter),
                           class: "bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors inline-block" %>
+                      <% billing_queue_return_params = request.query_parameters.slice("organization_id", "provider_id", "procedure_code_id", "search", "page", "sort") %>
                       <%= button_to "Claim Billed",
-                          bill_claim_admin_encounter_path(encounter),
+                          bill_claim_admin_encounter_path(encounter, billing_queue_return_params),
                           method: :post,
                           class: "bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors",
                           data: { turbo_confirm: "Mark this encounter as claim billed?" } %>

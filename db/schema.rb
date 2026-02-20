@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_13_213823) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_18_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -446,11 +446,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_13_213823) do
     t.integer "internal_status"
     t.integer "shared_status"
     t.bigint "prescription_id"
+    t.string "duplicate_check_fingerprint"
     t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
     t.index ["cascaded"], name: "index_encounters_on_cascaded"
     t.index ["claim_id"], name: "index_encounters_on_claim_id"
     t.index ["confirmed_by_id"], name: "index_encounters_on_confirmed_by_id"
     t.index ["display_status"], name: "index_encounters_on_display_status"
+    t.index ["duplicate_check_fingerprint"], name: "index_encounters_on_duplicate_check_fingerprint", unique: true, where: "(duplicate_check_fingerprint IS NOT NULL)"
     t.index ["eligibility_check_used_id"], name: "index_encounters_on_eligibility_check_used_id"
     t.index ["encounter_template_id"], name: "index_encounters_on_encounter_template_id"
     t.index ["internal_status"], name: "index_encounters_on_internal_status"
