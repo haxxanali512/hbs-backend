@@ -108,7 +108,14 @@ class Tenant::EncountersController < Tenant::BaseController
     @encounter = @current_organization.encounters.build(encounter_params)
     attach_pending_documents(@encounter)
 
-    if @encounter.save
+    begin
+      saved = @encounter.save
+    rescue ActiveRecord::RecordNotUnique
+      @encounter.errors.add(:base, "An encounter with the same patient, provider, date of service, and CPT code(s) already exists. Please review the prepared queue before creating another.")
+      saved = false
+    end
+
+    if saved
       # Skip review status and mark as ready_to_submit directly
       # First mark as ready_for_review (required for validation)
       if @encounter.may_mark_ready_for_review?
@@ -143,7 +150,7 @@ class Tenant::EncountersController < Tenant::BaseController
             ),
             turbo_stream.replace(
               "queued_encounters_frame",
-              partial: "tenant/encounters/queued_table",
+              partial: "tenant/encounters/queued_encounters_frame",
               locals: { queued_encounters: @queued_encounters }
             ),
             turbo_stream.prepend(
@@ -161,21 +168,30 @@ class Tenant::EncountersController < Tenant::BaseController
     else
       load_workflow_collections
       @encounter.clinical_documentations.build
+      flash.now[:alert] = @encounter.errors.full_messages.to_sentence if @encounter.errors.any?
       respond_to do |format|
         format.turbo_stream do
-          render turbo_stream: turbo_stream.replace(
-            "prepare_encounter_frame",
-            partial: "tenant/encounters/workflow_form",
-            locals: {
-              encounter: @encounter,
-              patients: @patients,
-              providers: @providers,
-              specialties: @specialties,
-              locations: @locations,
-              appointments: @appointments,
-              diagnosis_codes: @diagnosis_codes
-            }
-          )
+          render turbo_stream: [
+            turbo_stream.replace(
+              "prepare_encounter_frame",
+              partial: "tenant/encounters/workflow_form",
+              locals: {
+                encounter: @encounter,
+                patients: @patients,
+                providers: @providers,
+                specialties: @specialties,
+                locations: @locations,
+                appointments: @appointments,
+                diagnosis_codes: @diagnosis_codes
+              }
+            ),
+            turbo_stream.replace(
+              "queued_encounters_frame",
+              partial: "tenant/encounters/queued_encounters_frame",
+              locals: { queued_encounters: @queued_encounters }
+            ),
+            turbo_stream.update("flash_container", partial: "shared/toast_flash")
+          ], status: :unprocessable_entity
         end
         format.html { render :workflow, status: :unprocessable_entity }
       end
