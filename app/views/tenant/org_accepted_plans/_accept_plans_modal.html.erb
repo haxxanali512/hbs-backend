@@ -32,16 +32,38 @@
         <% end %>
 
         <% if has_providers %>
-          <%= form_with url: insurance_plans_search_tenant_org_accepted_plans_path, method: :get, id: "accept_plans_search_form", data: { turbo_frame: "insurance_plans_modal_list" }, class: "mb-4" do |f| %>
-            <label for="insurance_plans_search_q" class="sr-only">Search plans</label>
-            <input type="search"
-                   name="q"
-                   id="insurance_plans_search_q"
-                   value="<%= params[:q] %>"
-                   placeholder="Search by plan or payer name..."
-                   class="block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                   autocomplete="off">
-          <% end %>
+          <div class="mb-4 space-y-3">
+            <div>
+              <label for="accept_plans_payer_id" class="block text-sm font-medium text-gray-700 mb-1">
+                Payer <span class="text-red-500">*</span>
+              </label>
+              <select id="accept_plans_payer_id"
+                      name="payer_id"
+                      required
+                      class="block w-full h-11 rounded-lg border border-gray-200 bg-white px-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      aria-describedby="accept_plans_payer_help">
+                <option value="">Select payer…</option>
+                <% Array(@payer_options).each do |name, id| %>
+                  <option value="<%= id %>"><%= name %></option>
+                <% end %>
+              </select>
+              <p id="accept_plans_payer_help" class="mt-1 text-xs text-gray-500">
+                Select a payer first; then choose one or more plans below.
+              </p>
+            </div>
+            <%= form_with url: insurance_plans_search_tenant_org_accepted_plans_path, method: :get, id: "accept_plans_search_form", data: { turbo_frame: "insurance_plans_modal_list" }, class: "flex gap-2" do |f| %>
+              <input type="hidden" name="payer_id" id="accept_plans_search_payer_id" value="">
+              <label for="insurance_plans_search_q" class="sr-only">Search plans</label>
+              <input type="search"
+                     name="q"
+                     id="insurance_plans_search_q"
+                     value="<%= params[:q] %>"
+                     placeholder="Search plans in this payer…"
+                     class="block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                     autocomplete="off"
+                     disabled>
+            <% end %>
+          </div>
 
           <% if pending_or_drafted_providers.any? && approved_providers.empty? %>
             <div class="mb-4 rounded-md border border-blue-100 bg-blue-50 p-3">
@@ -59,7 +81,7 @@
 
           <%= form_with url: accept_plans_tenant_org_accepted_plans_path, method: :post, id: "accept_plans_form", data: { turbo: false } do %>
             <turbo-frame id="insurance_plans_modal_list" src="<%= insurance_plans_search_tenant_org_accepted_plans_path %>" loading="lazy">
-              <div class="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm">Loading plans…</div>
+              <div class="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm">Select a payer above to load plans.</div>
             </turbo-frame>
 
             <div class="mt-4">
@@ -124,6 +146,23 @@
       document.body.style.overflow = '';
     }, 300);
   }
+  function updatePlansFrame() {
+    var payerSelect = document.getElementById('accept_plans_payer_id');
+    var searchForm = document.getElementById('accept_plans_search_form');
+    var searchInput = document.getElementById('insurance_plans_search_q');
+    var frame = document.getElementById('insurance_plans_modal_list');
+    if (!payerSelect || !searchForm || !frame) return;
+    var payerId = payerSelect.value || '';
+    var q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+    var hiddenPayer = document.getElementById('accept_plans_search_payer_id');
+    if (hiddenPayer) hiddenPayer.value = payerId;
+    if (searchInput) searchInput.disabled = !payerId;
+    var params = new URLSearchParams();
+    if (payerId) params.set('payer_id', payerId);
+    if (q) params.set('q', q);
+    frame.src = searchForm.action + (params.toString() ? '?' + params.toString() : '');
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     var acceptForm = document.getElementById('accept_plans_form');
     if (acceptForm) {
@@ -133,6 +172,9 @@
             cb.checked = e.target.checked;
           });
         }
+        if (e.target.id === 'accept_plans_payer_id') {
+          updatePlansFrame();
+        }
       });
 
       acceptForm.addEventListener('submit', function(e) {
@@ -141,6 +183,20 @@
           e.preventDefault();
           alert("Please select a provider before accepting plans.");
           providerSelect.focus();
+          return;
+        }
+        var payerSelect = document.getElementById('accept_plans_payer_id');
+        if (payerSelect && !payerSelect.value) {
+          e.preventDefault();
+          alert("Please select a payer first.");
+          payerSelect.focus();
+          return;
+        }
+        var checked = acceptForm.querySelectorAll('.insurance-plan-checkbox:checked');
+        if (!checked.length) {
+          e.preventDefault();
+          alert("Please select at least one plan to accept.");
+          return;
         }
       });
     }
@@ -150,8 +206,12 @@
       var searchTimeout;
       searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() { searchForm.requestSubmit(); }, 300);
+        searchTimeout = setTimeout(function() { updatePlansFrame(); }, 300);
       });
+    }
+    var payerSelect = document.getElementById('accept_plans_payer_id');
+    if (payerSelect) {
+      payerSelect.addEventListener('change', updatePlansFrame);
     }
   });
   document.addEventListener('turbo:load', function() {

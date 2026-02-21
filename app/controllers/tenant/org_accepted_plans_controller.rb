@@ -1,6 +1,6 @@
 class Tenant::OrgAcceptedPlansController < Tenant::BaseController
   before_action :set_org_accepted_plan, only: [ :show, :edit, :update, :activate, :inactivate ]
-  before_action :load_form_options, only: [ :index, :new, :edit, :create, :update, :insurance_plans_search ]
+  before_action :load_form_options, only: [ :index, :new, :edit, :create, :update, :insurance_plans_search, :plan_options ]
 
 
   def index
@@ -87,18 +87,49 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
   end
 
   def insurance_plans_search
+    # Payer → Unlock Plans: plans load only after payer is selected
+    payer_id = params[:payer_id].to_s.strip.presence
+    unless payer_id.present?
+      render partial: "insurance_plans_modal_list",
+             locals: { insurance_plans: [], search_query: params[:q].to_s.strip, payer_required: true },
+             layout: false,
+             content_type: "text/html"
+      return
+    end
+
     @insurance_plans = InsurancePlan.active_only
+      .for_payer(payer_id)
       .includes(:payer)
       .where.not(id: @accepted_plan_ids)
-      .order("payers.name", "insurance_plans.name")
+      .order("insurance_plans.name")
     if params[:q].to_s.strip.present?
       q = "%#{ActiveRecord::Base.sanitize_sql_like(params[:q].strip)}%"
-      @insurance_plans = @insurance_plans
-        .left_joins(:payer)
-        .where("insurance_plans.name ILIKE :q OR payers.name ILIKE :q", q: q)
+      @insurance_plans = @insurance_plans.where("insurance_plans.name ILIKE :q", q: q)
     end
     render partial: "insurance_plans_modal_list",
-           locals: { insurance_plans: @insurance_plans, search_query: params[:q].to_s.strip },
+           locals: { insurance_plans: @insurance_plans, search_query: params[:q].to_s.strip, payer_required: false },
+           layout: false,
+           content_type: "text/html"
+  end
+
+  # Returns plan options for a payer (for new/edit form dropdown). Requires payer_id.
+  # Include selected_plan_id so the current plan appears when editing (even if already accepted).
+  def plan_options
+    payer_id = params[:payer_id].to_s.strip.presence
+    selected_plan_id = params[:selected_plan_id].to_s.strip.presence
+    plans = if payer_id.present?
+      scope = InsurancePlan.active_only.for_payer(payer_id)
+      scope = if selected_plan_id.present?
+        scope.where("id NOT IN (?) OR id = ?", @accepted_plan_ids.to_a, selected_plan_id)
+      else
+        scope.where.not(id: @accepted_plan_ids)
+      end
+      scope.order(:name)
+    else
+      InsurancePlan.none
+    end
+    render partial: "plan_options",
+           locals: { plans: plans, selected_plan_id: selected_plan_id },
            layout: false,
            content_type: "text/html"
   end
@@ -178,6 +209,12 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
   def load_form_options
     @insurance_plans = InsurancePlan.active_only.order(:name)
     @accepted_plan_ids = @current_organization.org_accepted_plans.pluck(:insurance_plan_id)
+    # Payers that have at least one active plan (for Payer → Plan flow)
+    @payer_options = Payer.active_only
+      .joins(:insurance_plans)
+      .where(insurance_plans: { status: InsurancePlan.statuses[:active] })
+      .distinct
+      .order(:name)
   end
 
   def apply_filters(plans)

@@ -476,6 +476,7 @@ Rails.application.routes.draw do
         resources :org_accepted_plans do
           collection do
             get :insurance_plans_search
+            get :plan_options
             post :accept_plans
           end
           member do
