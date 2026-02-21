@@ -49,6 +49,14 @@ class Encounter < ApplicationRecord
   # legacy data can be seeded without blocking on full clinical detail.
   attr_accessor :skip_import_validations
 
+  # When updating from admin (e.g. Claim Billed, cancel), skip tenant/workflow
+  # validations (procedure code rules, prescription, duplicate check, etc.).
+  attr_accessor :skip_workflow_validations
+
+  def run_workflow_validations?
+    !skip_workflow_validations
+  end
+
 
   # ===========================================================
   # ENUMS
@@ -179,17 +187,17 @@ class Encounter < ApplicationRecord
   validate :date_of_service_not_in_future
   # validate :provider_assigned_to_organization
   validate :specialty_valid_and_active
-  validate :diagnosis_codes_required
-  validate :insurance_requirements_if_insurance_billing
-  validate :procedure_codes_allowed_for_specialty
+  validate :diagnosis_codes_required, if: :run_workflow_validations?
+  validate :insurance_requirements_if_insurance_billing, if: :run_workflow_validations?
+  validate :procedure_codes_allowed_for_specialty, if: :run_workflow_validations?
   validate :no_post_cascade_modifications
-  validate :exactly_one_billing_document
+  validate :exactly_one_billing_document, if: :run_workflow_validations?
   validate :patient_not_deceased
-  validate :procedure_codes_required_for_submission
-  validate :procedure_code_rules_compliance
-  validate :prescription_required_for_nyship_massage
-  validate :prescription_matches_procedure_and_dates
-  validate :no_duplicate_encounter
+  validate :procedure_codes_required_for_submission, if: :run_workflow_validations?
+  validate :procedure_code_rules_compliance, if: :run_workflow_validations?
+  validate :prescription_required_for_nyship_massage, if: :run_workflow_validations?
+  validate :prescription_matches_procedure_and_dates, if: :run_workflow_validations?
+  validate :no_duplicate_encounter, if: :run_workflow_validations?
 
   # ===========================================================
   # SCOPES

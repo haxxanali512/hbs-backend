@@ -7,6 +7,7 @@ class Admin::EncountersController < Admin::BaseController
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
   before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :bill_claim ]
+  before_action :skip_workflow_validations_for_admin_update, only: [ :update, :destroy, :cancel, :bill_claim, :submit_for_billing ]
   before_action :load_form_options, only: [ :index, :edit, :update, :billing_queue ]
 
   def index
@@ -300,6 +301,10 @@ class Admin::EncountersController < Admin::BaseController
 
   def set_encounter
     @encounter = Encounter.kept.find(params[:id])
+  end
+
+  def skip_workflow_validations_for_admin_update
+    @encounter.skip_workflow_validations = true
   end
 
   def load_form_options
