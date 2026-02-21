@@ -209,12 +209,13 @@ class Tenant::OrgAcceptedPlansController < Tenant::BaseController
   def load_form_options
     @insurance_plans = InsurancePlan.active_only.order(:name)
     @accepted_plan_ids = @current_organization.org_accepted_plans.pluck(:insurance_plan_id)
-    # Payers that have at least one active plan (for Payer → Plan flow)
+    # Payers that have at least one active plan (for Payer → Plan flow). [name, id] for select options.
     @payer_options = Payer.active_only
       .joins(:insurance_plans)
       .where(insurance_plans: { status: InsurancePlan.statuses[:active] })
       .distinct
       .order(:name)
+      .pluck(:name, :id)
   end
 
   def apply_filters(plans)
