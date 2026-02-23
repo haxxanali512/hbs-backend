@@ -1,4 +1,4 @@
-<%= form_with(model: @encounter, url: (@encounter.new_record? ? tenant_encounters_path : tenant_encounter_path(@encounter)), method: (@encounter.new_record? ? :post : :patch), local: true, class: "space-y-6") do |f| %>
+<%= form_with(model: @encounter, url: (@encounter.new_record? ? tenant_encounters_path : tenant_encounter_path(@encounter)), method: (@encounter.new_record? ? :post : :patch), local: true, multipart: true, class: "space-y-6") do |f| %>
   <% if @encounter.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-md p-4">
       <div class="flex">

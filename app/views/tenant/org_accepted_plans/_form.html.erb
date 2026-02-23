@@ -28,12 +28,22 @@
     <div class="space-y-4">
       <h3 class="text-lg font-medium text-gray-900">Core Information</h3>
       <div>
-        <%= f.label :insurance_plan_id, "Insurance Plan", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :insurance_plan_id, 
-            options_from_collection_for_select(@insurance_plans, :id, :name, org_accepted_plan.insurance_plan_id),
-            { prompt: "Select Insurance Plan" },
+        <%= label_tag :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= select_tag :payer_id,
+            options_for_select([ [ "Select payer…", "" ] ] + Array(@payer_options), org_accepted_plan.insurance_plan&.payer_id),
             { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
               required: true,
+              data: { plan_options_url: plan_options_tenant_org_accepted_plans_path } } %>
+        <p class="mt-1 text-sm text-gray-500">Select a payer first to unlock plans below.</p>
+      </div>
+      <div>
+        <%= f.label :insurance_plan_id, "Insurance Plan", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :insurance_plan_id, 
+            options_for_select([]),
+            { prompt: "Select plan…" },
+            { class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500",
+              required: true,
+              disabled: true,
               data: { accepted_plan_ids: @accepted_plan_ids.to_json, current_plan_id: org_accepted_plan.insurance_plan_id } } %>
         <p id="acceptedPlanDuplicateError" class="mt-1 text-sm text-red-600 hidden">
           This plan is already accepted for your organization.
@@ -117,12 +127,14 @@
 
 <script>
   document.addEventListener("turbo:load", function() {
+    const payerSelect = document.getElementById("payer_id");
     const planSelect = document.getElementById("org_accepted_plan_insurance_plan_id");
     const submitBtn = document.querySelector('[data-role="accepted-plan-submit"]');
     const errorEl = document.getElementById("acceptedPlanDuplicateError");
 
-    if (!planSelect || !submitBtn) return;
+    if (!payerSelect || !planSelect || !submitBtn) return;
 
+    const planOptionsUrl = payerSelect.dataset.planOptionsUrl || "";
     const acceptedPlanIds = planSelect.dataset.acceptedPlanIds
       ? JSON.parse(planSelect.dataset.acceptedPlanIds)
       : [];
@@ -151,7 +163,53 @@
       }
     }
 
+    function loadPlansForPayer() {
+      const payerId = payerSelect.value;
+      if (!payerId) {
+        planSelect.innerHTML = '<option value="">Select plan…</option>';
+        planSelect.disabled = true;
+        updateDuplicateState();
+        return;
+      }
+      const selectedPlanId = currentPlanId || "";
+      const url = planOptionsUrl + "?payer_id=" + encodeURIComponent(payerId) + (selectedPlanId ? "&selected_plan_id=" + encodeURIComponent(selectedPlanId) : "");
+      planSelect.disabled = true;
+      planSelect.innerHTML = '<option value="">Loading…</option>';
+      fetch(url, { headers: { "Accept": "text/html" } })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          planSelect.innerHTML = html;
+          planSelect.disabled = false;
+          updateDuplicateState();
+        })
+        .catch(function() {
+          planSelect.innerHTML = '<option value="">Error loading plans</option>';
+          planSelect.disabled = false;
+        });
+    }
+
+    payerSelect.addEventListener("change", function() {
+      planSelect.value = "";
+      loadPlansForPayer();
+    });
+
     planSelect.addEventListener("change", updateDuplicateState);
-    updateDuplicateState();
+
+    if (payerSelect.value) {
+      loadPlansForPayer();
+    } else {
+      updateDuplicateState();
+    }
+
+    var form = planSelect.closest("form");
+    if (form) {
+      form.addEventListener("submit", function(e) {
+        if (!payerSelect.value) {
+          e.preventDefault();
+          payerSelect.focus();
+          return false;
+        }
+      });
+    }
   });
 </script>

@@ -7,6 +7,7 @@ class Admin::EncountersController < Admin::BaseController
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
   before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :bill_claim ]
+  before_action :skip_workflow_validations_for_admin_update, only: [ :update, :destroy, :cancel, :bill_claim, :submit_for_billing ]
   before_action :load_form_options, only: [ :index, :edit, :update, :billing_queue ]
 
   def index
@@ -283,9 +284,9 @@ class Admin::EncountersController < Admin::BaseController
       encounter.send(:fire_cascade_event) if encounter.respond_to?(:fire_cascade_event, true)
     end
 
-    redirect_to billing_queue_admin_encounters_path, notice: "Encounter marked as claim billed."
+    redirect_to billing_queue_admin_encounters_path(billing_queue_return_params), notice: "Encounter marked as claim billed."
   rescue => e
-    redirect_to billing_queue_admin_encounters_path, alert: "Failed to mark claim billed: #{e.message}"
+    redirect_to billing_queue_admin_encounters_path(billing_queue_return_params), alert: "Failed to mark claim billed: #{e.message}"
   end
 
   def fetch_from_ezclaim
@@ -300,6 +301,10 @@ class Admin::EncountersController < Admin::BaseController
 
   def set_encounter
     @encounter = Encounter.kept.find(params[:id])
+  end
+
+  def skip_workflow_validations_for_admin_update
+    @encounter.skip_workflow_validations = true
   end
 
   def load_form_options
@@ -323,6 +328,10 @@ class Admin::EncountersController < Admin::BaseController
       @internal_statuses = Encounter.internal_statuses.keys
       @billing_channels = Encounter.billing_channels.keys
     end
+  end
+
+  def billing_queue_return_params
+    params.permit(:organization_id, :provider_id, :procedure_code_id, :search, :page, :sort).to_h.compact
   end
 
   def encounter_params

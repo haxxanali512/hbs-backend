@@ -1,0 +1,4 @@
+<option value="">Select plan…</option>
+<% plans.each do |plan| %>
+  <option value="<%= plan.id %>" <%= "selected" if selected_plan_id.to_s == plan.id.to_s %>><%= plan.name %></option>
+<% end %>

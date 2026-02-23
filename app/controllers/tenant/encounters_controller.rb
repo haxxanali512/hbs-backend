@@ -2,7 +2,7 @@ class Tenant::EncountersController < Tenant::BaseController
   include ProcedureCodeSearch
   include Tenant::Concerns::EncounterIndexConcern
   before_action :set_current_organization
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :download_edi ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :attach_clinical_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :download_edi ]
   before_action :load_form_options, only: [ :index, :new, :create, :edit, :update, :workflow ]
 
   def index
@@ -596,6 +596,25 @@ class Tenant::EncountersController < Tenant::BaseController
           }, status: :unprocessable_entity
         end
       end
+    end
+  end
+
+  def attach_clinical_document
+    file = params.dig(:clinical_document, :file)
+    if file.blank?
+      redirect_to tenant_encounter_path(@encounter), alert: "Please select a file to upload."
+      return
+    end
+
+    doc = @encounter.clinical_documentations.build
+    doc.file.attach(file)
+    doc.document_type = :file_upload
+    doc.status = :draft
+
+    if doc.save
+      redirect_to tenant_encounter_path(@encounter), notice: "Clinical document uploaded successfully."
+    else
+      redirect_to tenant_encounter_path(@encounter), alert: "Upload failed: #{doc.errors.full_messages.to_sentence}"
     end
   end
 
