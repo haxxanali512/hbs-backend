@@ -31,6 +31,10 @@ class Tenant::EncounterPolicy < ApplicationPolicy
     accessible?("tenant", "encounters", "destroy")
   end
 
+  def attach_clinical_document?
+    create?
+  end
+
   def confirm_completed?
     accessible?("tenant", "encounters", "confirm_completed")
   end

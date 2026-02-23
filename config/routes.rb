@@ -448,6 +448,7 @@ Rails.application.routes.draw do
             post :cancel
             post :request_correction
             post :attach_document
+            post :attach_clinical_document
             get :billing_data
             get :procedure_codes_search
             get :diagnosis_codes_search
