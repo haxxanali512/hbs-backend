@@ -41,20 +41,11 @@ module Tenant
       # Apply all filters to encounters
       def apply_encounters_filters(encounters)
         encounters = apply_basic_encounters_filters(encounters)
+        encounters = apply_patient_search_filter(encounters)
         encounters = apply_claim_status_filter(encounters)
         encounters = apply_cascaded_filter(encounters)
         encounters = apply_date_range_filter(encounters)
-        encounters = apply_search_filter(encounters)
         encounters
-      end
-
-      # Filter by patient name (search box)
-      def apply_search_filter(encounters)
-        return encounters unless params[:search].present?
-
-        search_term = "%#{ActiveRecord::Base.sanitize_sql_like(params[:search].strip)}%"
-        encounters.joins(:patient)
-                  .where("patients.first_name ILIKE :q OR patients.last_name ILIKE :q", q: search_term)
       end
 
       # Apply basic filters (tenant_status, provider, patient, specialty, billing_channel)
@@ -65,6 +56,17 @@ module Tenant
         encounters = encounters.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
         encounters = encounters.by_billing_channel(params[:billing_channel]) if params[:billing_channel].present?
         encounters
+      end
+
+      # Filter by patient name when search field is used (params[:search] from shared filters)
+      def apply_patient_search_filter(encounters)
+        return encounters if params[:search].blank?
+
+        term = "%#{ActiveRecord::Base.sanitize_sql_like(params[:search].strip)}%"
+        encounters.joins(:patient).where(
+          "patients.first_name ILIKE :term OR patients.last_name ILIKE :term",
+          term: term
+        )
       end
 
       # Apply claim status filter (only for submitted view)
