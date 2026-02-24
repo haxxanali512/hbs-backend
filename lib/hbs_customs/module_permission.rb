@@ -70,6 +70,7 @@ module HbsCustoms
           provider_notes: DEFAULT_CRUD,
           patients: DEFAULT_CRUD,
           org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false),
+          payer_enrollments: { index: false },
           patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),
           claim_lines: DEFAULT_CRUD.merge(lock_on_submission: false, post_adjudication: false),
           support_tickets: DEFAULT_CRUD.except(:destroy),
