@@ -312,6 +312,12 @@ Rails.application.routes.draw do
           post :reactivate
         end
       end
+
+      resources :clinical_documentations, only: [ :index, :show ] do
+        member do
+          get :download
+        end
+      end
     end
   end
 
@@ -483,6 +489,12 @@ Rails.application.routes.draw do
           member do
             post :activate
             post :inactivate
+          end
+        end
+
+        resources :clinical_documentations, only: [ :index, :show ] do
+          member do
+            get :download
           end
         end
 

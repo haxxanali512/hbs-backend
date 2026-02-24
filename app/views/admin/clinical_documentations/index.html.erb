@@ -1,0 +1,113 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Clinical Documentation</h1>
+      <p class="mt-2 text-gray-600">View and find uploaded clinical documentation across organizations.</p>
+    </div>
+
+    <%
+      @search_placeholder = "Filename, patient, provider, encounter ID..."
+      @organization_options = @organizations
+      @patient_options = @patients
+      @provider_options = @providers
+      @specialty_options = @specialties
+      @sort_options = [
+        ["Newest uploads", ""],
+        ["Oldest uploads", "uploaded_asc"],
+        ["DOS (newest)", "dos_desc"],
+        ["DOS (oldest)", "dos_asc"]
+      ]
+      @show_date_range = true
+      @show_uploaded_date_range = true
+      @custom_selects = [
+        {
+          param: :source_type,
+          label: "Source",
+          options: [["All Sources", ""]] + @source_type_options.map { |s| [s.humanize, s] }
+        }
+      ]
+    %>
+    <%= render "shared/filters" %>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encounter</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Service</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% if @clinical_documentations.any? %>
+              <% @clinical_documentations.each do |doc| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <%= doc.file_name.presence || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= doc.organization&.name || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <% if doc.patient %>
+                      <%= link_to doc.patient.full_name, admin_patient_path(doc.patient), class: "text-blue-600 hover:text-blue-800" %>
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <% if doc.encounter %>
+                      <%= link_to "##{doc.encounter_id}", admin_encounter_path(doc.encounter), class: "text-blue-600 hover:text-blue-800" %>
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= doc.encounter&.date_of_service&.strftime("%b %d, %Y") || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= doc.document_type&.humanize || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= doc.author_provider&.full_name || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= doc.source_type&.humanize || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= doc.created_at.strftime("%b %d, %Y %l:%M %p") %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <%= link_to "View", admin_clinical_documentation_path(doc), target: "_blank", rel: "noopener", class: "text-blue-600 hover:text-blue-800 mr-3" %>
+                    <%= link_to "Download", download_admin_clinical_documentation_path(doc), class: "text-blue-600 hover:text-blue-800" %>
+                  </td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="10" class="px-6 py-12 text-center text-sm text-gray-500">
+                  No clinical documentation found. Adjust filters or upload documents from encounters.
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700"><%= pagination_info(@pagy) %></div>
+        <div><%== pagy_nav(@pagy) if @pagy.pages > 1 %></div>
+      </div>
+    <% end %>
+  </div>
+</div>

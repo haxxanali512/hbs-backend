@@ -61,7 +61,19 @@
     <% end %>
 
     <!-- Provider filter -->
-   
+    <% if @provider_options.present? %>
+      <div>
+        <%= f.label :provider_id, "Provider", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :provider_id,
+                     options_for_select(
+                       [["All Providers", ""]] +
+                       @provider_options.map { |p| p.is_a?(Array) ? p : [p.respond_to?(:full_name) ? p.full_name : p.to_s, p.is_a?(Array) ? p.last : p.id] },
+                       params[:provider_id]
+                     ),
+                     {},
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
 
     <!-- Service month filter -->
     <% if @service_month_options.present? %>
@@ -190,6 +202,18 @@
       </div>
     <% end %>
 
+    <!-- Uploaded date range filters -->
+    <% if @show_uploaded_date_range %>
+      <div>
+        <%= f.label :uploaded_from, "Uploaded From", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :uploaded_from, value: params[:uploaded_from], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <div>
+        <%= f.label :uploaded_to, "Uploaded To", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :uploaded_to, value: params[:uploaded_to], class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+    <% end %>
+
     <!-- Insurance Plan filter -->
     <% if @insurance_plan_options.present? %>
       <div>
@@ -262,4 +286,5 @@
       <%= link_to "Clear", request.path, class: "text-gray-600 hover:text-gray-800 py-2 px-4" %>
     </div>
   <% end %>
+  </details>
 </div>
