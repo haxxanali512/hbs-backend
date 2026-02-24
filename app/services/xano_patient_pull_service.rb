@@ -81,8 +81,12 @@ class XanoPatientPullService
     end
 
     patient = build_patient(organization, payload)
-    unless patient.save
-      return { status: :error, error: "Patient save failed: #{patient.errors.full_messages.join(', ')} (xano_id=#{payload['id']})" }
+
+    # For Xano imports, we bypass Patient model validations so that
+    # records with malformed or future-dated values (e.g., DOB) are
+    # still created rather than failing the entire import.
+    unless patient.save(validate: false)
+      return { status: :error, error: "Patient save failed (validate: false) for unknown reason (xano_id=#{payload['id']})" }
     end
 
     { status: :created, patient_name: patient.full_name, org_name: organization.name }
