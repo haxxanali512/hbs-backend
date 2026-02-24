@@ -44,7 +44,17 @@ module Tenant
         encounters = apply_claim_status_filter(encounters)
         encounters = apply_cascaded_filter(encounters)
         encounters = apply_date_range_filter(encounters)
+        encounters = apply_search_filter(encounters)
         encounters
+      end
+
+      # Filter by patient name (search box)
+      def apply_search_filter(encounters)
+        return encounters unless params[:search].present?
+
+        search_term = "%#{ActiveRecord::Base.sanitize_sql_like(params[:search].strip)}%"
+        encounters.joins(:patient)
+                  .where("patients.first_name ILIKE :q OR patients.last_name ILIKE :q", q: search_term)
       end
 
       # Apply basic filters (tenant_status, provider, patient, specialty, billing_channel)
