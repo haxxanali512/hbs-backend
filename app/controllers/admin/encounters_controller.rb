@@ -54,8 +54,8 @@ class Admin::EncountersController < Admin::BaseController
     @provider_options = Provider.kept.order(:last_name, :first_name)
     @organization_options = Organization.order(:name)
     @sort_options = [
-      [ "DOS (newest)", "dos_desc" ],
-      [ "DOS (oldest)", "dos_asc" ]
+      [ "Date of Service (newest)", "dos_desc" ],
+      [ "Date of Service (oldest)", "dos_asc" ]
     ]
     @custom_selects = [
       {
