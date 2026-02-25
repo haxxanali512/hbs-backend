@@ -22,7 +22,6 @@ class Admin::EncountersController < Admin::BaseController
       .kept
       .includes(:patient, :provider, :organization, :diagnosis_codes, encounter_procedure_items: :procedure_code)
       .where(internal_status: :queued_for_billing)
-      .order(date_of_service: :desc, created_at: :desc)
 
     if params[:search].present?
       term = "%#{params[:search]}%"
@@ -39,11 +38,25 @@ class Admin::EncountersController < Admin::BaseController
                                .distinct
     end
 
+    # Apply billing-queue-specific sorting. Default is newest → oldest by date of service.
+    sort_param = params[:sort].presence || "dos_desc"
+    @encounters =
+      case sort_param
+      when "dos_asc"
+        @encounters.order(date_of_service: :asc, created_at: :asc)
+      else
+        @encounters.order(date_of_service: :desc, created_at: :desc)
+      end
+
     @pagy, @encounters = pagy(@encounters, items: 20)
 
     @search_placeholder = "Patient name..."
     @provider_options = Provider.kept.order(:last_name, :first_name)
     @organization_options = Organization.order(:name)
+    @sort_options = [
+      [ "Date: Newest \u2192 Oldest", "dos_desc" ],
+      [ "Date: Oldest \u2192 Newest", "dos_asc" ]
+    ]
     @custom_selects = [
       {
         param: :procedure_code_id,
