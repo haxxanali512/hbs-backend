@@ -274,6 +274,8 @@ class Admin::EncountersController < Admin::BaseController
     # immediately, even if later workflow steps fail or run validations that block update!
     encounter.update_columns(
       internal_status: Encounter.internal_statuses[:billed],
+      billed_by_id: current_user.id,
+      billed_at: Time.current,
       updated_at: Time.current
     )
 

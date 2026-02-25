@@ -29,7 +29,7 @@
 
         <% practice_admin_active = controller_path == 'admin/organizations' || controller_path == 'admin/organization_locations' || controller_path == 'admin/providers' || controller_path == 'admin/fee_schedules' || controller_path == 'admin/audits' %>
         <% revenue_admin_active = (controller_path == 'admin/encounters' && action_name == 'index') || controller_path == 'admin/clinical_documentations' || controller_path == 'admin/claims' || controller_path == 'admin/payments' || controller_path == 'admin/appointments' %>
-        <% patients_admin_active = controller_path == 'admin/patients' || controller_path == 'admin/patient_insurance_coverages' %>
+        <% patients_admin_active = controller_path == 'admin/patients' || controller_path == 'admin/patient_insurance_coverages' || controller_path == 'admin/prescriptions' %>
         <% reference_admin_active = controller_path == 'admin/encounter_templates' || controller_path == 'admin/payers' || controller_path == 'admin/insurance_plans' || controller_path == 'admin/org_accepted_plans' || controller_path == 'admin/specialties' || controller_path == 'admin/procedure_codes' || controller_path == 'admin/diagnosis_codes' %>
         <% platform_admin_active = controller_path == 'admin/organization_billings' || controller_path == 'admin/invoices' || controller_path == 'admin/users' || controller_path == 'admin/roles' || controller_path == 'admin/email_template_keys' || controller_path == 'admin/data_exports_imports' || controller_path == 'admin/support_tickets' || controller_path == 'admin/payer_enrollments' %>
 
@@ -183,6 +183,15 @@
                 <%= link_to admin_patient_insurance_coverages_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{coverages_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 #{coverages_active ? 'text-indigo-600' : 'text-gray-500'}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                   <span>Insurance Coverages</span>
+                <% end %>
+              </li>
+            <% end %>
+            <% if current_user.permissions_for("admin", "prescriptions", "index") %>
+              <li>
+                <% prescriptions_admin_active = controller_path == 'admin/prescriptions' %>
+                <%= link_to admin_prescriptions_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{prescriptions_admin_active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}" do %>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5 <%= prescriptions_admin_active ? 'text-indigo-600' : 'text-gray-500' %>"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 11h6M7 15h4M5 5a2 2 0 012-2h10a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V5z"/></svg>
+                  <span>Prescriptions</span>
                 <% end %>
               </li>
             <% end %>

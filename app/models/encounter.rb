@@ -19,6 +19,7 @@ class Encounter < ApplicationRecord
   belongs_to :patient_insurance_coverage, optional: true
   belongs_to :eligibility_check_used, optional: true, class_name: "EligibilityCheck"
   belongs_to :confirmed_by, optional: true, class_name: "User"
+  belongs_to :billed_by, optional: true, class_name: "User"
 
   # has_one (mutually exclusive primary items)
   # has_one :patient_invoice, as: :invoiceable # Placeholder

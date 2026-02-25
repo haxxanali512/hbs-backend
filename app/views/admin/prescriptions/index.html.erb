@@ -1,0 +1,133 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Prescriptions</h1>
+          <p class="mt-2 text-gray-600">View prescriptions across organizations and patients.</p>
+        </div>
+      </div>
+    </div>
+
+    <%
+      @search_placeholder ||= "Patient, organization, prescription ID, filename..."
+    %>
+    <%= render "shared/filters" %>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Written</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @prescriptions.each do |prescription| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <span class="font-mono text-xs text-gray-500">#<%= prescription.id %></span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <% if prescription.patient %>
+                    <%= link_to prescription.patient.full_name,
+                                admin_patient_path(prescription.patient),
+                                class: "text-blue-600 hover:text-blue-800" %>
+                  <% else %>
+                    <span class="text-gray-400">—</span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <% if prescription.organization %>
+                    <%= link_to prescription.organization.name,
+                                admin_organization_path(prescription.organization),
+                                class: "text-blue-600 hover:text-blue-800" %>
+                  <% else %>
+                    <span class="text-gray-400">—</span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= prescription.provider&.full_name || "—" %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <%= prescription.date_written&.strftime("%m/%d/%Y") || "—" %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <% if prescription.archived? %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      Archived
+                    </span>
+                  <% elsif prescription.expired? %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Expired
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Active
+                    </span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                  <% if prescription.documents.attached? %>
+                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                      ✓
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100 text-gray-400 text-xs font-semibold">
+                      —
+                    </span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div class="flex items-center justify-end gap-2">
+                    <%= link_to "View",
+                                admin_prescription_path(prescription),
+                                class: "text-blue-600 hover:text-blue-800" %>
+                    <% if prescription.patient %>
+                      <%= link_to "Patient",
+                                  admin_patient_path(prescription.patient),
+                                  class: "text-gray-600 hover:text-gray-800" %>
+                    <% end %>
+                    <% if (encounter = prescription.encounters.kept.order(date_of_service: :desc).first) %>
+                      <%= link_to "Encounter",
+                                  admin_encounter_path(encounter),
+                                  class: "text-gray-600 hover:text-gray-800" %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if @prescriptions.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No prescriptions found</div>
+          <div class="text-gray-400 text-sm mt-2">
+            Try adjusting your filters.
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @pagy %>
+      <div class="mt-6 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+

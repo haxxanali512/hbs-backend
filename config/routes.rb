@@ -318,6 +318,8 @@ Rails.application.routes.draw do
           get :download
         end
       end
+
+      resources :prescriptions, only: [ :index, :show ]
     end
   end
 
