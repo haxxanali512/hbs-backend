@@ -256,22 +256,12 @@ class Organization < ApplicationRecord
   end
 
   # Insurance plans eligible for patient coverage selection.
-  # Requires an active/current accepted plan and at least one approved provider enrollment for the payer.
+  # Any accepted plan is selectable regardless of OrgAcceptedPlan status (draft, active, inactive, etc.).
   def eligible_insurance_plans_for_patient_coverages
-    accepted_plan_ids = org_accepted_plans.active_only
-                                          .current
-                                          .where(enrollment_status: [ :verified, :not_applicable ])
-                                          .select(:insurance_plan_id)
-
-    enrolled_payer_ids = payer_enrollments
-                           .where(status: :approved)
-                           .where.not(provider_id: nil)
-                           .select(:payer_id)
-                           .distinct
+    accepted_plan_ids = org_accepted_plans.select(:insurance_plan_id)
 
     InsurancePlan.active_only
                  .where(id: accepted_plan_ids)
-                 .where(payer_id: enrolled_payer_ids)
                  .order(:name)
   end
 
