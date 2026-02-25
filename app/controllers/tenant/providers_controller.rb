@@ -23,26 +23,20 @@ class Tenant::ProvidersController < Tenant::BaseController
   end
 
   def create
-    @provider = Provider.new(provider_params.except(:specialty_ids).merge(status: "pending"))
-    @provider.assign_to_organization_id = @current_organization.id
-
-    # Handle specialty assignments
-    if params[:provider][:specialty_ids].present?
-      specialty_ids = params[:provider][:specialty_ids].reject(&:blank?)
-      @provider.specialty_ids = specialty_ids
+    if link_existing_provider_by_npi
+      redirect_to tenant_providers_path,
+        notice: "Provider with this NPI already existed; it has been linked to your organization."
+      return
     end
 
-    if @provider.save
-      # Automatically submit for approval so HBS admins are notified to review/approve
-      begin
-        @provider.submit_for_approval if @provider.may_submit_for_approval?
-      rescue => e
-        Rails.logger.error("Failed to submit provider #{@provider.id} for approval: #{e.message}")
-      end
+    build_new_provider
 
-      redirect_to tenant_providers_path, notice: "Provider created successfully and submitted for HBS review."
+    if @provider.save
+      submit_for_approval_safely
+      redirect_to tenant_providers_path,
+        notice: "Provider created successfully and submitted for HBS review."
     else
-      @specialties = Specialty.active.order(:name)
+      load_specialties
       render :new, status: :unprocessable_entity
     end
   end
@@ -103,5 +97,54 @@ class Tenant::ProvidersController < Tenant::BaseController
 
   def provider_params
     params.require(:provider).permit(:first_name, :last_name, :npi, :license_number, :license_state, :is_specialist, :metadata, specialty_ids: [], documents: [])
+  end
+
+  def link_existing_provider_by_npi
+    npi = provider_params[:npi].to_s.strip
+    return false if npi.blank?
+
+    existing_provider = Provider.kept.find_by(npi: npi)
+    return false unless existing_provider
+
+    @provider = existing_provider
+
+    return true if @provider.organizations.exists?(@current_organization.id)
+
+    ProviderAssignment.create!(
+      provider: @provider,
+      organization: @current_organization,
+      role: :primary,
+      active: true
+    )
+
+    true
+  end
+
+  def build_new_provider
+    @provider = Provider.new(
+      provider_params.except(:specialty_ids).merge(status: "pending")
+    )
+
+    @provider.assign_to_organization_id = @current_organization.id
+    assign_specialties
+  end
+
+  def assign_specialties
+    specialty_ids = provider_params[:specialty_ids].reject(&:blank?)
+    @provider.specialty_ids = specialty_ids if specialty_ids.present?
+  end
+
+  def submit_for_approval_safely
+    return unless @provider.may_submit_for_approval?
+
+    @provider.submit_for_approval
+  rescue => e
+    Rails.logger.error(
+      "Failed to submit provider #{@provider.id} for approval: #{e.message}"
+    )
+  end
+
+  def load_specialties
+    @specialties = Specialty.active.order(:name)
   end
 end
