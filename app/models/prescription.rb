@@ -9,6 +9,7 @@ class Prescription < ApplicationRecord
   belongs_to :specialty
   belongs_to :procedure_code, optional: true
   belongs_to :provider, optional: true
+  has_many :encounters, dependent: :nullify
 
   # Many-to-many associations
   has_many :prescription_diagnosis_codes, dependent: :destroy

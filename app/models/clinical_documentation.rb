@@ -21,12 +21,15 @@ class ClinicalDocumentation < ApplicationRecord
   enum :document_type, {
     clinical_note: 0,
     file_upload: 1
-  }, prefix: true
+  }
 
   enum :status, {
     draft: 0,
     signed: 1
   }, prefix: true
+
+  SOURCE_TYPES = %w[encounter_create encounter_detail comment_attachment].freeze
+  enum :source_type, { encounter_create: "encounter_create", encounter_detail: "encounter_detail", comment_attachment: "comment_attachment" }, prefix: true, default: "encounter_detail"
 
   before_validation :set_content_json_default
   before_validation :set_document_type_for_file_upload, on: :create
@@ -36,9 +39,10 @@ class ClinicalDocumentation < ApplicationRecord
   # validates :content_json, presence: true
   validate :file_content_type_allowed
   validate :file_size_within_limit
-  validate :file_upload_requires_file, if: :document_type_file_upload?
+  validate :file_upload_requires_file, if: -> { document_type == "file_upload" }
 
   scope :with_file, -> { joins(:file_attachment) }
+  scope :for_organization, ->(org_id) { where(organization_id: org_id) }
 
   def file_name
     file.filename.to_s if file.attached?

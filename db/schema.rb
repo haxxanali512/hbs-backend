@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_18_160000) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_22_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -205,12 +205,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_18_160000) do
     t.string "signature_hash", limit: 64
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "source_type", default: "encounter_detail"
     t.index ["author_provider_id"], name: "index_clinical_documentations_on_author_provider_id"
     t.index ["cosigner_provider_id"], name: "index_clinical_documentations_on_cosigner_provider_id"
     t.index ["encounter_id"], name: "index_clinical_documentations_on_encounter_id"
     t.index ["organization_id"], name: "index_clinical_documentations_on_organization_id"
     t.index ["patient_id"], name: "index_clinical_documentations_on_patient_id"
     t.index ["signed_by_provider_id"], name: "index_clinical_documentations_on_signed_by_provider_id"
+    t.index ["source_type"], name: "index_clinical_documentations_on_source_type"
   end
 
   create_table "denial_items", force: :cascade do |t|

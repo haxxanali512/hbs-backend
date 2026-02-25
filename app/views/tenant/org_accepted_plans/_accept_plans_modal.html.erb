@@ -163,9 +163,33 @@
     frame.src = searchForm.action + (params.toString() ? '?' + params.toString() : '');
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
+  function bindAcceptPlansModal() {
+    var openBtn = document.getElementById('open_accept_plans_modal');
+    if (openBtn && !openBtn._acceptModalBound) {
+      openBtn._acceptModalBound = true;
+      openBtn.addEventListener('click', openAcceptPlansModal);
+    }
+
+    var payerSelect = document.getElementById('accept_plans_payer_id');
+    if (payerSelect && !payerSelect._acceptPlansPayerBound) {
+      payerSelect._acceptPlansPayerBound = true;
+      payerSelect.addEventListener('change', updatePlansFrame);
+    }
+
+    var searchInput = document.getElementById('insurance_plans_search_q');
+    var searchForm = document.getElementById('accept_plans_search_form');
+    if (searchInput && searchForm && !searchInput._acceptPlansSearchBound) {
+      searchInput._acceptPlansSearchBound = true;
+      var searchTimeout;
+      searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(updatePlansFrame, 300);
+      });
+    }
+
     var acceptForm = document.getElementById('accept_plans_form');
-    if (acceptForm) {
+    if (acceptForm && !acceptForm._acceptPlansFormBound) {
+      acceptForm._acceptPlansFormBound = true;
       acceptForm.addEventListener('change', function(e) {
         if (e.target.id === 'insurance_plans_select_all') {
           document.querySelectorAll('.insurance-plan-checkbox').forEach(function(cb) {
@@ -176,7 +200,6 @@
           updatePlansFrame();
         }
       });
-
       acceptForm.addEventListener('submit', function(e) {
         var providerSelect = document.getElementById('accept_plans_provider_id');
         if (providerSelect && !providerSelect.value) {
@@ -185,11 +208,11 @@
           providerSelect.focus();
           return;
         }
-        var payerSelect = document.getElementById('accept_plans_payer_id');
-        if (payerSelect && !payerSelect.value) {
+        var payerSelectEl = document.getElementById('accept_plans_payer_id');
+        if (payerSelectEl && !payerSelectEl.value) {
           e.preventDefault();
           alert("Please select a payer first.");
-          payerSelect.focus();
+          payerSelectEl.focus();
           return;
         }
         var checked = acceptForm.querySelectorAll('.insurance-plan-checkbox:checked');
@@ -200,38 +223,11 @@
         }
       });
     }
-    var searchInput = document.getElementById('insurance_plans_search_q');
-    var searchForm = document.getElementById('accept_plans_search_form');
-    if (searchInput && searchForm) {
-      var searchTimeout;
-      searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() { updatePlansFrame(); }, 300);
-      });
-    }
-    var payerSelect = document.getElementById('accept_plans_payer_id');
-    if (payerSelect) {
-      payerSelect.addEventListener('change', updatePlansFrame);
-    }
-  });
-  document.addEventListener('turbo:load', function() {
-    var openBtn = document.getElementById('open_accept_plans_modal');
-    if (openBtn && !openBtn._acceptModalBound) {
-      openBtn._acceptModalBound = true;
-      openBtn.addEventListener('click', openAcceptPlansModal);
-    }
-    var acceptForm = document.getElementById('accept_plans_form');
-    if (acceptForm && !acceptForm._selectAllBound) {
-      acceptForm._selectAllBound = true;
-      acceptForm.addEventListener('change', function(e) {
-        if (e.target.id === 'insurance_plans_select_all') {
-          document.querySelectorAll('.insurance-plan-checkbox').forEach(function(cb) {
-            cb.checked = e.target.checked;
-          });
-        }
-      });
-    }
-  });
+  }
+
+  document.addEventListener('DOMContentLoaded', bindAcceptPlansModal);
+  document.addEventListener('turbo:load', bindAcceptPlansModal);
+
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       var modal = document.getElementById('acceptPlansModal');

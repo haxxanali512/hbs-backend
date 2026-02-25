@@ -178,31 +178,13 @@ class PatientInsuranceCoverage < ApplicationRecord
     end
   end
 
+  # Plan must be accepted by the org. Any accepted plan is allowed regardless of its status
+  # (draft, active, inactive, etc.); admin verification is for HBS workflow only and does not gate tenant access.
   def plan_must_be_accepted_by_org
     return unless organization && insurance_plan
 
-    accepted_plan = organization.org_accepted_plans.active_only
-                                 .current
-                                 .find_by(insurance_plan_id: insurance_plan_id)
-
-    unless accepted_plan
+    unless organization.org_accepted_plans.exists?(insurance_plan_id: insurance_plan_id)
       errors.add(:insurance_plan_id, "PLAN_NOT_ACCEPTED")
-      return
-    end
-
-    unless %w[verified not_applicable].include?(accepted_plan.enrollment_status.to_s)
-      errors.add(:insurance_plan_id, "PLAN_ENROLLMENT_NOT_VERIFIED")
-      return
-    end
-
-    provider_enrolled = organization.payer_enrollments
-                                     .where(status: :approved)
-                                     .where(payer_id: insurance_plan.payer_id)
-                                     .where.not(provider_id: nil)
-                                     .exists?
-
-    unless provider_enrolled
-      errors.add(:insurance_plan_id, "PROVIDER_NOT_ENROLLED")
     end
   end
 
