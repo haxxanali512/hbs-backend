@@ -58,11 +58,6 @@ module ApplicationHelper
     "Showing #{pagy.from} to #{pagy.to} of #{pagy.count} entries"
   end
 
-  # Count of encounters in billing queue (not yet billed). Used in admin sidebar.
-  def billing_queue_pending_count
-    @billing_queue_pending_count ||= Encounter.kept.where(internal_status: :queued_for_billing).count
-  end
-
   # Helper method to get organization subdomain URL based on environment
   def organization_subdomain_url(subdomain)
     if Rails.env.development?

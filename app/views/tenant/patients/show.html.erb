@@ -428,10 +428,7 @@
             </div>
             <div class="flex justify-between">
               <span class="text-sm text-gray-600">Encounters</span>
-              <%= link_to tenant_encounters_path(patient_id: @patient.id),
-                          class: "text-sm font-semibold text-blue-600 hover:text-blue-800" do %>
-                <%= @patient.encounters.count %>
-              <% end %>
+              <span class="text-sm font-semibold text-gray-900"><%= @patient.encounters.count %></span>
             </div>
           </div>
         </div>
