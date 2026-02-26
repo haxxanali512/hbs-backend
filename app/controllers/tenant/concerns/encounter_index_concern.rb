@@ -48,9 +48,10 @@ module Tenant
         encounters
       end
 
-      # Apply basic filters (tenant_status, provider, specialty, billing_channel). No patient dropdown.
+      # Apply basic filters (tenant_status, patient via URL param, provider, specialty, billing_channel). No patient dropdown.
       def apply_basic_encounters_filters(encounters)
         encounters = encounters.by_tenant_status(params[:status]) if params[:status].present?
+        encounters = encounters.by_patient(params[:patient_id]) if params[:patient_id].present?
         encounters = encounters.by_provider(params[:provider_id]) if params[:provider_id].present?
         encounters = encounters.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
         encounters = encounters.by_billing_channel(params[:billing_channel]) if params[:billing_channel].present?
