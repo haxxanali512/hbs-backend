@@ -479,16 +479,13 @@ class Encounter < ApplicationRecord
     return unless nyship_massage_prescription_required?
     return unless prescription.present?
 
-    prescription_code = prescription.procedure_code&.code
-    return if prescription_code.blank?
-
     encounter_codes = if procedure_code_ids.present?
       ProcedureCode.where(id: Array(procedure_code_ids).reject(&:blank?)).pluck(:code)
     else
-      encounter_procedure_items.includes(:procedure_code).filter_map { |item| item.procedure_code&.code }
+      encounter_procedure_items.includes(:procedure_code).map { |item| item.procedure_code.code }
     end
 
-    unless encounter_codes.include?(prescription_code)
+    unless encounter_codes.include?(prescription.procedure_code.code)
       errors.add(:prescription_id, "Prescription code must match encounter procedure")
     end
 
