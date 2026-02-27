@@ -3,7 +3,7 @@
   # Variables needed: @encounter, current_user, namespace (admin or tenant)
   # namespace determines the routes and form action
   namespace ||= "admin"
-  comments = @encounter.encounter_comments.includes(:author).order(created_at: :asc)
+  comments = @encounter.encounter_comments.includes(:author, encounter_comment_attachments: :file_attachment).order(created_at: :asc)
   
   # Filter comments based on user visibility
   visible_comments = comments.select { |c| c.visible_to?(current_user) }
@@ -97,6 +97,23 @@
                 <% if comment.status_transition.present? && comment.status_transition != "no_change" %>
                   <p class="mt-1 text-xs text-gray-500">Status updated to <%= comment.status_transition.humanize %>.</p>
                 <% end %>
+                <% if comment.encounter_comment_attachments.any? %>
+                  <div class="mt-2 space-y-2">
+                    <% comment.encounter_comment_attachments.each do |att| %>
+                      <% next unless att.file.attached? %>
+                      <div class="flex items-center gap-2 flex-wrap rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                        <span class="font-medium text-gray-700"><%= att.file_name %></span>
+                        <span class="text-gray-500">·</span>
+                        <span class="text-gray-500"><%= comment.author.full_name %></span>
+                        <span class="text-gray-400"><%= att.created_at.strftime("%m/%d/%Y %I:%M %p") %></span>
+                        <span class="ml-auto">
+                          <%= link_to "View", rails_blob_path(att.file, disposition: "inline"), target: "_blank", rel: "noopener", class: "text-indigo-600 hover:text-indigo-800 text-xs font-medium" %>
+                          <%= link_to "Download", rails_blob_path(att.file, disposition: "attachment"), class: "text-gray-600 hover:text-gray-800 text-xs font-medium ml-2" %>
+                        </span>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
               <% end %>
             </div>
             <% if !comment.redacted? && current_user.can_redact_comment? && namespace == "admin" %>
@@ -124,11 +141,16 @@
   <% if can_create_shared || can_create_internal %>
     <div class="border-t border-gray-200 pt-4">
       <h4 class="text-sm font-medium text-gray-900 mb-2">Add Comment</h4>
-      <%= form_with url: namespace == "admin" ? admin_encounter_encounter_comments_path(@encounter) : tenant_encounter_encounter_comments_path(@encounter), method: :post, local: true, class: "space-y-3" do |f| %>
+      <%= form_with url: namespace == "admin" ? admin_encounter_encounter_comments_path(@encounter) : tenant_encounter_encounter_comments_path(@encounter), method: :post, local: true, class: "space-y-3", html: { multipart: true } do |f| %>
         <div>
           <%= text_area_tag "encounter_comment[body_text]", nil, rows: 3, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500", 
-              placeholder: "Enter your comment (1-2000 characters)", maxlength: 2000, required: true %>
-          <p class="mt-1 text-xs text-gray-500">Maximum 25 comments per encounter. Current: <%= @encounter.encounter_comments.count %>/25</p>
+              placeholder: "Enter your comment (optional if attaching a file)", maxlength: 2000 %>
+          <p class="mt-1 text-xs text-gray-500">Maximum 25 comments per encounter. Current: <%= @encounter.encounter_comments.count %>/25. You can attach a file with or without text.</p>
+        </div>
+        <div>
+          <%= label_tag "encounter_comment[files][]", "Attach file(s)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= file_field_tag "encounter_comment[files][]", multiple: true, accept: ".pdf,.jpg,.jpeg,.png,.gif,.webp", class: "w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" %>
+          <p class="mt-1 text-xs text-gray-500">PDF or image (JPEG, PNG, GIF, WebP). Max 25MB per file.</p>
         </div>
         <% if can_create_internal %>
           <div>
@@ -159,8 +181,8 @@
           <input type="hidden" name="encounter_comment[status_transition]" value="info_request_answered" />
         <% end %>
 
-        <div class="flex justify-end">
-          <%= submit_tag "Post Comment", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700" %>
+        <div class="flex justify-end gap-2">
+          <%= submit_tag "Post Comment", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700", data: { disable_with: "Posting..." } %>
         </div>
       <% end %>
     </div>

@@ -9,6 +9,7 @@ class EncounterComment < ApplicationRecord
   belongs_to :organization
   belongs_to :patient
   belongs_to :provider, optional: true
+  has_many :encounter_comment_attachments, dependent: :destroy
 
   MAX_COMMENTS_PER_ENCOUNTER = 25
 

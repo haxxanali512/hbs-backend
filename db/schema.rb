@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_25_180000) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -329,6 +329,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_25_180000) do
     t.datetime "updated_at", null: false
     t.index ["email_template_key_id", "locale"], name: "index_email_templates_on_key_and_locale", unique: true
     t.index ["email_template_key_id"], name: "index_email_templates_on_email_template_key_id"
+  end
+
+  create_table "encounter_comment_attachments", force: :cascade do |t|
+    t.bigint "encounter_comment_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_comment_id"], name: "index_encounter_comment_attachments_on_encounter_comment_id"
   end
 
   create_table "encounter_comment_seens", force: :cascade do |t|
@@ -1270,6 +1277,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_25_180000) do
   add_foreign_key "email_templates", "email_template_keys"
   add_foreign_key "email_templates", "users", column: "created_by_id"
   add_foreign_key "email_templates", "users", column: "updated_by_id"
+  add_foreign_key "encounter_comment_attachments", "encounter_comments"
   add_foreign_key "encounter_comment_seens", "encounters"
   add_foreign_key "encounter_comment_seens", "users"
   add_foreign_key "encounter_comments", "encounters"
