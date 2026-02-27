@@ -321,7 +321,15 @@ class Admin::EncountersController < Admin::BaseController
   private
 
   def set_encounter
-    @encounter = Encounter.kept.find(params[:id])
+    scope = Encounter.kept
+    if action_name == "show"
+      scope = scope.includes(
+        prescription: { documents_attachments: :blob },
+        clinical_documentations: { file_attachment: :blob },
+        encounter_comments: { encounter_comment_attachments: { file_attachment: :blob } }
+      )
+    end
+    @encounter = scope.find(params[:id])
   end
 
   def skip_workflow_validations_for_admin_update

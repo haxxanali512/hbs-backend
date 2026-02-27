@@ -701,10 +701,16 @@ class Tenant::EncountersController < Tenant::BaseController
   private
 
   def set_encounter
-    @encounter = @current_organization.encounters
-                                      .kept
-                                      .includes(:patient, :provider, :specialty, :diagnosis_codes, :encounter_procedure_items, :procedure_codes)
-                                      .find(params[:id])
+    scope = @current_organization.encounters.kept
+                                 .includes(:patient, :provider, :specialty, :diagnosis_codes, :encounter_procedure_items, :procedure_codes)
+    if action_name == "show"
+      scope = scope.includes(
+        prescription: { documents_attachments: :blob },
+        clinical_documentations: { file_attachment: :blob },
+        encounter_comments: { encounter_comment_attachments: { file_attachment: :blob } }
+      )
+    end
+    @encounter = scope.find(params[:id])
   end
 
   def load_form_options

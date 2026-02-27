@@ -1,0 +1,79 @@
+<%
+  # Renders a unified "Files" / "Attachments" section for Encounter Summary.
+  # Requires: @encounter, current_user
+  # Optional: namespace ("admin" or "tenant") for any link differences
+  namespace ||= "admin"
+
+  items = []
+
+  # 1. Linked prescription documents
+  if @encounter.prescription.present?
+    @encounter.prescription.documents.each do |attachment|
+      blob = attachment.blob
+      items << {
+        filename: blob&.filename&.to_s.presence || "File unavailable",
+        date: attachment.created_at,
+        source: "Prescription",
+        blob: blob,
+        available: blob.present?
+      }
+    end
+  end
+
+  # 2. Clinical documentation uploads
+  @encounter.clinical_documentations.with_file.each do |doc|
+    blob = doc.file.blob
+    items << {
+      filename: blob&.filename&.to_s.presence || "File unavailable",
+      date: doc.created_at,
+      source: "Documentation",
+      blob: blob,
+      available: blob.present?
+    }
+  end
+
+  # 3. Comment attachments (only from comments visible to current user)
+  @encounter.encounter_comments.each do |comment|
+    next unless comment.visible_to?(current_user)
+    comment.encounter_comment_attachments.each do |att|
+      blob = att.file.attached? ? att.file.blob : nil
+      items << {
+        filename: blob&.filename&.to_s.presence || att.file_name.presence || "File unavailable",
+        date: att.created_at,
+        source: "Comment",
+        blob: blob,
+        available: blob.present?
+      }
+    end
+  end
+
+  items = items.sort_by { |i| i[:date] || Time.at(0) }.reverse
+%>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <h2 class="text-lg font-semibold text-gray-900 mb-4">Files &amp; Attachments</h2>
+  <% if items.any? %>
+    <ul class="space-y-3">
+      <% items.each do |item| %>
+        <li class="flex items-center justify-between gap-3 flex-wrap rounded-md border border-gray-100 bg-gray-50 px-3 py-2.5 text-sm">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="font-medium text-gray-800 truncate" title="<%= item[:filename] %>"><%= item[:filename] %></span>
+            <% if item[:date].present? %>
+              <span class="text-gray-500 shrink-0"><%= item[:date].strftime("%m/%d/%Y %I:%M %p") %></span>
+            <% end %>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700 shrink-0"><%= item[:source] %></span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <% if item[:available] %>
+              <%= link_to "View", rails_blob_path(item[:blob], disposition: "inline"), target: "_blank", rel: "noopener", class: "text-indigo-600 hover:text-indigo-800 font-medium" %>
+              <%= link_to "Download", rails_blob_path(item[:blob], disposition: "attachment"), class: "text-gray-600 hover:text-gray-800 font-medium" %>
+            <% else %>
+              <span class="text-amber-700 text-xs font-medium">File unavailable</span>
+            <% end %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-sm text-gray-500">No files or attachments linked to this encounter.</p>
+  <% end %>
+</div>
