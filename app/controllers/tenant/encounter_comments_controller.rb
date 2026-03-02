@@ -23,7 +23,8 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
       return
     end
 
-    files = Array(params.dig(:encounter_comment, :files)).compact.select { |f| f.respond_to?(:original_filename) && f.present? }
+    # Collect all uploaded files (multiple file input can come as array or single)
+    files = collect_comment_attachment_files
     body_text = encounter_comment_params[:body_text].to_s.strip
     if body_text.blank? && files.empty?
       redirect_to tenant_encounter_path(@encounter), alert: "Add a message and/or attach at least one file."
@@ -71,5 +72,12 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
 
   def encounter_comment_params
     params.require(:encounter_comment).permit(:body_text, :status_transition, files: [])
+  end
+
+  def collect_comment_attachment_files
+    raw = params.dig(:encounter_comment, :files)
+    permitted = encounter_comment_params[:files]
+    list = permitted.presence || raw
+    Array(list).flatten.compact.select { |f| f.respond_to?(:original_filename) && f.present? }
   end
 end

@@ -18,7 +18,8 @@ class Admin::EncounterCommentsController < Admin::BaseController
   end
 
   def create
-    files = Array(params.dig(:encounter_comment, :files)).compact.select { |f| f.respond_to?(:original_filename) && f.present? }
+    # Collect all uploaded files (multiple file input can come as array or single; permit and raw may differ)
+    files = collect_comment_attachment_files
     body_text = encounter_comment_params[:body_text].to_s.strip
     if body_text.blank? && files.empty?
       redirect_to admin_encounter_path(@encounter), alert: "Add a message and/or attach at least one file."
@@ -77,5 +78,12 @@ class Admin::EncounterCommentsController < Admin::BaseController
 
   def encounter_comment_params
     params.require(:encounter_comment).permit(:body_text, :visibility, :status_transition, files: [])
+  end
+
+  def collect_comment_attachment_files
+    raw = params.dig(:encounter_comment, :files)
+    permitted = encounter_comment_params[:files]
+    list = permitted.presence || raw
+    Array(list).flatten.compact.select { |f| f.respond_to?(:original_filename) && f.present? }
   end
 end

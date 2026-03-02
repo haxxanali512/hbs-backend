@@ -8,11 +8,18 @@ class HealthController < ApplicationController
 
     all_healthy = checks.values.all?
 
-    render json: {
+    payload = {
       status: all_healthy ? "ok" : "error",
       checks: checks,
       timestamp: Time.current.iso8601
-    }, status: all_healthy ? :ok : :service_unavailable
+    }
+    # Opt-in env check: GET /up?env=1 to confirm RAILS_ENV and Active Storage service (useful for Capistrano/staging debugging)
+    if params[:env].present?
+      payload[:rails_env] = Rails.env
+      payload[:active_storage_service] = Rails.application.config.active_storage.service.to_s
+    end
+
+    render json: payload, status: all_healthy ? :ok : :service_unavailable
   end
 
   private
