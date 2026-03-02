@@ -25,10 +25,6 @@ class Admin::PrescriptionsController < Admin::BaseController
       @prescriptions = @prescriptions.where(organization_id: params[:organization_id])
     end
 
-    if params[:provider_id].present?
-      @prescriptions = @prescriptions.where(provider_id: params[:provider_id])
-    end
-
     case params[:status]
     when "active"
       @prescriptions = @prescriptions.where(archived: false, expired: false)
@@ -97,7 +93,7 @@ class Admin::PrescriptionsController < Admin::BaseController
 
   def load_filter_options
     @organizations = Organization.kept.order(:name)
-    @provider_options = Provider.kept.active.order(:last_name, :first_name)
+    @organization_options = Organization.kept.order(:name)
     @status_options = [
       ["Active", "active"],
       ["Expired", "expired"],

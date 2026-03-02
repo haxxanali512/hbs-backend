@@ -44,6 +44,10 @@ class Admin::EncountersController < Admin::BaseController
       case sort_param
       when "dos_asc"
         @encounters.order(date_of_service: :asc, created_at: :asc)
+      when "created_at_asc"
+        @encounters.order(created_at: :asc)
+      when "created_at_desc"
+        @encounters.order(created_at: :desc)
       else
         @encounters.order(date_of_service: :desc, created_at: :desc)
       end
@@ -55,7 +59,9 @@ class Admin::EncountersController < Admin::BaseController
     @organization_options = Organization.order(:name)
     @sort_options = [
       [ "Date of Service (newest)", "dos_desc" ],
-      [ "Date of Service (oldest)", "dos_asc" ]
+      [ "Date of Service (oldest)", "dos_asc" ],
+      [ "Date Added (newest)", "created_at_desc" ],
+      [ "Date Added (oldest)", "created_at_asc" ]
     ]
     @custom_selects = [
       {
@@ -315,7 +321,15 @@ class Admin::EncountersController < Admin::BaseController
   private
 
   def set_encounter
-    @encounter = Encounter.kept.find(params[:id])
+    scope = Encounter.kept
+    if action_name == "show"
+      scope = scope.includes(
+        prescription: { documents_attachments: :blob },
+        clinical_documentations: { file_attachment: :blob },
+        encounter_comments: { encounter_comment_attachments: { file_attachment: :blob } }
+      )
+    end
+    @encounter = scope.find(params[:id])
   end
 
   def skip_workflow_validations_for_admin_update

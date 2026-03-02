@@ -49,30 +49,52 @@
 </div>
 
 <script>
+  // Maintain pending files per upload widget so multiple picks / drops accumulate
+  window.documentUploadState = window.documentUploadState || {};
+
   function handleFileSelect(input, containerId) {
     const previewContainer = document.getElementById(containerId + '_preview');
+    if (!previewContainer) return;
+
+    const state = (window.documentUploadState[containerId] ||= { files: [] });
+
+    // Add new files from this change to the accumulated list (avoid simple duplicates)
+    if (input.files && input.files.length > 0) {
+      Array.from(input.files).forEach((file) => {
+        // Validate file size (25MB max)
+        if (file.size > 25 * 1024 * 1024) {
+          alert(`File "${file.name}" is too large. Maximum size is 25MB.`);
+          return;
+        }
+
+        const duplicate = state.files.some((existing) =>
+          existing.name === file.name &&
+          existing.size === file.size &&
+          existing.lastModified === file.lastModified
+        );
+        if (!duplicate) {
+          state.files.push(file);
+        }
+      });
+    }
+
+    // Rebuild the FileList on the hidden input so all accumulated files are submitted
+    const dataTransfer = new DataTransfer();
+    state.files.forEach((file) => dataTransfer.items.add(file));
+    input.files = dataTransfer.files;
+
+    // Rebuild the preview from the accumulated files
     previewContainer.innerHTML = '';
-    
-    if (!input.files || input.files.length === 0) return;
-    
-    Array.from(input.files).forEach((file, index) => {
-      // Validate file size (25MB max)
-      if (file.size > 25 * 1024 * 1024) {
-        alert(`File "${file.name}" is too large. Maximum size is 25MB.`);
-        return;
-      }
-      
-      const fileItem = document.createElement('div');
-      fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200';
-      fileItem.dataset.fileIndex = index;
-      
-      // Get appropriate icon color based on file type
+    state.files.forEach((file, index) => {
       let iconColor = 'text-gray-400';
       if (file.type.startsWith('image/')) iconColor = 'text-green-500';
       else if (file.type === 'application/pdf') iconColor = 'text-red-500';
       else if (file.type.includes('spreadsheet') || file.type.includes('excel') || file.name.endsWith('.csv')) iconColor = 'text-green-600';
       else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) iconColor = 'text-blue-500';
-      
+
+      const fileItem = document.createElement('div');
+      fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200';
+      fileItem.dataset.fileIndex = index;
       fileItem.innerHTML = `
         <div class="flex items-center space-x-3">
           <div class="flex-shrink-0">
@@ -92,7 +114,7 @@
           <span class="ml-1 text-xs">Ready</span>
         </div>
       `;
-      
+
       previewContainer.appendChild(fileItem);
     });
   }

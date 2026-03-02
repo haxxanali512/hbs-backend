@@ -23,7 +23,17 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
       return
     end
 
-    @comment = @encounter.encounter_comments.build(encounter_comment_params)
+    # Collect all uploaded files (multiple file input can come as array or single)
+    files = collect_comment_attachment_files
+    body_text = encounter_comment_params[:body_text].to_s.strip
+    if body_text.blank? && files.empty?
+      redirect_to tenant_encounter_path(@encounter), alert: "Add a message and/or attach at least one file."
+      return
+    end
+    body_text = "File uploaded" if body_text.blank? && files.any?
+
+    comment_attrs = encounter_comment_params.except(:files).merge(body_text: body_text)
+    @comment = @encounter.encounter_comments.build(comment_attrs)
     @comment.author = current_user
     @comment.visibility = :shared_with_client
 
@@ -35,7 +45,16 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
     end
 
     if @comment.save
-      redirect_to tenant_encounter_path(@encounter), notice: "Comment added successfully."
+      files.each do |file|
+        att = @comment.encounter_comment_attachments.build
+        att.file.attach(file)
+        unless att.save
+          redirect_to tenant_encounter_path(@encounter), alert: "Comment saved but attachment failed: #{att.errors.full_messages.join(', ')}"
+          return
+        end
+      end
+      notice = files.any? ? "Comment and #{files.size} file(s) added successfully." : "Comment added successfully."
+      redirect_to tenant_encounter_path(@encounter), notice: notice
     else
       redirect_to tenant_encounter_path(@encounter), alert: "Cannot add comment: #{@comment.errors.full_messages.join(', ')}"
     end
@@ -52,6 +71,13 @@ class Tenant::EncounterCommentsController < Tenant::BaseController
   end
 
   def encounter_comment_params
-    params.require(:encounter_comment).permit(:body_text, :status_transition)
+    params.require(:encounter_comment).permit(:body_text, :status_transition, files: [])
+  end
+
+  def collect_comment_attachment_files
+    raw = params.dig(:encounter_comment, :files)
+    permitted = encounter_comment_params[:files]
+    list = permitted.presence || raw
+    Array(list).flatten.compact.select { |f| f.respond_to?(:original_filename) && f.present? }
   end
 end
