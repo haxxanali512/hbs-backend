@@ -600,22 +600,42 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   def attach_clinical_document
-    file = params.dig(:clinical_document, :file)
-    if file.blank?
-      redirect_to tenant_encounter_path(@encounter), alert: "Please select a file to upload."
+    files_param = params.dig(:clinical_document, :files)
+    single_file = params.dig(:clinical_document, :file)
+    files = Array(files_param.presence || single_file).compact
+
+    if files.empty?
+      redirect_to tenant_encounter_path(@encounter), alert: "Please select at least one file to upload."
       return
     end
 
-    doc = @encounter.clinical_documentations.build
-    doc.file.attach(file)
-    doc.document_type = :file_upload
-    doc.status = :draft
+    success_count = 0
+    errors = []
 
-    if doc.save
-      redirect_to tenant_encounter_path(@encounter), notice: "Clinical document uploaded successfully."
-    else
-      redirect_to tenant_encounter_path(@encounter), alert: "Upload failed: #{doc.errors.full_messages.to_sentence}"
+    files.each do |file|
+      next if file.blank?
+
+      doc = @encounter.clinical_documentations.build
+      doc.file.attach(file)
+      doc.document_type = :file_upload
+      doc.status = :draft
+
+      if doc.save
+        success_count += 1
+      else
+        filename = file.respond_to?(:original_filename) ? file.original_filename : "File"
+        errors << "#{filename}: #{doc.errors.full_messages.to_sentence}"
+      end
     end
+
+    if success_count.positive?
+      flash[:notice] = "#{success_count} file#{'s' if success_count != 1} uploaded successfully."
+    end
+    if errors.any?
+      flash[:alert] = "Some files could not be uploaded: #{errors.join(' ; ')}"
+    end
+
+    redirect_to tenant_encounter_path(@encounter)
   end
 
   def attach_document
@@ -623,23 +643,49 @@ class Tenant::EncountersController < Tenant::BaseController
       return redirect_to tenant_encounter_path(@encounter), alert: "Attachments allowed only after claim submission."
     end
 
-    result = DocumentUploadService.new(
-      documentable: @encounter,
-      uploaded_by: current_user,
-      organization: @current_organization,
-      params: {
-        file: params.dig(:document, :file),
-        title: params.dig(:document, :title),
-        document_type: params.dig(:document, :document_type),
-        description: params.dig(:document, :description)
-      }
-    ).call
+    files_param = params.dig(:document, :files)
+    single_file = params.dig(:document, :file)
+    files = Array(files_param.presence || single_file).compact
 
-    if result[:success]
-      redirect_to tenant_encounter_path(@encounter), notice: "Attachment uploaded successfully."
-    else
-      redirect_to tenant_encounter_path(@encounter), alert: "Failed to upload attachment: #{result[:error]}"
+    if files.empty?
+      redirect_to tenant_encounter_path(@encounter), alert: "Please select at least one file to upload."
+      return
     end
+
+    success_count = 0
+    errors = []
+
+    files.each do |file|
+      next if file.blank?
+
+      result = DocumentUploadService.new(
+        documentable: @encounter,
+        uploaded_by: current_user,
+        organization: @current_organization,
+        params: {
+          file: file,
+          title: params.dig(:document, :title),
+          document_type: params.dig(:document, :document_type),
+          description: params.dig(:document, :description)
+        }
+      ).call
+
+      if result[:success]
+        success_count += 1
+      else
+        filename = file.respond_to?(:original_filename) ? file.original_filename : "File"
+        errors << "#{filename}: #{result[:error]}"
+      end
+    end
+
+    if success_count.positive?
+      flash[:notice] = "#{success_count} file#{'s' if success_count != 1} uploaded successfully."
+    end
+    if errors.any?
+      flash[:alert] = "Some files could not be uploaded: #{errors.join(' ; ')}"
+    end
+
+    redirect_to tenant_encounter_path(@encounter)
   end
 
   def download_edi

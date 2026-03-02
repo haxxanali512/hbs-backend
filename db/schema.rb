@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_22_180000) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_25_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -449,7 +449,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_22_180000) do
     t.integer "shared_status"
     t.bigint "prescription_id"
     t.string "duplicate_check_fingerprint"
+    t.bigint "billed_by_id"
+    t.datetime "billed_at"
     t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
+    t.index ["billed_by_id"], name: "index_encounters_on_billed_by_id"
     t.index ["cascaded"], name: "index_encounters_on_cascaded"
     t.index ["claim_id"], name: "index_encounters_on_claim_id"
     t.index ["confirmed_by_id"], name: "index_encounters_on_confirmed_by_id"
@@ -1290,6 +1293,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_22_180000) do
   add_foreign_key "encounters", "prescriptions"
   add_foreign_key "encounters", "providers"
   add_foreign_key "encounters", "specialties"
+  add_foreign_key "encounters", "users", column: "billed_by_id"
   add_foreign_key "insurance_plans", "payers"
   add_foreign_key "invoice_line_items", "invoices"
   add_foreign_key "invoices", "organizations"
