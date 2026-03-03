@@ -27,6 +27,10 @@ class Admin::PatientPolicy < ApplicationPolicy
     accessible?("admin", "patients", "create")
   end
 
+  def search?
+    index?
+  end
+
 
   def edit?
     update?

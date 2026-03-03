@@ -60,7 +60,9 @@ class Admin::PatientsController < Admin::BaseController
     ]
   end
 
-  def show; end
+  def show
+    @insurance_coverages = @patient.patient_insurance_coverages.includes(insurance_plan: :payer).order(coverage_order: :asc)
+  end
 
   def edit; end
 
@@ -118,6 +120,25 @@ class Admin::PatientsController < Admin::BaseController
 
   def save_from_ezclaim
     save_patients_from_ezclaim
+  end
+
+  # Lightweight JSON search endpoint for patient typeahead filters
+  def search
+    term = params[:q].to_s.strip
+    return render json: [] if term.blank?
+
+    patients = Patient.kept
+    patients = patients.where(organization_id: params[:organization_id]) if params[:organization_id].present?
+    patients = patients.search(term).order(:last_name, :first_name).limit(20)
+
+    render json: patients.map { |p|
+      {
+        id: p.id,
+        name: p.full_name,
+        dob: p.formatted_dob,
+        mrn: p.mrn
+      }
+    }
   end
 
   private

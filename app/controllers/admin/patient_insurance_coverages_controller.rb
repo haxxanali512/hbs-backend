@@ -8,10 +8,26 @@ class Admin::PatientInsuranceCoveragesController < Admin::BaseController
 
     # Set filter options for shared filters partial
     @organization_options = Organization.where(activation_status: :activated).order(:name)
-    @patient_options = Patient.active.order(:last_name, :first_name)
     @insurance_plan_options = InsurancePlan.active_only.order(:name)
     @coverage_order_options = PatientInsuranceCoverage.coverage_orders.keys
     @status_options = PatientInsuranceCoverage.statuses.keys
+
+    # Replace patient dropdown with searchable text input (patient_name)
+    selected_patient_name =
+      if params[:patient_id].present?
+        Patient.kept.find_by(id: params[:patient_id])&.full_name
+      else
+        params[:patient_name]
+      end
+
+    @custom_inputs = Array(@custom_inputs) + [
+      {
+        param: :patient_name,
+        label: "Patient",
+        placeholder: "Search patient by name, MRN, email, or phone",
+        value: selected_patient_name
+      }
+    ]
 
     # Filtering
     @patient_insurance_coverages = apply_filters(@patient_insurance_coverages)
@@ -110,7 +126,20 @@ class Admin::PatientInsuranceCoveragesController < Admin::BaseController
 
   def apply_filters(coverages)
     coverages = coverages.where(organization_id: params[:organization_id]) if params[:organization_id].present?
-    coverages = coverages.where(patient_id: params[:patient_id]) if params[:patient_id].present?
+
+    # Patient filter: prefer explicit patient_id (typeahead selection), fallback to name search
+    if params[:patient_id].present?
+      coverages = coverages.where(patient_id: params[:patient_id])
+    elsif params[:patient_name].present?
+      term = params[:patient_name].to_s.strip
+      if term.present?
+        patients = Patient.kept
+        patients = patients.where(organization_id: params[:organization_id]) if params[:organization_id].present?
+        patients = patients.search(term)
+        coverages = coverages.where(patient_id: patients.select(:id))
+      end
+    end
+
     coverages = coverages.where(insurance_plan_id: params[:insurance_plan_id]) if params[:insurance_plan_id].present?
     coverages = coverages.where(status: params[:status]) if params[:status].present?
     coverages = coverages.where(coverage_order: params[:coverage_order]) if params[:coverage_order].present?
