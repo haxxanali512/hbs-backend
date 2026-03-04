@@ -177,6 +177,91 @@
           </div>
         <% end %>
 
+        <!-- Insurance Coverages -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Insurance Coverages</h2>
+            <%= link_to "Manage Coverages",
+                        admin_patient_insurance_coverages_path(patient_id: @patient.id),
+                        class: "text-sm text-blue-600 hover:text-blue-800" %>
+          </div>
+
+          <% if @insurance_coverages.present? %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payer</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscriber / Relation</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effective / Term</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <% @insurance_coverages.each do |coverage| %>
+                    <tr class="hover:bg-gray-50">
+                      <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                     <%= coverage.coverage_order == 'primary' ? 'bg-blue-100 text-blue-800' : coverage.coverage_order == 'secondary' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800' %>">
+                          <%= coverage.coverage_order.humanize %>
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <%= coverage.insurance_plan&.payer&.name || "—" %>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <%= coverage.insurance_plan&.name || "Unknown Plan" %>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">
+                        <%= coverage.member_id %>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <div><%= coverage.subscriber_name %></div>
+                        <div class="text-xs text-gray-500"><%= coverage.relationship_to_subscriber.humanize %></div>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <%= coverage.effective_date&.strftime("%m/%d/%Y") || "—" %>
+                        <% if coverage.termination_date.present? %>
+                          – <%= coverage.termination_date.strftime("%m/%d/%Y") %>
+                        <% end %>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= coverage.status_badge_class %>">
+                          <%= coverage.status.humanize %>
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm">
+                        <div class="flex items-center space-x-2">
+                          <%= link_to "View",
+                                      admin_patient_insurance_coverage_path(coverage),
+                                      target: "_blank",
+                                      rel: "noopener",
+                                      class: "text-blue-600 hover:text-blue-800" %>
+                          <%= link_to "Edit",
+                                      edit_admin_patient_insurance_coverage_path(coverage),
+                                      class: "text-indigo-600 hover:text-indigo-800" %>
+                          <button type="button"
+                                  class="text-xs text-gray-600 hover:text-gray-900 underline"
+                                  data-copy-member="<%= coverage.member_id %>"
+                                  onclick="navigator.clipboard && navigator.clipboard.writeText(this.dataset.copyMember).then(() => { this.textContent = 'Copied'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); }).catch(() => {});">
+                            Copy
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No insurance coverage on file.</p>
+          <% end %>
+        </div>
+
         <!-- Notes -->
         <% if @patient.notes_nonphi.present? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

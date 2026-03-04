@@ -304,6 +304,7 @@ Rails.application.routes.draw do
         collection do
           get :fetch_from_ezclaim
           post :save_from_ezclaim
+          get :search
         end
         member do
           post :activate
