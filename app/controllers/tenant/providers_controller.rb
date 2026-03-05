@@ -32,9 +32,8 @@ class Tenant::ProvidersController < Tenant::BaseController
     build_new_provider
 
     if @provider.save
-      submit_for_approval_safely
       redirect_to tenant_providers_path,
-        notice: "Provider created successfully and submitted for HBS review."
+        notice: "Provider created successfully."
     else
       load_specialties
       render :new, status: :unprocessable_entity
@@ -61,23 +60,7 @@ class Tenant::ProvidersController < Tenant::BaseController
   end
 
   def remind_approval
-    notice_message = nil
-
-    begin
-      if @provider.may_submit_for_approval?
-        @provider.submit_for_approval
-        notice_message = "Provider submitted for HBS approval."
-      else
-        # Provider is already pending or in another state; send a reminder email to HBS
-        ProviderNotificationService.notify_submission(@provider)
-        notice_message = "Reminder sent to HBS to review this provider."
-      end
-    rescue => e
-      redirect_to tenant_provider_path(@provider), alert: "Could not send approval reminder: #{e.message}"
-      return
-    end
-
-    redirect_to tenant_provider_path(@provider), notice: notice_message
+    redirect_to tenant_provider_path(@provider), notice: "This provider is already in review; no separate approval workflow is required."
   end
 
   def destroy
@@ -122,7 +105,7 @@ class Tenant::ProvidersController < Tenant::BaseController
 
   def build_new_provider
     @provider = Provider.new(
-      provider_params.except(:specialty_ids).merge(status: "pending")
+      provider_params.except(:specialty_ids)
     )
 
     @provider.assign_to_organization_id = @current_organization.id

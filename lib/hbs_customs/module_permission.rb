@@ -83,8 +83,8 @@ module HbsCustoms
       def admin_permissions
         {
           dashboard: { index: false },
-          organizations: DEFAULT_CRUD.merge(activate_tenant: false, suspend_tenant: false),
-          users: DEFAULT_CRUD.merge(masquerade: false),
+          organizations: DEFAULT_CRUD.merge(activate_tenant: false, suspend_tenant: false, hard_destroy: false),
+          users: DEFAULT_CRUD.merge(masquerade: false, hard_destroy: false),
           roles: DEFAULT_CRUD,
           organization_billings: DEFAULT_CRUD,
           invoices: DEFAULT_CRUD,

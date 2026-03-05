@@ -4,7 +4,7 @@ class Admin::ProvidersController < Admin::BaseController
   # Alias the concern method before we override it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
-  before_action :set_provider, only: [ :show, :edit, :update, :destroy, :approve, :reactivate ]
+  before_action :set_provider, only: [ :show, :edit, :update, :destroy, :reactivate, :toggle_checklist_step ]
 
   def index
     @providers = Provider.kept.includes(:organizations, :specialties).recent
@@ -95,15 +95,6 @@ class Admin::ProvidersController < Admin::BaseController
     end
   end
 
-  def approve
-    if @provider.approve!
-      notify_organizations(:notify_provider_approved)
-      redirect_to admin_provider_path(@provider), notice: "Provider approved successfully."
-    else
-      redirect_to admin_provider_path(@provider), alert: "Failed to approve provider."
-    end
-  end
-
   def reactivate
     if @provider.reactivate!
       notify_organizations(:notify_provider_approved)
@@ -113,22 +104,21 @@ class Admin::ProvidersController < Admin::BaseController
     end
   end
 
-  def bulk_approve
-    provider_ids = params[:provider_ids]
-    if provider_ids.present?
-      providers = Provider.where(id: provider_ids)
-      approved_count = 0
+  def toggle_checklist_step
+    checklist = @provider.provider_checklist || @provider.create_provider_checklist
 
-      providers.each do |provider|
-        if provider.approve!
-          approved_count += 1
-        end
-      end
-
-      redirect_to admin_providers_path, notice: "#{approved_count} providers approved successfully."
-    else
-      redirect_to admin_providers_path, alert: "No providers selected."
+    case params[:step]
+    when "easyclaim_profile"
+      checklist.update!(easyclaim_profile_created: !checklist.easyclaim_profile_created?)
+    when "waystar_name_match"
+      checklist.update!(waystar_name_match_confirmed: !checklist.waystar_name_match_confirmed?)
+    when "npi_verified"
+      checklist.update!(npi_verified: !checklist.npi_verified?)
+    when "taxonomy_verified"
+      checklist.update!(taxonomy_verified: !checklist.taxonomy_verified?)
     end
+
+    redirect_to admin_provider_path(@provider), notice: "Provider checklist updated."
   end
 
   def fetch_from_ezclaim

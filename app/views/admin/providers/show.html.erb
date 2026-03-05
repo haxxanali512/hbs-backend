@@ -25,14 +25,6 @@
         </div>
         
         <div class="flex space-x-2">
-          <% if @provider.can_be_approved? %>
-            <%= button_to "Approve",
-                  approve_admin_provider_path(@provider),
-                  method: :post,
-                  class: "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer",
-                  data: { turbo_confirm: "Are you sure you want to approve this provider? This confirms HBS has verified addition to all external systems." } %>
-          <% end %>
-          
           <% if @provider.can_be_deactivated? %>
             <%= button_to "Deactivate",
                   admin_provider_path(@provider),
@@ -92,6 +84,88 @@
             </div>
           </div>
           
+        </div>
+
+        <!-- Internal Checklist (Admin Only) -->
+        <% checklist = @provider.provider_checklist || @provider.build_provider_checklist %>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">HBS Provider Checklist</h2>
+            <% if checklist.all_completed? %>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                All steps completed
+              </span>
+            <% else %>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                In progress
+              </span>
+            <% end %>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-gray-900">EasyClaim profile created</div>
+                <p class="text-xs text-gray-500">Provider record set up in EZClaim or external billing system.</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= checklist.easyclaim_profile_created? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' %>">
+                  <%= checklist.easyclaim_profile_created? ? 'Completed' : 'Not completed' %>
+                </span>
+                <%= button_to (checklist.easyclaim_profile_created? ? "Mark Incomplete" : "Mark Complete"),
+                              toggle_checklist_step_admin_provider_path(@provider, step: "easyclaim_profile"),
+                              method: :post,
+                              class: "text-xs px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" %>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-gray-900">Waystar name match confirmed</div>
+                <p class="text-xs text-gray-500">Provider name matches in Waystar and clearinghouse systems.</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= checklist.waystar_name_match_confirmed? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' %>">
+                  <%= checklist.waystar_name_match_confirmed? ? 'Completed' : 'Not completed' %>
+                </span>
+                <%= button_to (checklist.waystar_name_match_confirmed? ? "Mark Incomplete" : "Mark Complete"),
+                              toggle_checklist_step_admin_provider_path(@provider, step: "waystar_name_match"),
+                              method: :post,
+                              class: "text-xs px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" %>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-gray-900">NPI verified</div>
+                <p class="text-xs text-gray-500">NPI validated against NPPES or payer records.</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= checklist.npi_verified? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' %>">
+                  <%= checklist.npi_verified? ? 'Completed' : 'Not completed' %>
+                </span>
+                <%= button_to (checklist.npi_verified? ? "Mark Incomplete" : "Mark Complete"),
+                              toggle_checklist_step_admin_provider_path(@provider, step: "npi_verified"),
+                              method: :post,
+                              class: "text-xs px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" %>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-gray-900">Taxonomy verified</div>
+                <p class="text-xs text-gray-500">Taxonomy codes confirmed for specialties and payer enrollment.</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= checklist.taxonomy_verified? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' %>">
+                  <%= checklist.taxonomy_verified? ? 'Completed' : 'Not completed' %>
+                </span>
+                <%= button_to (checklist.taxonomy_verified? ? "Mark Incomplete" : "Mark Complete"),
+                              toggle_checklist_step_admin_provider_path(@provider, step: "taxonomy_verified"),
+                              method: :post,
+                              class: "text-xs px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" %>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Organization Assignments -->

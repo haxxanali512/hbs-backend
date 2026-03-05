@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_04_075922) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -1055,6 +1055,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
     t.index ["provider_id"], name: "index_provider_assignments_on_provider_id"
   end
 
+  create_table "provider_checklists", force: :cascade do |t|
+    t.bigint "provider_id", null: false
+    t.boolean "easyclaim_profile_created"
+    t.boolean "waystar_name_match_confirmed"
+    t.boolean "npi_verified"
+    t.boolean "taxonomy_verified"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider_id"], name: "index_provider_checklists_on_provider_id"
+  end
+
   create_table "provider_notes", force: :cascade do |t|
     t.bigint "encounter_id", null: false
     t.bigint "provider_id", null: false
@@ -1359,6 +1370,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
   add_foreign_key "procedure_codes_specialties", "specialties"
   add_foreign_key "provider_assignments", "organizations"
   add_foreign_key "provider_assignments", "providers"
+  add_foreign_key "provider_checklists", "providers"
   add_foreign_key "provider_notes", "encounters"
   add_foreign_key "provider_notes", "providers"
   add_foreign_key "provider_specialties", "providers"

@@ -155,11 +155,23 @@
               target: '_blank',
               class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
         <% end %>
-        
-        <%= link_to "Delete Organization", admin_organization_path(@organization),
+
+        <%= link_to "Archive Organization", admin_organization_path(@organization),
             method: :delete,
-            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md",
-            data: { confirm: "Are you sure you want to delete this organization? This action cannot be undone." } %>
+            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md",
+            data: { confirm: "Archive this organization? It will be hidden from default views but data will be preserved." } %>
+
+        <% if current_user.permissions_for("admin", "organizations", "hard_destroy") %>
+          <%= form_with url: hard_destroy_admin_organization_path(@organization), method: :delete, data: { turbo_confirm: "This action permanently deletes this organization and related data. This cannot be undone." }, class: "inline-flex items-center gap-2" do %>
+            <input type="text"
+                   name="confirm_text"
+                   placeholder="Type DELETE to confirm"
+                   class="border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-red-500" />
+            <button type="submit" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md">
+              Hard Delete
+            </button>
+          <% end %>
+        <% end %>
       </div>
     </div>
 
