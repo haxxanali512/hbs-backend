@@ -1,0 +1,244 @@
+<%= form_with model: [:admin, @resource], local: true, html: { multipart: true }, class: "space-y-6" do |f| %>
+  <% if @resource.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(@resource.errors.count, "error") %> prohibited this resource from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% @resource.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="md:col-span-2">
+      <%= f.label :title, "Title", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :title, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", required: true %>
+    </div>
+    <div class="md:col-span-2">
+      <%= f.label :resource_type, "Resource Type", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.select :resource_type,
+                   options_for_select([["Select type", ""]] + Resource::RESOURCE_TYPES.map { |t| [t.titleize, t] }, @resource.resource_type),
+                   {},
+                   class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+    </div>
+  </div>
+
+  <div>
+    <%= f.label :description, "Description / Summary", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= f.text_area :description, rows: 4, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+    <div class="flex gap-6 mb-4">
+      <label class="inline-flex items-center cursor-pointer">
+        <%= radio_button_tag "resource_content_type", "link", !@resource.file.attached?, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300", data: { resource_content: "link" } %>
+        <span class="ml-2 text-sm text-gray-700">Link (URL)</span>
+      </label>
+      <label class="inline-flex items-center cursor-pointer">
+        <%= radio_button_tag "resource_content_type", "file", @resource.file.attached?, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300", data: { resource_content: "file" } %>
+        <span class="ml-2 text-sm text-gray-700">File upload</span>
+      </label>
+    </div>
+
+    <div id="resource-link-section" class="resource-content-section <%= 'hidden' if @resource.file.attached? %>">
+      <%= f.label :url, "URL (for external link or video)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.url_field :url, class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "https://..." %>
+      <p class="mt-1 text-xs text-gray-500">Opened in a new tab for tenants.</p>
+    </div>
+
+    <div id="resource-file-section" class="resource-content-section <%= 'hidden' unless @resource.file.attached? %>">
+      <%= f.label :file, "Upload file", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <% resource_dropzone_id = "resource_file_dropzone" %>
+      <div class="resource-file-dropzone relative border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-400 transition-colors cursor-pointer"
+           id="<%= resource_dropzone_id %>"
+           ondragover="event.preventDefault(); this.classList.add('border-blue-500','bg-blue-50');"
+           ondragleave="this.classList.remove('border-blue-500','bg-blue-50');"
+           ondrop="event.preventDefault(); this.classList.remove('border-blue-500','bg-blue-50'); var i=document.getElementById('<%= resource_dropzone_id %>_input'); i.files=event.dataTransfer.files; i.dispatchEvent(new Event('change'));">
+        <input type="file"
+               name="resource[file]"
+               id="<%= resource_dropzone_id %>_input"
+               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+               accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.webp"
+               data-resource-dropzone-input>
+        <div class="text-center pointer-events-none">
+          <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <p class="mt-2 text-sm text-gray-600">
+            <span class="font-medium text-blue-600">Click to upload</span>
+            or drag and drop
+          </p>
+          <p class="mt-1 text-xs text-gray-500">PDF, images, DOC. Max 25MB.</p>
+        </div>
+      </div>
+      <div id="<%= resource_dropzone_id %>_preview" class="mt-3 resource-file-preview">
+        <% if @resource.file.attached? %>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <span class="text-sm font-medium text-gray-900"><%= @resource.file.filename %></span>
+            <%= link_to "View", rails_blob_path(@resource.file, disposition: "inline"), target: "_blank", class: "text-sm text-blue-600 hover:text-blue-800" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var linkSection = document.getElementById("resource-link-section");
+      var fileSection = document.getElementById("resource-file-section");
+      var linkInput = document.querySelector("#resource-link-section input[name='resource[url]']");
+      var fileInput = document.querySelector("#resource-file-section input[name='resource[file]']");
+      var filePreview = document.getElementById("resource_file_dropzone_preview");
+      if (!linkSection || !fileSection) return;
+
+      function showLink() {
+        linkSection.classList.remove("hidden");
+        fileSection.classList.add("hidden");
+        if (fileInput) fileInput.value = "";
+        if (filePreview) filePreview.innerHTML = "";
+      }
+      function showFile() {
+        fileSection.classList.remove("hidden");
+        linkSection.classList.add("hidden");
+        if (linkInput) linkInput.value = "";
+      }
+
+      document.querySelectorAll("input[name='resource_content_type']").forEach(function(radio) {
+        radio.addEventListener("change", function() {
+          if (this.value === "link") showLink(); else showFile();
+        });
+      });
+
+      if (fileInput && filePreview) {
+        fileInput.addEventListener("change", function() {
+          filePreview.innerHTML = "";
+          if (this.files && this.files.length > 0) {
+            var f = this.files[0];
+            var div = document.createElement("div");
+            div.className = "flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200";
+            div.innerHTML = "<span class=\"text-sm font-medium text-gray-900\">" + f.name + "</span><span class=\"text-xs text-gray-500\">Ready</span>";
+            filePreview.appendChild(div);
+          }
+        });
+      }
+    })();
+  </script>
+
+  <div>
+    <%= f.label :tags, "Tags / Categories", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <div id="resource-tags-container"
+         class="resource-tags-input flex flex-wrap items-center gap-2 w-full min-h-[42px] border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white"
+         data-initial-tags="<%= j @resource.tag_list.to_json %>">
+      <div id="resource-tags-chips" class="flex flex-wrap gap-2 items-center"></div>
+      <input type="text"
+             id="resource-tags-typeahead"
+             class="resource-tags-typeahead flex-1 min-w-[140px] border-0 p-0 text-sm focus:ring-0 focus:outline-none placeholder-gray-400"
+             placeholder="Type and press Tab to add"
+             autocomplete="off"
+             spellcheck="false" />
+    </div>
+    <%= f.hidden_field :tags, id: "resource_tags_hidden", value: @resource.tags %>
+    <p class="mt-1 text-xs text-gray-500">Type a tag and press Tab or Enter to add it as a chip.</p>
+  </div>
+  <script>
+    (function initResourceTagsForm() {
+      var container = document.getElementById("resource-tags-container");
+      var chipsEl = document.getElementById("resource-tags-chips");
+      var input = document.getElementById("resource-tags-typeahead");
+      var hidden = document.getElementById("resource_tags_hidden");
+      if (!container || !chipsEl || !input || !hidden) return;
+      if (container.getAttribute("data-tags-initialized") === "true") return;
+      container.setAttribute("data-tags-initialized", "true");
+
+      var tags = [];
+      try {
+        var raw = container.getAttribute("data-initial-tags");
+        if (raw) tags = JSON.parse(raw);
+        if (!Array.isArray(tags)) tags = [];
+      } catch (e) { tags = []; }
+      if (tags.length === 0 && hidden && hidden.value) {
+        tags = hidden.value.split(",").map(function(s) { return s.trim(); }).filter(Boolean);
+      }
+
+      function syncHidden() {
+        if (hidden) hidden.value = tags.join(", ");
+      }
+
+      function renderChips() {
+        chipsEl.innerHTML = "";
+        tags.forEach(function(tag, i) {
+          var span = document.createElement("span");
+          span.className = "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200";
+          span.textContent = tag;
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "ml-0.5 text-gray-500 hover:text-gray-700 focus:outline-none";
+          btn.setAttribute("aria-label", "Remove tag");
+          btn.innerHTML = "&times;";
+          (function(idx) {
+            btn.addEventListener("click", function() {
+              tags.splice(idx, 1);
+              renderChips();
+              syncHidden();
+              input.focus();
+            });
+          })(i);
+          span.appendChild(btn);
+          chipsEl.appendChild(span);
+        });
+        syncHidden();
+      }
+
+      function addTagFromInput() {
+        var val = (input.value || "").trim();
+        if (val === "") return;
+        if (tags.indexOf(val) === -1) tags.push(val);
+        input.value = "";
+        renderChips();
+      }
+
+      input.addEventListener("keydown", function(e) {
+        if (e.key === "Tab" || e.key === "Enter") {
+          e.preventDefault();
+          addTagFromInput();
+        }
+        if (e.key === "Backspace" && input.value === "" && tags.length > 0) {
+          tags.pop();
+          renderChips();
+          syncHidden();
+        }
+      });
+
+      input.addEventListener("blur", function() {
+        if ((input.value || "").trim() !== "") addTagFromInput();
+      });
+
+      renderChips();
+    })();
+  </script>
+
+  <div class="flex items-center">
+    <%= f.check_box :featured, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+    <%= f.label :featured, "Featured (pin near top of list)", class: "ml-2 block text-sm text-gray-700" %>
+  </div>
+
+  <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <%= link_to "Cancel", admin_resources_path, class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <%= f.submit @resource.persisted? ? "Update Resource" : "Create Resource", class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer" %>
+  </div>
+<% end %>

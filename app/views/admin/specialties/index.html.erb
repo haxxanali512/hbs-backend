@@ -82,11 +82,11 @@
                           data: { confirm: "Are you sure you want to retire this specialty?" } %>
                     <% end %>
                     
-                    <% if specialty.can_be_deleted? %>
+                    <% if specialty.can_be_deleted? && current_user.permissions_for("admin", "specialties", "destroy") %>
                       <%= link_to "Delete", admin_specialty_path(specialty), 
                           method: :delete,
                           class: "text-red-600 hover:text-red-800",
-                          data: { confirm: "Are you sure you want to delete this specialty?" } %>
+                          data: { confirm: "Deleting this specialty will remove all associated CPT mappings. Continue?" } %>
                     <% end %>
                   </div>
                 </td>

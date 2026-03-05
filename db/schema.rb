@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_04_075922) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_05_141335) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -1118,6 +1118,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_075922) do
     t.index ["capturable_type", "capturable_id"], name: "index_remit_captures_on_capturable"
     t.index ["capturable_type", "capturable_id"], name: "index_remit_captures_on_capturable_type_and_capturable_id"
     t.index ["service_period_start", "service_period_end"], name: "idx_on_service_period_start_service_period_end_a4be37828a"
+  end
+
+  create_table "resources", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "description"
+    t.string "resource_type"
+    t.string "url"
+    t.text "tags"
+    t.integer "status", default: 0, null: false
+    t.boolean "featured", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_resources_on_created_at"
+    t.index ["featured"], name: "index_resources_on_featured"
+    t.index ["resource_type"], name: "index_resources_on_resource_type"
+    t.index ["status"], name: "index_resources_on_status"
   end
 
   create_table "roles", force: :cascade do |t|

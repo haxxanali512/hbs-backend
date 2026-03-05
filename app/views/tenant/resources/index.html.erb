@@ -1,0 +1,78 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-gray-900">Resources</h1>
+      <p class="mt-2 text-gray-600">Guides, training, and evergreen content shared by HBS.</p>
+    </div>
+
+    <% 
+      @search_placeholder = "Search by title, description, or tag..."
+    %>
+    <%= render "shared/filters" %>
+
+    <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <% @resources.each do |resource| %>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-start justify-between">
+              <h2 class="text-lg font-semibold text-gray-900">
+                <%= link_to resource.title, tenant_resource_path(resource), class: "hover:text-indigo-700" %>
+              </h2>
+              <% if resource.featured? %>
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Featured
+                </span>
+              <% end %>
+            </div>
+            <% if resource.resource_type.present? %>
+              <p class="mt-1 text-xs uppercase tracking-wide text-indigo-600 font-semibold"><%= resource.resource_type.titleize %></p>
+            <% end %>
+            <% if resource.description.present? %>
+              <p class="mt-3 text-sm text-gray-700 line-clamp-3"><%= resource.description %></p>
+            <% end %>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between text-sm">
+            <div class="flex flex-wrap gap-1">
+              <% resource.tag_list.each do |tag| %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                  <%= tag %>
+                </span>
+              <% end %>
+            </div>
+            <div class="flex items-center space-x-2">
+              <% if resource.url.present? %>
+                <%= link_to "Open link", resource.url, target: "_blank", rel: "noopener", class: "text-indigo-600 hover:text-indigo-800" %>
+              <% elsif resource.file.attached? %>
+                <%= link_to "Open file",
+                            rails_blob_path(resource.file, disposition: "inline"),
+                            target: "_blank",
+                            class: "text-indigo-600 hover:text-indigo-800" %>
+              <% else %>
+                <span class="text-xs text-gray-400">No link or file</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @resources.empty? %>
+      <div class="mt-10 text-center text-gray-500">
+        No resources available yet.
+      </div>
+    <% end %>
+
+    <% if @pagy %>
+      <div class="mt-8 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          <%= pagination_info(@pagy) %>
+        </div>
+        <div>
+          <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+

@@ -207,6 +207,8 @@ Rails.application.routes.draw do
 
       resources :encounter_templates
 
+      resources :resources
+
       resources :fee_schedules do
         member do
           post :lock
@@ -519,6 +521,8 @@ Rails.application.routes.draw do
             get :procedure_codes_for_specialty
           end
         end
+
+        resources :resources, only: [ :index, :show ]
 
         resources :patients do
           member do
