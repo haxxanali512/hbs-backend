@@ -14,6 +14,7 @@
 //= require activestorage
 //= require turbo_aware
 //= require confirm_modal
+//= require delete_choice_modal
 //= require_tree .
 
 

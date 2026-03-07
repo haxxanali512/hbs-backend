@@ -156,21 +156,13 @@
               class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
         <% end %>
 
-        <%= link_to "Archive Organization", admin_organization_path(@organization),
-            method: :delete,
-            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md",
-            data: { confirm: "Archive this organization? It will be hidden from default views but data will be preserved." } %>
-
-        <% if current_user.permissions_for("admin", "organizations", "hard_destroy") %>
-          <%= form_with url: hard_destroy_admin_organization_path(@organization), method: :delete, data: { turbo_confirm: "This action permanently deletes this organization and related data. This cannot be undone." }, class: "inline-flex items-center gap-2" do %>
-            <input type="text"
-                   name="confirm_text"
-                   placeholder="Type DELETE to confirm"
-                   class="border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-red-500" />
-            <button type="submit" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md">
-              Hard Delete
-            </button>
-          <% end %>
+        <% if current_user.permissions_for("admin", "organizations", "destroy") || current_user.permissions_for("admin", "organizations", "hard_destroy") %>
+          <% data_attrs = { delete_choice: true, delete_choice_title: "Delete organization?", turbo: false } %>
+          <% data_attrs[:delete_choice_soft_url] = admin_organization_path(@organization) if current_user.permissions_for("admin", "organizations", "destroy") %>
+          <% data_attrs[:delete_choice_hard_url] = hard_destroy_admin_organization_path(@organization) if current_user.permissions_for("admin", "organizations", "hard_destroy") %>
+          <%= link_to "Delete", "#",
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50",
+              data: data_attrs %>
         <% end %>
       </div>
     </div>

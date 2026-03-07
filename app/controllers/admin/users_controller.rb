@@ -1,5 +1,5 @@
 class Admin::UsersController < ::ApplicationController
-  before_action :set_user, only: [ :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
+  before_action :set_user, only: [ :edit, :update, :destroy, :hard_destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
 
   def index
     @users = User.with_discarded.includes(:role).order(created_at: :desc)
@@ -109,13 +109,8 @@ class Admin::UsersController < ::ApplicationController
   end
 
   def hard_destroy
-    unless current_user&.super_admin?
-      redirect_to admin_users_path, alert: "Only Super Admins can permanently delete users."
-      return
-    end
-
-    if params[:confirm_text] != "DELETE"
-      redirect_to admin_users_path, alert: "You must type DELETE to confirm permanent deletion."
+    unless current_user&.permissions_for("admin", "users", "hard_destroy")
+      redirect_to admin_users_path, alert: "Only users with the 'Hard Delete' permission can permanently delete users."
       return
     end
 

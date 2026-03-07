@@ -57,12 +57,19 @@
         concat(link_to('Edit', edit_admin_user_path(u), class: 'text-indigo-600 hover:text-indigo-800 font-medium text-sm mr-4'))
         concat(link_to('Reset Password', reset_password_admin_user_path(u), data: { turbo_method: :post }, class: 'text-gray-600 hover:text-gray-900 font-medium text-sm mr-4'))
         concat(link_to('Reinvite', '#', data: { confirm_url: reinvite_admin_user_path(u), confirm_message: 'Re-send invitation to this user?', confirm_label: 'Reinvite' }, class: 'text-gray-600 hover:text-gray-900 font-medium text-sm mr-4'))
-        if current_user.permissions_for("admin", "users", "hard_destroy")
+        if current_user.permissions_for("admin", "users", "destroy") || current_user.permissions_for("admin", "users", "hard_destroy")
+          data_attrs = {
+            delete_choice: true,
+            delete_choice_title: 'Delete user?',
+            turbo: false
+          }
+          data_attrs[:delete_choice_soft_url] = admin_user_path(u) if current_user.permissions_for("admin", "users", "destroy")
+          data_attrs[:delete_choice_hard_url] = hard_destroy_admin_user_path(u) if current_user.permissions_for("admin", "users", "hard_destroy")
           concat(
-            form_with(url: hard_destroy_admin_user_path(u), method: :delete, data: { turbo_confirm: 'This action permanently deletes this user and related data. This cannot be undone.' }, class: 'inline-flex items-center gap-1') do |f|
-              concat tag.input(type: 'text', name: 'confirm_text', placeholder: 'DELETE', class: 'border border-gray-300 rounded px-1 py-0.5 text-[10px] align-middle')
-              concat tag.button('Hard Delete', type: 'submit', class: 'text-[10px] text-red-600 hover:text-red-800 font-semibold')
-            end
+            link_to('Delete', '#',
+              class: 'text-indigo-600 hover:text-indigo-800 font-medium text-sm mr-4',
+              data: data_attrs
+            )
           )
         end
         if current_user.permissions_for("admin", "users", "masquerade")

@@ -4,8 +4,16 @@
     <div class="px-5 py-4 border-b border-gray-200">
       <h3 class="text-base font-semibold text-gray-900">Are you sure?</h3>
     </div>
-    <div class="px-5 py-4 text-sm text-gray-700">
+    <div class="px-5 py-4 text-sm text-gray-700" data-confirm-body-target>
       This action cannot be undone.
+    </div>
+    <div id="confirmModalInputContainer" class="px-5 pb-2 space-y-1 hidden">
+      <label for="confirmModalInput" id="confirmModalInputLabel" class="block text-xs font-medium text-gray-700"></label>
+      <input type="text"
+             id="confirmModalInput"
+             class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+             autocomplete="off" />
+      <p id="confirmModalInputError" class="text-xs text-red-600 hidden">Text does not match. Please type the required word exactly.</p>
     </div>
     <div class="px-5 pb-4 flex items-center justify-end gap-3">
       <button type="button" id="confirmModalCancel" class="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>

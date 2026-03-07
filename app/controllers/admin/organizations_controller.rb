@@ -65,11 +65,6 @@ class Admin::OrganizationsController < Admin::BaseController
       return
     end
 
-    if params[:confirm_text] != "DELETE"
-      redirect_to admin_organization_path(@organization), alert: "You must type DELETE to confirm permanent deletion."
-      return
-    end
-
     Organization.transaction do
       # Best-effort deep destroy; some associations use restrict_with_error and may block deletion
       @organization.support_tickets.destroy_all

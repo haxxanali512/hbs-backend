@@ -14,8 +14,8 @@
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <script src="https://js.stripe.com/v3" data-turbo-track="reload"></script>
-    <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", crossorigin: "anonymous" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module", crossorigin: "anonymous" %>
   </head>
 
   <body class="min-h-screen bg-gray-50">
@@ -96,5 +96,6 @@
       </main>
     <% end %>
     <%= render 'shared/confirm_modal' %>
+    <%= render 'shared/delete_choice_modal' %>
   </body>
 </html>

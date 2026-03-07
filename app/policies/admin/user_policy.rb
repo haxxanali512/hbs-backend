@@ -20,6 +20,10 @@ module Admin
       accessible?("admin", "users", "update")
     end
 
+    def hard_destroy?
+      destroy?
+    end
+
     def update?
       accessible?("admin", "users", "update")
     end

@@ -151,10 +151,16 @@
             <% end %>
 
             <% if @specialty.can_be_deleted? && current_user.permissions_for("admin", "specialties", "destroy") %>
-              <%= link_to "Delete Specialty", admin_specialty_path(@specialty),
-                  method: :delete,
+              <%= link_to "Delete Specialty", "#",
                   class: "block w-full text-center bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors",
-                  data: { confirm: "Deleting this specialty will remove all associated CPT mappings. Continue?" } %>
+                  data: {
+                    confirm_url: admin_specialty_path(@specialty),
+                    confirm_method: "delete",
+                    confirm_message: "Delete specialty?",
+                    confirm_body: "Deleting this specialty will remove all associated CPT mappings. This cannot be undone. Continue?",
+                    confirm_label: "Delete",
+                    confirm_require_text: "DELETE"
+                  } %>
             <% end %>
           </div>
         </div>
