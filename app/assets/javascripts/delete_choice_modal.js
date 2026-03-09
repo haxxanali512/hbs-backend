@@ -46,6 +46,8 @@
     var confirmBtn = document.getElementById('deleteChoiceModalConfirm');
     var backdrop = document.querySelector('[data-delete-choice-backdrop]');
 
+    var choicePrompt = document.getElementById('deleteChoiceModalPrompt');
+    var radiosContainer = document.getElementById('deleteChoiceModalRadios');
     var state = { softUrl: null, hardUrl: null };
 
     function openModal() {
@@ -115,7 +117,14 @@
         }
       }
 
+      var singleOption = (state.softUrl && !state.hardUrl) || (!state.softUrl && state.hardUrl);
+      if (choicePrompt) choicePrompt.style.display = singleOption ? 'none' : '';
+      if (radiosContainer) radiosContainer.style.display = singleOption ? 'none' : '';
+
       updateRequireTextVisibility();
+      if (singleOption && state.hardUrl) {
+        if (requireTextContainer) requireTextContainer.classList.remove('hidden');
+      }
       openModal();
     }, true);
 

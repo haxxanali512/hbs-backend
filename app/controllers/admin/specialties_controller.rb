@@ -62,19 +62,14 @@ class Admin::SpecialtiesController < Admin::BaseController
       return
     end
 
-    unless @specialty.can_be_deleted?
-      redirect_to admin_specialty_path(@specialty), alert: "Cannot delete specialty with assigned providers."
-      return
-    end
-
     Specialty.transaction do
-      # Remove CPT mappings first
       @specialty.procedure_codes_specialties.destroy_all
-      # Hard delete the specialty record
+      @specialty.provider_specialties.destroy_all
+      @specialty.organization_fee_schedule_specialties.destroy_all
       @specialty.destroy!
     end
 
-    redirect_to admin_specialties_path, notice: "Specialty deleted successfully. All associated CPT mappings were removed."
+    redirect_to admin_specialties_path, notice: "Specialty deleted successfully. All associated CPT mappings and provider assignments were removed."
   rescue => e
     redirect_to admin_specialty_path(@specialty), alert: "Failed to delete specialty: #{e.message}"
   end

@@ -114,15 +114,5 @@ class Specialty < ApplicationRecord
     false
   end
 
-  # Callbacks
-  before_destroy :check_provider_dependencies
-
   private
-
-  def check_provider_dependencies
-    if providers.any?
-      errors.add(:base, "Cannot delete specialty with assigned providers.")
-      throw(:abort)
-    end
-  end
 end
