@@ -23,7 +23,9 @@
                   data: {
                     delete_choice: true,
                     delete_choice_soft_url: tenant_patient_path(@patient),
-                    delete_choice_title: "Delete Patient",
+                    delete_choice_title: "Archive Patient",
+                    delete_choice_message: "This patient will be archived and removed from the active list. All related records (encounters, claims, etc.) will be preserved.",
+                    delete_choice_confirm_label: "Archive",
                     turbo: false
                   } %>
           <% end %>

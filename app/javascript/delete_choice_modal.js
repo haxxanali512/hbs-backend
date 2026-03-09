@@ -48,6 +48,7 @@
 
     const choicePrompt = document.getElementById("deleteChoiceModalPrompt");
     const radiosContainer = document.getElementById("deleteChoiceModalRadios");
+    const messageEl = document.getElementById("deleteChoiceModalMessage");
     const state = { softUrl: null, hardUrl: null };
 
     function openModal() {
@@ -83,6 +84,8 @@
         const softUrl = trigger.getAttribute("data-delete-choice-soft-url");
         const hardUrl = trigger.getAttribute("data-delete-choice-hard-url");
         const title = trigger.getAttribute("data-delete-choice-title") || "Delete?";
+        const message = trigger.getAttribute("data-delete-choice-message") || "";
+        const btnLabel = trigger.getAttribute("data-delete-choice-confirm-label") || "Delete";
 
         if (!softUrl && !hardUrl) return;
 
@@ -90,6 +93,15 @@
         state.hardUrl = hardUrl || null;
 
         if (titleEl) titleEl.textContent = title;
+        if (confirmBtn) confirmBtn.textContent = btnLabel;
+        if (messageEl) {
+          if (message) {
+            messageEl.textContent = message;
+            messageEl.classList.remove("hidden");
+          } else {
+            messageEl.classList.add("hidden");
+          }
+        }
 
         if (softLabel) {
           if (state.softUrl) {
