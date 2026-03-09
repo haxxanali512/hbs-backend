@@ -2,7 +2,7 @@ class Admin::OrganizationsController < Admin::BaseController
   include Admin::Concerns::OrganizationConcern
   include ActivationStepsConcern
 
-  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :activate_tenant, :suspend_tenant, :toggle_checklist_step, :toggle_plan_step ]
+  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :hard_destroy, :activate_tenant, :suspend_tenant, :toggle_checklist_step, :toggle_plan_step ]
 
   def index
     @organizations = build_organizations_index_query.with_discarded
@@ -60,8 +60,8 @@ class Admin::OrganizationsController < Admin::BaseController
   end
 
   def hard_destroy
-    unless current_user&.super_admin?
-      redirect_to admin_organizations_path, alert: "Only Super Admins can permanently delete organizations."
+    unless current_user&.permissions_for("admin", "organizations", "hard_destroy")
+      redirect_to admin_organizations_path, alert: "You do not have permission to permanently delete organizations."
       return
     end
 
