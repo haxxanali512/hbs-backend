@@ -1,0 +1,288 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Merge Patient</h1>
+        <p class="mt-2 text-gray-600">Merge <strong><%= @patient.full_name %></strong> into another patient profile</p>
+      </div>
+      <%= link_to "Back", tenant_patient_path(@patient), class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Source Patient Card -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Source Patient <span class="text-sm font-normal text-gray-500">(will be archived after merge)</span></h2>
+          <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Full Name</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient.full_name %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Patient ID</dt>
+              <dd class="mt-1 text-sm text-gray-900">#<%= @patient.id %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Date of Birth</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient.formatted_dob || "N/A" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">MRN</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient.mrn || "N/A" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Email</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient.email || "N/A" %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Phone</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @patient.phone_number || "N/A" %></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Records to Transfer</h2>
+          <p class="text-sm text-gray-500 mb-4">The following records will be reassigned to the target patient.</p>
+          <dl class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Encounters</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900"><%= @patient.encounters.count %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Claims</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900"><%= @patient.claims.count %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Prescriptions</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900"><%= @patient.prescriptions.count %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Insurance Coverages</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900"><%= @patient.patient_insurance_coverages.count %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Appointments</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900"><%= @patient.appointments.count %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Documents</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900"><%= @patient.documents.count %></dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Target Patient Search -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Target Patient <span class="text-sm font-normal text-gray-500">(will receive all records)</span></h2>
+
+          <div id="targetSearchContainer">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Search for the patient to merge into</label>
+            <div class="relative">
+              <input type="text"
+                     id="mergeTargetSearch"
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     placeholder="Search by name, MRN, email..."
+                     autocomplete="off" />
+              <div id="mergeTargetResults" class="hidden absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"></div>
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Only active patients from your organization are shown.</p>
+          </div>
+
+          <div id="targetPatientInfo" class="hidden">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                  <span id="targetInitials" class="text-green-600 font-semibold text-sm"></span>
+                </div>
+                <div>
+                  <p id="targetName" class="text-sm font-semibold text-gray-900"></p>
+                  <p id="targetId" class="text-xs text-gray-500"></p>
+                </div>
+              </div>
+              <button type="button" id="clearTarget" class="text-sm text-blue-600 hover:text-blue-800">Change</button>
+            </div>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Date of Birth</dt>
+                <dd id="targetDob" class="mt-1 text-sm text-gray-900"></dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-gray-500">MRN</dt>
+                <dd id="targetMrn" class="mt-1 text-sm text-gray-900"></dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <!-- Warning + Submit -->
+        <div id="mergeConfirmation" class="hidden">
+          <div class="bg-yellow-50 rounded-lg border border-yellow-200 p-6">
+            <div class="flex items-start gap-3">
+              <svg class="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+              </svg>
+              <div class="flex-1">
+                <h3 class="text-sm font-semibold text-yellow-800">This action cannot be undone</h3>
+                <ul class="mt-2 text-sm text-yellow-700 list-disc list-inside space-y-1">
+                  <li>All related records (encounters, claims, prescriptions, insurance, appointments, documents) will be moved to the target patient.</li>
+                  <li>Duplicate insurance coverages will be terminated on the source.</li>
+                  <li>The source patient (<strong><%= @patient.full_name %></strong>) will be marked as <strong>merged</strong>.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <%= form_with url: perform_merge_tenant_patient_path(@patient), method: :post, local: true, id: "mergeForm", data: { turbo: false }, class: "mt-6" do |f| %>
+            <input type="hidden" name="target_patient_id" id="mergeTargetPatientId" value="" />
+            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+              <%= link_to "Cancel", tenant_patient_path(@patient), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer">
+                Merge Patients
+              </button>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Details</h2>
+          <dl class="space-y-3">
+            <div class="flex justify-between">
+              <dt class="text-sm text-gray-500">Status</dt>
+              <dd>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @patient.status_badge_color %>">
+                  <%= @patient.status.humanize %>
+                </span>
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-sm text-gray-500">Created</dt>
+              <dd class="text-sm font-medium text-gray-900"><%= format_in_organization_tz(@patient.created_at) %></dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-sm text-gray-500">Last Updated</dt>
+              <dd class="text-sm font-medium text-gray-900"><%= format_in_organization_tz(@patient.updated_at) %></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">How Merge Works</h2>
+          <div class="space-y-3 text-sm text-gray-600">
+            <div class="flex items-start gap-2">
+              <span class="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600 text-xs font-semibold flex-shrink-0 mt-0.5">1</span>
+              <p>Select the target patient you want to keep.</p>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600 text-xs font-semibold flex-shrink-0 mt-0.5">2</span>
+              <p>All encounters, claims, prescriptions, insurance, and other records are moved to the target.</p>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-600 text-xs font-semibold flex-shrink-0 mt-0.5">3</span>
+              <p>The source patient is marked as "merged" and removed from the active list.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+          <div class="space-y-2">
+            <%= link_to "View Patient", tenant_patient_path(@patient),
+                class: "block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
+            <%= link_to "Back to Patients", tenant_patients_path,
+                class: "block w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", initMergeSearch);
+document.addEventListener("turbo:load", initMergeSearch);
+
+function initMergeSearch() {
+  var searchInput = document.getElementById("mergeTargetSearch");
+  if (!searchInput || searchInput.dataset.mergeInit) return;
+  searchInput.dataset.mergeInit = "1";
+
+  var resultsDiv = document.getElementById("mergeTargetResults");
+  var searchContainer = document.getElementById("targetSearchContainer");
+  var infoContainer = document.getElementById("targetPatientInfo");
+  var confirmSection = document.getElementById("mergeConfirmation");
+  var hiddenInput = document.getElementById("mergeTargetPatientId");
+  var clearBtn = document.getElementById("clearTarget");
+  var debounceTimer = null;
+
+  searchInput.addEventListener("input", function() {
+    clearTimeout(debounceTimer);
+    var q = searchInput.value.trim();
+    if (q.length < 2) { resultsDiv.classList.add("hidden"); return; }
+
+    debounceTimer = setTimeout(function() {
+      fetch("<%= search_tenant_patients_path(format: :json) %>?q=" + encodeURIComponent(q) + "&exclude_id=<%= @patient.id %>&status=active")
+        .then(function(r) { return r.json(); })
+        .then(function(patients) {
+          resultsDiv.innerHTML = "";
+          if (patients.length === 0) {
+            resultsDiv.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">No patients found</div>';
+          } else {
+            patients.forEach(function(p) {
+              var item = document.createElement("div");
+              item.className = "px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 last:border-0";
+              var pName = p.name || p.full_name;
+              item.innerHTML = '<div class="font-medium text-gray-900">' + escapeHtml(pName) + '</div>' +
+                '<div class="text-xs text-gray-500">DOB: ' + escapeHtml(p.dob || "N/A") + ' &middot; MRN: ' + escapeHtml(p.mrn || "N/A") + '</div>';
+              item.addEventListener("click", function() { selectTarget(p); });
+              resultsDiv.appendChild(item);
+            });
+          }
+          resultsDiv.classList.remove("hidden");
+        });
+    }, 300);
+  });
+
+  document.addEventListener("click", function(e) {
+    if (!resultsDiv.contains(e.target) && e.target !== searchInput) {
+      resultsDiv.classList.add("hidden");
+    }
+  });
+
+  function selectTarget(p) {
+    resultsDiv.classList.add("hidden");
+    searchContainer.classList.add("hidden");
+    infoContainer.classList.remove("hidden");
+    confirmSection.classList.remove("hidden");
+
+    var pName = p.name || p.full_name;
+    document.getElementById("targetInitials").textContent = (pName || "").split(" ").map(function(n) { return n.charAt(0); }).join("");
+    document.getElementById("targetName").textContent = pName;
+    document.getElementById("targetId").textContent = "ID: #" + p.id;
+    document.getElementById("targetDob").textContent = p.dob || "N/A";
+    document.getElementById("targetMrn").textContent = p.mrn || "N/A";
+    hiddenInput.value = p.id;
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function() {
+      searchContainer.classList.remove("hidden");
+      infoContainer.classList.add("hidden");
+      confirmSection.classList.add("hidden");
+      hiddenInput.value = "";
+      searchInput.value = "";
+      searchInput.focus();
+    });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+}
+</script>

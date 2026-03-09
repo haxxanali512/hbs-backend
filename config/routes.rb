@@ -532,6 +532,11 @@ Rails.application.routes.draw do
             post :reactivate
             post :push_to_ezclaim
             post :check_eligibility
+            get :merge
+            post :perform_merge
+          end
+          collection do
+            get :search
           end
         end
 

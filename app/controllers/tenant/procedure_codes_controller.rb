@@ -34,6 +34,12 @@ class Tenant::ProcedureCodesController < Tenant::BaseController
       .unlocked_procedure_codes
       .kept
       .active
+
+    if params[:specialty_id].present?
+      procedure_codes = procedure_codes.joins(:specialties).where(specialties: { id: params[:specialty_id] })
+    end
+
+    procedure_codes = procedure_codes
       .search(search_term)
       .order(:code_type, :code)
       .limit(50)

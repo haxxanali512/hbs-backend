@@ -68,7 +68,7 @@ module HbsCustoms
           clinical_documentations: { index: false, show: false, download: false },
           encounter_comments: { index: false, create: false, redact: false },
           provider_notes: DEFAULT_CRUD,
-          patients: DEFAULT_CRUD,
+          patients: DEFAULT_CRUD.merge(merge: false),
           org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false),
           payer_enrollments: { index: false },
           patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),

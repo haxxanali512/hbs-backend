@@ -1,9 +1,14 @@
 class Tenant::PatientsController < Tenant::BaseController
   before_action :set_current_organization
-  before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate, :push_to_ezclaim, :check_eligibility ]
+  before_action :set_patient, only: [ :show, :edit, :update, :destroy, :activate, :inactivate, :mark_deceased, :reactivate, :push_to_ezclaim, :check_eligibility, :merge, :perform_merge ]
 
   def index
-    @patients = @current_organization.patients.includes(:organization).kept
+    if params[:archived] == "true"
+      @patients = @current_organization.patients.includes(:organization).discarded
+      @showing_archived = true
+    else
+      @patients = @current_organization.patients.includes(:organization).kept
+    end
 
     # Filtering
     @patients = @patients.by_status(params[:status]) if params[:status].present?
@@ -112,11 +117,58 @@ class Tenant::PatientsController < Tenant::BaseController
   end
 
   def destroy
-    if @patient.can_be_deleted? && @patient.discard
-      redirect_to tenant_patients_path, notice: "Patient deleted successfully."
-    else
-      redirect_to tenant_patient_path(@patient), alert: "Cannot delete patient. They have appointments or encounters, or are deceased."
+    unless @patient.can_be_deleted?
+      redirect_to tenant_patient_path(@patient), alert: "Cannot delete a deceased or merged patient."
+      return
     end
+
+    if @patient.can_be_hard_deleted?
+      @patient.destroy!
+      redirect_to tenant_patients_path, notice: "Patient permanently deleted."
+    else
+      @patient.discard!
+      redirect_to tenant_patients_path, notice: "Patient archived. Historical data has been preserved."
+    end
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to tenant_patient_path(@patient), alert: "Cannot delete patient: #{e.message}"
+  end
+
+  def merge
+    @target_patient = nil
+  end
+
+  def perform_merge
+    target = @current_organization.patients.kept.find_by(id: params[:target_patient_id])
+
+    unless target
+      redirect_to merge_tenant_patient_path(@patient), alert: "Target patient not found."
+      return
+    end
+
+    if target.id == @patient.id
+      redirect_to merge_tenant_patient_path(@patient), alert: "Cannot merge a patient into themselves."
+      return
+    end
+
+    @patient.merge_into!(target)
+    redirect_to tenant_patient_path(target), notice: "#{@patient.full_name} has been merged into #{target.full_name}. All related records have been reassigned."
+  rescue => e
+    Rails.logger.error "Patient merge failed: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
+    redirect_to merge_tenant_patient_path(@patient), alert: "Merge failed: #{e.message}"
+  end
+
+  def search
+    term = params[:q].to_s.strip
+    return render(json: []) if term.blank?
+
+    patients = @current_organization.patients.kept
+    patients = patients.where.not(id: params[:exclude_id]) if params[:exclude_id].present?
+    patients = patients.where(status: params[:status]) if params[:status].present?
+    patients = patients.search(term).order(:first_name, :last_name).limit(20)
+
+    render json: patients.map { |p|
+      { id: p.id, name: p.full_name, full_name: p.full_name, dob: p.formatted_dob, mrn: p.mrn }
+    }
   end
 
   def activate

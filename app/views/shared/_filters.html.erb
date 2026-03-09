@@ -339,7 +339,8 @@
         }
 
         timer = setTimeout(function() {
-          var url = "/admin/patients/search.json?q=" + encodeURIComponent(q);
+          var base = window.location.pathname.indexOf("/tenant") === 0 ? "/tenant/patients/search.json" : "/admin/patients/search.json";
+          var url = base + "?q=" + encodeURIComponent(q);
           var orgField = form.querySelector('[name="organization_id"]');
           if (orgField && orgField.value) {
             url += "&organization_id=" + encodeURIComponent(orgField.value);
