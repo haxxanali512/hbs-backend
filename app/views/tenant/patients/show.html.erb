@@ -17,34 +17,15 @@
           <% if policy([:tenant, @patient]).merge? && @patient.can_edit_demographics? %>
             <%= link_to "Merge", merge_tenant_patient_path(@patient), class: "bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
           <% end %>
-          <% if policy([:tenant, @patient]).destroy? && @patient.can_be_deleted? %>
-            <% if @patient.can_be_hard_deleted? %>
-              <%= link_to "#",
-                    class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
-                    data: {
-                      confirm_url: tenant_patient_path(@patient),
-                      confirm_method: "delete",
-                      confirm_message: "Delete Patient",
-                      confirm_body: "This patient has no related records and will be permanently deleted. This action cannot be undone.",
-                      confirm_label: "Delete",
-                      turbo: false
-                    } do %>
-                Delete
-              <% end %>
-            <% else %>
-              <%= link_to "#",
-                    class: "bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
-                    data: {
-                      confirm_url: tenant_patient_path(@patient),
-                      confirm_method: "delete",
-                      confirm_message: "Archive Patient",
-                      confirm_body: "This patient has related records (encounters, claims, etc.) and will be archived instead of permanently deleted. Historical data will be preserved.",
-                      confirm_label: "Archive",
-                      turbo: false
-                    } do %>
-                Archive
-              <% end %>
-            <% end %>
+          <% if current_user.permissions_for("tenant", "patients", "destroy") %>
+            <%= link_to "Delete", "#",
+                  class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                  data: {
+                    delete_choice: true,
+                    delete_choice_soft_url: tenant_patient_path(@patient),
+                    delete_choice_title: "Delete Patient",
+                    turbo: false
+                  } %>
           <% end %>
         </div>
       </div>

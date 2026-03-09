@@ -106,34 +106,15 @@
                     <div class="flex space-x-2">
                       <%= link_to "View", tenant_patient_path(patient), class: "text-blue-600 hover:text-blue-800" %>
                       <%= link_to "Edit", edit_tenant_patient_path(patient), class: "text-indigo-600 hover:text-indigo-800" %>
-                      <% if policy([:tenant, patient]).destroy? && patient.can_be_deleted? %>
-                        <% if patient.can_be_hard_deleted? %>
-                          <%= link_to "#",
-                                class: "text-red-600 hover:text-red-800",
-                                data: {
-                                  confirm_url: tenant_patient_path(patient),
-                                  confirm_method: "delete",
-                                  confirm_message: "Delete Patient",
-                                  confirm_body: "This patient has no related records and will be permanently deleted. This action cannot be undone.",
-                                  confirm_label: "Delete",
-                                  turbo: false
-                                } do %>
-                            Delete
-                          <% end %>
-                        <% else %>
-                          <%= link_to "#",
-                                class: "text-yellow-600 hover:text-yellow-800",
-                                data: {
-                                  confirm_url: tenant_patient_path(patient),
-                                  confirm_method: "delete",
-                                  confirm_message: "Archive Patient",
-                                  confirm_body: "This patient has related records and will be archived. Historical data will be preserved.",
-                                  confirm_label: "Archive",
-                                  turbo: false
-                                } do %>
-                            Archive
-                          <% end %>
-                        <% end %>
+                      <% if current_user.permissions_for("tenant", "patients", "destroy") %>
+                        <%= link_to "Delete", "#",
+                              class: "text-red-600 hover:text-red-800",
+                              data: {
+                                delete_choice: true,
+                                delete_choice_soft_url: tenant_patient_path(patient),
+                                delete_choice_title: "Delete Patient",
+                                turbo: false
+                              } %>
                       <% end %>
                     </div>
                   </td>

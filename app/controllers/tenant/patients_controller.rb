@@ -117,19 +117,9 @@ class Tenant::PatientsController < Tenant::BaseController
   end
 
   def destroy
-    unless @patient.can_be_deleted?
-      redirect_to tenant_patient_path(@patient), alert: "Cannot delete a deceased or merged patient."
-      return
-    end
-
-    if @patient.can_be_hard_deleted?
-      @patient.destroy!
-      redirect_to tenant_patients_path, notice: "Patient permanently deleted."
-    else
-      @patient.discard!
-      redirect_to tenant_patients_path, notice: "Patient archived. Historical data has been preserved."
-    end
-  rescue ActiveRecord::RecordNotDestroyed => e
+    @patient.discard!
+    redirect_to tenant_patients_path, notice: "Patient deleted successfully."
+  rescue Discard::RecordNotDiscarded, ActiveRecord::RecordInvalid => e
     redirect_to tenant_patient_path(@patient), alert: "Cannot delete patient: #{e.message}"
   end
 
