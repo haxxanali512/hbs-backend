@@ -222,6 +222,7 @@ class Patient < ApplicationRecord
   end
 
   def address_required
+    return if merging?
     if address_line_1.blank? && address_line_2.blank?
       errors.add(:base, "PAT_ADDR_REQUIRED - Patient address is required")
     end
