@@ -116,7 +116,10 @@ class Tenant::PrescriptionsController < Tenant::BaseController
 
   def load_form_options
     @patients = @current_organization.patients.active.order(:last_name, :first_name)
-    @specialties = Specialty.active.kept.order(:name)
+    @specialties = Specialty.active.kept
+      .joins(providers: :provider_assignments)
+      .where(provider_assignments: { organization_id: @current_organization.id, active: true })
+      .distinct.order(:name)
     @procedure_codes = ProcedureCode.active.order(:code)
   end
 
