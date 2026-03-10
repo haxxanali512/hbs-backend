@@ -1,0 +1,16 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">New Resource</h1>
+        <p class="mt-2 text-gray-600">Publish an article, video, or file for tenants.</p>
+      </div>
+      <%= link_to "Back", admin_resources_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <%= render "form" %>
+    </div>
+  </div>
+</div>
+

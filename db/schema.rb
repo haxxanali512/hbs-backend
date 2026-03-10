@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_05_141335) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -1055,6 +1055,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
     t.index ["provider_id"], name: "index_provider_assignments_on_provider_id"
   end
 
+  create_table "provider_checklists", force: :cascade do |t|
+    t.bigint "provider_id", null: false
+    t.boolean "easyclaim_profile_created"
+    t.boolean "waystar_name_match_confirmed"
+    t.boolean "npi_verified"
+    t.boolean "taxonomy_verified"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider_id"], name: "index_provider_checklists_on_provider_id"
+  end
+
   create_table "provider_notes", force: :cascade do |t|
     t.bigint "encounter_id", null: false
     t.bigint "provider_id", null: false
@@ -1107,6 +1118,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
     t.index ["capturable_type", "capturable_id"], name: "index_remit_captures_on_capturable"
     t.index ["capturable_type", "capturable_id"], name: "index_remit_captures_on_capturable_type_and_capturable_id"
     t.index ["service_period_start", "service_period_end"], name: "idx_on_service_period_start_service_period_end_a4be37828a"
+  end
+
+  create_table "resources", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "description"
+    t.string "resource_type"
+    t.string "url"
+    t.text "tags"
+    t.integer "status", default: 0, null: false
+    t.boolean "featured", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_resources_on_created_at"
+    t.index ["featured"], name: "index_resources_on_featured"
+    t.index ["resource_type"], name: "index_resources_on_resource_type"
+    t.index ["status"], name: "index_resources_on_status"
   end
 
   create_table "roles", force: :cascade do |t|
@@ -1359,6 +1386,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_27_135256) do
   add_foreign_key "procedure_codes_specialties", "specialties"
   add_foreign_key "provider_assignments", "organizations"
   add_foreign_key "provider_assignments", "providers"
+  add_foreign_key "provider_checklists", "providers"
   add_foreign_key "provider_notes", "encounters"
   add_foreign_key "provider_notes", "providers"
   add_foreign_key "provider_specialties", "providers"

@@ -7,11 +7,22 @@
           <h1 class="text-3xl font-bold text-gray-900">Patients</h1>
           <p class="mt-2 text-gray-600">Manage your organization's patients</p>
         </div>
-        <div>
+        <div class="flex items-center space-x-3">
+          <% if @showing_archived %>
+            <%= link_to "Active Patients", tenant_patients_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <% else %>
+            <%= link_to "View Archived", tenant_patients_path(archived: true), class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <% end %>
           <%= link_to "New Patient", new_tenant_patient_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
         </div>
       </div>
     </div>
+
+    <% if @showing_archived %>
+      <div class="mb-4 rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3">
+        <p class="text-sm text-yellow-800">Showing <strong>archived</strong> patients. These patients were removed from the active list but their data is preserved.</p>
+      </div>
+    <% end %>
 
     <!-- Filters -->
     <%
@@ -95,6 +106,18 @@
                     <div class="flex space-x-2">
                       <%= link_to "View", tenant_patient_path(patient), class: "text-blue-600 hover:text-blue-800" %>
                       <%= link_to "Edit", edit_tenant_patient_path(patient), class: "text-indigo-600 hover:text-indigo-800" %>
+                      <% if current_user.permissions_for("tenant", "patients", "destroy") %>
+                        <%= link_to "Delete", "#",
+                              class: "text-red-600 hover:text-red-800",
+                              data: {
+                                delete_choice: true,
+                                delete_choice_soft_url: tenant_patient_path(patient),
+                                delete_choice_title: "Archive Patient",
+                                delete_choice_message: "This patient will be archived and removed from the active list. All related records will be preserved.",
+                                delete_choice_confirm_label: "Archive",
+                                turbo: false
+                              } %>
+                      <% end %>
                     </div>
                   </td>
                 </tr>

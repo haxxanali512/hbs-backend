@@ -57,12 +57,21 @@ class Admin::SpecialtiesController < Admin::BaseController
   end
 
   def destroy
-    if @specialty.can_be_deleted?
-      @specialty.discard
-      redirect_to admin_specialties_path, notice: "Specialty deleted successfully."
-    else
-      redirect_to admin_specialty_path(@specialty), alert: "Cannot delete specialty with assigned providers."
+    unless current_user&.super_admin?
+      redirect_to admin_specialty_path(@specialty), alert: "Only Super Admins can delete specialties."
+      return
     end
+
+    Specialty.transaction do
+      @specialty.procedure_codes_specialties.destroy_all
+      @specialty.provider_specialties.destroy_all
+      @specialty.organization_fee_schedule_specialties.destroy_all
+      @specialty.destroy!
+    end
+
+    redirect_to admin_specialties_path, notice: "Specialty deleted successfully. All associated CPT mappings and provider assignments were removed."
+  rescue => e
+    redirect_to admin_specialty_path(@specialty), alert: "Failed to delete specialty: #{e.message}"
   end
 
   def retire

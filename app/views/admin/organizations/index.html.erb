@@ -10,6 +10,17 @@
   <% 
     @search_placeholder = "Name, subdomain, owner or email..."
     @status_options = Organization.activation_statuses.keys
+    @custom_selects = Array(@custom_selects) + [
+      {
+        param: :archived,
+        label: "Archived",
+        options: [
+          ["Active only", nil],
+          ["Archived only", "archived"],
+          ["All organizations", "all"]
+        ]
+      }
+    ]
   %>
   <%= render "shared/filters" %>
 

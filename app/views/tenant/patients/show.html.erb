@@ -14,6 +14,21 @@
         <div class="flex space-x-3">
           <%= link_to "Back to Patients", tenant_patients_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
           <%= link_to "Edit", edit_tenant_patient_path(@patient), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" if @patient.can_edit_demographics? %>
+          <% if policy([:tenant, @patient]).merge? && @patient.can_edit_demographics? %>
+            <%= link_to "Merge", merge_tenant_patient_path(@patient), class: "bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <% end %>
+          <% if current_user.permissions_for("tenant", "patients", "destroy") %>
+            <%= link_to "Delete", "#",
+                  class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                  data: {
+                    delete_choice: true,
+                    delete_choice_soft_url: tenant_patient_path(@patient),
+                    delete_choice_title: "Archive Patient",
+                    delete_choice_message: "This patient will be archived and removed from the active list. All related records (encounters, claims, etc.) will be preserved.",
+                    delete_choice_confirm_label: "Archive",
+                    turbo: false
+                  } %>
+          <% end %>
         </div>
       </div>
     </div>

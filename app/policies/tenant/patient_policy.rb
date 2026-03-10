@@ -27,6 +27,18 @@ class Tenant::PatientPolicy < ApplicationPolicy
     accessible?("tenant", "patients", "destroy")
   end
 
+  def merge?
+    accessible?("tenant", "patients", "merge")
+  end
+
+  def perform_merge?
+    merge?
+  end
+
+  def search?
+    index?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

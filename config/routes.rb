@@ -49,6 +49,7 @@ Rails.application.routes.draw do
           post :suspend_tenant
           patch :toggle_checklist_step
           patch :toggle_plan_step
+          delete :hard_destroy
         end
         collection do
           get :users_search
@@ -77,6 +78,7 @@ Rails.application.routes.draw do
           get  :reset_password
           post :reinvite
           patch :change_role
+          delete :hard_destroy
         end
         collection do
           get :invite
@@ -189,11 +191,8 @@ Rails.application.routes.draw do
           post :save_from_ezclaim
         end
         member do
-          post :approve
           post :reactivate
-        end
-        collection do
-          post :bulk_approve
+          post :toggle_checklist_step
         end
       end
 
@@ -207,6 +206,8 @@ Rails.application.routes.draw do
       end
 
       resources :encounter_templates
+
+      resources :resources
 
       resources :fee_schedules do
         member do
@@ -521,6 +522,8 @@ Rails.application.routes.draw do
           end
         end
 
+        resources :resources, only: [ :index, :show ]
+
         resources :patients do
           member do
             post :activate
@@ -529,6 +532,11 @@ Rails.application.routes.draw do
             post :reactivate
             post :push_to_ezclaim
             post :check_eligibility
+            get :merge
+            post :perform_merge
+          end
+          collection do
+            get :search
           end
         end
 

@@ -13,6 +13,9 @@ class Patient < ApplicationRecord
   # Documents now use Active Storage
   has_many_attached :documents
   has_many :prescriptions, dependent: :restrict_with_error
+  has_many :clinical_documentations, dependent: :restrict_with_error
+  has_many :claim_submissions, dependent: :restrict_with_error
+  has_many :encounter_comments, dependent: :restrict_with_error
   belongs_to :merged_into_patient, optional: true, class_name: "Patient", foreign_key: "merged_into_patient_id"
   has_many :merged_patients, class_name: "Patient", foreign_key: "merged_into_patient_id"
 
@@ -130,8 +133,22 @@ class Patient < ApplicationRecord
     status == "merged"
   end
 
+  def has_live_data?
+    encounters.exists? ||
+      claims.exists? ||
+      appointments.exists? ||
+      prescriptions.exists? ||
+      patient_insurance_coverages.exists? ||
+      clinical_documentations.exists? ||
+      documents.any?
+  end
+
+  def can_be_hard_deleted?
+    !has_live_data? && !is_deceased? && !is_merged?
+  end
+
   def can_be_deleted?
-    false
+    !is_deceased? && !is_merged?
   end
 
   def can_edit_demographics?
@@ -151,6 +168,48 @@ class Patient < ApplicationRecord
     @merging = true
   end
 
+  def merge_into!(target_patient)
+    raise "Cannot merge into self" if target_patient.id == id
+    raise "Target must be in same organization" unless target_patient.organization_id == organization_id
+    raise "Target must be active" unless target_patient.active?
+    raise "Source cannot be deceased or already merged" if is_deceased? || is_merged?
+
+    ActiveRecord::Base.transaction do
+      encounters.update_all(patient_id: target_patient.id)
+      claims.update_all(patient_id: target_patient.id)
+      claim_submissions.update_all(patient_id: target_patient.id)
+      appointments.update_all(patient_id: target_patient.id)
+      prescriptions.update_all(patient_id: target_patient.id)
+      clinical_documentations.update_all(patient_id: target_patient.id)
+      encounter_comments.update_all(patient_id: target_patient.id)
+
+      patient_insurance_coverages.each do |coverage|
+        existing = target_patient.patient_insurance_coverages
+          .find_by(insurance_plan_id: coverage.insurance_plan_id, member_id: coverage.member_id)
+        if existing
+          coverage.update_columns(status: "terminated")
+        else
+          coverage.update_columns(patient_id: target_patient.id)
+        end
+      end
+
+      documents.each do |doc|
+        doc.record = target_patient
+        doc.save!
+      end
+
+      self.merged_into_patient = target_patient
+      @merging = true
+      save!
+      merge_into_target!
+      @merging = false
+
+      Rails.logger.info "Patient ##{id} (#{full_name}) merged into Patient ##{target_patient.id} (#{target_patient.full_name})"
+    end
+
+    true
+  end
+
   private
 
   # Validations
@@ -163,6 +222,7 @@ class Patient < ApplicationRecord
   end
 
   def address_required
+    return if merging?
     if address_line_1.blank? && address_line_2.blank?
       errors.add(:base, "PAT_ADDR_REQUIRED - Patient address is required")
     end
@@ -260,20 +320,5 @@ class Patient < ApplicationRecord
       Rails.logger.error "Error pushing patient #{id} to EZClaim: #{e.message}"
       Rails.logger.error(e.backtrace.join("\n"))
     end
-  end
-
-  # Merge functionality (placeholder)
-  def merge_with(target_patient)
-    self.merging = true
-    self.merged_into_patient = target_patient
-    self.merged_into_patient_id = target_patient.id
-
-    if save
-      merge_into_target!
-      # Log merge event
-      Rails.logger.info "Patient #{id} merged into #{target_patient.id}"
-    end
-
-    self.merging = false
   end
 end

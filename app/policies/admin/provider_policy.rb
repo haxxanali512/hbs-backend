@@ -23,10 +23,6 @@ class Admin::ProviderPolicy < ApplicationPolicy
     accessible?("admin", "providers", "update")
   end
 
-  def bulk_approve?
-    approve?
-  end
-
   def destroy?
     accessible?("admin", "providers", "destroy")
   end
@@ -35,29 +31,16 @@ class Admin::ProviderPolicy < ApplicationPolicy
     accessible?("admin", "providers", "update")
   end
 
-  def fetch_from_ezclaim?
-    accessible?("admin", "providers", "create")
-  end
-
-  def save_from_ezclaim?
-    accessible?("admin", "providers", "create")
-  end
-
-
   def reject?
-    accessible?("admin", "providers", "update")
+    approve?
   end
 
-  def suspend?
-    accessible?("admin", "providers", "update")
+  def toggle_checklist_step?
+    update?
   end
 
-  def reactivate?
-    accessible?("admin", "providers", "update")
-  end
-
-  def resubmit?
-    accessible?("admin", "providers", "update")
+  def search?
+    index?
   end
 
   class Scope < ApplicationPolicy::Scope

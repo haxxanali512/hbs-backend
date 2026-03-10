@@ -28,6 +28,10 @@ module Admin
     accessible?("admin", "organizations", "destroy")
   end
 
+  def hard_destroy?
+    accessible?("admin", "organizations", "hard_destroy")
+  end
+
   def activate_tenant?
     accessible?("admin", "organizations", "activate_tenant")
   end

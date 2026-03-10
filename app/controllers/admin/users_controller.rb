@@ -1,13 +1,23 @@
 class Admin::UsersController < ::ApplicationController
-  before_action :set_user, only: [ :edit, :update, :destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
+  before_action :set_user, only: [ :edit, :update, :destroy, :hard_destroy, :suspend, :activate, :deactivate, :unlock, :reset_password, :reinvite, :change_role ]
 
   def index
-    @users = User.kept.includes(:role).order(created_at: :desc)
+    @users = User.with_discarded.includes(:role).order(created_at: :desc)
     @users = @users.where(role_id: params[:role_id]) if params[:role_id].present?
     if params[:search].present?
       search_term = "%#{params[:search]}%"
       @users = @users.where("email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?", search_term, search_term, search_term)
     end
+
+    case params[:archived]
+    when "archived"
+      @users = @users.discarded
+    when "all"
+      # no-op, already with_discarded
+    else
+      @users = @users.kept
+    end
+
     @pagy, @users = pagy(@users, items: 20)
     @roles = Role.order(:role_name)
   end
@@ -96,6 +106,28 @@ class Admin::UsersController < ::ApplicationController
       @user.discard
       redirect_to admin_users_path, notice: "User deleted successfully."
     end
+  end
+
+  def hard_destroy
+    unless current_user&.permissions_for("admin", "users", "hard_destroy")
+      redirect_to admin_users_path, alert: "Only users with the 'Hard Delete' permission can permanently delete users."
+      return
+    end
+
+    if @user == current_user
+      redirect_to admin_users_path, alert: "You cannot delete your own account."
+      return
+    end
+
+    if @user.super_admin?
+      redirect_to admin_users_path, alert: "Cannot permanently delete super admin accounts."
+      return
+    end
+
+    @user.destroy!
+    redirect_to admin_users_path, notice: "User and all related data permanently deleted."
+  rescue => e
+    redirect_to admin_users_path, alert: "Could not permanently delete user: #{e.message}"
   end
 
   def suspend

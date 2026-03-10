@@ -149,6 +149,17 @@
                   class: "block w-full text-center bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-md transition-colors",
                   data: { confirm: "Are you sure you want to retire this specialty?" } %>
             <% end %>
+
+            <% if current_user.permissions_for("admin", "specialties", "destroy") %>
+              <%= link_to "Delete", "#",
+                  class: "block w-full text-center bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors",
+                  data: {
+                    delete_choice: true,
+                    delete_choice_hard_url: admin_specialty_path(@specialty),
+                    delete_choice_title: "Delete Specialty",
+                    turbo: false
+                  } %>
+            <% end %>
           </div>
         </div>
       </div>

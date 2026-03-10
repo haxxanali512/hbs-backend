@@ -2,12 +2,20 @@ class Admin::OrganizationsController < Admin::BaseController
   include Admin::Concerns::OrganizationConcern
   include ActivationStepsConcern
 
-  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :activate_tenant, :suspend_tenant, :toggle_checklist_step, :toggle_plan_step ]
+  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :hard_destroy, :activate_tenant, :suspend_tenant, :toggle_checklist_step, :toggle_plan_step ]
 
   def index
-    @organizations = build_organizations_index_query
+    @organizations = build_organizations_index_query.with_discarded
     @organizations = apply_organizations_search(@organizations)
     @organizations = apply_organizations_status_filter(@organizations)
+    case params[:archived]
+    when "archived"
+      @organizations = @organizations.discarded
+    when "all"
+      # keep all
+    else
+      @organizations = @organizations.kept
+    end
     @pagy, @organizations = pagy(@organizations, items: 20)
   end
 
@@ -49,6 +57,31 @@ class Admin::OrganizationsController < Admin::BaseController
     NotificationService.notify_organization_deleted(organization_name, owner_email)
 
     redirect_to admin_organizations_path, notice: "Organization was successfully deleted."
+  end
+
+  def hard_destroy
+    unless current_user&.permissions_for("admin", "organizations", "hard_destroy")
+      redirect_to admin_organizations_path, alert: "You do not have permission to permanently delete organizations."
+      return
+    end
+
+    Organization.transaction do
+      # Best-effort deep destroy; some associations use restrict_with_error and may block deletion
+      @organization.support_tickets.destroy_all
+      @organization.notifications.destroy_all
+      @organization.organization_memberships.destroy_all
+      @organization.organization_locations.destroy_all
+      @organization.organization_fee_schedules.destroy_all
+      @organization.patients.destroy_all
+      @organization.invoices.destroy_all
+      @organization.payments.destroy_all
+
+      @organization.destroy!
+    end
+
+    redirect_to admin_organizations_path, notice: "Organization and related data permanently deleted."
+  rescue => e
+    redirect_to admin_organization_path(@organization), alert: "Could not permanently delete organization: #{e.message}"
   end
 
   def activate_tenant

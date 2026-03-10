@@ -190,13 +190,11 @@
             <div>
               <div class="flex items-center justify-between gap-2">
                 <label class="block text-sm font-medium text-gray-700">Clinical Documentation</label>
-                <% if !@encounter.cascaded? %>
-                  <button type="button"
-                          onclick="document.getElementById('attach_clinical_doc_modal').classList.remove('hidden'); document.body.style.overflow='hidden';"
-                          class="text-xs font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap">
-                    + Add document
-                  </button>
-                <% end %>
+                <button type="button"
+                        onclick="document.getElementById('attach_clinical_doc_modal').classList.remove('hidden'); document.body.style.overflow='hidden';"
+                        class="text-xs font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap">
+                  + Add document
+                </button>
               </div>
               <% if @encounter.clinical_documentations.with_file.any? %>
                 <ul class="mt-1 space-y-1.5 text-sm text-gray-900">
@@ -250,40 +248,38 @@
   </div>
 </div>
 
-<% if !@encounter.cascaded? %>
-  <div id="attach_clinical_doc_modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="attach_clinical_doc_modal_title" role="dialog" aria-modal="true">
-    <div class="flex min-h-full items-center justify-center p-4">
-      <div id="attach_clinical_doc_modal_backdrop" class="fixed inset-0 bg-black/40 transition-opacity" onclick="document.getElementById('attach_clinical_doc_modal').classList.add('hidden'); document.body.style.overflow='';"></div>
-      <div class="relative z-10 w-full max-w-md rounded-lg bg-white shadow-xl p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 id="attach_clinical_doc_modal_title" class="text-lg font-semibold text-gray-900">Add clinical document(s)</h3>
-          <button type="button" onclick="document.getElementById('attach_clinical_doc_modal').classList.add('hidden'); document.body.style.overflow='';" class="text-gray-400 hover:text-gray-600 rounded p-1">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <%= form_with url: attach_clinical_document_tenant_encounter_path(@encounter), method: :post, local: true, multipart: true, class: "space-y-4" do |f| %>
-          <%= render "shared/document_upload",
-              document_type: "clinical_documentation",
-              field_name: "clinical_document[files]",
-              label: "Clinical document(s)",
-              hint: "PDF or images (JPEG, PNG, GIF, WebP). Max 25MB per file." %>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" onclick="document.getElementById('attach_clinical_doc_modal').classList.add('hidden'); document.body.style.overflow='';" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Upload</button>
-          </div>
-        <% end %>
+<div id="attach_clinical_doc_modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="attach_clinical_doc_modal_title" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div id="attach_clinical_doc_modal_backdrop" class="fixed inset-0 bg-black/40 transition-opacity" onclick="document.getElementById('attach_clinical_doc_modal').classList.add('hidden'); document.body.style.overflow='';"></div>
+    <div class="relative z-10 w-full max-w-md rounded-lg bg-white shadow-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="attach_clinical_doc_modal_title" class="text-lg font-semibold text-gray-900">Add clinical document(s)</h3>
+        <button type="button" onclick="document.getElementById('attach_clinical_doc_modal').classList.add('hidden'); document.body.style.overflow='';" class="text-gray-400 hover:text-gray-600 rounded p-1">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
       </div>
+      <%= form_with url: attach_clinical_document_tenant_encounter_path(@encounter), method: :post, local: true, multipart: true, class: "space-y-4" do |f| %>
+        <%= render "shared/document_upload",
+            document_type: "clinical_documentation",
+            field_name: "clinical_document[files]",
+            label: "Clinical document(s)",
+            hint: "PDF or images (JPEG, PNG, GIF, WebP). Max 25MB per file." %>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="document.getElementById('attach_clinical_doc_modal').classList.add('hidden'); document.body.style.overflow='';" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Upload</button>
+        </div>
+      <% end %>
     </div>
   </div>
-  <script>
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        var m = document.getElementById('attach_clinical_doc_modal');
-        if (m && !m.classList.contains('hidden')) { m.classList.add('hidden'); document.body.style.overflow = ''; }
-      }
-    });
-  </script>
-<% end %>
+</div>
+<script>
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var m = document.getElementById('attach_clinical_doc_modal');
+      if (m && !m.classList.contains('hidden')) { m.classList.add('hidden'); document.body.style.overflow = ''; }
+    }
+  });
+</script>
 
 <%= render 'shared/ezclaim_modal',
     modal_id: 'encounterBillingModal',

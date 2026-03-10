@@ -82,11 +82,15 @@
                           data: { confirm: "Are you sure you want to retire this specialty?" } %>
                     <% end %>
                     
-                    <% if specialty.can_be_deleted? %>
-                      <%= link_to "Delete", admin_specialty_path(specialty), 
-                          method: :delete,
+                    <% if current_user.permissions_for("admin", "specialties", "destroy") %>
+                      <%= link_to "Delete", "#",
                           class: "text-red-600 hover:text-red-800",
-                          data: { confirm: "Are you sure you want to delete this specialty?" } %>
+                          data: {
+                            delete_choice: true,
+                            delete_choice_hard_url: admin_specialty_path(specialty),
+                            delete_choice_title: "Delete Specialty",
+                            turbo: false
+                          } %>
                     <% end %>
                   </div>
                 </td>

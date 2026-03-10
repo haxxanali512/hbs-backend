@@ -6,7 +6,7 @@
     when :notice, 'notice' then 'bg-green-50 border border-green-200 text-green-800'
     when :alert, 'alert', :error, 'error' then 'bg-red-50 border border-red-200 text-red-800'
     else 'bg-blue-50 border border-blue-200 text-blue-800'
-  end %>" data-turbo-cache="false">
+  end %>" data-turbo-temporary>
     <div class="flex">
       <div class="flex-shrink-0">
         <% if type.to_s == 'notice' || type == :notice %>

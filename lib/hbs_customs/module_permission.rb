@@ -68,7 +68,7 @@ module HbsCustoms
           clinical_documentations: { index: false, show: false, download: false },
           encounter_comments: { index: false, create: false, redact: false },
           provider_notes: DEFAULT_CRUD,
-          patients: DEFAULT_CRUD,
+          patients: DEFAULT_CRUD.merge(merge: false),
           org_accepted_plans: DEFAULT_CRUD.merge(activate: false, inactivate: false),
           payer_enrollments: { index: false },
           patient_insurance_coverages: DEFAULT_CRUD.merge(activate: false, terminate: false, replace: false, run_eligibility: false),
@@ -76,15 +76,16 @@ module HbsCustoms
           support_tickets: DEFAULT_CRUD.except(:destroy),
           support_ticket_comments: DEFAULT_CRUD.except(:destroy),
           claims: DEFAULT_CRUD.merge(claim_insured_data: false, submit_claim_insured: false, claim_data: false, submit_claim: false),
-          prescriptions: DEFAULT_CRUD.merge(archive: false, unarchive: false)
+          prescriptions: DEFAULT_CRUD.merge(archive: false, unarchive: false),
+          resources: { index: false, show: false }
         }.freeze
       end
 
       def admin_permissions
         {
           dashboard: { index: false },
-          organizations: DEFAULT_CRUD.merge(activate_tenant: false, suspend_tenant: false),
-          users: DEFAULT_CRUD.merge(masquerade: false),
+          organizations: DEFAULT_CRUD.merge(activate_tenant: false, suspend_tenant: false, hard_destroy: false),
+          users: DEFAULT_CRUD.merge(masquerade: false, hard_destroy: false),
           roles: DEFAULT_CRUD,
           organization_billings: DEFAULT_CRUD,
           invoices: DEFAULT_CRUD,
@@ -120,7 +121,8 @@ module HbsCustoms
           email_templates: DEFAULT_CRUD,
           data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false, upload_processing_file: false),
           prescriptions: DEFAULT_CRUD,
-          encounter_templates: DEFAULT_CRUD
+          encounter_templates: DEFAULT_CRUD,
+          resources: DEFAULT_CRUD
         }.freeze
       end
 

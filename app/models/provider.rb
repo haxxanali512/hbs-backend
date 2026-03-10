@@ -15,6 +15,7 @@ class Provider < ApplicationRecord
   has_many :provider_notes, dependent: :destroy
   has_many :claims, dependent: :restrict_with_error
   has_many :payer_enrollments, dependent: :restrict_with_error
+  has_one :provider_checklist, dependent: :destroy
 
   accepts_nested_attributes_for :provider_assignments, allow_destroy: true
   accepts_nested_attributes_for :provider_specialties, allow_destroy: true
@@ -84,13 +85,15 @@ class Provider < ApplicationRecord
   scope :by_specialty, ->(specialty_id) { joins(:specialties).where(specialties: { id: specialty_id }) }
   scope :recent, -> { order(created_at: :desc) }
   scope :pending_approval, -> { where(status: "pending") }
-  scope :active, -> { where(status: "approved") }
+  # Treat all non-deactivated providers as active for selection/billing
+  scope :active, -> { where.not(status: "deactivated") }
   scope :search, ->(term) { where("first_name ILIKE ? OR last_name ILIKE ? OR npi ILIKE ? OR license_number ILIKE ?", "%#{term}%", "%#{term}%", "%#{term}%", "%#{term}%") }
 
   # Callbacks
   before_validation :normalize_npi
   after_create :assign_to_organization_if_needed
   after_create :create_support_ticket_for_hbs
+  after_create :notify_hbs_of_new_provider
 
   # This will be set from the controller context
   attr_accessor :assign_to_organization_id
@@ -141,7 +144,7 @@ class Provider < ApplicationRecord
   end
 
   def can_be_added_to_claims?
-    approved?
+    !deactivated?
   end
 
   def can_be_added_to_encounters?
@@ -231,6 +234,12 @@ class Provider < ApplicationRecord
 
   def has_w9_document?
     w9_documents.any?
+  end
+
+  def notify_hbs_of_new_provider
+    ProviderNotificationService.notify_submission(self)
+  rescue => e
+    Rails.logger.error("Failed to send provider submission notification for provider #{id}: #{e.message}")
   end
 
   def create_support_ticket_for_hbs
