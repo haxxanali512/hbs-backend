@@ -420,12 +420,6 @@ class Tenant::EncountersController < Tenant::BaseController
     # Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for background processing to Waystar via EDI 837"
     Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for manual billing review"
 
-    # Notify super admins about the submission
-    NotificationService.notify_encounters_submitted_for_billing(
-      organization: @current_organization,
-      encounter_count: valid_encounters.size
-    )
-
     respond_to do |format|
       format.html do
         flash[:notice] = "#{valid_encounters.size} encounter(s) queued for billing submission."
