@@ -32,6 +32,9 @@ class Admin::PrescriptionsController < Admin::BaseController
       @prescriptions = @prescriptions.where(expired: true)
     when "archived"
       @prescriptions = @prescriptions.where(archived: true)
+    when "expiring"
+      @prescriptions = @prescriptions.where(archived: false, expired: false)
+        .where("prescriptions.expires_on BETWEEN ? AND ?", Date.current, Date.current + 30.days)
     end
 
     if params[:date_from].present?
@@ -96,6 +99,7 @@ class Admin::PrescriptionsController < Admin::BaseController
     @organization_options = Organization.kept.order(:name)
     @status_options = [
       ["Active", "active"],
+      ["Expiring Soon", "expiring"],
       ["Expired", "expired"],
       ["Archived", "archived"]
     ]

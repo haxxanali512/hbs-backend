@@ -14,6 +14,11 @@ class Tenant::PrescriptionsController < Tenant::BaseController
     @prescriptions = @prescriptions.where(expired: params[:expired] == "true") if params[:expired].present?
     @prescriptions = @prescriptions.where(specialty_id: params[:specialty_id]) if params[:specialty_id].present?
 
+    if params[:expiring] == "true"
+      @prescriptions = @prescriptions.where(archived: false)
+        .where("expires_on BETWEEN ? AND ?", Date.current, Date.current + 30.days)
+    end
+
     # Search
     if params[:search].present?
       @prescriptions = @prescriptions.joins(:patient).where(
