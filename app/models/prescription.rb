@@ -6,7 +6,7 @@ class Prescription < ApplicationRecord
   # Associations
   belongs_to :organization
   belongs_to :patient
-  belongs_to :specialty, optional: true
+  belongs_to :specialty
   belongs_to :procedure_code, optional: true
   belongs_to :provider, optional: true
   has_many :encounters, dependent: :nullify

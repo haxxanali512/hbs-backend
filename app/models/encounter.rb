@@ -7,7 +7,7 @@ class Encounter < ApplicationRecord
   belongs_to :organization
   belongs_to :patient
   belongs_to :provider
-  belongs_to :specialty, optional: true
+  belongs_to :specialty
   belongs_to :prescription, optional: true
   belongs_to :encounter_template, optional: true
   belongs_to :organization_location, optional: true

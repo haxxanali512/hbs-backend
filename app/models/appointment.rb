@@ -7,7 +7,7 @@ class Appointment < ApplicationRecord
   belongs_to :organization_location
   belongs_to :provider
   belongs_to :patient
-  belongs_to :specialty, optional: true
+  belongs_to :specialty
   has_many :encounters, dependent: :restrict_with_error
 
   # Enums

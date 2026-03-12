@@ -63,19 +63,19 @@ class Admin::SpecialtiesController < Admin::BaseController
     end
 
     Specialty.transaction do
-      Encounter.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
-      Claim.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
-      Appointment.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
-      Prescription.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
-      EncounterTemplate.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
+      Encounter.where(specialty_id: @specialty.id).delete_all
+      Claim.where(specialty_id: @specialty.id).delete_all
+      Appointment.where(specialty_id: @specialty.id).delete_all
+      Prescription.where(specialty_id: @specialty.id).delete_all
+      EncounterTemplate.where(specialty_id: @specialty.id).delete_all
 
-      @specialty.procedure_codes_specialties.destroy_all
-      @specialty.provider_specialties.destroy_all
-      @specialty.organization_fee_schedule_specialties.destroy_all
+      @specialty.procedure_codes_specialties.delete_all
+      @specialty.provider_specialties.delete_all
+      @specialty.organization_fee_schedule_specialties.delete_all
       @specialty.destroy!
     end
 
-    redirect_to admin_specialties_path, notice: "Specialty '#{@specialty.name}' deleted successfully. All associated mappings were removed."
+    redirect_to admin_specialties_path, notice: "Specialty '#{@specialty.name}' and all associated data deleted successfully."
   rescue => e
     redirect_to admin_specialty_path(@specialty), alert: "Failed to delete specialty: #{e.message}"
   end

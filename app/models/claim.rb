@@ -4,7 +4,7 @@ class Claim < ApplicationRecord
   belongs_to :encounter
   belongs_to :patient
   belongs_to :provider
-  belongs_to :specialty, optional: true
+  belongs_to :specialty
   belongs_to :patient_insurance_coverage, optional: true
 
   has_many :claim_lines, dependent: :destroy
