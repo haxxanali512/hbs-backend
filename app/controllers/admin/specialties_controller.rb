@@ -1,4 +1,6 @@
 class Admin::SpecialtiesController < Admin::BaseController
+  include Admin::Concerns::SpecialtyDestroy
+
   before_action :set_specialty, only: [ :show, :edit, :update, :destroy, :retire, :impact_analysis ]
 
   def index
@@ -62,20 +64,10 @@ class Admin::SpecialtiesController < Admin::BaseController
       return
     end
 
-    Specialty.transaction do
-      Encounter.where(specialty_id: @specialty.id).delete_all
-      Claim.where(specialty_id: @specialty.id).delete_all
-      Appointment.where(specialty_id: @specialty.id).delete_all
-      Prescription.where(specialty_id: @specialty.id).delete_all
-      EncounterTemplate.where(specialty_id: @specialty.id).delete_all
+    specialty_name = @specialty.name
+    cascade_delete_specialty!(@specialty)
 
-      @specialty.procedure_codes_specialties.delete_all
-      @specialty.provider_specialties.delete_all
-      @specialty.organization_fee_schedule_specialties.delete_all
-      @specialty.destroy!
-    end
-
-    redirect_to admin_specialties_path, notice: "Specialty '#{@specialty.name}' and all associated data deleted successfully."
+    redirect_to admin_specialties_path, notice: "Specialty '#{specialty_name}' and all associated data deleted successfully."
   rescue => e
     redirect_to admin_specialty_path(@specialty), alert: "Failed to delete specialty: #{e.message}"
   end
