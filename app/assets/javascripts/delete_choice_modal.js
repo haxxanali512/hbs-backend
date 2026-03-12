@@ -93,9 +93,10 @@
       if (confirmBtn) confirmBtn.textContent = btnLabel;
       if (messageEl) {
         if (message) {
-          messageEl.textContent = message;
+          messageEl.innerHTML = message;
           messageEl.classList.remove('hidden');
         } else {
+          messageEl.innerHTML = '';
           messageEl.classList.add('hidden');
         }
       }

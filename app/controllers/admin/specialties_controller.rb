@@ -63,13 +63,19 @@ class Admin::SpecialtiesController < Admin::BaseController
     end
 
     Specialty.transaction do
+      Encounter.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
+      Claim.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
+      Appointment.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
+      Prescription.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
+      EncounterTemplate.where(specialty_id: @specialty.id).update_all(specialty_id: nil)
+
       @specialty.procedure_codes_specialties.destroy_all
       @specialty.provider_specialties.destroy_all
       @specialty.organization_fee_schedule_specialties.destroy_all
       @specialty.destroy!
     end
 
-    redirect_to admin_specialties_path, notice: "Specialty deleted successfully. All associated CPT mappings and provider assignments were removed."
+    redirect_to admin_specialties_path, notice: "Specialty '#{@specialty.name}' deleted successfully. All associated mappings were removed."
   rescue => e
     redirect_to admin_specialty_path(@specialty), alert: "Failed to delete specialty: #{e.message}"
   end

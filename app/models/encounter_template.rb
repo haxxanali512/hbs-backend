@@ -1,7 +1,7 @@
 class EncounterTemplate < ApplicationRecord
   audited
 
-  belongs_to :specialty
+  belongs_to :specialty, optional: true
   has_many :encounter_template_lines, -> { order(:position) }, dependent: :destroy, inverse_of: :encounter_template
 
   accepts_nested_attributes_for :encounter_template_lines, allow_destroy: true

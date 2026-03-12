@@ -88,7 +88,8 @@
                           data: {
                             delete_choice: true,
                             delete_choice_hard_url: admin_specialty_path(specialty),
-                            delete_choice_title: "Delete Specialty",
+                            delete_choice_title: "Delete Specialty: #{specialty.name}",
+                            delete_choice_message: "<strong class='text-red-700'>⚠ Warning:</strong> This will permanently delete the specialty and remove all CPT mappings, provider assignments, and fee schedule links. Encounters, claims, prescriptions, and appointments will be unlinked from this specialty.",
                             turbo: false
                           } %>
                     <% end %>
