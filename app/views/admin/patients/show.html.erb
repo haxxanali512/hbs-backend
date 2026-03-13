@@ -195,6 +195,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payer</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group Number</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscriber / Relation</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effective / Term</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -218,6 +219,9 @@
                       </td>
                       <td class="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">
                         <%= coverage.member_id %>
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">
+                        <%= coverage.group_number.presence || "—" %>
                       </td>
                       <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                         <div><%= coverage.subscriber_name %></div>

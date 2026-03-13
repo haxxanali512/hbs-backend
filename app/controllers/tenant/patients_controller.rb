@@ -285,6 +285,7 @@ class Tenant::PatientsController < Tenant::BaseController
         :id,
         :insurance_plan_id,
         :member_id,
+        :group_number,
         :subscriber_name,
         :relationship_to_subscriber,
         :coverage_order,
