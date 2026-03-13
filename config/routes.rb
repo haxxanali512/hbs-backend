@@ -550,6 +550,12 @@ Rails.application.routes.draw do
         # Claims index removed per request; comment out tenant claims routes
         # resources :claims, only: [ :index, :show ]
 
+        resources :payments, only: [ :index ] do
+          collection do
+            get :export
+          end
+        end
+
         resource :organization_setting, only: [ :show, :edit, :update ]
       end
     end

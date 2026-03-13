@@ -77,6 +77,7 @@ module HbsCustoms
           support_ticket_comments: DEFAULT_CRUD.except(:destroy),
           claims: DEFAULT_CRUD.merge(claim_insured_data: false, submit_claim_insured: false, claim_data: false, submit_claim: false),
           prescriptions: DEFAULT_CRUD.merge(archive: false, unarchive: false),
+          payments: { index: false, export: false },
           resources: { index: false, show: false }
         }.freeze
       end
