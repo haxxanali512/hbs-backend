@@ -16,6 +16,7 @@
   <div 
     id="notifications-dropdown"
     class="hidden absolute right-0 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg z-50"
+    style="max-height: calc(100vh - 6rem); display: none;"
   >
     <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
       <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
@@ -30,7 +31,7 @@
       <% end %>
     </div>
     
-    <div id="notifications_list" class="max-h-96 overflow-y-auto">
+    <div id="notifications_list" class="overflow-y-auto" style="max-height: 400px;">
       <% notifications = current_user.notifications.recent.limit(10) %>
       <% if notifications.any? %>
         <% notifications.each do |notification| %>
@@ -75,13 +76,14 @@
     // Create new handlers
     const buttonClickHandler = function(e) {
       e.stopPropagation();
-      dropdown.classList.toggle('hidden');
+      var isHidden = dropdown.style.display === 'none' || dropdown.style.display === '';
+      dropdown.style.display = isHidden ? 'block' : 'none';
     };
 
     const documentClickHandler = function(event) {
       const container = document.getElementById('notifications-container');
       if (container && !container.contains(event.target)) {
-        dropdown.classList.add('hidden');
+        dropdown.style.display = 'none';
       }
     };
 

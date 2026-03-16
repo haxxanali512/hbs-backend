@@ -151,12 +151,39 @@
             <% end %>
 
             <% if current_user.permissions_for("admin", "specialties", "destroy") %>
+              <%
+                enc_count = Encounter.where(specialty_id: @specialty.id).count
+                claim_count = Claim.where(specialty_id: @specialty.id).count
+                appt_count = Appointment.where(specialty_id: @specialty.id).count
+                rx_count = Prescription.where(specialty_id: @specialty.id).count
+                tmpl_count = EncounterTemplate.where(specialty_id: @specialty.id).count
+                provider_count = @specialty.providers.count
+                cpt_count = @specialty.procedure_codes.count
+                fee_count = @specialty.organization_fee_schedule_specialties.count
+
+                impact_lines = []
+                impact_lines << "#{provider_count} provider assignment(s)" if provider_count > 0
+                impact_lines << "#{cpt_count} CPT code mapping(s)" if cpt_count > 0
+                impact_lines << "#{fee_count} fee schedule link(s)" if fee_count > 0
+                impact_lines << "#{enc_count} encounter(s)" if enc_count > 0
+                impact_lines << "#{claim_count} claim(s)" if claim_count > 0
+                impact_lines << "#{appt_count} appointment(s)" if appt_count > 0
+                impact_lines << "#{rx_count} prescription(s)" if rx_count > 0
+                impact_lines << "#{tmpl_count} encounter template(s)" if tmpl_count > 0
+
+                if impact_lines.any?
+                  warning_html = "<strong class='text-red-700'>⚠ Warning — the following will be permanently deleted:</strong><ul class='mt-2 ml-4 list-disc text-sm text-gray-700 space-y-1'>#{impact_lines.map { |l| "<li>#{l}</li>" }.join}</ul><p class='mt-2 text-xs text-red-500 font-medium'>This action cannot be undone.</p>"
+                else
+                  warning_html = "This specialty has no dependent data. It will be permanently deleted."
+                end
+              %>
               <%= link_to "Delete", "#",
                   class: "block w-full text-center bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors",
                   data: {
                     delete_choice: true,
                     delete_choice_hard_url: admin_specialty_path(@specialty),
-                    delete_choice_title: "Delete Specialty",
+                    delete_choice_title: "Delete Specialty: #{@specialty.name}",
+                    delete_choice_message: warning_html,
                     turbo: false
                   } %>
             <% end %>

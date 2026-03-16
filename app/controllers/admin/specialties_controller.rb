@@ -1,4 +1,6 @@
 class Admin::SpecialtiesController < Admin::BaseController
+  include Admin::Concerns::SpecialtyDestroy
+
   before_action :set_specialty, only: [ :show, :edit, :update, :destroy, :retire, :impact_analysis ]
 
   def index
@@ -62,14 +64,10 @@ class Admin::SpecialtiesController < Admin::BaseController
       return
     end
 
-    Specialty.transaction do
-      @specialty.procedure_codes_specialties.destroy_all
-      @specialty.provider_specialties.destroy_all
-      @specialty.organization_fee_schedule_specialties.destroy_all
-      @specialty.destroy!
-    end
+    specialty_name = @specialty.name
+    cascade_delete_specialty!(@specialty)
 
-    redirect_to admin_specialties_path, notice: "Specialty deleted successfully. All associated CPT mappings and provider assignments were removed."
+    redirect_to admin_specialties_path, notice: "Specialty '#{specialty_name}' and all associated data deleted successfully."
   rescue => e
     redirect_to admin_specialty_path(@specialty), alert: "Failed to delete specialty: #{e.message}"
   end

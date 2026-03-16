@@ -398,6 +398,7 @@
           <% procedure_codes_active = controller_path == 'tenant/procedure_codes' %>
           <% diagnosis_codes_active = controller_path == 'tenant/diagnosis_codes' %>
           <% invoices_active = controller_path == 'tenant/invoices' %>
+          <% payments_active = controller_path == 'tenant/payments' %>
           <% support_tickets_active = controller_path == 'tenant/support_tickets' %>
           <% settings_active = controller_path == 'tenant/organization_settings' %>
           <% resources_active = controller_path == 'tenant/resources' %>
@@ -405,7 +406,7 @@
           <% practice_active = providers_active || specialties_active || fee_schedules_active || accepted_plans_active || org_locations_active || payer_enrollments_active %>
           <% clinical_active = patients_active || coverages_active || encounters_active || clinical_documentations_active || prescriptions_active || eligibility_checks_active %>
           <% codes_active = procedure_codes_active || diagnosis_codes_active %>
-          <% financial_active = invoices_active || support_tickets_active || settings_active || resources_active %>
+          <% financial_active = invoices_active || payments_active || support_tickets_active || settings_active || resources_active %>
 
           <% if current_user.permissions_for("tenant", "dashboard", "index") %>
             <li>
@@ -573,6 +574,13 @@
                 <li>
                   <%= link_to tenant_invoices_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{invoices_active ? 'active' : ''} #{invoices_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
                     <span>Invoices</span>
+                  <% end %>
+                </li>
+              <% end %>
+              <% if current_user.permissions_for("tenant", "payments", "index") %>
+                <li>
+                  <%= link_to tenant_payments_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{payments_active ? 'active' : ''} #{payments_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
+                    <span>Payments</span>
                   <% end %>
                 </li>
               <% end %>

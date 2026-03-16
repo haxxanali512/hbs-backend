@@ -20,7 +20,7 @@ class Admin::EncountersController < Admin::BaseController
   def billing_queue
     @encounters = Encounter
       .kept
-      .includes(:patient, :provider, :organization, :diagnosis_codes, encounter_procedure_items: :procedure_code)
+      .includes(:patient, :provider, :organization, :diagnosis_codes, :encounter_comments, encounter_procedure_items: :procedure_code)
       .where(internal_status: :queued_for_billing)
 
     if params[:search].present?

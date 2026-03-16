@@ -150,7 +150,7 @@ class Admin::PatientInsuranceCoveragesController < Admin::BaseController
   def patient_insurance_coverage_params
     permitted = params.require(:patient_insurance_coverage).permit(
       :organization_id, :patient_id, :insurance_plan_id, :member_id,
-      :subscriber_name, :relationship_to_subscriber, :coverage_order,
+      :group_number, :subscriber_name, :relationship_to_subscriber, :coverage_order,
       :effective_date, :termination_date, :status,
       subscriber_address: {}
     )

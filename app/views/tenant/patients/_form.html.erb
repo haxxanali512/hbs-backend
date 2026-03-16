@@ -219,6 +219,14 @@
             </div>
 
             <div>
+              <%= coverage_form.label :group_number, "Group Number", class: "block text-sm font-medium text-gray-700 mb-1" %>
+              <%= coverage_form.text_field :group_number, 
+                  class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500", 
+                  placeholder: "GRP001" %>
+              <p class="text-xs text-gray-500 mt-1">Enter group number if provided by payer</p>
+            </div>
+
+            <div>
               <%= coverage_form.label :coverage_order, "Coverage Order (Primary/Secondary/Tertiary)", class: "block text-sm font-medium text-gray-700 mb-1" %>
               <%= coverage_form.select :coverage_order, 
                   options_for_select([

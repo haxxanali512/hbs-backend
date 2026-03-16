@@ -53,6 +53,14 @@
       </div>
 
       <div>
+        <%= f.label :group_number, "Group Number", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :group_number, 
+            class: "w-full border border-gray-300 rounded-md px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500", 
+            placeholder: "GRP001" %>
+        <p class="text-xs text-gray-500 mt-1">Enter group number if provided by payer</p>
+      </div>
+
+      <div>
         <%= f.label :coverage_order, "Coverage Order", class: "block text-sm font-medium text-gray-700 mb-1" %>
         <%= f.select :coverage_order, 
             options_for_select(PatientInsuranceCoverage.coverage_orders.keys.map { |k| [k.humanize, k] }, patient_insurance_coverage.coverage_order),

@@ -164,6 +164,10 @@
                           <span class="ml-2 font-mono text-gray-900"><%= coverage.member_id %></span>
                         </div>
                         <div>
+                          <span class="text-gray-500">Group Number:</span>
+                          <span class="ml-2 font-mono text-gray-900"><%= coverage.group_number.presence || "—" %></span>
+                        </div>
+                        <div>
                           <span class="text-gray-500">Subscriber:</span>
                           <span class="ml-2 text-gray-900"><%= coverage.subscriber_name %></span>
                         </div>

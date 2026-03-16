@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_05_141335) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_13_152720) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -845,6 +845,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_05_141335) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "group_number"
     t.index ["coverage_order"], name: "index_patient_insurance_coverages_on_coverage_order"
     t.index ["insurance_plan_id"], name: "index_patient_insurance_coverages_on_insurance_plan_id"
     t.index ["organization_id", "patient_id"], name: "idx_on_organization_id_patient_id_e712d5a003"

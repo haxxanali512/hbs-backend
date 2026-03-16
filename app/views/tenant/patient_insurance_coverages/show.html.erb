@@ -38,6 +38,10 @@
               <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @patient_insurance_coverage.member_id %></dd>
             </div>
             <div>
+              <dt class="text-sm font-medium text-gray-500">Group Number</dt>
+              <dd class="mt-1 text-sm text-gray-900 font-mono"><%= @patient_insurance_coverage.group_number.presence || "—" %></dd>
+            </div>
+            <div>
               <dt class="text-sm font-medium text-gray-500">Coverage Order</dt>
               <dd class="mt-1 text-sm text-gray-900"><%= @patient_insurance_coverage.coverage_order.humanize %></dd>
             </div>
