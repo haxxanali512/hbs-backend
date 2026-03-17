@@ -59,7 +59,7 @@ class Payment < ApplicationRecord
   private
 
   def update_invoice_amounts
-    return unless succeeded?
+    return unless succeeded? && invoice.present?
 
     invoice.with_lock do
       invoice.amount_paid = (invoice.amount_paid + amount).round(2)
@@ -69,7 +69,7 @@ class Payment < ApplicationRecord
   end
 
   def check_invoice_fully_paid
-    return unless succeeded?
+    return unless succeeded? && invoice.present?
 
     invoice.reload
     if invoice.amount_due <= 0 && invoice.status != "paid"
