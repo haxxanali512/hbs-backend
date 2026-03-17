@@ -91,6 +91,13 @@
                          class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
       </div>
     </div>
+
+    <div class="flex items-center gap-2">
+      <%= f.check_box :generate_invoice, {}, "1", "0" %>
+      <%= f.label :generate_invoice,
+                  "Generate patient invoice for this payment (optional)",
+                  class: "text-sm text-gray-700" %>
+    </div>
   </div>
 
   <% if encounter %>
