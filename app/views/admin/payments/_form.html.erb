@@ -123,7 +123,8 @@
                     <%= line.procedure_code&.description || "—" %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
-                    $<%= number_with_precision(line.amount_billed || 0, precision: 2, delimiter: ",") %>
+                    <% billed = line.respond_to?(:amount_billed) ? line.amount_billed : nil %>
+                    $<%= number_with_precision(billed || 0, precision: 2, delimiter: ",") %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
                     <div class="flex justify-end">

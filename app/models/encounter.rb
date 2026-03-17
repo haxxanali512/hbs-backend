@@ -253,6 +253,69 @@ class Encounter < ApplicationRecord
     billing_channel == "self_pay"
   end
 
+  # Create a simple Claim and ClaimLine records from this encounter's
+  # procedure items if a claim does not yet exist. Intended to run when
+  # marking a claim as billed so that there is always a concrete claim
+  # artifact for record keeping and payments.
+  def create_claim_with_lines_if_missing!
+    return unless insurance?
+    return if claim.present?
+
+    items = encounter_procedure_items.includes(:procedure_code)
+    return if items.empty?
+
+    pos_code = resolved_place_of_service_code
+
+    claim_record = Claim.create!(
+      organization_id: organization_id,
+      encounter_id: id,
+      patient_id: patient_id,
+      provider_id: provider_id,
+      specialty_id: specialty_id,
+      place_of_service_code: pos_code,
+      status: :generated,
+      generated_at: Time.current
+    )
+
+    items.each do |item|
+      proc_code = item.procedure_code
+      next unless proc_code
+
+      pricing_result = FeeSchedulePricingService.resolve_pricing(
+        organization_id,
+        provider_id,
+        proc_code.id
+      )
+
+      units = item.units.to_i.positive? ? item.units.to_i : 1
+
+      unit_price = if pricing_result[:success]
+        pricing_result[:pricing][:unit_price].to_f
+      else
+        0.0
+      end
+
+      amount_billed = if pricing_result[:success] && pricing_result[:pricing][:pricing_rule] == "flat"
+        unit_price
+      else
+        unit_price * units
+      end
+
+      claim_record.claim_lines.create!(
+        procedure_code_id: proc_code.id,
+        units: units,
+        amount_billed: amount_billed,
+        modifiers: item.modifiers || [],
+        place_of_service_code: pos_code,
+        status: :generated
+      )
+    end
+
+    update_column(:claim_id, claim_record.id)
+
+    claim_record
+  end
+
   def recalculate_payment_summary!
     apps = payment_applications.includes(:payment).to_a
 
@@ -780,6 +843,7 @@ class Encounter < ApplicationRecord
     # CLAIM_LINES_REQUIRED validation on the initial save; we'll add lines
     # immediately afterward.
     pos_code = resolved_place_of_service_code
+    byebug
     claim_record = claim || begin
       record = Claim.new(
         organization_id: organization_id,

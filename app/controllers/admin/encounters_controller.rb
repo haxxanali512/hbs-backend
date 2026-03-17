@@ -275,6 +275,8 @@ class Admin::EncountersController < Admin::BaseController
 
   def bill_claim
     encounter = @encounter
+    # Ensure a basic claim and service lines exist for record keeping and payments
+    encounter.create_claim_with_lines_if_missing!
 
     # Set internal_status to billed first so the encounter is removed from the billing queue
     # immediately, even if later workflow steps fail or run validations that block update!

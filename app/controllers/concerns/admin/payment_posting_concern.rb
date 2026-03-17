@@ -16,7 +16,17 @@ module Admin::PaymentPostingConcern
   def build_payment_context
     @payment = Payment.new if @payment.nil?
     @claim = @encounter&.claim
-    @claim_lines = @claim&.claim_lines&.includes(:procedure_code) || []
+    claim_lines =
+      if @claim&.claim_lines&.any?
+        @claim.claim_lines.includes(:procedure_code)
+      elsif @encounter
+        # Fallback to encounter_procedure_items so service lines are always visible,
+        # even before a claim has been generated.
+        @encounter.encounter_procedure_items.includes(:procedure_code)
+      else
+        []
+      end
+    @claim_lines = claim_lines
     @applications_by_line =
       if @encounter
         @encounter.payment_applications.index_by(&:claim_line_id)
