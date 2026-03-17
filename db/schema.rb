@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_13_152720) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_16_120500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -458,6 +458,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_13_152720) do
     t.string "duplicate_check_fingerprint"
     t.bigint "billed_by_id"
     t.datetime "billed_at"
+    t.integer "payment_status"
+    t.date "payment_date"
+    t.decimal "total_paid_amount", precision: 10, scale: 2, default: "0.0", null: false
     t.index ["appointment_id"], name: "index_encounters_on_appointment_id"
     t.index ["billed_by_id"], name: "index_encounters_on_billed_by_id"
     t.index ["cascaded"], name: "index_encounters_on_cascaded"
@@ -473,6 +476,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_13_152720) do
     t.index ["patient_id"], name: "index_encounters_on_patient_id"
     t.index ["patient_insurance_coverage_id"], name: "index_encounters_on_patient_insurance_coverage_id"
     t.index ["patient_invoice_id"], name: "index_encounters_on_patient_invoice_id"
+    t.index ["payment_date"], name: "index_encounters_on_payment_date"
+    t.index ["payment_status"], name: "index_encounters_on_payment_status"
     t.index ["place_of_service_code"], name: "index_encounters_on_place_of_service_code"
     t.index ["prescription_id"], name: "index_encounters_on_prescription_id"
     t.index ["provider_id"], name: "index_encounters_on_provider_id"
@@ -938,9 +943,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_13_152720) do
     t.bigint "encounter_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "line_status"
+    t.text "denial_reason"
+    t.text "note"
     t.index ["claim_id", "claim_line_id"], name: "index_payment_applications_on_claim_id_and_claim_line_id"
     t.index ["claim_id"], name: "index_payment_applications_on_claim_id"
     t.index ["claim_line_id"], name: "index_payment_applications_on_claim_line_id"
+    t.index ["line_status"], name: "index_payment_applications_on_line_status"
     t.index ["payment_id"], name: "index_payment_applications_on_payment_id"
   end
 

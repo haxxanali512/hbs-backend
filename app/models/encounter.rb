@@ -34,6 +34,7 @@ class Encounter < ApplicationRecord
   has_many :encounter_comments, dependent: :destroy
   has_many :encounter_comment_seens, dependent: :destroy
   has_many :provider_notes, dependent: :destroy
+  has_many :payment_applications, dependent: :nullify
   # has_many :encounter_tasks, dependent: :destroy
   # Documents now use Active Storage
   has_many_attached :documents
@@ -173,6 +174,14 @@ class Encounter < ApplicationRecord
     end
   end
 
+  enum :payment_status, {
+    unpaid: 0,
+    partially_paid: 1,
+    paid: 2,
+    denied: 3,
+    mixed: 4
+  }, prefix: true
+
   # ===========================================================
   # VALIDATIONS
   # ===========================================================
@@ -242,6 +251,36 @@ class Encounter < ApplicationRecord
 
   def self_pay?
     billing_channel == "self_pay"
+  end
+
+  def recalculate_payment_summary!
+    apps = payment_applications.includes(:payment).to_a
+
+    total_paid = apps.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+
+    statuses = apps.map(&:line_status).compact.uniq.map(&:to_s)
+
+    new_status =
+      if apps.empty? || (total_paid.zero? && statuses.empty?)
+        :unpaid
+      elsif statuses.all? { |s| s == "paid" || s == "adjusted" }
+        :paid
+      elsif statuses.all? { |s| s == "denied" }
+        :denied
+      elsif statuses.include?("paid") || statuses.include?("adjusted")
+        statuses.include?("denied") ? :mixed : :partially_paid
+      else
+        :unpaid
+      end
+
+    new_payment_date =
+      apps.map { |a| a.payment&.payment_date || a.payment&.created_at }.compact.min
+
+    update!(
+      total_paid_amount: total_paid,
+      payment_status: new_status,
+      payment_date: new_payment_date
+    )
   end
 
   def can_be_cancelled?

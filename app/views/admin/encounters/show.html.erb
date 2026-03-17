@@ -128,6 +128,9 @@
                       class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
                 Submit for Billing
               </button>
+              <%= link_to "Post Payments",
+                          new_admin_payment_path(encounter_id: @encounter.id),
+                          class: "w-full inline-flex justify-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
             </div>
           </div>
         <% end %>

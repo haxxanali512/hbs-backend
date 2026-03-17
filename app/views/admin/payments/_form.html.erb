@@ -1,0 +1,269 @@
+<%= form_with model: [:admin, payment], url: admin_payments_path, method: :post, local: true, class: "space-y-6" do |f| %>
+  <% if payment.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            <%= pluralize(payment.errors.count, "error") %> prohibited this payment from being saved:
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5 space-y-1">
+              <% payment.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <% if encounter %>
+    <%= hidden_field_tag :encounter_id, encounter.id %>
+  <% end %>
+
+  <% if encounter %>
+    <!-- Encounter Summary -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Encounter Summary</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <div class="text-sm font-medium text-gray-700 mb-1">Patient</div>
+          <div class="text-sm text-gray-900">
+            <%= encounter.patient.first_name %> <%= encounter.patient.last_name %>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm font-medium text-gray-700 mb-1">Provider</div>
+          <div class="text-sm text-gray-900">
+            <%= encounter.provider.full_name %>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm font-medium text-gray-700 mb-1">Date of Service</div>
+          <div class="text-sm text-gray-900">
+            <%= encounter.date_of_service&.strftime("%m/%d/%Y") %>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm font-medium text-gray-700 mb-1">Current Payment Status</div>
+          <div class="text-sm text-gray-900">
+            <%= encounter.payment_status&.to_s&.humanize || "Unpaid" %>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm font-medium text-gray-700 mb-1">Total Paid</div>
+          <div class="text-sm text-gray-900">
+            $<%= number_with_precision(encounter.total_paid_amount || 0, precision: 2, delimiter: ",") %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Payment Header -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-medium text-gray-900">Payment Header</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <%= f.label :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :payer_id,
+                     options_from_collection_for_select(@payers || Payer.active_only.order(:name), :id, :name, payment.payer_id),
+                     { prompt: "Select payer..." },
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
+      </div>
+      <div>
+        <%= f.label :payment_date, "Payment Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.date_field :payment_date,
+                         value: (payment.payment_date || Date.current),
+                         class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
+      </div>
+      <div class="md:col-span-1">
+        <%= f.label :remit_reference, "Remit Reference", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.text_field :remit_reference,
+                         value: payment.remit_reference,
+                         placeholder: "Optional reference (e.g. check #, ERA ID)",
+                         class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
+      </div>
+    </div>
+  </div>
+
+  <% if encounter %>
+    <!-- Service Lines -->
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">Service Lines</h3>
+
+      <% if claim_lines.present? %>
+        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Billed</th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Amount</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Denial Reason</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200" id="service-lines-body">
+              <% claim_lines.each do |line| %>
+                <% application = applications_by_line[line.id] %>
+                <tr id="service-line-<%= line.id %>">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <%= line.procedure_code&.code || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= line.procedure_code&.description || "—" %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
+                    $<%= number_with_precision(line.amount_billed || 0, precision: 2, delimiter: ",") %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
+                    <div class="flex justify-end">
+                      <input
+                        type="number"
+                        name="service_lines[<%= line.id %>][amount_paid]"
+                        step="0.01"
+                        min="0"
+                        value="<%= application&.amount_applied %>"
+                        class="inline-block w-24 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-right amount-input"
+                        data-service-line-id="<%= line.id %>"
+                      />
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 align-middle">
+                    <div class="flex">
+                      <select
+                        name="service_lines[<%= line.id %>][status]"
+                        class="mt-1 inline-block w-28 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm status-select"
+                        data-service-line-id="<%= line.id %>"
+                      >
+                        <% current_status = application&.line_status&.to_s %>
+                        <option value="" <%= current_status.blank? ? "selected" : "" %>>Unpaid</option>
+                        <option value="paid" <%= current_status == "paid" ? "selected" : "" %>>Paid</option>
+                        <option value="denied" <%= current_status == "denied" ? "selected" : "" %>>Denied</option>
+                      </select>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 align-middle">
+                    <textarea
+                      name="service_lines[<%= line.id %>][denial_reason]"
+                      rows="2"
+                      class="mt-1 block w-64 max-w-xs border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm denial-textarea"
+                      data-service-line-id="<%= line.id %>"
+                      <%= current_status == "denied" ? "" : "style=\"display:none;\"" %>
+                    ><%= application&.denial_reason %></textarea>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 text-sm text-gray-600">
+          Encounter Total Paid (from entries):
+          <span id="encounter-total-paid" class="font-semibold text-gray-900">$0.00</span>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-500">
+          No claim/service lines found for this encounter. Payments can be posted once a claim with service lines exists.
+        </p>
+      <% end %>
+    </div>
+  <% else %>
+    <!-- Info for non-encounter payments -->
+    <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3 text-sm text-blue-800">
+          This payment is not tied to a specific encounter. After saving, you can allocate it using other workflows.
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Form Actions -->
+  <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <%= link_to "Cancel",
+                encounter ? admin_encounter_path(encounter) : admin_payments_path,
+                class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <%= f.submit(encounter ? "Post Payments" : "Create Payment",
+                 class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer") %>
+  </div>
+<% end %>
+
+<% if encounter %>
+  <script>
+    (function() {
+      function updateTotal() {
+        var rows = document.querySelectorAll('#service-lines-body tr');
+        var total = 0.0;
+
+        rows.forEach(function(row) {
+          var lineId = row.id.replace('service-line-', '');
+          var amountInput = document.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
+          var statusSelect = document.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
+
+          if (!amountInput || !statusSelect) { return; }
+
+          var amount = parseFloat(amountInput.value || "0");
+          var status = statusSelect.value;
+
+          if (!isNaN(amount) && amount > 0 && status === 'paid') {
+            total += amount;
+          }
+        });
+
+        var totalEl = document.getElementById('encounter-total-paid');
+        if (totalEl) {
+          totalEl.textContent = '$' + total.toFixed(2);
+        }
+      }
+
+      function bindEvents() {
+        document.querySelectorAll('input.amount-input').forEach(function(input) {
+          input.addEventListener('input', updateTotal);
+        });
+
+        document.querySelectorAll('select.status-select').forEach(function(select) {
+          select.addEventListener('change', function(event) {
+            var lineId = event.target.getAttribute('data-service-line-id');
+            var status = event.target.value;
+            var textarea = document.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
+
+            if (textarea) {
+              if (status === 'denied') {
+                textarea.style.display = '';
+              } else {
+                textarea.style.display = 'none';
+                textarea.value = '';
+              }
+            }
+
+            updateTotal();
+          });
+        });
+
+        updateTotal();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindEvents);
+      } else {
+        bindEvents();
+      }
+    })();
+  </script>
+<% end %>
+
