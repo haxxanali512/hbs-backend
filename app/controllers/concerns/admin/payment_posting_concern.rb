@@ -130,6 +130,7 @@ module Admin::PaymentPostingConcern
 
       @payment = Payment.create!(
         invoice_id: nil,
+        amount: total_amount, # legacy invoice column is NOT NULL in production
         organization_id: org_id,
         payer: payer,
         payment_date: payment_date || Date.current,
