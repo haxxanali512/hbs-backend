@@ -206,6 +206,43 @@ class NotificationService
       end
     end
 
+    # Notify super admins when a tenant requests a claim void for a billed encounter
+    def notify_claim_void_requested(organization:, encounter:, requested_by:, support_ticket:)
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      return if super_admins.empty?
+
+      patient_name = encounter.patient&.full_name || "Unknown Patient"
+      dos = encounter.date_of_service&.strftime("%m/%d/%Y") || "—"
+
+      title = "Claim Void Requested"
+      message = "Claim Void Requested — #{patient_name} — DOS #{dos} — #{organization.name}"
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:claim_void_requested],
+          title: title,
+          message: message,
+          action_url: "/admin/support_tickets/#{support_ticket.id}",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            encounter_id: encounter.id,
+            patient_id: encounter.patient_id,
+            provider_id: encounter.provider_id,
+            date_of_service: encounter.date_of_service,
+            requested_by_user_id: requested_by.id,
+            support_ticket_id: support_ticket.id
+          }
+        )
+      end
+    end
+
     # Notify super admins when an organization accepts a plan that needs enrollment verification
     def notify_org_accepted_plan_needs_enrollment(org_accepted_plan)
       organization = org_accepted_plan.organization

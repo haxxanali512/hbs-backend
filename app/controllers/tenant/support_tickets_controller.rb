@@ -22,7 +22,19 @@ class Tenant::SupportTicketsController < Tenant::BaseController
   end
 
   def new
-    @support_ticket = current_organization.support_tickets.new
+    attrs = {}
+    if params[:support_ticket].is_a?(ActionController::Parameters) || params[:support_ticket].is_a?(Hash)
+      attrs = params.require(:support_ticket).permit(
+        :category,
+        :sub_category,
+        :subject,
+        :description,
+        :linked_resource_type,
+        :linked_resource_id
+      ).to_h
+    end
+
+    @support_ticket = current_organization.support_tickets.new(attrs)
   end
 
   def create
@@ -30,6 +42,17 @@ class Tenant::SupportTicketsController < Tenant::BaseController
     @support_ticket.created_by_user = current_user
 
     if @support_ticket.save
+      if params[:void_request].to_s == "1" && @support_ticket.linked_resource_type == "Encounter"
+        encounter = @support_ticket.linked_resource
+        if encounter.present?
+          NotificationService.notify_claim_void_requested(
+            organization: current_organization,
+            encounter: encounter,
+            requested_by: current_user,
+            support_ticket: @support_ticket
+          )
+        end
+      end
       SupportTicketEventPublisher.ticket_created(@support_ticket)
       SupportTicketMailer.acknowledgement(@support_ticket).deliver_later
       SupportTicketEventPublisher.auto_acknowledged(@support_ticket)
