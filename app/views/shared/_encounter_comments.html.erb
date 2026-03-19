@@ -14,7 +14,8 @@
   
   # Check if user can create comments
   can_create_shared = hbs_initiated && current_user.can_create_shared_comment?
-  can_create_internal = current_user.can_create_internal_comment?
+  # Tenant users should never see "internal" visibility controls on the tenant UI.
+  can_create_internal = (namespace == "admin") && current_user.can_create_internal_comment?
   
   # Get unread count
   unread_count = EncounterCommentSeen.unread_count(@encounter.id, current_user.id) if current_user
