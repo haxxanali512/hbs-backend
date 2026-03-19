@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_16_120500) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_19_180010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -954,7 +954,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_16_120500) do
   end
 
   create_table "payments", force: :cascade do |t|
-    t.uuid "invoice_id", null: false
+    t.uuid "invoice_id"
     t.bigint "organization_id", null: false
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.integer "payment_method", default: 0, null: false
@@ -1108,6 +1108,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_16_120500) do
     t.datetime "updated_at", null: false
     t.datetime "discarded_at"
     t.boolean "is_specialist"
+    t.boolean "first_encounter_submitted_notified", default: false, null: false
     t.index ["discarded_at"], name: "index_providers_on_discarded_at"
     t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
   end

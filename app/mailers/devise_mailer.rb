@@ -13,6 +13,11 @@ class DeviseMailer < ApplicationMailer
     @resource = record
     @token = token
     mail(to: opts[:to] || record.email, subject: I18n.t("devise.mailer.reset_password_instructions.subject"))
+    begin
+      NotificationService.notify_password_reset_requested(record)
+    rescue => e
+      Rails.logger.error("Failed to send password reset requested notification for user #{record.id}: #{e.message}")
+    end
   end
 
   def unlock_instructions(record, token, opts = {})
@@ -30,5 +35,10 @@ class DeviseMailer < ApplicationMailer
   def password_change(record, opts = {})
     @resource = record
     mail(to: opts[:to] || record.email, subject: I18n.t("devise.mailer.password_change.subject"))
+    begin
+      NotificationService.notify_password_reset_completed(record)
+    rescue => e
+      Rails.logger.error("Failed to send password reset completed notification for user #{record.id}: #{e.message}")
+    end
   end
 end
