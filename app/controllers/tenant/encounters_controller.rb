@@ -410,11 +410,31 @@ class Tenant::EncountersController < Tenant::BaseController
     end
 
     # Do not submit to Waystar yet; queue for HBS manual billing
+    providers_for_first_submission_notification = []
+
     valid_encounters.each do |encounter|
       encounter.update(
         tenant_status: :in_process,
         internal_status: :queued_for_billing
       )
+
+      provider = encounter.provider
+      next unless provider
+      next if provider.first_encounter_submitted_notified?
+
+      providers_for_first_submission_notification << provider
+    end
+
+    providers_for_first_submission_notification.uniq.each do |provider|
+      begin
+        NotificationService.notify_first_encounter_submitted_for_provider(
+          provider: provider,
+          organization: @current_organization
+        )
+        provider.update_column(:first_encounter_submitted_notified, true)
+      rescue => e
+        Rails.logger.error("Failed to notify first encounter submission for provider #{provider.id}: #{e.message}")
+      end
     end
     #  QueuedEncountersSubmissionJob.perform_later(encounter_ids, @current_organization.id)
     # Rails.logger.info "Queued #{encounter_ids.size} encounter(s) for background processing to Waystar via EDI 837"

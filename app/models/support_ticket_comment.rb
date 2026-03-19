@@ -33,5 +33,14 @@ class SupportTicketComment < ApplicationRecord
   def emit_events
     SupportTicketEventPublisher.comment_added(support_ticket, self)
     SupportTicketMailer.comment_added(support_ticket, self).deliver_later
+    begin
+      if author_user.hbs_user?
+        NotificationService.notify_support_ticket_comment_from_hbs(self)
+      else
+        NotificationService.notify_support_ticket_comment_from_tenant(self)
+      end
+    rescue => e
+      Rails.logger.error("Failed to send support ticket comment notification for comment #{id}: #{e.message}")
+    end
   end
 end
