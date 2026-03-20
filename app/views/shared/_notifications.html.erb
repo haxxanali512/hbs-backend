@@ -33,18 +33,7 @@
     
     <div id="notifications_list" class="overflow-y-auto" style="max-height: 400px;">
       <% notifications = current_user.notifications.recent.limit(10) %>
-      <% if notifications.any? %>
-        <% notifications.each do |notification| %>
-          <%= render partial: 'notifications/notification_item', locals: { notification: notification } %>
-        <% end %>
-      <% else %>
-        <div id="notifications_empty_state" class="px-4 py-8 text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-12 w-12 text-gray-400 mx-auto mb-3">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V8.25A6.75 6.75 0 104.5 8.25v1.5a8.967 8.967 0 01-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m7.214 0a24.255 24.255 0 01-7.214 0m7.214 0a3 3 0 11-6 0" />
-          </svg>
-          <p class="text-sm text-gray-500">No notifications</p>
-        </div>
-      <% end %>
+      <%= render partial: "notifications/list", locals: { notifications: notifications } %>
     </div>
     
     <div class="border-t border-gray-200 px-4 py-3">
@@ -104,6 +93,7 @@
     // Initialize MutationObserver for notifications list
     initializeNotificationsObserver(notificationsList);
   }
+
 
   // Create toast container if it doesn't exist (global function)
   function getOrCreateToastContainer() {
@@ -296,6 +286,7 @@
       initializeNotifications();
     }
   });
+
 
   function markNotificationAsRead(notificationId) {
     const token = document.querySelector('meta[name="csrf-token"]')?.content;
