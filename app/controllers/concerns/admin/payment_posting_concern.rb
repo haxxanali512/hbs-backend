@@ -22,11 +22,15 @@ module Admin::PaymentPostingConcern
     end
 
     @claim = @encounter&.claim
-    claim_lines = if @claim&.claim_lines&.any?
-      @claim.claim_lines.includes(:procedure_code)
-    else
-      []
-    end
+    claim_lines =
+      if @claim&.claim_lines&.any?
+        @claim.claim_lines.includes(:procedure_code)
+      elsif @encounter
+        # Keep service lines visible even before claim artifacts exist.
+        @encounter.encounter_procedure_items.includes(:procedure_code)
+      else
+        []
+      end
     @claim_lines = claim_lines
     @billed_amounts_by_line_id = {}
     if @encounter
