@@ -36,7 +36,7 @@ class Admin::PaymentsController < Admin::BaseController
 
     if turbo_frame_request?
       flash.now[:notice] = notice_message
-      render turbo_stream: [
+      streams = [
         turbo_stream.replace(
           "manualPaymentModal",
           partial: "admin/payments/manual_payment_modal_hidden"
@@ -50,6 +50,20 @@ class Admin::PaymentsController < Admin::BaseController
           partial: "shared/toast_flash"
         )
       ]
+
+      if @encounter.present?
+        @encounter.reload
+        streams << turbo_stream.replace(
+          "encounter-row-#{@encounter.id}",
+          partial: "admin/encounters/encounter_row",
+          locals: {
+            encounter: @encounter,
+            can_open_manual_payment_modal: current_user&.permissions_for("admin", "payments", "create")
+          }
+        )
+      end
+
+      render turbo_stream: streams
     else
       if @encounter
         redirect_to admin_encounter_path(@encounter), notice: notice_message
