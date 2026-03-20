@@ -16,7 +16,7 @@ module Admin::PaymentPostingConcern
   def build_payment_context
     @payment = Payment.new if @payment.nil?
 
-    if @encounter&.insurance? && @encounter.claim.blank?
+    if should_create_claim_for_payment_posting? && @encounter.claim.blank?
       @encounter.create_claim_with_lines_if_missing!
       @encounter.reload
     end
@@ -156,6 +156,12 @@ module Admin::PaymentPostingConcern
     remit_reference = payment_params[:remit_reference].presence
 
     ActiveRecord::Base.transaction do
+      if should_create_claim_for_payment_posting? && @encounter.claim.blank?
+        @encounter.create_claim_with_lines_if_missing!
+        @encounter.reload
+        @claim = @encounter.claim
+      end
+
       total_amount = service_lines_params.values.sum do |attrs|
         next 0.to_d unless attrs.is_a?(Hash)
 
@@ -197,7 +203,12 @@ module Admin::PaymentPostingConcern
       )
 
       if @claim && @encounter
-        claim_lines_by_id = @claim_lines.index_by { |line| line.id.to_s }
+        claim_lines = @claim.claim_lines.includes(:procedure_code).to_a
+        claim_lines_by_id = claim_lines.index_by { |line| line.id.to_s }
+        procedure_items_by_id = @encounter.encounter_procedure_items.index_by { |item| item.id.to_s }
+        used_claim_line_ids = []
+        created_applications_count = 0
+
         service_lines_params.each do |line_key, attrs|
           next unless attrs.is_a?(Hash)
 
@@ -210,10 +221,20 @@ module Admin::PaymentPostingConcern
 
           line_status = status.presence || (amount_value.positive? ? "paid" : "unpaid")
           claim_line = claim_lines_by_id[line_key.to_s]
+          if claim_line.blank?
+            # When UI line keys come from encounter_procedure_items, map to claim line by procedure code.
+            procedure_item = procedure_items_by_id[line_key.to_s]
+            if procedure_item.present?
+              claim_line = claim_lines.find do |line|
+                line.procedure_code_id == procedure_item.procedure_code_id && !used_claim_line_ids.include?(line.id)
+              end
+            end
+          end
 
           if claim_line.blank?
             next
           end
+          used_claim_line_ids << claim_line.id
 
           PaymentApplication.create!(
             payment: @payment,
@@ -228,7 +249,14 @@ module Admin::PaymentPostingConcern
             # Note: keys are matched via claim_line_id; custom service lines
             # are handled by posting against actual claim lines.
           )
+          created_applications_count += 1
         end
+
+        if created_applications_count.zero?
+          @payment.destroy!
+          raise ActiveRecord::RecordInvalid.new(@payment), "No valid service lines were mapped for this encounter payment."
+        end
+
         @encounter.recalculate_payment_summary!
       end
     end
@@ -244,5 +272,9 @@ module Admin::PaymentPostingConcern
     end
 
     "#{base_reference}-#{SecureRandom.hex(3)}"
+  end
+
+  def should_create_claim_for_payment_posting?
+    @encounter.present? && @encounter.patient_insurance_coverage.present?
   end
 end
