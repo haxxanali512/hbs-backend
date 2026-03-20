@@ -15,17 +15,18 @@ module Admin::PaymentPostingConcern
 
   def build_payment_context
     @payment = Payment.new if @payment.nil?
+
+    if @encounter&.insurance? && @encounter.claim.blank?
+      @encounter.create_claim_with_lines_if_missing!
+      @encounter.reload
+    end
+
     @claim = @encounter&.claim
-    claim_lines =
-      if @claim&.claim_lines&.any?
-        @claim.claim_lines.includes(:procedure_code)
-      elsif @encounter
-        # Fallback to encounter_procedure_items so service lines are always visible,
-        # even before a claim has been generated.
-        @encounter.encounter_procedure_items.includes(:procedure_code)
-      else
-        []
-      end
+    claim_lines = if @claim&.claim_lines&.any?
+      @claim.claim_lines.includes(:procedure_code)
+    else
+      []
+    end
     @claim_lines = claim_lines
     @billed_amounts_by_line_id = {}
     if @encounter
@@ -40,6 +41,8 @@ module Admin::PaymentPostingConcern
         {}
       end
     @payers = Payer.active_only.order(:name)
+    @default_payer = @encounter&.patient_insurance_coverage&.insurance_plan&.payer
+    @selected_payer = @payment&.payer || @default_payer
   end
 
   def resolved_billed_amount_for_line(line)
@@ -150,12 +153,13 @@ module Admin::PaymentPostingConcern
 
     ActiveRecord::Base.transaction do
       total_amount = service_lines_params.values.sum do |attrs|
-        amount_str = attrs[:amount_paid].to_s
-        amount_str.present? ? BigDecimal(amount_str) : 0.to_d
-      end
+        next 0.to_d unless attrs.is_a?(Hash)
 
-      if total_amount.zero?
-        raise ActiveRecord::RecordInvalid.new(Payment.new), "No payment amounts provided"
+        status = attrs[:status].to_s.presence || attrs["status"].to_s
+        next 0.to_d unless [ "paid", "adjusted" ].include?(status)
+
+        amount_str = attrs[:amount_paid].to_s.presence || attrs["amount_paid"].to_s
+        amount_str.present? ? BigDecimal(amount_str) : 0.to_d
       end
 
       org_id = @encounter&.organization_id || current_organization&.id || params[:organization_id]
@@ -164,7 +168,7 @@ module Admin::PaymentPostingConcern
         if payment_params[:payer_id].present?
           Payer.find_by(id: payment_params[:payer_id])
         else
-          @encounter&.patient_insurance_coverage&.insurance_plan&.payer
+          @default_payer
         end
 
       @payment = Payment.create!(
@@ -182,36 +186,38 @@ module Admin::PaymentPostingConcern
       )
 
       if @claim && @encounter
-        @claim_lines.each do |line|
-          attrs = service_lines_params[line.id.to_s] || {}
-          amount = attrs[:amount_paid].to_s
-          status = attrs[:status].to_s
-          denial_reason = attrs[:denial_reason].to_s
+        claim_lines_by_id = @claim_lines.index_by { |line| line.id.to_s }
+        service_lines_params.each do |line_key, attrs|
+          next unless attrs.is_a?(Hash)
 
+          amount = attrs[:amount_paid].to_s.presence || attrs["amount_paid"].to_s
+          status = attrs[:status].to_s.presence || attrs["status"].to_s
+          denial_reason = attrs[:denial_reason].to_s.presence || attrs["denial_reason"].to_s
+          note = attrs[:note].to_s.presence || attrs["note"].to_s
           amount_value = amount.present? ? BigDecimal(amount) : 0.to_d
-          next if amount_value.zero? && status.blank?
+          next if amount_value.zero? && status.blank? && denial_reason.blank? && note.blank?
 
-          line_status =
-            if status.present?
-              status
-            elsif amount_value.positive?
-              :paid
-            else
-              :unpaid
-            end
+          line_status = status.presence || (amount_value.positive? ? "paid" : "unpaid")
+          claim_line = claim_lines_by_id[line_key.to_s]
+
+          if claim_line.blank?
+            next
+          end
 
           PaymentApplication.create!(
             payment: @payment,
             claim: @claim,
-            claim_line: line,
+            claim_line: claim_line,
             encounter: @encounter,
             patient: @encounter.patient,
             amount_applied: amount_value,
             line_status: line_status,
-            denial_reason: line_status.to_s == "denied" ? denial_reason.presence : nil
+            denial_reason: line_status.to_s == "denied" ? denial_reason : nil,
+            note: note,
+            # Note: keys are matched via claim_line_id; custom service lines
+            # are handled by posting against actual claim lines.
           )
         end
-
         @encounter.recalculate_payment_summary!
       end
     end

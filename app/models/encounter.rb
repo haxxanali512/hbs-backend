@@ -179,7 +179,8 @@ class Encounter < ApplicationRecord
     partially_paid: 1,
     paid: 2,
     denied: 3,
-    mixed: 4
+    mixed: 4,
+    deductible: 5
   }, prefix: true
 
   # ===========================================================
@@ -330,8 +331,12 @@ class Encounter < ApplicationRecord
         :paid
       elsif statuses.all? { |s| s == "denied" }
         :denied
+      elsif statuses.all? { |s| s == "deductible" }
+        :deductible
       elsif statuses.include?("paid") || statuses.include?("adjusted")
         statuses.include?("denied") ? :mixed : :partially_paid
+      elsif statuses.include?("deductible")
+        :mixed
       else
         :unpaid
       end
@@ -344,6 +349,17 @@ class Encounter < ApplicationRecord
       payment_status: new_status,
       payment_date: new_payment_date
     )
+  end
+
+  def resolved_total_billed_amount_for_payment_summary(apps = nil)
+    claim&.claim_lines&.sum(:amount_billed).to_d
+  end
+
+  # Derived (not persisted): what remains after payer-paid/adjusted amounts.
+  def patient_responsibility_amount
+    billed = resolved_total_billed_amount_for_payment_summary
+    paid = payment_applications.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+    [ billed - paid, 0.to_d ].max
   end
 
   def can_be_cancelled?
