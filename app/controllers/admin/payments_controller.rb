@@ -58,6 +58,8 @@ class Admin::PaymentsController < Admin::BaseController
       end
     end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+    @payment ||= Payment.new
+    @payment.errors.add(:base, e.message) if @payment.errors.empty?
     flash.now[:alert] = "Failed to save payment: #{e.message}"
 
     if turbo_frame_request?

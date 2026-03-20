@@ -26,6 +26,12 @@
     </div>
   <% end %>
 
+  <% if flash[:alert].present? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+      <%= flash[:alert] %>
+    </div>
+  <% end %>
+
   <% if encounter %>
     <%= hidden_field_tag :encounter_id, encounter.id %>
   <% end %>
@@ -229,6 +235,8 @@
     </div>
   <% end %>
 
+  <div id="client-validation-errors" class="hidden bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700"></div>
+
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
     <% in_modal = local_assigns[:modal] %>
@@ -244,6 +252,7 @@
                   class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
     <% end %>
     <%= f.submit(encounter ? "Post Payments" : "Create Payment",
+                 id: "post-payments-submit",
                  class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer") %>
   </div>
 <% end %>
@@ -290,10 +299,99 @@
         }
       }
 
+      function validateFormReadiness() {
+        var errors = [];
+        var rows = document.querySelectorAll('#service-lines-body tr');
+        var hasAnyLineAction = false;
+
+        var paymentDateInput = document.querySelector('input[name="payment[payment_date]"]');
+        if (paymentDateInput && !paymentDateInput.value) {
+          errors.push('Payment date is required.');
+        }
+
+        var payerInput = document.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
+        if (payerInput && !payerInput.value) {
+          errors.push('Payer is required.');
+        }
+
+        rows.forEach(function(row) {
+          var lineId = row.id.replace('service-line-', '');
+          var amountInput = document.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
+          var statusSelect = document.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
+          var denialInput = document.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
+
+          if (!amountInput || !statusSelect) { return; }
+
+          var rawAmount = amountInput.value || "0";
+          var amount = parseFloat(rawAmount);
+          if (isNaN(amount)) { amount = 0; }
+          var status = statusSelect.value;
+
+          if (status || amount > 0) {
+            hasAnyLineAction = true;
+          }
+
+          if (status === 'denied') {
+            if (!denialInput || !denialInput.value || denialInput.value.trim() === '') {
+              errors.push('Denial reason is required for denied service lines.');
+            }
+          }
+
+          if (status === 'paid' || status === 'adjusted') {
+            if (!(amount > 0)) {
+              errors.push('Paid/Adjusted lines must have amount greater than 0.');
+            }
+          }
+        });
+
+        if (!hasAnyLineAction) {
+          errors.push('Add at least one service-line payment entry before posting.');
+        }
+
+        var uniqueErrors = Array.from(new Set(errors));
+        var errorBox = document.getElementById('client-validation-errors');
+        var submitBtn = document.getElementById('post-payments-submit');
+        var isValid = uniqueErrors.length === 0;
+
+        if (errorBox) {
+          if (isValid) {
+            errorBox.classList.add('hidden');
+            errorBox.innerHTML = '';
+          } else {
+            errorBox.classList.remove('hidden');
+            errorBox.innerHTML = '<ul class="list-disc pl-5 space-y-1">' + uniqueErrors.map(function(msg) {
+              return '<li>' + msg + '</li>';
+            }).join('') + '</ul>';
+          }
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = !isValid;
+          if (isValid) {
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          } else {
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          }
+        }
+      }
+
       function bindEvents() {
         document.querySelectorAll('input.amount-input').forEach(function(input) {
-          input.addEventListener('input', updateTotal);
+          input.addEventListener('input', function() {
+            updateTotal();
+            validateFormReadiness();
+          });
         });
+
+        var paymentDateInput = document.querySelector('input[name="payment[payment_date]"]');
+        if (paymentDateInput) {
+          paymentDateInput.addEventListener('change', validateFormReadiness);
+        }
+
+        var payerInput = document.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
+        if (payerInput) {
+          payerInput.addEventListener('change', validateFormReadiness);
+        }
 
         document.querySelectorAll('select.status-select').forEach(function(select) {
           select.addEventListener('change', function(event) {
@@ -311,10 +409,16 @@
             }
 
             updateTotal();
+            validateFormReadiness();
           });
         });
 
+        document.querySelectorAll('textarea.denial-textarea').forEach(function(textarea) {
+          textarea.addEventListener('input', validateFormReadiness);
+        });
+
         updateTotal();
+        validateFormReadiness();
       }
 
       if (document.readyState === 'loading') {
