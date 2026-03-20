@@ -175,6 +175,13 @@ module Admin::PaymentPostingConcern
           @default_payer
         end
 
+      resolved_remit_reference = unique_manual_remit_reference(
+        org_id: org_id,
+        payer_id: payer&.id,
+        encounter_id: @encounter&.id,
+        preferred_reference: remit_reference
+      )
+
       @payment = Payment.create!(
         invoice_id: nil,
         amount: total_amount, # legacy invoice column is NOT NULL in production
@@ -182,7 +189,7 @@ module Admin::PaymentPostingConcern
         payer: payer,
         payment_date: payment_date || Date.current,
         amount_total: total_amount,
-        remit_reference: remit_reference.presence || (@encounter ? "MANUAL-#{@encounter.id}-#{Time.current.to_i}" : "MANUAL-#{Time.current.to_i}"),
+        remit_reference: resolved_remit_reference,
         source_hash: SecureRandom.uuid,
         payment_status: :succeeded,
         payment_method: :manual,
@@ -225,5 +232,17 @@ module Admin::PaymentPostingConcern
         @encounter.recalculate_payment_summary!
       end
     end
+  end
+
+  def unique_manual_remit_reference(org_id:, payer_id:, encounter_id:, preferred_reference:)
+    base_reference = preferred_reference.presence || (encounter_id ? "MANUAL-#{encounter_id}-#{Time.current.to_i}" : "MANUAL-#{Time.current.to_i}")
+    return base_reference unless Payment.exists?(organization_id: org_id, payer_id: payer_id, remit_reference: base_reference)
+
+    1.upto(999) do |index|
+      candidate = "#{base_reference}-#{index}"
+      return candidate unless Payment.exists?(organization_id: org_id, payer_id: payer_id, remit_reference: candidate)
+    end
+
+    "#{base_reference}-#{SecureRandom.hex(3)}"
   end
 end
