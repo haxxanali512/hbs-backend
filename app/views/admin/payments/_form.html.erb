@@ -307,9 +307,10 @@
         }
       }
 
-      function validateFormReadiness() {
+      function validateFormReadiness(showErrors) {
         var form = getForm();
         if (!form) { return; }
+        if (typeof showErrors === 'undefined') { showErrors = false; }
 
         var errors = [];
         var rows = form.querySelectorAll('#service-lines-body tr');
@@ -365,7 +366,7 @@
         var isValid = uniqueErrors.length === 0;
 
         if (errorBox) {
-          if (isValid) {
+          if (isValid || !showErrors) {
             errorBox.classList.add('hidden');
             errorBox.innerHTML = '';
           } else {
@@ -389,22 +390,32 @@
       function bindEvents() {
         var form = getForm();
         if (!form) { return; }
+        if (form.dataset.validationBound === '1') {
+          updateTotal();
+          validateFormReadiness(false);
+          return;
+        }
+        form.dataset.validationBound = '1';
 
         form.querySelectorAll('input.amount-input').forEach(function(input) {
           input.addEventListener('input', function() {
             updateTotal();
-            validateFormReadiness();
+            validateFormReadiness(true);
+          });
+          input.addEventListener('change', function() {
+            updateTotal();
+            validateFormReadiness(true);
           });
         });
 
         var paymentDateInput = form.querySelector('input[name="payment[payment_date]"]');
         if (paymentDateInput) {
-          paymentDateInput.addEventListener('change', validateFormReadiness);
+          paymentDateInput.addEventListener('change', function() { validateFormReadiness(true); });
         }
 
         var payerInput = form.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
         if (payerInput) {
-          payerInput.addEventListener('change', validateFormReadiness);
+          payerInput.addEventListener('change', function() { validateFormReadiness(true); });
         }
 
         form.querySelectorAll('select.status-select').forEach(function(select) {
@@ -423,16 +434,24 @@
             }
 
             updateTotal();
-            validateFormReadiness();
+            validateFormReadiness(true);
           });
         });
 
         form.querySelectorAll('textarea.denial-textarea').forEach(function(textarea) {
-          textarea.addEventListener('input', validateFormReadiness);
+          textarea.addEventListener('input', function() { validateFormReadiness(true); });
+        });
+
+        form.addEventListener('submit', function(event) {
+          validateFormReadiness(true);
+          var submitBtn = form.querySelector('#post-payments-submit');
+          if (submitBtn && submitBtn.disabled) {
+            event.preventDefault();
+          }
         });
 
         updateTotal();
-        validateFormReadiness();
+        validateFormReadiness(false);
       }
 
       if (document.readyState === 'loading') {
@@ -440,6 +459,14 @@
       } else {
         bindEvents();
       }
+
+      document.addEventListener('turbo:load', bindEvents);
+      document.addEventListener('turbo:frame-load', function(event) {
+        if (!event.target) { return; }
+        if (event.target.id === 'manual-payment-modal-frame' || event.target.querySelector('#manual-payment-form')) {
+          bindEvents();
+        }
+      });
     })();
   </script>
 <% end %>

@@ -344,10 +344,13 @@ class Encounter < ApplicationRecord
     new_payment_date =
       apps.map { |a| a.payment&.payment_date || a.payment&.created_at }.compact.min
 
-    update!(
+    # Do not run full encounter validations here; payment posting should not
+    # trigger workflow/procedure validation paths unrelated to payments.
+    update_columns(
       total_paid_amount: total_paid,
-      payment_status: new_status,
-      payment_date: new_payment_date
+      payment_status: self.class.payment_statuses[new_status.to_s],
+      payment_date: new_payment_date,
+      updated_at: Time.current
     )
   end
 

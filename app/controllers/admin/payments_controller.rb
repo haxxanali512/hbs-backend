@@ -59,8 +59,14 @@ class Admin::PaymentsController < Admin::BaseController
     end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
     @payment ||= Payment.new
-    @payment.errors.add(:base, e.message) if @payment.errors.empty?
-    flash.now[:alert] = "Failed to save payment: #{e.message}"
+    if e.respond_to?(:record) && e.record.respond_to?(:errors) && e.record.errors.any?
+      detail = e.record.errors.full_messages.join(", ")
+      @payment.errors.add(:base, detail) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to save payment: #{detail}"
+    else
+      @payment.errors.add(:base, e.message) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to save payment: #{e.message}"
+    end
 
     if turbo_frame_request?
       render partial: "modal_form_frame",
