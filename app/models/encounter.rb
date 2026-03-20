@@ -259,7 +259,10 @@ class Encounter < ApplicationRecord
   # marking a claim as billed so that there is always a concrete claim
   # artifact for record keeping and payments.
   def create_claim_with_lines_if_missing!
-    return unless insurance?
+    has_insurance_context =
+      patient_insurance_coverage.present? ||
+      patient&.patient_insurance_coverages&.exists?
+    return unless has_insurance_context
     return if claim.present?
 
     items = encounter_procedure_items.includes(:procedure_code)

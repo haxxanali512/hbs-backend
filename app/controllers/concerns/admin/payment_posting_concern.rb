@@ -147,7 +147,7 @@ module Admin::PaymentPostingConcern
       end
     payment_params =
       if params[:payment].is_a?(ActionController::Parameters)
-        params[:payment].permit(:payment_date, :remit_reference, :payer_id)
+        params[:payment].permit(:payment_date, :remit_reference, :payer_id, :generate_invoice)
       else
         ActionController::Parameters.new
       end
@@ -161,6 +161,7 @@ module Admin::PaymentPostingConcern
         @encounter.reload
         @claim = @encounter.claim
       end
+      @claim ||= @encounter&.claim
 
       total_amount = service_lines_params.values.sum do |attrs|
         next 0.to_d unless attrs.is_a?(Hash)
@@ -202,7 +203,7 @@ module Admin::PaymentPostingConcern
         processed_by_user: current_user
       )
 
-      if @claim && @encounter
+      if @encounter && @claim
         claim_lines = @claim.claim_lines.includes(:procedure_code).to_a
         claim_lines_by_id = claim_lines.index_by { |line| line.id.to_s }
         procedure_items_by_id = @encounter.encounter_procedure_items.index_by { |item| item.id.to_s }
@@ -258,6 +259,9 @@ module Admin::PaymentPostingConcern
         end
 
         @encounter.recalculate_payment_summary!
+      elsif @encounter
+        # Claim is an auxiliary artifact. Do not crash payment posting if it's absent.
+        update_encounter_payment_summary_without_claim!(total_amount, payment_date)
       end
     end
   end
@@ -275,6 +279,22 @@ module Admin::PaymentPostingConcern
   end
 
   def should_create_claim_for_payment_posting?
-    @encounter.present? && @encounter.patient_insurance_coverage.present?
+    return false unless @encounter.present?
+
+    @encounter.patient_insurance_coverage.present? ||
+      @encounter.patient&.patient_insurance_coverages&.exists?
+  end
+
+  def update_encounter_payment_summary_without_claim!(total_amount, payment_date)
+    current_total = @encounter.total_paid_amount.to_d
+    new_total = current_total + total_amount.to_d
+    status_key = new_total.positive? ? :partially_paid : :unpaid
+
+    @encounter.update_columns(
+      total_paid_amount: new_total,
+      payment_status: Encounter.payment_statuses[status_key.to_s],
+      payment_date: payment_date || Date.current,
+      updated_at: Time.current
+    )
   end
 end
