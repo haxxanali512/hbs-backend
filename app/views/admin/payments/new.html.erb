@@ -31,7 +31,12 @@
 
     <!-- Form container -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <%= render "form", payment: @payment, encounter: @encounter, claim_lines: @claim_lines, applications_by_line: @applications_by_line %>
+      <%= render "form",
+                 payment: @payment,
+                 encounter: @encounter,
+                 claim_lines: @claim_lines,
+                 applications_by_line: @applications_by_line,
+                 billed_amounts_by_line_id: @billed_amounts_by_line_id %>
     </div>
   </div>
 </div>

@@ -20,7 +20,8 @@ class Admin::PaymentsController < Admin::BaseController
                payment: @payment,
                encounter: @encounter,
                claim_lines: @claim_lines,
-               applications_by_line: @applications_by_line
+               applications_by_line: @applications_by_line,
+               billed_amounts_by_line_id: @billed_amounts_by_line_id
              },
              layout: false
       return
@@ -31,14 +32,39 @@ class Admin::PaymentsController < Admin::BaseController
     build_payment_context
     create_manual_payment_from_params
 
-    if @encounter
-      redirect_to admin_encounter_path(@encounter), notice: "Payments posted for encounter."
+    notice_message = @encounter ? "Payments posted for encounter." : "Payment created."
+
+    if turbo_frame_request?
+      flash.now[:notice] = notice_message
+      render turbo_stream: [
+        turbo_stream.replace(
+          "manualPaymentModal",
+          partial: "admin/payments/manual_payment_modal_hidden"
+        ),
+        turbo_stream.replace(
+          "manual-payment-modal-frame",
+          partial: "admin/payments/modal_form_frame_empty"
+        ),
+        turbo_stream.update(
+          "flash_container",
+          partial: "shared/toast_flash"
+        )
+      ]
     else
-      redirect_to admin_payments_path, notice: "Payment created."
+      if @encounter
+        redirect_to admin_encounter_path(@encounter), notice: notice_message
+      else
+        redirect_to admin_payments_path, notice: notice_message
+      end
     end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
     flash.now[:alert] = "Failed to save payment: #{e.message}"
-    render :new, status: :unprocessable_entity
+
+    if turbo_frame_request?
+      render :new, status: :unprocessable_entity
+    else
+      render :new, status: :unprocessable_entity
+    end
   end
 
   private

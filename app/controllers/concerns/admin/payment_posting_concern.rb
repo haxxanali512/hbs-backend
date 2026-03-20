@@ -27,6 +27,12 @@ module Admin::PaymentPostingConcern
         []
       end
     @claim_lines = claim_lines
+    @billed_amounts_by_line_id = {}
+    if @encounter
+      claim_lines.each do |line|
+        @billed_amounts_by_line_id[line.id] = resolved_billed_amount_for_line(line)
+      end
+    end
     @applications_by_line =
       if @encounter
         @encounter.payment_applications.index_by(&:claim_line_id)
@@ -34,6 +40,39 @@ module Admin::PaymentPostingConcern
         {}
       end
     @payers = Payer.active_only.order(:name)
+  end
+
+  def resolved_billed_amount_for_line(line)
+    stored_amount = line.respond_to?(:amount_billed) ? line.amount_billed.to_d : 0.to_d
+    return stored_amount if stored_amount.positive?
+
+    return 0.to_d unless @encounter&.organization_id.present? && @encounter&.provider_id.present?
+
+    procedure_code_id = line.respond_to?(:procedure_code_id) ? line.procedure_code_id : nil
+    return 0.to_d if procedure_code_id.blank?
+
+    units = line.respond_to?(:units) ? line.units.to_i : 1
+    units = 1 unless units.positive?
+
+    pricing_result = FeeSchedulePricingService.resolve_pricing(
+      @encounter.organization_id,
+      @encounter.provider_id,
+      procedure_code_id
+    )
+
+    return 0.to_d unless pricing_result[:success]
+
+    unit_price = pricing_result.dig(:pricing, :unit_price).to_d
+    pricing_rule = pricing_result.dig(:pricing, :pricing_rule).to_s
+
+    if pricing_rule == "flat"
+      unit_price
+    else
+      unit_price * units
+    end
+  rescue => e
+    Rails.logger.warn("Payment posting billed amount fallback failed for line #{line.id}: #{e.message}")
+    0.to_d
   end
 
   def apply_filters(scope)

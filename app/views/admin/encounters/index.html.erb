@@ -157,7 +157,6 @@
     if (!modal || !frame) return;
     modal.classList.add("hidden");
     frame.innerHTML = "";
-    document.body.style.overflow = "";
   }
 
   function openManualPaymentModal(url) {
@@ -172,7 +171,6 @@
     frame.innerHTML = "";
     frame.src = url;
     modal.classList.remove("hidden");
-    document.body.style.overflow = "hidden";
   }
 
   document.addEventListener("turbo:load", function () {
