@@ -1,6 +1,7 @@
 <%= form_with model: [:admin, payment],
               url: admin_payments_path,
               method: :post,
+              id: "manual-payment-form",
               class: "space-y-6" do |f| %>
   <% if payment.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -260,15 +261,22 @@
 <% if encounter %>
   <script>
     (function() {
+      function getForm() {
+        return document.getElementById('manual-payment-form');
+      }
+
       function updateTotal() {
-        var rows = document.querySelectorAll('#service-lines-body tr');
+        var form = getForm();
+        if (!form) { return; }
+
+        var rows = form.querySelectorAll('#service-lines-body tr');
         var totalPaid = 0.0;
         var totalBilled = 0.0;
 
         rows.forEach(function(row) {
           var lineId = row.id.replace('service-line-', '');
-          var amountInput = document.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
-          var statusSelect = document.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
+          var amountInput = form.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
+          var statusSelect = form.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
 
           if (!amountInput || !statusSelect) { return; }
 
@@ -285,13 +293,13 @@
           }
         });
 
-        var paidEl = document.getElementById('encounter-total-paid');
+        var paidEl = form.querySelector('#encounter-total-paid');
         if (paidEl) { paidEl.textContent = '$' + totalPaid.toFixed(2); }
 
-        var billedEl = document.getElementById('encounter-total-billed');
+        var billedEl = form.querySelector('#encounter-total-billed');
         if (billedEl) { billedEl.textContent = '$' + totalBilled.toFixed(2); }
 
-        var patientEl = document.getElementById('patient-responsibility');
+        var patientEl = form.querySelector('#patient-responsibility');
         if (patientEl) {
           var responsibility = totalBilled - totalPaid;
           if (responsibility < 0) { responsibility = 0; }
@@ -300,25 +308,28 @@
       }
 
       function validateFormReadiness() {
+        var form = getForm();
+        if (!form) { return; }
+
         var errors = [];
-        var rows = document.querySelectorAll('#service-lines-body tr');
+        var rows = form.querySelectorAll('#service-lines-body tr');
         var hasAnyLineAction = false;
 
-        var paymentDateInput = document.querySelector('input[name="payment[payment_date]"]');
+        var paymentDateInput = form.querySelector('input[name="payment[payment_date]"]');
         if (paymentDateInput && !paymentDateInput.value) {
           errors.push('Payment date is required.');
         }
 
-        var payerInput = document.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
+        var payerInput = form.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
         if (payerInput && !payerInput.value) {
           errors.push('Payer is required.');
         }
 
         rows.forEach(function(row) {
           var lineId = row.id.replace('service-line-', '');
-          var amountInput = document.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
-          var statusSelect = document.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
-          var denialInput = document.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
+          var amountInput = form.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
+          var statusSelect = form.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
+          var denialInput = form.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
 
           if (!amountInput || !statusSelect) { return; }
 
@@ -349,8 +360,8 @@
         }
 
         var uniqueErrors = Array.from(new Set(errors));
-        var errorBox = document.getElementById('client-validation-errors');
-        var submitBtn = document.getElementById('post-payments-submit');
+        var errorBox = form.querySelector('#client-validation-errors');
+        var submitBtn = form.querySelector('#post-payments-submit');
         var isValid = uniqueErrors.length === 0;
 
         if (errorBox) {
@@ -376,28 +387,31 @@
       }
 
       function bindEvents() {
-        document.querySelectorAll('input.amount-input').forEach(function(input) {
+        var form = getForm();
+        if (!form) { return; }
+
+        form.querySelectorAll('input.amount-input').forEach(function(input) {
           input.addEventListener('input', function() {
             updateTotal();
             validateFormReadiness();
           });
         });
 
-        var paymentDateInput = document.querySelector('input[name="payment[payment_date]"]');
+        var paymentDateInput = form.querySelector('input[name="payment[payment_date]"]');
         if (paymentDateInput) {
           paymentDateInput.addEventListener('change', validateFormReadiness);
         }
 
-        var payerInput = document.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
+        var payerInput = form.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
         if (payerInput) {
           payerInput.addEventListener('change', validateFormReadiness);
         }
 
-        document.querySelectorAll('select.status-select').forEach(function(select) {
+        form.querySelectorAll('select.status-select').forEach(function(select) {
           select.addEventListener('change', function(event) {
             var lineId = event.target.getAttribute('data-service-line-id');
             var status = event.target.value;
-            var textarea = document.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
+            var textarea = form.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
 
             if (textarea) {
               if (status === 'denied') {
@@ -413,7 +427,7 @@
           });
         });
 
-        document.querySelectorAll('textarea.denial-textarea').forEach(function(textarea) {
+        form.querySelectorAll('textarea.denial-textarea').forEach(function(textarea) {
           textarea.addEventListener('input', validateFormReadiness);
         });
 
