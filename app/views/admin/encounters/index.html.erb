@@ -46,7 +46,9 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <% if @encounters.present? && @encounters.any? %>
               <% @encounters.each do |encounter| %>
-                <tr class="hover:bg-gray-50 <%= can_open_manual_payment_modal ? 'cursor-pointer' : '' %>"
+                <% payment_posted = encounter.total_paid_amount.to_d.positive? || encounter.payment_applications.exists? %>
+                <% row_state_class = payment_posted ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-50" %>
+                <tr class="<%= row_state_class %> <%= can_open_manual_payment_modal ? 'cursor-pointer' : '' %>"
                     <%= can_open_manual_payment_modal ? "data-manual-payment-url='#{new_admin_payment_path(encounter_id: encounter.id)}'" : '' %>>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">
