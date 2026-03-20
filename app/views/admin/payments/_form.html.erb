@@ -1,7 +1,6 @@
 <%= form_with model: [:admin, payment],
               url: admin_payments_path,
               method: :post,
-              local: true,
               class: "space-y-6" do |f| %>
   <% if payment.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-md p-4">

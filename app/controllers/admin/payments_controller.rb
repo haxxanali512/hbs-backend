@@ -61,7 +61,16 @@ class Admin::PaymentsController < Admin::BaseController
     flash.now[:alert] = "Failed to save payment: #{e.message}"
 
     if turbo_frame_request?
-      render :new, status: :unprocessable_entity
+      render partial: "modal_form_frame",
+             locals: {
+               payment: @payment,
+               encounter: @encounter,
+               claim_lines: @claim_lines,
+               applications_by_line: @applications_by_line,
+               billed_amounts_by_line_id: @billed_amounts_by_line_id
+             },
+             status: :unprocessable_entity,
+             layout: false
     else
       render :new, status: :unprocessable_entity
     end
