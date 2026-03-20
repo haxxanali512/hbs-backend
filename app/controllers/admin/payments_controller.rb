@@ -12,6 +12,19 @@ class Admin::PaymentsController < Admin::BaseController
   def new
     @payment = Payment.new
     build_payment_context
+
+    # When loading inside a Turbo Frame modal, return only the form partial.
+    if turbo_frame_request?
+      render partial: "modal_form_frame",
+             locals: {
+               payment: @payment,
+               encounter: @encounter,
+               claim_lines: @claim_lines,
+               applications_by_line: @applications_by_line
+             },
+             layout: false
+      return
+    end
   end
 
   def create
