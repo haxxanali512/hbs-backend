@@ -34,6 +34,7 @@ class Encounter < ApplicationRecord
   has_many :encounter_comments, dependent: :destroy
   has_many :encounter_comment_seens, dependent: :destroy
   has_many :provider_notes, dependent: :destroy
+  has_many :payment_applications, dependent: :nullify
   # has_many :encounter_tasks, dependent: :destroy
   # Documents now use Active Storage
   has_many_attached :documents
@@ -173,6 +174,15 @@ class Encounter < ApplicationRecord
     end
   end
 
+  enum :payment_status, {
+    unpaid: 0,
+    partially_paid: 1,
+    paid: 2,
+    denied: 3,
+    mixed: 4,
+    deductible: 5
+  }, prefix: true
+
   # ===========================================================
   # VALIDATIONS
   # ===========================================================
@@ -243,6 +253,120 @@ class Encounter < ApplicationRecord
 
   def self_pay?
     billing_channel == "self_pay"
+  end
+
+  # Create a simple Claim and ClaimLine records from this encounter's
+  # procedure items if a claim does not yet exist. Intended to run when
+  # marking a claim as billed so that there is always a concrete claim
+  # artifact for record keeping and payments.
+  def create_claim_with_lines_if_missing!
+    has_insurance_context =
+      patient_insurance_coverage.present? ||
+      patient&.patient_insurance_coverages&.exists?
+    return unless has_insurance_context
+    return if claim.present?
+
+    items = encounter_procedure_items.includes(:procedure_code)
+    return if items.empty?
+
+    pos_code = resolved_place_of_service_code
+
+    claim_record = Claim.create!(
+      organization_id: organization_id,
+      encounter_id: id,
+      patient_id: patient_id,
+      provider_id: provider_id,
+      specialty_id: specialty_id,
+      place_of_service_code: pos_code,
+      status: :generated,
+      generated_at: Time.current
+    )
+
+    items.each do |item|
+      proc_code = item.procedure_code
+      next unless proc_code
+
+      pricing_result = FeeSchedulePricingService.resolve_pricing(
+        organization_id,
+        provider_id,
+        proc_code.id
+      )
+
+      units = item.units.to_i.positive? ? item.units.to_i : 1
+
+      unit_price = if pricing_result[:success]
+        pricing_result[:pricing][:unit_price].to_f
+      else
+        0.0
+      end
+
+      amount_billed = if pricing_result[:success] && pricing_result[:pricing][:pricing_rule] == "flat"
+        unit_price
+      else
+        unit_price * units
+      end
+
+      claim_record.claim_lines.create!(
+        procedure_code_id: proc_code.id,
+        units: units,
+        amount_billed: amount_billed,
+        modifiers: item.modifiers || [],
+        place_of_service_code: pos_code,
+        status: :generated
+      )
+    end
+
+    update_column(:claim_id, claim_record.id)
+
+    claim_record
+  end
+
+  def recalculate_payment_summary!
+    apps = payment_applications.includes(:payment).to_a
+
+    total_paid = apps.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+
+    statuses = apps.map(&:line_status).compact.uniq.map(&:to_s)
+
+    new_status =
+      if apps.empty? || (total_paid.zero? && statuses.empty?)
+        :unpaid
+      elsif statuses.all? { |s| s == "paid" || s == "adjusted" }
+        :paid
+      elsif statuses.all? { |s| s == "denied" }
+        :denied
+      elsif statuses.all? { |s| s == "deductible" }
+        :deductible
+      elsif statuses.include?("paid") || statuses.include?("adjusted")
+        statuses.include?("denied") ? :mixed : :partially_paid
+      elsif statuses.include?("deductible")
+        :mixed
+      else
+        :unpaid
+      end
+
+    new_payment_date =
+      apps.map { |a| a.payment&.payment_date || a.payment&.created_at }.compact.min
+
+    # Do not run full encounter validations here; payment posting should not
+    # trigger workflow/procedure validation paths unrelated to payments.
+    update_columns(
+      total_paid_amount: total_paid,
+      payment_status: self.class.payment_statuses[new_status.to_s],
+      payment_date: new_payment_date,
+      updated_at: Time.current
+    )
+  end
+
+  def resolved_total_billed_amount_for_payment_summary(apps = nil)
+    claim&.claim_lines&.sum(:amount_billed).to_d
+  end
+
+  # Derived (not persisted): what remains after payer-paid/adjusted amounts.
+  def patient_responsibility_amount
+    billed = resolved_total_billed_amount_for_payment_summary
+    paid = payment_applications.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+    [ billed - paid, 0.to_d ].max
   end
 
   def can_be_cancelled?
@@ -749,6 +873,7 @@ class Encounter < ApplicationRecord
     # CLAIM_LINES_REQUIRED validation on the initial save; we'll add lines
     # immediately afterward.
     pos_code = resolved_place_of_service_code
+    byebug
     claim_record = claim || begin
       record = Claim.new(
         organization_id: organization_id,

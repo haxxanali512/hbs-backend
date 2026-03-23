@@ -6,7 +6,7 @@ class Admin::EncountersController < Admin::BaseController
   # Alias the concern method before we override it
   alias_method :fetch_from_ezclaim_concern, :fetch_from_ezclaim
 
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :bill_claim ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :cancel, :override_validation, :request_correction, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :bill_claim ]
   before_action :skip_workflow_validations_for_admin_update, only: [ :update, :destroy, :cancel, :bill_claim, :submit_for_billing ]
   before_action :load_form_options, only: [ :index, :edit, :update, :billing_queue ]
 
@@ -133,65 +133,65 @@ class Admin::EncountersController < Admin::BaseController
     end
   end
 
-  def billing_data
-    service = ClaimSubmissionService.new(
-      encounter: @encounter,
-      organization: @encounter.organization
-    )
+  # def billing_data
+  #   service = ClaimSubmissionService.new(
+  #     encounter: @encounter,
+  #     organization: @encounter.organization
+  #   )
 
-    # Build claim payload
-    claim_payload = service.send(:build_claim_payload)
+  #   # Build claim payload
+  #   claim_payload = service.send(:build_claim_payload)
 
-    # Build service lines payload (we'll use a placeholder claim_id for preview)
-    service_lines_payload = []
-    begin
-      service_lines_payload = service.send(:build_service_lines_payload, "PREVIEW")
-    rescue => e
-      # If service lines can't be built, return empty array
-      Rails.logger.warn("Could not build service lines for preview: #{e.message}")
-    end
+  #   # Build service lines payload (we'll use a placeholder claim_id for preview)
+  #   service_lines_payload = []
+  #   begin
+  #     service_lines_payload = service.send(:build_service_lines_payload, "PREVIEW")
+  #   rescue => e
+  #     # If service lines can't be built, return empty array
+  #     Rails.logger.warn("Could not build service lines for preview: #{e.message}")
+  #   end
 
-    # Get EZClaim service config
-    ezclaim_service = EzclaimService.new(organization: @encounter.organization)
-    config = ezclaim_service.api_config
+  #   # Get EZClaim service config
+  #   ezclaim_service = EzclaimService.new(organization: @encounter.organization)
+  #   config = ezclaim_service.api_config
 
-    # Format payload to match what the modal expects
-    # The modal expects service_LinesObjectWithoutID array
-    formatted_service_lines = service_lines_payload.map do |line|
-      {
-        SrvDateFrom: line[:SrvFromDate],
-        SrvDateTo: line[:SrvToDate],
-        SrvProcedureCode: line[:SrvProcedureCode],
-        SrvProcedureUnits: line[:SrvUnits]
-      }
-    end
+  #   # Format payload to match what the modal expects
+  #   # The modal expects service_LinesObjectWithoutID array
+  #   formatted_service_lines = service_lines_payload.map do |line|
+  #     {
+  #       SrvDateFrom: line[:SrvFromDate],
+  #       SrvDateTo: line[:SrvToDate],
+  #       SrvProcedureCode: line[:SrvProcedureCode],
+  #       SrvProcedureUnits: line[:SrvUnits]
+  #     }
+  #   end
 
-    # Add diagnosis code IDs to payload for proper multi-select initialization
-    diagnosis_codes = @encounter.diagnosis_codes.limit(4).to_a
-    diagnosis_payload = {}
-    diagnosis_codes.each_with_index do |dc, index|
-      diagnosis_payload["ClaDiagnosis#{index + 1}"] = dc.code
-      diagnosis_payload["diagnosis_#{index + 1}_id"] = dc.id
-    end
+  #   # Add diagnosis code IDs to payload for proper multi-select initialization
+  #   diagnosis_codes = @encounter.diagnosis_codes.limit(4).to_a
+  #   diagnosis_payload = {}
+  #   diagnosis_codes.each_with_index do |dc, index|
+  #     diagnosis_payload["ClaDiagnosis#{index + 1}"] = dc.code
+  #     diagnosis_payload["diagnosis_#{index + 1}_id"] = dc.id
+  #   end
 
-    # Combine claim payload with service lines and diagnosis codes
-    combined_payload = claim_payload.merge(
-      service_LinesObjectWithoutID: formatted_service_lines
-    ).merge(diagnosis_payload)
+  #   # Combine claim payload with service lines and diagnosis codes
+  #   combined_payload = claim_payload.merge(
+  #     service_LinesObjectWithoutID: formatted_service_lines
+  #   ).merge(diagnosis_payload)
 
-    render json: {
-      success: true,
-      api_url: config[:api_url],
-      api_version: config[:api_version],
-      payload: combined_payload
-    }
-  rescue => e
-    Rails.logger.error("Error building billing data: #{e.message}")
-    render json: {
-      success: false,
-      error: e.message
-    }, status: :unprocessable_entity
-  end
+  #   render json: {
+  #     success: true,
+  #     api_url: config[:api_url],
+  #     api_version: config[:api_version],
+  #     payload: combined_payload
+  #   }
+  # rescue => e
+  #   Rails.logger.error("Error building billing data: #{e.message}")
+  #   render json: {
+  #     success: false,
+  #     error: e.message
+  #   }, status: :unprocessable_entity
+  # end
 
   # Implement abstract methods from ProcedureCodeSearch concern
   def current_organization_for_pricing
@@ -275,6 +275,8 @@ class Admin::EncountersController < Admin::BaseController
 
   def bill_claim
     encounter = @encounter
+    # Ensure a basic claim and service lines exist for record keeping and payments
+    encounter.create_claim_with_lines_if_missing!
 
     # Set internal_status to billed first so the encounter is removed from the billing queue
     # immediately, even if later workflow steps fail or run validations that block update!
@@ -284,6 +286,14 @@ class Admin::EncountersController < Admin::BaseController
       billed_at: Time.current,
       updated_at: Time.current
     )
+
+    # Forward-sync tenant workflow status: billed => in_process (only if still prepared)
+    if encounter.tenant_status_prepared?
+      encounter.update_columns(
+        tenant_status: Encounter.tenant_statuses[:in_process],
+        updated_at: Time.current
+      )
+    end
 
     if encounter.may_mark_sent?
       encounter.mark_sent!
@@ -308,14 +318,6 @@ class Admin::EncountersController < Admin::BaseController
     redirect_to billing_queue_admin_encounters_path(billing_queue_return_params), notice: "Encounter marked as claim billed."
   rescue => e
     redirect_to billing_queue_admin_encounters_path(billing_queue_return_params), alert: "Failed to mark claim billed: #{e.message}"
-  end
-
-  def fetch_from_ezclaim
-    fetch_from_ezclaim_concern(resource_type: :encounters, service_method: :get_encounters)
-  end
-
-  def save_from_ezclaim
-    save_encounters_from_ezclaim
   end
 
   private

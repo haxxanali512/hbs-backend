@@ -1,56 +1,105 @@
 class Admin::PaymentsController < Admin::BaseController
+  include Admin::PaymentPostingConcern
+
   def index
-    @payments = Payment.includes(:organization, :payer, :processed_by_user)
-                       .order(created_at: :desc)
+    payments = Payment.includes(:organization, :payer, :processed_by_user)
+    .order(created_at: :desc)
+    payments = apply_filters(payments)
+    @pagy, @payments = pagy(payments, items: 20)
+    prepare_filter_ui_options
+  end
 
-    if params[:organization_id].present?
-      @payments = @payments.where(organization_id: params[:organization_id])
+  def new
+    @payment = Payment.new
+    build_payment_context
+
+    # When loading inside a Turbo Frame modal, return only the form partial.
+    if turbo_frame_request?
+      render partial: "modal_form_frame",
+             locals: {
+               payment: @payment,
+               encounter: @encounter,
+               claim_lines: @claim_lines,
+               applications_by_line: @applications_by_line,
+               billed_amounts_by_line_id: @billed_amounts_by_line_id
+             },
+             layout: false
+      return
     end
+  end
 
-    if params[:status].present?
-      @payments = @payments.where(payment_status: params[:status])
-    end
+  def create
+    build_payment_context
+    create_manual_payment_from_params
 
-    if params[:payment_method].present?
-      @payments = @payments.where(payment_method: params[:payment_method])
-    end
+    notice_message = @encounter ? "Payments posted for encounter." : "Payment created."
 
-    if params[:date_from].present?
-      from = Date.parse(params[:date_from]) rescue nil
-      if from
-        @payments = @payments.where("payment_date >= ? OR (payment_date IS NULL AND created_at >= ?)", from, from)
+    if turbo_frame_request?
+      flash.now[:notice] = notice_message
+      streams = [
+        turbo_stream.replace(
+          "manualPaymentModal",
+          partial: "admin/payments/manual_payment_modal_hidden"
+        ),
+        turbo_stream.replace(
+          "manual-payment-modal-frame",
+          partial: "admin/payments/modal_form_frame_empty"
+        ),
+        turbo_stream.update(
+          "flash_container",
+          partial: "shared/toast_flash"
+        )
+      ]
+
+      if @encounter.present?
+        @encounter.reload
+        streams << turbo_stream.replace(
+          "encounter-row-#{@encounter.id}",
+          partial: "admin/encounters/encounter_row",
+          locals: {
+            encounter: @encounter,
+            can_open_manual_payment_modal: current_user&.permissions_for("admin", "payments", "create")
+          }
+        )
+      end
+
+      render turbo_stream: streams
+    else
+      if @encounter
+        redirect_to admin_encounter_path(@encounter), notice: notice_message
+      else
+        redirect_to admin_payments_path, notice: notice_message
       end
     end
-
-    if params[:date_to].present?
-      to = Date.parse(params[:date_to]) rescue nil
-      if to
-        @payments = @payments.where("payment_date <= ? OR (payment_date IS NULL AND created_at <= ?)", to, to)
-      end
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+    @payment ||= Payment.new
+    if e.respond_to?(:record) && e.record.respond_to?(:errors) && e.record.errors.any?
+      detail = e.record.errors.full_messages.join(", ")
+      @payment.errors.add(:base, detail) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to save payment: #{detail}"
+    else
+      @payment.errors.add(:base, e.message) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to save payment: #{e.message}"
     end
 
-    if params[:search].present?
-      term = "%#{params[:search]}%"
-      @payments = @payments.joins(:organization)
-                           .left_joins(:payer)
-                           .where(
-                             "payments.remit_reference ILIKE ? OR payments.source_hash ILIKE ? OR organizations.name ILIKE ? OR payers.name ILIKE ?",
-                             term, term, term, term
-                           )
+    if turbo_frame_request?
+      render partial: "modal_form_frame",
+             locals: {
+               payment: @payment,
+               encounter: @encounter,
+               claim_lines: @claim_lines,
+               applications_by_line: @applications_by_line,
+               billed_amounts_by_line_id: @billed_amounts_by_line_id
+             },
+             status: :unprocessable_entity,
+             layout: false
+    else
+      render :new, status: :unprocessable_entity
     end
+  end
 
-    @pagy, @payments = pagy(@payments, items: 20)
+  private
 
-    @search_placeholder = "Remit reference, payer, org, source hash..."
-    @organization_options = Organization.order(:name)
-    @status_options = Payment.payment_statuses.keys
-    @custom_selects = [
-      {
-        param: :payment_method,
-        label: "Method",
-        options: [ [ "All Methods", "" ] ] + Payment.payment_methods.keys.map { |m| [ m.humanize, m ] }
-      }
-    ]
-    @show_date_range = true
+  def base_payments_scope
   end
 end

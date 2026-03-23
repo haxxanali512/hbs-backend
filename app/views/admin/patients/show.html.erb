@@ -165,7 +165,7 @@
                       </td>
                     <% end %>
                     <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
-                      <%= @patient.encounters.kept.where(status: [:ready_for_review, :reviewed, :ready_to_submit, :completed_confirmed, :sent]).count %>
+                      <%= @patient.eligible_visits_count %>
                     </td>
                   </tr>
                 </tbody>
@@ -309,11 +309,15 @@
               <span class="text-sm font-semibold text-gray-900"><%= @patient.appointments.count %></span>
             </div>
             <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Encounters</span>
+              <span class="text-sm text-gray-600">Total Encounters Entered</span>
               <%= link_to admin_encounters_path(patient_id: @patient.id),
                           class: "text-sm font-semibold text-blue-600 hover:text-blue-800" do %>
-                <%= @patient.encounters.count %>
+                <%= @patient.encounters_entered_count %>
               <% end %>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600">Eligible Visits</span>
+              <span class="text-sm font-semibold text-gray-900"><%= @patient.eligible_visits_count %></span>
             </div>
           </div>
         </div>

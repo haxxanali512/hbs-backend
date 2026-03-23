@@ -24,7 +24,7 @@ class Payment < ApplicationRecord
 
   # Validations (legacy invoice payments)
   validates :invoice_id, :organization_id, presence: true, if: -> { invoice_id.present? }
-  validates :amount, presence: true, numericality: { greater_than: 0 }, if: -> { amount.present? }
+  validates :amount, presence: true, numericality: { greater_than_or_equal_to: 0 }, if: -> { amount.present? }
   validates :payment_method, :payment_status, presence: true, if: -> { invoice_id.present? }
 
   # Remit-based header validations (spec) – only when remit fields provided
@@ -41,7 +41,8 @@ class Payment < ApplicationRecord
 
   # Derived helpers for allocations
   def applied_total
-    payment_applications.sum(:amount_applied)
+    # Only payer-paid/adjusted service-line amounts should count toward "applied".
+    payment_applications.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
   end
 
   def remaining_amount
@@ -59,7 +60,7 @@ class Payment < ApplicationRecord
   private
 
   def update_invoice_amounts
-    return unless succeeded?
+    return unless succeeded? && invoice.present?
 
     invoice.with_lock do
       invoice.amount_paid = (invoice.amount_paid + amount).round(2)
@@ -69,7 +70,7 @@ class Payment < ApplicationRecord
   end
 
   def check_invoice_fully_paid
-    return unless succeeded?
+    return unless succeeded? && invoice.present?
 
     invoice.reload
     if invoice.amount_due <= 0 && invoice.status != "paid"

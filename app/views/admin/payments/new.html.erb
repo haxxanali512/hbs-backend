@@ -1,0 +1,43 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-900">
+            <%= @encounter ? "Manual Payment Posting" : "New Manual Payment" %>
+          </h2>
+          <p class="mt-2 text-gray-600">
+            <% if @encounter %>
+              Post payments for this encounter at the service-line level.
+            <% else %>
+              Create a manual payment record.
+            <% end %>
+          </p>
+        </div>
+        <div>
+          <% if @encounter %>
+            <%= link_to "Back to Encounter",
+                        admin_encounter_path(@encounter),
+                        class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <% else %>
+            <%= link_to "Back to Payments",
+                        admin_payments_path,
+                        class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form container -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <%= render "form",
+                 payment: @payment,
+                 encounter: @encounter,
+                 claim_lines: @claim_lines,
+                 applications_by_line: @applications_by_line,
+                 billed_amounts_by_line_id: @billed_amounts_by_line_id %>
+    </div>
+  </div>
+</div>
+

@@ -19,13 +19,14 @@
       @provider_options = @providers
       @specialty_options = @specialties
       @organization_options = @organizations
-      @billing_channel_options = @billing_channels
+      # @billing_channel_options = @billing_channels
       @cascaded_options = ["Not Cascaded", "Cascaded"]
       @show_date_range = true
     %>
     <%= render "shared/filters" %>
 
     <!-- Encounters Table -->
+    <% can_open_manual_payment_modal = current_user&.permissions_for("admin", "payments", "create") %>
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -45,59 +46,9 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <% if @encounters.present? && @encounters.any? %>
               <% @encounters.each do |encounter| %>
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">
-                      <%= encounter.date_of_service.strftime("%b %d, %Y") %>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">
-                      <%= encounter.organization.name %>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">
-                      <%= encounter.patient.first_name %> <%= encounter.patient.last_name %>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">
-                      <%= encounter.provider.full_name %>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <% if encounter.billing_channel.present? %>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.insurance? ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
-                        <%= encounter.billing_channel.humanize %>
-                      </span>
-                    <% else %>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        N/A
-                      </span>
-                    <% end %>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.internal_status_badge_color %>">
-                      <%= encounter.internal_status&.humanize || "—" %>
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <%= encounter.billed_by&.full_name || "—" %>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <%= encounter.billed_at&.strftime("%m/%d/%Y %I:%M %p") || "—" %>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div class="flex space-x-2">
-                      <%= link_to "View", admin_encounter_path(encounter), class: "text-blue-600 hover:text-blue-800" %>
-                      <%= link_to "Edit", edit_admin_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" %>
-                      <% if encounter.claim&.edi_file&.attached? %>
-                        <%= link_to "Download EDI", download_edi_admin_encounter_path(encounter), class: "text-green-600 hover:text-green-800", title: "Download EDI file" %>
-                      <% end %>
-                    </div>
-                  </td>
-                </tr>
+                <%= render "encounter_row",
+                           encounter: encounter,
+                           can_open_manual_payment_modal: can_open_manual_payment_modal %>
               <% end %>
             <% end %>
           </tbody>
@@ -126,12 +77,67 @@
   </div>
 </div>
 
-<!-- EZClaim Encounters Modal -->
-<%= render "shared/ezclaim_import_modal", 
-    modal_id: "ezclaimEncountersModal",
-    resource_type: "encounter",
-    resource_name: "Encounters",
-    fetch_url: fetch_from_ezclaim_admin_encounters_path,
-    save_url: save_from_ezclaim_admin_encounters_path,
-    display_columns: [:date_of_service, :encounter_id, :patient_id, :provider_id, :internal_status] %>
+<!-- Manual Payment Posting Modal -->
+<div id="manualPaymentModal" class="hidden fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="manualPaymentModalTitle">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40" onclick="closeManualPaymentModal()"></div>
+
+    <div class="relative z-10 w-full max-w-4xl rounded-lg bg-white shadow-xl">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-6">
+          <h3 id="manualPaymentModalTitle" class="text-lg font-semibold text-gray-900">Post Payments</h3>
+          <button type="button" onclick="closeManualPaymentModal()" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <turbo-frame id="manual-payment-modal-frame"></turbo-frame>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function closeManualPaymentModal() {
+    const modal = document.getElementById("manualPaymentModal");
+    const frame = document.getElementById("manual-payment-modal-frame");
+    if (!modal || !frame) return;
+    modal.classList.add("hidden");
+    frame.innerHTML = "";
+  }
+
+  function openManualPaymentModal(url) {
+    const modal = document.getElementById("manualPaymentModal");
+    const frame = document.getElementById("manual-payment-modal-frame");
+    if (!modal || !frame || !url) return;
+
+    // In case the attribute includes accidental wrapping quotes, remove them.
+    url = url.replace(/^['"]+|['"]+$/g, "");
+
+    // Clear existing content; Turbo will replace with the frame response.
+    frame.innerHTML = "";
+    frame.src = url;
+    modal.classList.remove("hidden");
+  }
+
+  document.addEventListener("turbo:load", function () {
+    document.querySelectorAll("tr[data-manual-payment-url]").forEach((row) => {
+      if (row.dataset.manualPaymentListener === "1") return;
+      row.dataset.manualPaymentListener = "1";
+
+      row.addEventListener("click", (e) => {
+        // Don't open modal when user clicks interactive elements/links inside the row.
+        const interactive = e.target.closest("a,button,input,select,textarea,label,[role='button'],form");
+        if (interactive) return;
+
+        const url = row.dataset.manualPaymentUrl;
+        openManualPaymentModal(url);
+      });
+    });
+  });
+</script>
+
+<!-- (EZClaim import modal removed from this page) -->
 

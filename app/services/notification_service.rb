@@ -206,6 +206,72 @@ class NotificationService
       end
     end
 
+    # Notify super admins when a tenant requests a claim void for a billed encounter
+    def notify_claim_void_requested(organization:, encounter:, requested_by:, support_ticket:)
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      return if super_admins.empty?
+
+      patient_name = encounter.patient&.full_name || "Unknown Patient"
+      dos = encounter.date_of_service&.strftime("%m/%d/%Y") || "—"
+
+      title = "Claim Void Requested"
+      message = "Claim Void Requested — #{patient_name} — DOS #{dos} — #{organization.name}"
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:claim_void_requested],
+          title: title,
+          message: message,
+          action_url: "/admin/support_tickets/#{support_ticket.id}",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            encounter_id: encounter.id,
+            patient_id: encounter.patient_id,
+            provider_id: encounter.provider_id,
+            date_of_service: encounter.date_of_service,
+            requested_by_user_id: requested_by.id,
+            support_ticket_id: support_ticket.id
+          }
+        )
+      end
+    end
+
+    # Notify super admins the first time a provider has encounters submitted for billing
+    def notify_first_encounter_submitted_for_provider(provider:, organization:)
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      return if super_admins.empty?
+
+      title = "First Encounter Submitted for New Provider — #{provider.full_name}"
+      message = "#{organization.name} submitted the first encounter(s) for #{provider.full_name}."
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:first_encounter_submitted_for_provider],
+          title: title,
+          message: message,
+          action_url: "/admin/encounters?provider_id=#{provider.id}&organization_id=#{organization.id}&submitted_filter=submitted",
+          metadata: {
+            organization_id: organization.id,
+            organization_name: organization.name,
+            provider_id: provider.id
+          }
+        )
+      end
+    end
+
     # Notify super admins when an organization accepts a plan that needs enrollment verification
     def notify_org_accepted_plan_needs_enrollment(org_accepted_plan)
       organization = org_accepted_plan.organization
@@ -337,6 +403,156 @@ class NotificationService
           }
         )
       end
+    end
+
+    # =========================
+    # Encounter comment notifications
+    # =========================
+
+    def notify_encounter_comment_from_hbs(comment)
+      encounter = comment.encounter
+      organization = comment.organization
+      return unless encounter && organization
+
+      patient_name = comment.patient&.full_name || "Patient"
+      dos = encounter.date_of_service&.strftime("%m/%d/%Y") || "—"
+      title = "New Encounter Comment — #{patient_name} — DOS #{dos}"
+
+      members = organization.organization_memberships.active.includes(:user).map(&:user).uniq
+      members.each do |user|
+        Notification.create!(
+          user: user,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:encounter_comment_from_hbs],
+          title: title,
+          message: "#{comment.author.display_name} commented on this encounter.",
+          action_url: "/tenant/encounters/#{encounter.id}",
+          metadata: {
+            encounter_id: encounter.id,
+            patient_id: comment.patient_id,
+            organization_id: organization.id
+          }
+        )
+      end
+    end
+
+    def notify_encounter_comment_from_tenant(comment)
+      encounter = comment.encounter
+      organization = comment.organization
+      return unless encounter && organization
+
+      patient_name = comment.patient&.full_name || "Patient"
+      title = "Tenant Replied to Encounter Comment — #{organization.name} — #{patient_name}"
+
+      super_admins = User.joins(:role)
+                         .where(roles: { role_name: "Super Admin" })
+                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
+                         .kept
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:encounter_comment_from_tenant],
+          title: title,
+          message: "Tenant #{organization.name} replied to the encounter thread.",
+          action_url: "/admin/encounters/#{encounter.id}",
+          metadata: {
+            encounter_id: encounter.id,
+            patient_id: comment.patient_id,
+            organization_id: organization.id
+          }
+        )
+      end
+    end
+
+    # =========================
+    # Support ticket comment notifications
+    # =========================
+
+    def notify_support_ticket_comment_from_hbs(comment)
+      ticket = comment.support_ticket
+      organization = ticket.organization
+      recipient = ticket.created_by_user
+      return unless ticket && organization && recipient&.client_user?
+
+      title = "New Support Ticket Reply — #{ticket.subject}"
+      message = "#{comment.author_user.display_name} replied to your support ticket."
+
+      Notification.create!(
+        user: recipient,
+        organization: organization,
+        notification_type: Notification::NOTIFICATION_TYPES[:support_ticket_comment_from_hbs],
+        title: title,
+        message: message,
+        action_url: "/tenant/support_tickets/#{ticket.id}",
+        metadata: {
+          support_ticket_id: ticket.id,
+          organization_id: organization.id
+        }
+      )
+    end
+
+    def notify_support_ticket_comment_from_tenant(comment)
+      ticket = comment.support_ticket
+      organization = ticket.organization
+      return unless ticket && organization
+
+      title = "Tenant Replied to Support Ticket — #{ticket.subject}"
+      message = "Tenant #{organization.name} replied on support ticket."
+
+      recipients =
+        if ticket.assigned_to_user&.hbs_user?
+          [ ticket.assigned_to_user ]
+        else
+          User.joins(:role)
+              .where(roles: { role_name: "Super Admin" })
+              .where("status IS NULL OR status != ?", User.statuses[:inactive])
+              .kept
+        end
+
+      recipients.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:support_ticket_comment_from_tenant],
+          title: title,
+          message: message,
+          action_url: "/admin/support_tickets/#{ticket.id}",
+          metadata: {
+            support_ticket_id: ticket.id,
+            organization_id: organization.id
+          }
+        )
+      end
+    end
+
+    # =========================
+    # Password reset notifications
+    # =========================
+
+    def notify_password_reset_requested(user)
+      Notification.create!(
+        user: user,
+        organization: nil,
+        notification_type: Notification::NOTIFICATION_TYPES[:password_reset_requested],
+        title: "Password reset requested",
+        message: "A password reset was requested for your account. If this wasn't you, please contact support.",
+        action_url: "/users/password/edit",
+        metadata: {}
+      )
+    end
+
+    def notify_password_reset_completed(user)
+      Notification.create!(
+        user: user,
+        organization: nil,
+        notification_type: Notification::NOTIFICATION_TYPES[:password_reset_completed],
+        title: "Your password was reset",
+        message: "Your password was changed successfully.",
+        action_url: "/",
+        metadata: {}
+      )
     end
   end
 end

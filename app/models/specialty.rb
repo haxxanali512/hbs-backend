@@ -99,6 +99,21 @@ class Specialty < ApplicationRecord
     procedure_codes.exists?(code: code)
   end
 
+  # Ensure that any CPT codes mapped to this specialty are present in the
+  # fee schedules for organizations that have this specialty enabled.
+  # This preserves existing unit_price values and only creates missing items.
+  def sync_fee_schedule_items_for_mapped_cpts!
+    org_ids = OrganizationFeeSchedule.kept
+                                     .joins(:specialties)
+                                     .where(specialties: { id: id })
+                                     .distinct
+                                     .pluck(:organization_id)
+
+    Organization.where(id: org_ids).find_each do |org|
+      FeeScheduleUnlockService.unlock_procedure_codes_for_organization(org, self)
+    end
+  end
+
   # Validation methods for business rules
   def validate_provider_assignment(provider)
     return true if active?

@@ -111,7 +111,7 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :payments, only: [ :index ]
+      resources :payments, only: [ :index, :new, :create ]
 
       resources :payers do
         collection do
