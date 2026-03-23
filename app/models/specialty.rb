@@ -6,6 +6,7 @@ class Specialty < ApplicationRecord
   has_many :procedure_codes, through: :procedure_codes_specialties
   has_many :provider_specialties, dependent: :destroy
   has_many :providers, through: :provider_specialties
+  has_many :organizations, -> { distinct }, through: :providers
   has_many :appointments, dependent: :restrict_with_error
   has_many :encounters, dependent: :restrict_with_error
   has_many :claims, dependent: :restrict_with_error
