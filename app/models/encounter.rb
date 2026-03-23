@@ -188,6 +188,7 @@ class Encounter < ApplicationRecord
   validate :date_of_service_not_in_future
   # validate :provider_assigned_to_organization
   validate :specialty_valid_and_active
+  validate :procedure_code_required_on_create, on: :create, unless: -> { skip_import_validations }
   validate :diagnosis_codes_required, if: :run_workflow_validations?
   validate :insurance_requirements_if_insurance_billing, if: :run_workflow_validations?
   validate :procedure_codes_allowed_for_specialty, if: :run_workflow_validations?
@@ -453,6 +454,13 @@ class Encounter < ApplicationRecord
       # No diagnosis codes provided
       errors.add(:base, "ENC_DX_REQUIRED - At least one diagnosis code is required")
     end
+  end
+
+  def procedure_code_required_on_create
+    proc_ids = Array(procedure_code_ids).reject(&:blank?)
+    return if proc_ids.any? || encounter_procedure_items.any?
+
+    errors.add(:procedure_code_ids, "At least one procedure code is required")
   end
 
   def set_default_internal_status
