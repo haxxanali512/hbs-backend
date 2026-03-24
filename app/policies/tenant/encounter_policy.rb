@@ -67,6 +67,10 @@ class Tenant::EncounterPolicy < ApplicationPolicy
     create?
   end
 
+  def hard_destroy?
+    accessible?("tenant", "encounters", "hard_destroy")
+  end
+
   def procedure_codes_search?
     submit_for_billing?
   end
