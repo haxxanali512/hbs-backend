@@ -101,7 +101,7 @@ module HbsCustoms
           organization_locations: DEFAULT_CRUD_WITH_STATE.except(:create),
           appointments: DEFAULT_CRUD_WITH_STATE.except(:create, :destroy),
           audits: { index: false, show: false, model_audits: false },
-          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false, submit_for_billing: false, billing_queue: false, hard_destroy: false),
+          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(override_validation: false, submit_for_billing: false, billing_queue: false),
           clinical_documentations: { index: false, show: false, download: false },
           encounter_comments: DEFAULT_CRUD.merge(redact: false),
           provider_notes: DEFAULT_CRUD,
