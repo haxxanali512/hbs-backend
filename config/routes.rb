@@ -456,6 +456,7 @@ Rails.application.routes.draw do
             post :mark_reviewed
             post :mark_ready_to_submit
             post :cancel
+            delete :hard_destroy
             post :request_correction
             post :attach_document
             post :attach_clinical_document
