@@ -25,7 +25,7 @@ module HbsCustoms
     DEFAULT_CRUD_WITH_WORKFLOW = DEFAULT_CRUD.merge(
       confirm_completed: false,
       cancel: false,
-      request_correction: false
+      request_correction: false,
     ).freeze
 
     class << self
@@ -64,7 +64,7 @@ module HbsCustoms
           organization_locations: DEFAULT_CRUD_WITH_STATE,
           appointments: DEFAULT_CRUD_WITH_STATE,
           organization_settings: { show: false, edit: false, update: false },
-          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(submit_for_billing: false),
+          encounters: DEFAULT_CRUD_WITH_WORKFLOW.merge(submit_for_billing: false, hard_destroy: false),
           clinical_documentations: { index: false, show: false, download: false },
           encounter_comments: { index: false, create: false, redact: false },
           provider_notes: DEFAULT_CRUD,
