@@ -12,20 +12,90 @@ class Admin::PaymentsController < Admin::BaseController
   def new
     @payment = Payment.new
     build_payment_context
+
+    # When loading inside a Turbo Frame modal, return only the form partial.
+    if turbo_frame_request?
+      render partial: "modal_form_frame",
+             locals: {
+               payment: @payment,
+               encounter: @encounter,
+               claim_lines: @claim_lines,
+               applications_by_line: @applications_by_line,
+               billed_amounts_by_line_id: @billed_amounts_by_line_id
+             },
+             layout: false
+      return
+    end
   end
 
   def create
     build_payment_context
     create_manual_payment_from_params
 
-    if @encounter
-      redirect_to admin_encounter_path(@encounter), notice: "Payments posted for encounter."
+    notice_message = @encounter ? "Payments posted for encounter." : "Payment created."
+
+    if turbo_frame_request?
+      flash.now[:notice] = notice_message
+      streams = [
+        turbo_stream.replace(
+          "manualPaymentModal",
+          partial: "admin/payments/manual_payment_modal_hidden"
+        ),
+        turbo_stream.replace(
+          "manual-payment-modal-frame",
+          partial: "admin/payments/modal_form_frame_empty"
+        ),
+        turbo_stream.update(
+          "flash_container",
+          partial: "shared/toast_flash"
+        )
+      ]
+
+      if @encounter.present?
+        @encounter.reload
+        streams << turbo_stream.replace(
+          "encounter-row-#{@encounter.id}",
+          partial: "admin/encounters/encounter_row",
+          locals: {
+            encounter: @encounter,
+            can_open_manual_payment_modal: current_user&.permissions_for("admin", "payments", "create")
+          }
+        )
+      end
+
+      render turbo_stream: streams
     else
-      redirect_to admin_payments_path, notice: "Payment created."
+      if @encounter
+        redirect_to admin_encounter_path(@encounter), notice: notice_message
+      else
+        redirect_to admin_payments_path, notice: notice_message
+      end
     end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
-    flash.now[:alert] = "Failed to save payment: #{e.message}"
-    render :new, status: :unprocessable_entity
+    @payment ||= Payment.new
+    if e.respond_to?(:record) && e.record.respond_to?(:errors) && e.record.errors.any?
+      detail = e.record.errors.full_messages.join(", ")
+      @payment.errors.add(:base, detail) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to save payment: #{detail}"
+    else
+      @payment.errors.add(:base, e.message) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to save payment: #{e.message}"
+    end
+
+    if turbo_frame_request?
+      render partial: "modal_form_frame",
+             locals: {
+               payment: @payment,
+               encounter: @encounter,
+               claim_lines: @claim_lines,
+               applications_by_line: @applications_by_line,
+               billed_amounts_by_line_id: @billed_amounts_by_line_id
+             },
+             status: :unprocessable_entity,
+             layout: false
+    else
+      render :new, status: :unprocessable_entity
+    end
   end
 
   private

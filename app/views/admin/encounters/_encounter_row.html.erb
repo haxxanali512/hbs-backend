@@ -1,0 +1,57 @@
+<% payment_posted = encounter.total_paid_amount.to_d.positive? || encounter.payment_applications.exists? %>
+<% row_state_class = payment_posted ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-50" %>
+<tr id="encounter-row-<%= encounter.id %>"
+    class="<%= row_state_class %> <%= can_open_manual_payment_modal ? 'cursor-pointer' : '' %>"
+    <%= can_open_manual_payment_modal ? "data-manual-payment-url='#{new_admin_payment_path(encounter_id: encounter.id)}'" : '' %>>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <div class="text-sm text-gray-900">
+      <%= encounter.date_of_service.strftime("%b %d, %Y") %>
+    </div>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <div class="text-sm text-gray-900">
+      <%= encounter.organization.name %>
+    </div>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <div class="text-sm font-medium text-gray-900">
+      <%= encounter.patient.first_name %> <%= encounter.patient.last_name %>
+    </div>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <div class="text-sm text-gray-900">
+      <%= encounter.provider.full_name %>
+    </div>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <% if encounter.billing_channel.present? %>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.insurance? ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
+        <%= encounter.billing_channel.humanize %>
+      </span>
+    <% else %>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        N/A
+      </span>
+    <% end %>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap">
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= encounter.internal_status_badge_color %>">
+      <%= encounter.internal_status&.humanize || "—" %>
+    </span>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    <%= encounter.billed_by&.full_name || "—" %>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    <%= encounter.billed_at&.strftime("%m/%d/%Y %I:%M %p") || "—" %>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+    <div class="flex space-x-2">
+      <%= link_to "View", admin_encounter_path(encounter), class: "text-blue-600 hover:text-blue-800" %>
+      <%= link_to "Edit", edit_admin_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" %>
+      <% if encounter.claim&.edi_file&.attached? %>
+        <%= link_to "Download EDI", download_edi_admin_encounter_path(encounter), class: "text-green-600 hover:text-green-800", title: "Download EDI file" %>
+      <% end %>
+    </div>
+  </td>
+</tr>

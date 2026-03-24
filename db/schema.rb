@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_17_180000) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_19_180010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -1108,6 +1108,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_17_180000) do
     t.datetime "updated_at", null: false
     t.datetime "discarded_at"
     t.boolean "is_specialist"
+    t.boolean "first_encounter_submitted_notified", default: false, null: false
     t.index ["discarded_at"], name: "index_providers_on_discarded_at"
     t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
   end
