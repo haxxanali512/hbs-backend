@@ -115,6 +115,21 @@
                           class: "text-red-600 hover:text-red-800",
                           data: { turbo_confirm: "Are you sure you want to cancel this encounter?" } %>
                     <% end %>
+
+                    <% can_soft_delete = current_user.permissions_for("tenant", "encounters", "destroy") %>
+                    <% can_hard_delete = current_user.permissions_for("tenant", "encounters", "hard_destroy") %>
+                    <% if can_soft_delete || can_hard_delete %>
+                      <button type="button"
+                              class="text-red-700 hover:text-red-900"
+                              data-delete-choice
+                              data-delete-choice-title="Delete encounter?"
+                              data-delete-choice-confirm-label="Delete"
+                              data-delete-choice-soft-url="<%= can_soft_delete ? tenant_encounter_path(encounter) : "" %>"
+                              data-delete-choice-hard-url="<%= can_hard_delete ? hard_destroy_tenant_encounter_path(encounter) : "" %>"
+                              data-delete-choice-message="Choose <strong>Discard from table</strong> or <strong>Permanently delete</strong>.">
+                        Delete
+                      </button>
+                    <% end %>
                   <% end %>
                 </div>
               </td>
