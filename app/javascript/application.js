@@ -5,5 +5,6 @@ import { createConsumer } from "@rails/actioncable"
 import "./confirm_modal"
 import "./delete_choice_modal"
 import "./resource_tags"
+import "./sidebar_collapse"
 
 Turbo.session.connectStreamSource(createConsumer())
