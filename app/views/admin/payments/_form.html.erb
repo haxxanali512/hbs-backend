@@ -1,4 +1,8 @@
-<%= form_with model: [:admin, payment], url: admin_payments_path, method: :post, local: true, class: "space-y-6" do |f| %>
+<%= form_with model: [:admin, payment],
+              url: admin_payments_path,
+              method: :post,
+              id: "manual-payment-form",
+              class: "space-y-6" do |f| %>
   <% if payment.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-md p-4">
       <div class="flex">
@@ -20,6 +24,12 @@
           </div>
         </div>
       </div>
+    </div>
+  <% end %>
+
+  <% if flash[:alert].present? %>
+    <div class="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+      <%= flash[:alert] %>
     </div>
   <% end %>
 
@@ -71,11 +81,22 @@
     <h3 class="text-lg font-medium text-gray-900">Payment Header</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
+        <% default_payer = @default_payer %>
+        <% selected_payer = payment.payer || default_payer %>
         <%= f.label :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.select :payer_id,
-                     options_from_collection_for_select(@payers || Payer.active_only.order(:name), :id, :name, payment.payer_id),
-                     { prompt: "Select payer..." },
-                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
+
+        <% if encounter && selected_payer.present? %>
+          <input type="text"
+                 value="<%= selected_payer.name %>"
+                 class="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 sm:text-sm"
+                 readonly>
+          <%= f.hidden_field :payer_id, value: selected_payer.id %>
+        <% else %>
+          <%= f.select :payer_id,
+                       options_from_collection_for_select(@payers || Payer.active_only.order(:name), :id, :name, payment.payer_id),
+                       { prompt: "Select payer..." },
+                       class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
+        <% end %>
       </div>
       <div>
         <%= f.label :payment_date, "Payment Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
@@ -122,7 +143,9 @@
               <tbody class="bg-white divide-y divide-gray-200" id="service-lines-body">
               <% claim_lines.each do |line| %>
                 <% application = applications_by_line[line.id] %>
-                <tr id="service-line-<%= line.id %>" class="hover:bg-gray-50">
+                <% billed_amounts = local_assigns[:billed_amounts_by_line_id] || {} %>
+                <% billed = billed_amounts[line.id] || (line.respond_to?(:amount_billed) ? line.amount_billed : nil) %>
+                <tr id="service-line-<%= line.id %>" class="hover:bg-gray-50" data-billed-amount="<%= (billed || 0).to_d %>">
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <%= line.procedure_code&.code || "—" %>
                   </td>
@@ -130,7 +153,6 @@
                     <%= line.procedure_code&.description || "—" %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
-                    <% billed = line.respond_to?(:amount_billed) ? line.amount_billed : nil %>
                     $<%= number_with_precision(billed || 0, precision: 2, delimiter: ",") %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
@@ -156,6 +178,8 @@
                         <% current_status = application&.line_status&.to_s %>
                         <option value="" <%= current_status.blank? ? "selected" : "" %>>Unpaid</option>
                         <option value="paid" <%= current_status == "paid" ? "selected" : "" %>>Paid</option>
+                        <option value="adjusted" <%= current_status == "adjusted" ? "selected" : "" %>>Adjusted</option>
+                        <option value="deductible" <%= current_status == "deductible" ? "selected" : "" %>>Deductible</option>
                         <option value="denied" <%= current_status == "denied" ? "selected" : "" %>>Denied</option>
                       </select>
                     </div>
@@ -176,9 +200,19 @@
         </div>
         </div>
 
-        <div class="mt-3 text-sm text-gray-700">
-          <span class="font-medium">Encounter Total Paid (from entries):</span>
-          <span id="encounter-total-paid" class="font-semibold text-gray-900">$0.00</span>
+        <div class="mt-3 text-sm text-gray-700 space-y-1">
+          <div>
+            <span class="font-medium">Encounter Total Billed (from entries):</span>
+            <span id="encounter-total-billed" class="font-semibold text-gray-900">$0.00</span>
+          </div>
+          <div>
+            <span class="font-medium">Encounter Total Paid (from entries):</span>
+            <span id="encounter-total-paid" class="font-semibold text-gray-900">$0.00</span>
+          </div>
+          <div>
+            <span class="font-medium">Patient Responsibility (Billed - Paid):</span>
+            <span id="patient-responsibility" class="font-semibold text-gray-900">$0.00</span>
+          </div>
         </div>
       <% else %>
         <p class="text-sm text-gray-500">
@@ -202,12 +236,24 @@
     </div>
   <% end %>
 
+  <div id="client-validation-errors" class="hidden bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700"></div>
+
   <!-- Form Actions -->
   <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-    <%= link_to "Cancel",
-                encounter ? admin_encounter_path(encounter) : admin_payments_path,
-                class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <% in_modal = local_assigns[:modal] %>
+    <% if in_modal && encounter %>
+      <button type="button"
+              onclick="closeManualPaymentModal()"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors">
+        Cancel
+      </button>
+    <% else %>
+      <%= link_to "Cancel",
+                  encounter ? admin_encounter_path(encounter) : admin_payments_path,
+                  class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
+    <% end %>
     <%= f.submit(encounter ? "Post Payments" : "Create Payment",
+                 id: "post-payments-submit",
                  class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer") %>
   </div>
 <% end %>
@@ -215,41 +261,168 @@
 <% if encounter %>
   <script>
     (function() {
+      function getForm() {
+        return document.getElementById('manual-payment-form');
+      }
+
       function updateTotal() {
-        var rows = document.querySelectorAll('#service-lines-body tr');
-        var total = 0.0;
+        var form = getForm();
+        if (!form) { return; }
+
+        var rows = form.querySelectorAll('#service-lines-body tr');
+        var totalPaid = 0.0;
+        var totalBilled = 0.0;
 
         rows.forEach(function(row) {
           var lineId = row.id.replace('service-line-', '');
-          var amountInput = document.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
-          var statusSelect = document.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
+          var amountInput = form.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
+          var statusSelect = form.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
 
           if (!amountInput || !statusSelect) { return; }
 
           var amount = parseFloat(amountInput.value || "0");
           var status = statusSelect.value;
 
-          if (!isNaN(amount) && amount > 0 && status === 'paid') {
-            total += amount;
+          var billed = parseFloat(row.getAttribute('data-billed-amount') || "0");
+          if (!isNaN(billed) && billed > 0) {
+            totalBilled += billed;
+          }
+
+          if (!isNaN(amount) && amount > 0 && (status === 'paid' || status === 'adjusted')) {
+            totalPaid += amount;
           }
         });
 
-        var totalEl = document.getElementById('encounter-total-paid');
-        if (totalEl) {
-          totalEl.textContent = '$' + total.toFixed(2);
+        var paidEl = form.querySelector('#encounter-total-paid');
+        if (paidEl) { paidEl.textContent = '$' + totalPaid.toFixed(2); }
+
+        var billedEl = form.querySelector('#encounter-total-billed');
+        if (billedEl) { billedEl.textContent = '$' + totalBilled.toFixed(2); }
+
+        var patientEl = form.querySelector('#patient-responsibility');
+        if (patientEl) {
+          var responsibility = totalBilled - totalPaid;
+          if (responsibility < 0) { responsibility = 0; }
+          patientEl.textContent = '$' + responsibility.toFixed(2);
+        }
+      }
+
+      function validateFormReadiness(showErrors) {
+        var form = getForm();
+        if (!form) { return; }
+        if (typeof showErrors === 'undefined') { showErrors = false; }
+
+        var errors = [];
+        var rows = form.querySelectorAll('#service-lines-body tr');
+        var hasAnyLineAction = false;
+
+        var paymentDateInput = form.querySelector('input[name="payment[payment_date]"]');
+        if (paymentDateInput && !paymentDateInput.value) {
+          errors.push('Payment date is required.');
+        }
+
+        var payerInput = form.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
+        if (payerInput && !payerInput.value) {
+          errors.push('Payer is required.');
+        }
+
+        rows.forEach(function(row) {
+          var lineId = row.id.replace('service-line-', '');
+          var amountInput = form.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
+          var statusSelect = form.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
+          var denialInput = form.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
+
+          if (!amountInput || !statusSelect) { return; }
+
+          var rawAmount = amountInput.value || "0";
+          var amount = parseFloat(rawAmount);
+          if (isNaN(amount)) { amount = 0; }
+          var status = statusSelect.value;
+
+          if (status || amount > 0) {
+            hasAnyLineAction = true;
+          }
+
+          if (status === 'denied') {
+            if (!denialInput || !denialInput.value || denialInput.value.trim() === '') {
+              errors.push('Denial reason is required for denied service lines.');
+            }
+          }
+
+          if (status === 'paid' || status === 'adjusted') {
+            if (!(amount > 0)) {
+              errors.push('Paid/Adjusted lines must have amount greater than 0.');
+            }
+          }
+        });
+
+        if (!hasAnyLineAction) {
+          errors.push('Add at least one service-line payment entry before posting.');
+        }
+
+        var uniqueErrors = Array.from(new Set(errors));
+        var errorBox = form.querySelector('#client-validation-errors');
+        var submitBtn = form.querySelector('#post-payments-submit');
+        var isValid = uniqueErrors.length === 0;
+
+        if (errorBox) {
+          if (isValid || !showErrors) {
+            errorBox.classList.add('hidden');
+            errorBox.innerHTML = '';
+          } else {
+            errorBox.classList.remove('hidden');
+            errorBox.innerHTML = '<ul class="list-disc pl-5 space-y-1">' + uniqueErrors.map(function(msg) {
+              return '<li>' + msg + '</li>';
+            }).join('') + '</ul>';
+          }
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = !isValid;
+          if (isValid) {
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          } else {
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+          }
         }
       }
 
       function bindEvents() {
-        document.querySelectorAll('input.amount-input').forEach(function(input) {
-          input.addEventListener('input', updateTotal);
+        var form = getForm();
+        if (!form) { return; }
+        if (form.dataset.validationBound === '1') {
+          updateTotal();
+          validateFormReadiness(false);
+          return;
+        }
+        form.dataset.validationBound = '1';
+
+        form.querySelectorAll('input.amount-input').forEach(function(input) {
+          input.addEventListener('input', function() {
+            updateTotal();
+            validateFormReadiness(true);
+          });
+          input.addEventListener('change', function() {
+            updateTotal();
+            validateFormReadiness(true);
+          });
         });
 
-        document.querySelectorAll('select.status-select').forEach(function(select) {
+        var paymentDateInput = form.querySelector('input[name="payment[payment_date]"]');
+        if (paymentDateInput) {
+          paymentDateInput.addEventListener('change', function() { validateFormReadiness(true); });
+        }
+
+        var payerInput = form.querySelector('input[name="payment[payer_id]"], select[name="payment[payer_id]"]');
+        if (payerInput) {
+          payerInput.addEventListener('change', function() { validateFormReadiness(true); });
+        }
+
+        form.querySelectorAll('select.status-select').forEach(function(select) {
           select.addEventListener('change', function(event) {
             var lineId = event.target.getAttribute('data-service-line-id');
             var status = event.target.value;
-            var textarea = document.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
+            var textarea = form.querySelector('textarea.denial-textarea[data-service-line-id="' + lineId + '"]');
 
             if (textarea) {
               if (status === 'denied') {
@@ -261,10 +434,24 @@
             }
 
             updateTotal();
+            validateFormReadiness(true);
           });
         });
 
+        form.querySelectorAll('textarea.denial-textarea').forEach(function(textarea) {
+          textarea.addEventListener('input', function() { validateFormReadiness(true); });
+        });
+
+        form.addEventListener('submit', function(event) {
+          validateFormReadiness(true);
+          var submitBtn = form.querySelector('#post-payments-submit');
+          if (submitBtn && submitBtn.disabled) {
+            event.preventDefault();
+          }
+        });
+
         updateTotal();
+        validateFormReadiness(false);
       }
 
       if (document.readyState === 'loading') {
@@ -272,6 +459,14 @@
       } else {
         bindEvents();
       }
+
+      document.addEventListener('turbo:load', bindEvents);
+      document.addEventListener('turbo:frame-load', function(event) {
+        if (!event.target) { return; }
+        if (event.target.id === 'manual-payment-modal-frame' || event.target.querySelector('#manual-payment-form')) {
+          bindEvents();
+        }
+      });
     })();
   </script>
 <% end %>

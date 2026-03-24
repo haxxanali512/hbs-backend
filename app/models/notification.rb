@@ -20,8 +20,15 @@ class Notification < ApplicationRecord
     user_role_changed: "user_role_changed",
     encounters_submitted_for_billing: "encounters_submitted_for_billing",
     claim_void_requested: "claim_void_requested",
+    first_encounter_submitted_for_provider: "first_encounter_submitted_for_provider",
     org_accepted_plan_needs_enrollment: "org_accepted_plan_needs_enrollment",
-    payer_enrollment_needs_verification: "payer_enrollment_needs_verification"
+    payer_enrollment_needs_verification: "payer_enrollment_needs_verification",
+    encounter_comment_from_hbs: "encounter_comment_from_hbs",
+    encounter_comment_from_tenant: "encounter_comment_from_tenant",
+    support_ticket_comment_from_hbs: "support_ticket_comment_from_hbs",
+    support_ticket_comment_from_tenant: "support_ticket_comment_from_tenant",
+    password_reset_requested: "password_reset_requested",
+    password_reset_completed: "password_reset_completed"
   }.freeze
 
   scope :unread, -> { where(read: false) }

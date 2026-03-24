@@ -72,6 +72,7 @@ class EncounterComment < ApplicationRecord
   before_validation :normalize_body_text
 
   after_commit :apply_status_transition, on: :create
+  after_commit :notify_parties, on: :create
 
   # =========================
   # Business Logic
@@ -98,6 +99,22 @@ class EncounterComment < ApplicationRecord
     end
 
     false
+  end
+
+  def notify_parties
+    return unless encounter && organization
+    return if redacted?
+
+    # Only notify on shared comments; internal-only stays within HBS tools
+    return if internal_only?
+
+    if actor_type.to_s.in?(%w[hbs_admin hbs_user system]) || author&.hbs_user?
+      NotificationService.notify_encounter_comment_from_hbs(self)
+    elsif actor_type.to_s.in?(%w[client_admin client_user]) || author&.client_user?
+      NotificationService.notify_encounter_comment_from_tenant(self)
+    end
+  rescue => e
+    Rails.logger.error("Failed to send encounter comment notification for comment #{id}: #{e.message}")
   end
 
   def status_transition_label

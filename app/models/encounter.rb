@@ -179,7 +179,8 @@ class Encounter < ApplicationRecord
     partially_paid: 1,
     paid: 2,
     denied: 3,
-    mixed: 4
+    mixed: 4,
+    deductible: 5
   }, prefix: true
 
   # ===========================================================
@@ -258,7 +259,10 @@ class Encounter < ApplicationRecord
   # marking a claim as billed so that there is always a concrete claim
   # artifact for record keeping and payments.
   def create_claim_with_lines_if_missing!
-    return unless insurance?
+    has_insurance_context =
+      patient_insurance_coverage.present? ||
+      patient&.patient_insurance_coverages&.exists?
+    return unless has_insurance_context
     return if claim.present?
 
     items = encounter_procedure_items.includes(:procedure_code)
@@ -330,8 +334,12 @@ class Encounter < ApplicationRecord
         :paid
       elsif statuses.all? { |s| s == "denied" }
         :denied
+      elsif statuses.all? { |s| s == "deductible" }
+        :deductible
       elsif statuses.include?("paid") || statuses.include?("adjusted")
         statuses.include?("denied") ? :mixed : :partially_paid
+      elsif statuses.include?("deductible")
+        :mixed
       else
         :unpaid
       end
@@ -339,11 +347,25 @@ class Encounter < ApplicationRecord
     new_payment_date =
       apps.map { |a| a.payment&.payment_date || a.payment&.created_at }.compact.min
 
-    update!(
+    # Do not run full encounter validations here; payment posting should not
+    # trigger workflow/procedure validation paths unrelated to payments.
+    update_columns(
       total_paid_amount: total_paid,
-      payment_status: new_status,
-      payment_date: new_payment_date
+      payment_status: self.class.payment_statuses[new_status.to_s],
+      payment_date: new_payment_date,
+      updated_at: Time.current
     )
+  end
+
+  def resolved_total_billed_amount_for_payment_summary(apps = nil)
+    claim&.claim_lines&.sum(:amount_billed).to_d
+  end
+
+  # Derived (not persisted): what remains after payer-paid/adjusted amounts.
+  def patient_responsibility_amount
+    billed = resolved_total_billed_amount_for_payment_summary
+    paid = payment_applications.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+    [ billed - paid, 0.to_d ].max
   end
 
   def can_be_cancelled?

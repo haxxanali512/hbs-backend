@@ -1,4 +1,5 @@
-<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col">
+<aside id="app-sidebar" class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col z-40 md:flex">
+  <div data-sidebar-content class="flex flex-col h-full">
   <div class="h-16 flex items-center justify-center border-b border-gray-200">
     <%= link_to (current_user.super_admin? && current_organization.nil? ? admin_dashboard_path : tenant_dashboard_path), class: "flex items-center space-x-3" do %>
       <%= image_tag "HBS-logo-scaled (1).png", alt: "Holistic Business Solution", class: "h-8 w-auto" %>
@@ -697,4 +698,17 @@
       });
     });
   </script>
+  </div>
+
+  <button type="button"
+          id="sidebar-collapse-toggle"
+          class="absolute z-50 top-1/2 right-0 -translate-y-1/2 flex items-center justify-center h-9 w-9 rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    <span class="sr-only">Toggle sidebar</span>
+    <svg data-sidebar-icon="collapse" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+    <svg data-sidebar-icon="expand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 hidden">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
 </aside>

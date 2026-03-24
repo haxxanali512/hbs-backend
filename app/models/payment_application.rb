@@ -9,7 +9,8 @@ class PaymentApplication < ApplicationRecord
     unpaid: 0,
     paid: 1,
     denied: 2,
-    adjusted: 3
+    adjusted: 3,
+    deductible: 4
   }, prefix: true
 
   validates :denial_reason, presence: true, if: -> { line_status_denied? }
