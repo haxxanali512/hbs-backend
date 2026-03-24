@@ -124,8 +124,8 @@
                               data-delete-choice
                               data-delete-choice-title="Delete encounter?"
                               data-delete-choice-confirm-label="Delete"
-                              <%= can_soft_delete ? "data-delete-choice-soft-url='#{tenant_encounter_path(encounter)}'" : "" %>
-                              <%= can_hard_delete ? "data-delete-choice-hard-url='#{hard_destroy_tenant_encounter_path(encounter)}'" : "" %>
+                              data-delete-choice-soft-url="<%= can_soft_delete ? tenant_encounter_path(encounter) : "" %>"
+                              data-delete-choice-hard-url="<%= can_hard_delete ? hard_destroy_tenant_encounter_path(encounter) : "" %>"
                               data-delete-choice-message="Choose <strong>Discard from table</strong> or <strong>Permanently delete</strong>.">
                         Delete
                       </button>
