@@ -259,10 +259,6 @@ class Encounter < ApplicationRecord
   # marking a claim as billed so that there is always a concrete claim
   # artifact for record keeping and payments.
   def create_claim_with_lines_if_missing!
-    has_insurance_context =
-      patient_insurance_coverage.present? ||
-      patient&.patient_insurance_coverages&.exists?
-    return unless has_insurance_context
     return if claim.present?
 
     items = encounter_procedure_items.includes(:procedure_code)
@@ -270,7 +266,7 @@ class Encounter < ApplicationRecord
 
     pos_code = resolved_place_of_service_code
 
-    claim_record = Claim.create!(
+    claim_record = Claim.new(
       organization_id: organization_id,
       encounter_id: id,
       patient_id: patient_id,
@@ -280,6 +276,10 @@ class Encounter < ApplicationRecord
       status: :generated,
       generated_at: Time.current
     )
+    # Allow creating the Claim header before ClaimLines exist; we'll
+    # populate lines immediately after.
+    claim_record.skip_claim_lines_required = true
+    claim_record.save!
 
     items.each do |item|
       proc_code = item.procedure_code
@@ -313,6 +313,10 @@ class Encounter < ApplicationRecord
         place_of_service_code: pos_code,
         status: :generated
       )
+    end
+
+    if claim_record.claim_lines.reload.empty?
+      raise ActiveRecord::RecordInvalid, "CLAIM_LINES_REQUIRED"
     end
 
     update_column(:claim_id, claim_record.id)
@@ -481,6 +485,32 @@ class Encounter < ApplicationRecord
     when "billed" then "bg-blue-100 text-blue-800"
     else "bg-gray-100 text-gray-800"
     end
+  end
+
+  def payment_status_badge_color
+    case payment_status.to_s
+    when "paid" then "bg-green-100 text-green-800"
+    when "partially_paid" then "bg-blue-100 text-blue-800"
+    when "denied" then "bg-red-100 text-red-800"
+    when "mixed" then "bg-yellow-100 text-yellow-800"
+    when "deductible" then "bg-orange-100 text-orange-800"
+    else "bg-gray-100 text-gray-800"
+    end
+  end
+
+  # Display helper for the Encounters table: prefer the payer from the patient's
+  # active insurance coverage, otherwise fall back to the most recent posted payment.
+  def payer
+    patient_insurance_coverage&.insurance_plan&.payer || latest_payer_from_payment
+  end
+
+  def latest_payer_from_payment
+    apps = payment_applications.to_a
+    return nil if apps.empty?
+
+    latest_app =
+      apps.max_by { |a| a.payment&.payment_date || a.payment&.created_at }
+    latest_app&.payment&.payer
   end
 
   def shared_status_badge_color
@@ -865,7 +895,6 @@ class Encounter < ApplicationRecord
     # CLAIM_LINES_REQUIRED validation on the initial save; we'll add lines
     # immediately afterward.
     pos_code = resolved_place_of_service_code
-    byebug
     claim_record = claim || begin
       record = Claim.new(
         organization_id: organization_id,

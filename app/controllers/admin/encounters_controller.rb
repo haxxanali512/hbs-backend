@@ -328,7 +328,9 @@ class Admin::EncountersController < Admin::BaseController
       scope = scope.includes(
         prescription: { documents_attachments: :blob },
         clinical_documentations: { file_attachment: :blob },
-        encounter_comments: { encounter_comment_attachments: { file_attachment: :blob } }
+        encounter_comments: { encounter_comment_attachments: { file_attachment: :blob } },
+        patient_insurance_coverage: { insurance_plan: :payer },
+        payment_applications: { payment: :payer }
       )
     end
     @encounter = scope.find(params[:id])

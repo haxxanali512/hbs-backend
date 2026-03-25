@@ -46,9 +46,9 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700">Billing Channel</label>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.insurance? ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' %>">
-                <%= @encounter.billing_channel&.humanize || "—" %>
+              <label class="block text-sm font-medium text-gray-700">Payer</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.payer.present? ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' %>">
+                <%= @encounter.payer&.name || "—" %>
               </span>
             </div>
 
@@ -67,9 +67,9 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700">Internal Status</label>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.internal_status_badge_color %>">
-                <%= @encounter.internal_status&.humanize || "—" %>
+              <label class="block text-sm font-medium text-gray-700">Payment Status</label>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.payment_status_badge_color %>">
+                <%= @encounter.payment_status&.to_s&.humanize || "Unpaid" %>
               </span>
             </div>
 
