@@ -372,6 +372,23 @@ class Encounter < ApplicationRecord
     [ billed - paid, 0.to_d ].max
   end
 
+  # Procedure summary for encounter detail pages.
+  # Source of truth: encounter_procedure_items (the same encounter-level service
+  # line data used by billing/payment posting workflows).
+  def procedure_line_items_for_summary
+    encounter_items = encounter_procedure_items.includes(:procedure_code).to_a
+    encounter_items.filter_map do |item|
+      code = item.procedure_code
+      next if code.blank?
+
+      {
+        code: code.code,
+        description: code.description,
+        units: item.units.to_i.positive? ? item.units.to_i : 1
+      }
+    end
+  end
+
   def can_be_cancelled?
     !cascaded? && date_of_service.present? && date_of_service >= Date.current
   end
