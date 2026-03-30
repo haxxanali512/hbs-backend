@@ -183,6 +183,14 @@ class Encounter < ApplicationRecord
     deductible: 5
   }, prefix: true
 
+  PAYMENT_STATUS_FILTER_OPTIONS = [
+    [ "Paid", "paid" ],
+    [ "Denied", "denied" ],
+    [ "Deductible", "deductible" ],
+    [ "Partially Paid / Partially Denied", "partially_paid" ],
+    [ "Partially Paid / Partially Denied", "mixed" ]
+  ].freeze
+
   # ===========================================================
   # VALIDATIONS
   # ===========================================================
@@ -352,12 +360,22 @@ class Encounter < ApplicationRecord
     new_payment_date =
       apps.map { |a| a.payment&.payment_date || a.payment&.created_at }.compact.min
 
+    sync_shared_status =
+      if [ "paid", "deductible", "partially_paid", "mixed" ].include?(new_status.to_s)
+        self.class.shared_statuses[:finalized]
+      elsif new_status.to_s == "denied"
+        self.class.shared_statuses[:denied]
+      end
+
     # Do not run full encounter validations here; payment posting should not
     # trigger workflow/procedure validation paths unrelated to payments.
     update_columns(
       total_paid_amount: total_paid,
       payment_status: self.class.payment_statuses[new_status.to_s],
       payment_date: new_payment_date,
+      internal_status: self.class.internal_statuses[:billed],
+      tenant_status: self.class.tenant_statuses[:in_process],
+      shared_status: sync_shared_status || shared_status,
       updated_at: Time.current
     )
   end
@@ -481,10 +499,14 @@ class Encounter < ApplicationRecord
   end
 
   def tenant_visible_status_label
+    return payment_status_display_label if payment_status_authoritative?
+
     (shared_status || tenant_status).to_s.humanize
   end
 
   def tenant_visible_status_badge_color
+    return payment_status_badge_color if payment_status_authoritative?
+
     status_key = (shared_status || tenant_status).to_s
     case status_key
     when "prepared" then "bg-gray-100 text-gray-800"
@@ -514,6 +536,24 @@ class Encounter < ApplicationRecord
     when "deductible" then "bg-orange-100 text-orange-800"
     else "bg-gray-100 text-gray-800"
     end
+  end
+
+  def payment_status_display_label
+    case payment_status.to_s
+    when "paid" then "Paid"
+    when "denied" then "Denied"
+    when "deductible" then "Deductible"
+    when "partially_paid", "mixed" then "Partially Paid / Partially Denied"
+    else "Unpaid"
+    end
+  end
+
+  def payment_status_authoritative?
+    payment_applications.exists?
+  end
+
+  def tenant_status_locked_by_payment?
+    payment_status_authoritative?
   end
 
   # Display helper for the Encounters table: prefer the payer from the patient's

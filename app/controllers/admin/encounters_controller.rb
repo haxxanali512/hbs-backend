@@ -359,7 +359,7 @@ class Admin::EncountersController < Admin::BaseController
     end
 
     if action_name == "index"
-      @internal_statuses = Encounter.internal_statuses.keys
+      @status_filter_options = Encounter::PAYMENT_STATUS_FILTER_OPTIONS + Encounter.internal_statuses.keys.map { |k| [ "Workflow: #{k.humanize}", k ] }
       @billing_channels = Encounter.billing_channels.keys
     end
   end

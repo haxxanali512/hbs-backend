@@ -26,7 +26,13 @@ module Admin
       # Apply basic filters (organization, internal_status, provider, patient, specialty, billing_channel)
       def apply_basic_encounters_filters(encounters)
         encounters = encounters.where(organization_id: params[:organization_id]) if params[:organization_id].present?
-        encounters = encounters.by_internal_status(params[:status]) if params[:status].present?
+        if params[:status].present?
+          if Encounter.payment_statuses.key?(params[:status].to_s)
+            encounters = encounters.where(payment_status: Encounter.payment_statuses[params[:status].to_s])
+          else
+            encounters = encounters.by_internal_status(params[:status])
+          end
+        end
         encounters = encounters.by_provider(params[:provider_id]) if params[:provider_id].present?
         encounters = encounters.by_patient(params[:patient_id]) if params[:patient_id].present?
         encounters = encounters.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
@@ -80,7 +86,7 @@ module Admin
         when "date_asc"
           encounters.order(date_of_service: :asc)
         when "status"
-          encounters.order(internal_status: :asc)
+          encounters.order(payment_status: :asc, internal_status: :asc)
         else
           encounters.recent
         end

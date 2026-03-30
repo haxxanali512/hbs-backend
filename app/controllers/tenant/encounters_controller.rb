@@ -3,6 +3,7 @@ class Tenant::EncountersController < Tenant::BaseController
   include Tenant::Concerns::EncounterIndexConcern
   before_action :set_current_organization
   before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :attach_clinical_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :download_edi ]
+  before_action :prevent_tenant_status_changes_after_payment!, only: [ :mark_reviewed, :mark_ready_to_submit, :cancel ]
   before_action :load_form_options, only: [ :index, :new, :create, :edit, :update, :workflow ]
 
   def index
@@ -215,10 +216,10 @@ class Tenant::EncountersController < Tenant::BaseController
       attach_clinical_documentations(@encounter) if params.dig(:encounter, :clinical_documentation_files).present?
 
       # Ensure encounter is still ready_to_submit after update
-      if @encounter.ready_for_review? && @encounter.may_mark_reviewed?
+      if !@encounter.tenant_status_locked_by_payment? && @encounter.ready_for_review? && @encounter.may_mark_reviewed?
         @encounter.mark_reviewed!
         @encounter.mark_ready_to_submit! if @encounter.may_mark_ready_to_submit?
-      elsif @encounter.reviewed? && @encounter.may_mark_ready_to_submit?
+      elsif !@encounter.tenant_status_locked_by_payment? && @encounter.reviewed? && @encounter.may_mark_ready_to_submit?
         @encounter.mark_ready_to_submit!
       end
 
@@ -722,6 +723,12 @@ class Tenant::EncountersController < Tenant::BaseController
 
   private
 
+  def prevent_tenant_status_changes_after_payment!
+    return unless @encounter&.tenant_status_locked_by_payment?
+
+    redirect_to tenant_encounter_path(@encounter), alert: "Encounter status is locked after payment posting. Please contact admin for overrides."
+  end
+
   def set_encounter
     scope = @current_organization.encounters.kept
                                  .includes(:patient, :provider, :specialty, :diagnosis_codes, :encounter_procedure_items, :procedure_codes)
@@ -744,7 +751,7 @@ class Tenant::EncountersController < Tenant::BaseController
     @diagnosis_codes = DiagnosisCode.active.order(:code)
 
     if action_name == "index"
-      @statuses = Encounter.tenant_statuses.keys
+      @statuses = Encounter::PAYMENT_STATUS_FILTER_OPTIONS + Encounter.tenant_statuses.keys.map { |k| [ "Workflow: #{k.humanize}", k ] }
       @billing_channels = Encounter.billing_channels.keys
       @show_time_filter = false
     end
