@@ -88,11 +88,11 @@
                     <%= link_to "Download EDI", download_edi_tenant_encounter_path(encounter), class: "text-green-600 hover:text-green-800", title: "Download EDI file" %>
                   <% end %>
                   <% unless show_submitted_only %>
-                    <% if encounter.ready_to_submit? && !encounter.cascaded? %>
+                    <% if !encounter.tenant_status_locked_by_payment? && encounter.ready_to_submit? && !encounter.cascaded? %>
                       <%= link_to "Edit", edit_tenant_encounter_path(encounter), class: "text-indigo-600 hover:text-indigo-800" %>
                     <% end %>
                     
-                    <% if encounter.ready_for_review? && encounter.may_mark_reviewed? %>
+                    <% if !encounter.tenant_status_locked_by_payment? && encounter.ready_for_review? && encounter.may_mark_reviewed? %>
                       <%= button_to "Mark as Reviewed", mark_reviewed_tenant_encounter_path(encounter),
                           method: :post,
                           form: { class: "inline-block" },
@@ -100,7 +100,7 @@
                           data: { turbo_confirm: "Mark this encounter as reviewed?" } %>
                     <% end %>
                     
-                    <% if encounter.reviewed? && encounter.may_mark_ready_to_submit? %>
+                    <% if !encounter.tenant_status_locked_by_payment? && encounter.reviewed? && encounter.may_mark_ready_to_submit? %>
                       <%= button_to "Mark Ready to Submit", mark_ready_to_submit_tenant_encounter_path(encounter),
                           method: :post,
                           form: { class: "inline-block" },
@@ -108,7 +108,7 @@
                           data: { turbo_confirm: "Mark this encounter as ready to submit to billing?" } %>
                     <% end %>
                     
-                    <% if encounter.can_be_cancelled? %>
+                    <% if !encounter.tenant_status_locked_by_payment? && encounter.can_be_cancelled? %>
                       <%= button_to "Cancel", cancel_tenant_encounter_path(encounter),
                           method: :post,
                           form: { class: "inline-block" },

@@ -314,6 +314,9 @@ module Admin::PaymentPostingConcern
       total_paid_amount: new_total,
       payment_status: Encounter.payment_statuses[status_key.to_s],
       payment_date: payment_date || Date.current,
+      internal_status: Encounter.internal_statuses[:billed],
+      tenant_status: Encounter.tenant_statuses[:in_process],
+      shared_status: Encounter.shared_statuses[:finalized],
       updated_at: Time.current
     )
   end

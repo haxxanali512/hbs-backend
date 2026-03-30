@@ -38,6 +38,8 @@ class Payment < ApplicationRecord
   # Callbacks
   after_create :update_invoice_amounts
   after_create :check_invoice_fully_paid
+  after_update_commit :sync_encounters_after_payment_change, if: :saved_change_to_payment_status?
+  after_destroy_commit :sync_encounters_after_payment_change
 
   # Derived helpers for allocations
   def applied_total
@@ -77,6 +79,12 @@ class Payment < ApplicationRecord
       invoice.update!(status: :paid)
     elsif invoice.amount_paid > 0 && invoice.amount_paid < invoice.total && invoice.status == "issued"
       invoice.update!(status: :partially_paid)
+    end
+  end
+
+  def sync_encounters_after_payment_change
+    payment_applications.includes(:encounter).map(&:encounter).compact.uniq.each do |encounter|
+      encounter.recalculate_payment_summary!
     end
   end
 end

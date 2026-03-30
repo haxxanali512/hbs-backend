@@ -9,7 +9,7 @@
         </div>
         <div class="flex space-x-3">
           <%= link_to "Back to Encounters", tenant_encounters_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
-          <%= link_to "Edit", edit_tenant_encounter_path(@encounter), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" if !@encounter.cascaded? %>
+          <%= link_to "Edit", edit_tenant_encounter_path(@encounter), class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" if !@encounter.cascaded? && !@encounter.tenant_status_locked_by_payment? %>
         </div>
       </div>
     </div>
@@ -30,7 +30,7 @@
         </div>
 
         <div class="flex space-x-2">
-          <% if @encounter.ready_for_review? && @encounter.may_mark_reviewed? %>
+          <% if !@encounter.tenant_status_locked_by_payment? && @encounter.ready_for_review? && @encounter.may_mark_reviewed? %>
             <%= button_to "Mark as Reviewed", mark_reviewed_tenant_encounter_path(@encounter),
                 method: :post,
                 form: { class: "inline-block" },
@@ -38,7 +38,7 @@
                 data: { turbo_confirm: "Mark this encounter as reviewed?" } %>
           <% end %>
           
-          <% if @encounter.reviewed? && @encounter.may_mark_ready_to_submit? %>
+          <% if !@encounter.tenant_status_locked_by_payment? && @encounter.reviewed? && @encounter.may_mark_ready_to_submit? %>
             <%= button_to "Mark Ready to Submit", mark_ready_to_submit_tenant_encounter_path(@encounter),
                 method: :post,
                 form: { class: "inline-block" },
@@ -46,7 +46,7 @@
                 data: { turbo_confirm: "Mark this encounter as ready to submit to billing?" } %>
           <% end %>
           
-          <% if current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.organization.organization_setting&.ezclaim_enabled? %>
+          <% if !@encounter.tenant_status_locked_by_payment? && current_user.permissions_for("tenant", "encounters", "submit_for_billing") && @encounter.organization.organization_setting&.ezclaim_enabled? %>
             <button type="button" 
                     onclick="openEzclaimModal('encounterBillingModal', '<%= billing_data_tenant_encounter_path(@encounter) %>', 'claim')"
                     class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
@@ -54,7 +54,7 @@
             </button>
           <% end %>
           
-          <% if @encounter.may_cancel? %>
+          <% if !@encounter.tenant_status_locked_by_payment? && @encounter.may_cancel? %>
             <%= link_to "Cancel", cancel_tenant_encounter_path(@encounter), method: :post,
                 class: "bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors",
                 data: { confirm: "Are you sure you want to cancel this encounter?" } %>

@@ -55,7 +55,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700">Tenant Status</label>
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.tenant_visible_status_badge_color %>">
-                <%= @encounter.tenant_status&.humanize || "—" %>
+                <%= @encounter.tenant_visible_status_label %>
               </span>
             </div>
 
@@ -69,7 +69,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700">Payment Status</label>
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @encounter.payment_status_badge_color %>">
-                <%= @encounter.payment_status&.to_s&.humanize || "Unpaid" %>
+                <%= @encounter.payment_status_display_label %>
               </span>
             </div>
 

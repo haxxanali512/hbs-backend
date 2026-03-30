@@ -14,4 +14,13 @@ class PaymentApplication < ApplicationRecord
   }, prefix: true
 
   validates :denial_reason, presence: true, if: -> { line_status_denied? }
+
+  after_commit :sync_encounter_payment_status, on: [ :create, :update ]
+  after_destroy_commit :sync_encounter_payment_status
+
+  private
+
+  def sync_encounter_payment_status
+    encounter&.recalculate_payment_summary!
+  end
 end
