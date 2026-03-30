@@ -128,6 +128,25 @@
 
       <% if claim_lines.present? %>
         <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div class="px-4 py-3 flex items-center justify-between bg-white border-b border-gray-200">
+            <div>
+              <% interest_application = applications_by_line[nil] %>
+              <% interest_line_visible = (interest_application&.amount_applied || 0).to_d.positive? || interest_application&.line_status.present? %>
+              <button
+                type="button"
+                id="add-interest-line"
+                class="inline-flex items-center gap-2 text-sm font-medium text-indigo-700 hover:text-indigo-800"
+                onclick="showInterestLine()"
+                <%= "disabled" if interest_line_visible %>
+                aria-label="Add Interest Payment"
+              >
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  +
+                </span>
+                Add Interest
+              </button>
+            </div>
+          </div>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
@@ -141,6 +160,56 @@
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200" id="service-lines-body">
+              <% interest_application = applications_by_line[nil] %>
+              <% current_status = interest_application&.line_status&.to_s %>
+              <tr id="service-line-interest" class="hover:bg-gray-50 <%= (interest_application&.amount_applied || 0).to_d.positive? || interest_application&.line_status.present? ? '' : 'hidden' %>" data-billed-amount="0">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  00000
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  Interest Payment
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
+                  <%= number_with_precision(0, precision: 2, delimiter: ",") %>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 align-middle">
+                  <div class="flex justify-end">
+                    <input
+                      type="number"
+                      name="service_lines[interest][amount_paid]"
+                      step="0.01"
+                      min="0"
+                      value="<%= interest_application&.amount_applied %>"
+                      class="inline-block w-24 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-right amount-input"
+                      data-service-line-id="interest"
+                    />
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 align-middle">
+                  <div class="flex">
+                    <select
+                      name="service_lines[interest][status]"
+                      class="mt-1 inline-block w-28 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm status-select"
+                      data-service-line-id="interest"
+                    >
+                      <option value="" <%= current_status.blank? ? "selected" : "" %>>Unpaid</option>
+                      <option value="paid" <%= current_status == "paid" ? "selected" : "" %>>Paid</option>
+                      <option value="adjusted" <%= current_status == "adjusted" ? "selected" : "" %>>Adjusted</option>
+                      <option value="deductible" <%= current_status == "deductible" ? "selected" : "" %>>Deductible</option>
+                      <option value="denied" <%= current_status == "denied" ? "selected" : "" %>>Denied</option>
+                    </select>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 align-middle">
+                  <textarea
+                    name="service_lines[interest][denial_reason]"
+                    rows="2"
+                    class="mt-1 block w-64 max-w-xs border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm denial-textarea"
+                    data-service-line-id="interest"
+                    <%= current_status == "denied" ? "" : "style=\"display:none;\"" %>
+                  ><%= interest_application&.denial_reason %></textarea>
+                </td>
+              </tr>
               <% claim_lines.each do |line| %>
                 <% application = applications_by_line[line.id] %>
                 <% billed_amounts = local_assigns[:billed_amounts_by_line_id] || {} %>
@@ -264,6 +333,31 @@
       function getForm() {
         return document.getElementById('manual-payment-form');
       }
+
+      // Used by the "Add Interest" button in the service lines table.
+      // Reveals the Interest row (service_lines[interest][...]) and updates totals.
+      window.showInterestLine = function() {
+        var row = document.getElementById('service-line-interest');
+        if (!row) { return; }
+        row.classList.remove('hidden');
+
+        var btn = document.getElementById('add-interest-line');
+        if (btn) { btn.disabled = true; }
+
+        var statusSelect = document.querySelector('select.status-select[data-service-line-id="interest"]');
+        var denialTextarea = document.querySelector('textarea.denial-textarea[data-service-line-id="interest"]');
+        if (statusSelect && denialTextarea) {
+          if (statusSelect.value === 'denied') {
+            denialTextarea.style.display = '';
+          } else {
+            denialTextarea.style.display = 'none';
+            denialTextarea.value = '';
+          }
+        }
+
+        updateTotal();
+        validateFormReadiness(true);
+      };
 
       function updateTotal() {
         var form = getForm();

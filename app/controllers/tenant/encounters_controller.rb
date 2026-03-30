@@ -2,7 +2,7 @@ class Tenant::EncountersController < Tenant::BaseController
   include ProcedureCodeSearch
   include Tenant::Concerns::EncounterIndexConcern
   before_action :set_current_organization
-  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :hard_destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :attach_clinical_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :download_edi ]
+  before_action :set_encounter, only: [ :show, :edit, :update, :destroy, :mark_reviewed, :mark_ready_to_submit, :cancel, :request_correction, :attach_document, :attach_clinical_document, :billing_data, :procedure_codes_search, :diagnosis_codes_search, :submit_for_billing, :download_edi ]
   before_action :load_form_options, only: [ :index, :new, :create, :edit, :update, :workflow ]
 
   def index
@@ -275,17 +275,6 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   def destroy
-    unless current_user.permissions_for("tenant", "encounters", "destroy")
-      redirect_to tenant_encounter_path(@encounter), alert: "You do not have permission to delete encounters."
-      return
-    end
-
-    if @encounter.internal_status_billed?
-      redirect_to claim_void_request_path_for(@encounter),
-                  alert: "This encounter is already billed. Please submit a Claim Void Request instead."
-      return
-    end
-
     if @encounter.discard
       redirect_to tenant_encounters_path, notice: "Encounter deleted successfully."
     else
@@ -294,27 +283,11 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   def hard_destroy
-    unless current_user.permissions_for("tenant", "encounters", "hard_destroy") || current_user.permissions_for("tenant", "encounters", "destroy")
-      redirect_to tenant_encounter_path(@encounter), alert: "You do not have permission to permanently delete encounters."
-      return
+    if @encounter.destroy
+      redirect_to tenant_encounters_path, notice: "Encounter permanently deleted."
+    else
+      redirect_to tenant_encounter_path(@encounter), alert: "Failed to permanently delete encounter."
     end
-
-    if @encounter.internal_status_billed?
-      redirect_to claim_void_request_path_for(@encounter),
-                  alert: "This encounter is already billed. Please submit a Claim Void Request instead."
-      return
-    end
-
-    unless hard_delete_allowed?(@encounter)
-      redirect_to tenant_encounter_path(@encounter),
-                  alert: "This encounter cannot be permanently deleted because it has entered billing workflow or has billing records."
-      return
-    end
-
-    @encounter.destroy!
-    redirect_to tenant_encounters_path, notice: "Encounter permanently deleted."
-  rescue => e
-    redirect_to tenant_encounter_path(@encounter), alert: "Could not permanently delete encounter: #{e.message}"
   end
 
   def mark_reviewed
@@ -748,47 +721,6 @@ class Tenant::EncountersController < Tenant::BaseController
   end
 
   private
-
-  def hard_delete_allowed?(encounter)
-    return false if encounter.cascaded?
-    return false if encounter.has_billing_document?
-    return false unless encounter.internal_status.to_s.in?(%w[pending])
-
-    true
-  end
-
-  def claim_void_request_path_for(encounter)
-    patient = encounter.patient
-    provider = encounter.provider
-    dos = encounter.date_of_service&.strftime("%m/%d/%Y") || "—"
-
-    subject = "Claim Void Request — #{patient&.full_name || "Patient"} — DOS #{dos} — #{current_organization&.name}"
-    description = <<~TEXT
-      Please void this billed claim/encounter.
-
-      Encounter ID: #{encounter.id}
-      Patient: #{patient&.full_name}
-      DOS: #{dos}
-      Provider: #{provider&.full_name}
-      Organization: #{current_organization&.name}
-
-      Reason: (please describe why this should be voided)
-    TEXT
-
-    tenant_support_tickets_new_params = {
-      void_request: "1",
-      support_ticket: {
-        category: "claims_issue",
-        sub_category: "other",
-        subject: subject,
-        description: description,
-        linked_resource_type: "Encounter",
-        linked_resource_id: encounter.id
-      }
-    }
-
-    new_tenant_support_ticket_path(tenant_support_tickets_new_params)
-  end
 
   def set_encounter
     scope = @current_organization.encounters.kept

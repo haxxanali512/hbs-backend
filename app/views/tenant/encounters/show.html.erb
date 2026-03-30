@@ -168,6 +168,36 @@
           <% end %>
         </div>
 
+        <!-- CPT Codes / Procedures -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">CPT Codes</h2>
+          <% procedure_rows = @encounter.procedure_line_items_for_summary %>
+          <% if procedure_rows.any? %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                  <% procedure_rows.each do |row| %>
+                    <tr>
+                      <td class="px-4 py-2 text-sm font-mono text-blue-700"><%= row[:code] %></td>
+                      <td class="px-4 py-2 text-sm text-gray-800"><%= row[:description].presence || "—" %></td>
+                      <td class="px-4 py-2 text-sm text-gray-800 text-right"><%= row[:units] || "—" %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No CPT codes/procedures available for this encounter.</p>
+          <% end %>
+        </div>
+
         <!-- Notes -->
         <% if @encounter.notes.present? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

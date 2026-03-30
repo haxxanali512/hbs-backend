@@ -5,7 +5,13 @@ module Admin
 
       # Build the base query for encounters index
       def build_encounters_index_query
-        Encounter.includes(:organization, :patient, :provider, :specialty, :organization_location, :appointment, :billed_by).kept
+        Encounter
+          .includes(
+            :organization, :patient, :provider, :specialty, :organization_location, :appointment, :billed_by,
+            patient_insurance_coverage: { insurance_plan: :payer },
+            payment_applications: { payment: :payer }
+          )
+          .kept
       end
 
       # Apply all filters to encounters

@@ -10,6 +10,11 @@ class Admin::PaymentsController < Admin::BaseController
   end
 
   def new
+    unless params[:encounter_id].present?
+      redirect_to admin_encounters_path, alert: "Select an encounter to post payments."
+      return
+    end
+
     @payment = Payment.new
     build_payment_context
 
@@ -29,6 +34,11 @@ class Admin::PaymentsController < Admin::BaseController
   end
 
   def create
+    unless params[:encounter_id].present?
+      redirect_to admin_encounters_path, alert: "Select an encounter to post payments."
+      return
+    end
+
     build_payment_context
     create_manual_payment_from_params
 

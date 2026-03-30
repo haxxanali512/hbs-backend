@@ -213,6 +213,8 @@ module Admin::PaymentPostingConcern
         service_lines_params.each do |line_key, attrs|
           next unless attrs.is_a?(Hash)
 
+          line_key_str = line_key.to_s
+
           amount = attrs[:amount_paid].to_s.presence || attrs["amount_paid"].to_s
           status = attrs[:status].to_s.presence || attrs["status"].to_s
           denial_reason = attrs[:denial_reason].to_s.presence || attrs["denial_reason"].to_s
@@ -221,6 +223,25 @@ module Admin::PaymentPostingConcern
           next if amount_value.zero? && status.blank? && denial_reason.blank? && note.blank?
 
           line_status = status.presence || (amount_value.positive? ? "paid" : "unpaid")
+
+          # Support a custom, non-CPT payment service line (e.g. interest payments).
+          # These entries are persisted as PaymentApplications with `claim_line` unset.
+          if line_key_str == "interest"
+            PaymentApplication.create!(
+              payment: @payment,
+              claim: @claim,
+              claim_line: nil,
+              encounter: @encounter,
+              patient: @encounter.patient,
+              amount_applied: amount_value,
+              line_status: line_status,
+              denial_reason: line_status.to_s == "denied" ? denial_reason : nil,
+              note: note.presence || "Interest Payment"
+            )
+            created_applications_count += 1
+            next
+          end
+
           claim_line = claim_lines_by_id[line_key.to_s]
           if claim_line.blank?
             # When UI line keys come from encounter_procedure_items, map to claim line by procedure code.
@@ -281,8 +302,7 @@ module Admin::PaymentPostingConcern
   def should_create_claim_for_payment_posting?
     return false unless @encounter.present?
 
-    @encounter.patient_insurance_coverage.present? ||
-      @encounter.patient&.patient_insurance_coverages&.exists?
+    @encounter.encounter_procedure_items.joins(:procedure_code).exists?
   end
 
   def update_encounter_payment_summary_without_claim!(total_amount, payment_date)
