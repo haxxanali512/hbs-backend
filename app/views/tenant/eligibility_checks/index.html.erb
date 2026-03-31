@@ -5,15 +5,13 @@
       <div class="flex justify-between items-center">
         <div>
           <h1 class="text-3xl font-bold text-gray-900">Eligibility Check</h1>
-          <p class="mt-2 text-gray-600">Check eligibility by entering patient and insurance details. No patient record is required.</p>
+          <p class="mt-2 text-gray-600">Submit an eligibility request and receive the result by email shortly. No patient record is required.</p>
         </div>
         <div>
           <%= link_to "Back to Dashboard", tenant_dashboard_path, class: "bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
         </div>
       </div>
     </div>
-
-    <div id="eligibility_results" class="mb-6"></div>
 
     <!-- Form -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -102,19 +100,3 @@
   </div>
 </div>
 
-<script>
-(function() {
-  var form = document.getElementById("eligibility_check_form");
-  var results = document.getElementById("eligibility_results");
-  if (!form || !results) return;
-  var loaderHtml = '<div id="eligibility-loader" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4 flex items-center gap-3">' +
-    '<svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">' +
-    '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
-    '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>' +
-    '<span class="text-sm font-medium text-blue-800">Checking eligibility with Fuse…</span></div>';
-  form.addEventListener("turbo:submit-start", function() {
-    if (document.getElementById("eligibility-loader")) return;
-    results.insertAdjacentHTML("afterbegin", loaderHtml);
-  });
-})();
-</script>
