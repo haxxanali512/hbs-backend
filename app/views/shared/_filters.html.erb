@@ -7,8 +7,8 @@
       <%= f.hidden_field :auditable_id, value: @auditable_id %>
     <% end %>
     
-    <!-- Preserve submitted_filter parameter -->
-    <% if params[:submitted_filter].present? %>
+    <!-- Preserve submitted_filter only when there is no explicit encounter-type selector -->
+    <% if params[:submitted_filter].present? && !@show_encounter_type_filter %>
       <%= f.hidden_field :submitted_filter, value: params[:submitted_filter] %>
     <% end %>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
