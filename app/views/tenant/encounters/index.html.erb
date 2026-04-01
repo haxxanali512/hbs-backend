@@ -19,6 +19,7 @@
     <%
       @search_placeholder = "Patient, provider, specialty, encounter ID, MRN…"
       @status_options = @statuses
+      @use_status_for_action_type = true
       @provider_options = @providers
       @specialty_options = @specialties
       @cascaded_options = ["Not Cascaded", "Cascaded"] unless @show_submitted_only || @show_queued_only
