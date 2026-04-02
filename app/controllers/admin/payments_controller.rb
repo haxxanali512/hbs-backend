@@ -2,7 +2,10 @@ class Admin::PaymentsController < Admin::BaseController
   include Admin::PaymentPostingConcern
 
   def index
-    payments = Payment.includes(:organization, :payer, :processed_by_user)
+    payments = Payment.includes(
+      :organization, :payer, :processed_by_user,
+      payment_applications: { encounter: :patient }
+    )
     .order(created_at: :desc)
     payments = apply_filters(payments)
     @pagy, @payments = pagy(payments, items: 20)
