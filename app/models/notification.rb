@@ -67,7 +67,7 @@ class Notification < ApplicationRecord
       "user_#{user_id}_notifications",
       target: "notifications_list",
       partial: "notifications/notification_item",
-      locals: { notification: self }
+      locals: { notification: self, dom_prefix: "bell_notification" }
     )
 
     # Update badge
@@ -80,12 +80,38 @@ class Notification < ApplicationRecord
   end
 
   def broadcast_update
-    broadcast_replace_to(
-      "user_#{user_id}_notifications",
-      target: "notification_#{id}",
-      partial: "notifications/notification_item",
-      locals: { notification: self }
-    )
+    # Keep bell + inbox in sync. Bell uses `bell_notification_<id>`,
+    # inbox uses `notification_<id>`.
+    if read?
+      broadcast_remove_to(
+        "user_#{user_id}_notifications",
+        target: "bell_notification_#{id}"
+      )
+
+      # Inbox: update the item so the "Mark as read" button disappears.
+      broadcast_replace_to(
+        "user_#{user_id}_notifications",
+        target: "notification_#{id}",
+        partial: "notifications/notification_item",
+        locals: { notification: self }
+      )
+    else
+      # Bell: show it again as unread.
+      broadcast_replace_to(
+        "user_#{user_id}_notifications",
+        target: "bell_notification_#{id}",
+        partial: "notifications/notification_item",
+        locals: { notification: self, dom_prefix: "bell_notification" }
+      )
+
+      # Inbox: update the item so the "Mark as read" button appears.
+      broadcast_replace_to(
+        "user_#{user_id}_notifications",
+        target: "notification_#{id}",
+        partial: "notifications/notification_item",
+        locals: { notification: self }
+      )
+    end
     broadcast_replace_to(
       "user_#{user_id}_notifications",
       target: "notifications_badge",
