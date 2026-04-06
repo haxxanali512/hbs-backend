@@ -68,22 +68,43 @@ module Tenant
       def apply_encounters_search_filter(encounters)
         return encounters if params[:search].blank?
 
-        term = "%#{ActiveRecord::Base.sanitize_sql_like(params[:search].strip)}%"
-        encounters
+        query = params[:search].to_s.strip
+        term = "%#{ActiveRecord::Base.sanitize_sql_like(query)}%"
+        tokens = query.split(/\s+/).reject(&:blank?)
+
+        scoped = encounters
           .joins(:patient, :provider, :specialty)
           .where(
             <<~SQL.squish,
               encounters.id::text ILIKE :term
               OR patients.first_name ILIKE :term
               OR patients.last_name ILIKE :term
+              OR CONCAT_WS(' ', patients.first_name, patients.last_name) ILIKE :term
               OR patients.mrn ILIKE :term
               OR patients.email ILIKE :term
               OR providers.first_name ILIKE :term
               OR providers.last_name ILIKE :term
+              OR CONCAT_WS(' ', providers.first_name, providers.last_name) ILIKE :term
               OR specialties.name ILIKE :term
             SQL
             term: term
           )
+
+        return scoped if tokens.size < 2
+
+        # Support searching "First Last" by ensuring each token appears in either
+        # first_name or last_name for patient/provider.
+        tokens.reduce(scoped) do |rel, token|
+          tok = "%#{ActiveRecord::Base.sanitize_sql_like(token)}%"
+          rel.where(
+            <<~SQL.squish,
+              (patients.first_name ILIKE :tok OR patients.last_name ILIKE :tok
+               OR providers.first_name ILIKE :tok OR providers.last_name ILIKE :tok
+               OR specialties.name ILIKE :tok)
+            SQL
+            tok: tok
+          )
+        end
       end
 
       # Apply claim status filter (only for submitted view)

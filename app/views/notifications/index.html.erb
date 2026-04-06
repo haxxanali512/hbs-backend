@@ -6,18 +6,71 @@
     </div>
     <% unread_count = current_user.notifications.unread.count %>
     <% if unread_count > 0 %>
-      <%= button_to "Mark all as read", mark_all_as_read_notifications_path, 
-          data: { turbo_method: :patch },
+      <%= button_to "Mark all as read", mark_all_as_read_notifications_path,
+          method: :patch,
           class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" %>
     <% end %>
   </div>
+</div>
+
+<div class="mb-6">
+  <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+    <%= form_with url: notifications_path, method: :get, local: false, id: "notifications_filters_form" do |f| %>
+      <div class="flex flex-wrap gap-3 items-end">
+        <div>
+          <%= f.label :read_status, "Status", class: "block text-xs font-medium text-gray-700 uppercase tracking-wider" %>
+          <%= f.select :read_status,
+            options_for_select([["All", "all"], ["Unread", "unread"], ["Read", "read"]], params[:read_status].presence || "all"),
+            {},
+            { class: "mt-1 block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" } %>
+        </div>
+
+        <div>
+          <%= f.label :organization_search, "Organization", class: "block text-xs font-medium text-gray-700 uppercase tracking-wider" %>
+          <%= f.text_field :organization_search,
+            value: params[:organization_search],
+            placeholder: "Search by organization...",
+            autocomplete: "off",
+            id: "notifications_organization_search",
+            class: "mt-1 block w-64 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" %>
+        </div>
+
+        <div>
+          <%= f.label :sort, "Sort", class: "block text-xs font-medium text-gray-700 uppercase tracking-wider" %>
+          <%= f.select :sort,
+            options_for_select([["Newest", "newest"], ["Oldest", "oldest"]], params[:sort].presence || "newest"),
+            {},
+            { class: "mt-1 block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" } %>
+        </div>
+
+        <div>
+          <%= f.submit "Filter", class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <script>
+    document.addEventListener("turbo:load", function() {
+      const form = document.getElementById("notifications_filters_form");
+      const input = document.getElementById("notifications_organization_search");
+      if (!form || !input) return;
+
+      // Lightweight "type-to-filter": debounce and submit on input.
+      let t = null;
+      input.addEventListener("input", function() {
+        clearTimeout(t);
+        t = setTimeout(() => form.requestSubmit(), 350);
+      });
+    });
+  </script>
 </div>
 
 <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
   <% if @notifications.any? %>
     <div class="divide-y divide-gray-200">
       <% @notifications.each do |notification| %>
-        <div class="<%= notification.unread? ? 'bg-blue-50' : 'bg-white' %> px-6 py-4 hover:bg-gray-50 transition-colors">
+        <div id="notification_<%= notification.id %>" class="<%= notification.unread? ? 'bg-blue-50' : 'bg-white' %> px-6 py-4 hover:bg-gray-50 transition-colors">
           <div class="flex items-start gap-4">
             <% if notification.unread? %>
               <div class="mt-1.5 h-2 w-2 rounded-full bg-blue-600 flex-shrink-0"></div>
@@ -43,8 +96,8 @@
                         class: "text-xs text-blue-600 hover:text-blue-700 font-medium" %>
                   <% end %>
                   <% if notification.unread? %>
-                    <%= button_to "Mark as read", mark_as_read_notification_path(notification), 
-                        data: { turbo_method: :patch },
+                    <%= button_to "Mark as read", mark_as_read_notification_path(notification),
+                        method: :patch,
                         class: "text-xs text-gray-600 hover:text-gray-700 font-medium" %>
                   <% end %>
                 </div>

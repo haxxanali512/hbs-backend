@@ -59,6 +59,31 @@ class Payment < ApplicationRecord
     applied_total.positive? && remaining_amount.positive?
   end
 
+  def primary_encounter
+    return @primary_encounter if defined?(@primary_encounter)
+
+    @primary_encounter =
+      payment_applications
+        .map(&:encounter)
+        .compact
+        .max_by { |enc| enc.payment_date || enc.updated_at || enc.created_at }
+  end
+
+  def display_patient_name
+    primary_encounter&.patient&.full_name || "—"
+  end
+
+  def display_date_of_service
+    primary_encounter&.date_of_service
+  end
+
+  def display_payment_status_label
+    encounter = primary_encounter
+    return encounter.payment_status_display_label if encounter.present?
+
+    payment_status.to_s.humanize
+  end
+
   private
 
   def update_invoice_amounts

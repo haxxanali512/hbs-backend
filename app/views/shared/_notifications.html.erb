@@ -32,8 +32,8 @@
     </div>
     
     <div id="notifications_list" class="overflow-y-auto" style="max-height: 400px;">
-      <% notifications = current_user.notifications.recent.limit(10) %>
-      <%= render partial: "notifications/list", locals: { notifications: notifications } %>
+      <% notifications = current_user.notifications.unread.recent.limit(10) %>
+      <%= render partial: "notifications/list", locals: { notifications: notifications, dom_prefix: "bell_notification" } %>
     </div>
     
     <div class="border-t border-gray-200 px-4 py-3">
@@ -233,7 +233,7 @@
     const observer = new MutationObserver(function(mutations) {
       mutations.forEach(function(mutation) {
         mutation.addedNodes.forEach(function(node) {
-          if (node.nodeType === 1 && node.id && node.id.startsWith('notification_')) {
+          if (node.nodeType === 1 && node.id && (node.id.startsWith('notification_') || node.id.startsWith('bell_notification_'))) {
             // Only show toast for new notifications after page load
             // This prevents showing toasts for existing notifications on initial page render
             if (pageLoaded) {
@@ -297,7 +297,40 @@
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
-    }).catch(error => console.error('Error marking notification as read:', error));
+    })
+      .then(resp => resp.ok ? resp.json() : Promise.reject(resp))
+      .then(data => {
+        // Remove from bell dropdown immediately.
+        const node = document.getElementById(`bell_notification_${notificationId}`);
+        if (node) node.remove();
+
+        // Update badge count.
+        const unreadCount = data.unread_count ?? 0;
+        const badge = document.getElementById('notifications_badge');
+        if (badge) {
+          badge.textContent = unreadCount > 9 ? '9+' : unreadCount.toString();
+          if (unreadCount === 0) badge.textContent = '';
+        }
+
+        // If the list becomes empty, ensure empty state is visible.
+        const list = document.getElementById('notifications_list');
+        if (list) {
+          const remaining = list.querySelectorAll('[id^="bell_notification_"]').length;
+          if (remaining === 0) {
+            // If the empty state partial exists, show it; otherwise insert minimal fallback.
+            const existingEmpty = document.getElementById('notifications_empty_state');
+            if (!existingEmpty) {
+              const empty = document.createElement('div');
+              empty.id = 'notifications_empty_state';
+              empty.className = 'px-4 py-8 text-center';
+              empty.innerHTML = '<p class="text-sm text-gray-500">No notifications</p>';
+              list.innerHTML = '';
+              list.appendChild(empty);
+            }
+          }
+        }
+      })
+      .catch(error => console.error('Error marking notification as read:', error));
   }
 
   function markAllNotificationsAsRead() {
@@ -309,7 +342,25 @@
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
-    }).catch(error => console.error('Error marking all as read:', error));
+    })
+      .then(resp => resp.ok ? resp.json() : Promise.reject(resp))
+      .then(data => {
+        // Remove all notification nodes from bell dropdown.
+        const list = document.getElementById('notifications_list');
+        if (list) {
+          list.innerHTML = '';
+          const empty = document.createElement('div');
+          empty.id = 'notifications_empty_state';
+          empty.className = 'px-4 py-8 text-center';
+          empty.innerHTML = '<p class="text-sm text-gray-500">No notifications</p>';
+          list.appendChild(empty);
+        }
+
+        const unreadCount = data.unread_count ?? data.count ?? 0;
+        const badge = document.getElementById('notifications_badge');
+        if (badge) badge.textContent = '';
+      })
+      .catch(error => console.error('Error marking all as read:', error));
   }
 </script>
 

@@ -84,8 +84,16 @@ module Admin::PaymentPostingConcern
 
   def apply_filters(scope)
     scope = scope.where(organization_id: params[:organization_id]) if params[:organization_id].present?
-    scope = scope.where(payment_status: params[:status]) if params[:status].present?
+    if params[:status].present?
+      status_key = params[:status].to_s
+      if Encounter.payment_statuses.key?(status_key)
+        scope = scope.joins(payment_applications: :encounter).where(encounters: { payment_status: Encounter.payment_statuses[status_key] }).distinct
+      elsif Payment.payment_statuses.key?(status_key)
+        scope = scope.where(payment_status: status_key)
+      end
+    end
     scope = scope.where(payment_method: params[:payment_method]) if params[:payment_method].present?
+    scope = scope.where(payer_id: params[:payer_id]) if params[:payer_id].present?
 
     scope = apply_date_filters(scope)
     scope = apply_search_filter(scope)
@@ -117,23 +125,19 @@ module Admin::PaymentPostingConcern
     term = "%#{params[:search]}%"
     scope.joins(:organization)
          .left_joins(:payer)
+         .left_joins(payment_applications: { encounter: :patient })
          .where(
-           "payments.remit_reference ILIKE ? OR payments.source_hash ILIKE ? OR organizations.name ILIKE ? OR payers.name ILIKE ?",
-           term, term, term, term
-         )
+           "organizations.name ILIKE :term OR payers.name ILIKE :term OR patients.first_name ILIKE :term OR patients.last_name ILIKE :term OR CONCAT_WS(' ', patients.first_name, patients.last_name) ILIKE :term OR encounters.id::text ILIKE :term",
+           term: term
+         ).distinct
   end
 
   def prepare_filter_ui_options
-    @search_placeholder = "Remit reference, payer, org, source hash..."
+    @search_placeholder = "Patient, encounter ID, payer, organization..."
     @organization_options = Organization.order(:name)
-    @status_options = Payment.payment_statuses.keys
-    @custom_selects = [
-      {
-        param: :payment_method,
-        label: "Method",
-        options: [ [ "All Methods", "" ] ] + Payment.payment_methods.keys.map { |m| [ m.humanize, m ] }
-      }
-    ]
+    @status_options = Encounter::PAYMENT_STATUS_FILTER_OPTIONS
+    @payer_options = Payer.active_only.order(:name).map { |p| [ p.name, p.id ] }
+    @custom_selects = []
     @show_date_range = true
   end
 

@@ -16,19 +16,9 @@
     </div>
 
     <!-- Filters -->
-    <%
-      @search_placeholder = "Patient, provider, specialty, encounter ID, MRN…"
-      @status_options = @statuses
-      @provider_options = @providers
-      @specialty_options = @specialties
-      @cascaded_options = ["Not Cascaded", "Cascaded"] unless @show_submitted_only || @show_queued_only
-      @show_date_range = true
-      @encounter_type_options = [["All Encounters", ""], ["Submitted Encounters", "submitted"], ["Ready to be sent", "queued"]]
-      @show_encounter_type_filter = true
-      @show_claim_status_filter = @show_submitted_only
-      @show_queued_only = params[:submitted_filter] == "queued"
-    %>
-    <%= render "shared/filters" %>
+    <div id="encounters_filters">
+      <%= render "tenant/encounters/filters_section" %>
+    </div>
 
     <!-- Send for Billing Button (only shown when queued filter is active) -->
     <div id="send_for_billing_section">
@@ -45,6 +35,34 @@
 </div>
 
 <script>
+  // Ensure each filter submit triggers a fresh request, even if criteria
+  // are unchanged and Turbo would otherwise treat it as a no-op.
+  (function() {
+    function bindFilterNonce() {
+      var container = document.getElementById("encounters_filters");
+      if (!container) return;
+      var form = container.querySelector("form");
+      if (!form || form.dataset.filterNonceBound === "1") return;
+      form.dataset.filterNonceBound = "1";
+
+      form.addEventListener("submit", function() {
+        var nonceField = form.querySelector('input[name="_filter_nonce"]');
+        if (!nonceField) {
+          nonceField = document.createElement("input");
+          nonceField.type = "hidden";
+          nonceField.name = "_filter_nonce";
+          form.appendChild(nonceField);
+        }
+        nonceField.value = String(Date.now());
+      });
+    }
+
+    document.addEventListener("turbo:load", bindFilterNonce);
+    document.addEventListener("DOMContentLoaded", bindFilterNonce);
+    document.addEventListener("turbo:frame-load", bindFilterNonce);
+    document.addEventListener("turbo:render", bindFilterNonce);
+  })();
+
   // Use event delegation that works across Turbo Stream updates
   (function() {
     function updateSubmitState() {
