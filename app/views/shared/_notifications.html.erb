@@ -233,7 +233,7 @@
     const observer = new MutationObserver(function(mutations) {
       mutations.forEach(function(mutation) {
         mutation.addedNodes.forEach(function(node) {
-          if (node.nodeType === 1 && node.id && node.id.startsWith('notification_')) {
+          if (node.nodeType === 1 && node.id && (node.id.startsWith('notification_') || node.id.startsWith('bell_notification_'))) {
             // Only show toast for new notifications after page load
             // This prevents showing toasts for existing notifications on initial page render
             if (pageLoaded) {
