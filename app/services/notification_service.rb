@@ -442,25 +442,36 @@ class NotificationService
       return unless encounter && organization
 
       patient_name = comment.patient&.full_name || "Patient"
-      title = "Tenant Replied to Encounter Comment — #{organization.name} — #{patient_name}"
+      dos = encounter.date_of_service&.strftime("%m/%d/%Y") || "—"
+      preview = comment.body_text.to_s.squish.truncate(120)
+      title = "Encounter Comment — #{patient_name} — DOS #{dos}"
+      message = "#{organization.name} commented: #{preview.presence || 'New comment added.'}"
 
-      super_admins = User.joins(:role)
-                         .where(roles: { role_name: "Super Admin" })
-                         .where("status IS NULL OR status != ?", User.statuses[:inactive])
-                         .kept
+      recipients = User
+        .joins(:role)
+        .where(roles: { scope: Role.scopes[:global] })
+        .where("users.status IS NULL OR users.status != ?", User.statuses[:inactive])
+        .kept
+        .includes(:role)
+        .select(&:has_admin_access?)
+        .reject { |u| u.id == comment.author_user_id }
+        .uniq(&:id)
 
-      super_admins.each do |admin|
+      recipients.each do |admin|
         Notification.create!(
           user: admin,
           organization: organization,
           notification_type: Notification::NOTIFICATION_TYPES[:encounter_comment_from_tenant],
           title: title,
-          message: "Tenant #{organization.name} replied to the encounter thread.",
+          message: message,
           action_url: "/admin/encounters/#{encounter.id}",
           metadata: {
             encounter_id: encounter.id,
             patient_id: comment.patient_id,
-            organization_id: organization.id
+            organization_id: organization.id,
+            date_of_service: encounter.date_of_service,
+            comment_id: comment.id,
+            comment_preview: preview
           }
         )
       end
