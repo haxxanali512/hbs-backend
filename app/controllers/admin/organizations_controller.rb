@@ -28,7 +28,7 @@ class Admin::OrganizationsController < Admin::BaseController
     calculation = ClaimsCalculator.calculate(@organization, period)
     total_cents = calculation[:line_items].sum { |item| item[:amount_cents].to_i }
 
-    @monthly_billing_preview = {
+    preview_payload = {
       period_start: period.begin.to_date,
       period_end: period.end.to_date,
       service_month: period.begin.strftime("%Y-%m"),
@@ -38,11 +38,16 @@ class Admin::OrganizationsController < Admin::BaseController
       line_items: calculation[:line_items],
       total_cents: total_cents
     }
-    @onboarding_steps = build_detailed_activation_steps(@organization) if @organization.activated?
 
-    render :show
+    respond_to do |format|
+      format.json { render json: { success: true, preview: preview_payload } }
+      format.html { redirect_to admin_organization_path(@organization), notice: "Billing preview is available in the preview modal." }
+    end
   rescue => e
-    redirect_to admin_organization_path(@organization), alert: "Could not generate billing preview: #{e.message}"
+    respond_to do |format|
+      format.json { render json: { success: false, error: e.message }, status: :unprocessable_entity }
+      format.html { redirect_to admin_organization_path(@organization), alert: "Could not generate billing preview: #{e.message}" }
+    end
   end
 
   def new

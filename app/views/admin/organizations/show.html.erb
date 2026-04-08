@@ -149,9 +149,11 @@
             class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-slate-700 hover:bg-slate-800 rounded-md border-0",
             form: { data: { turbo_confirm: "Queue monthly billing for this organization?" } } %>
 
-        <%= link_to "Preview Monthly Billing",
-            preview_monthly_invoice_admin_organization_path(@organization),
-            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md" %>
+        <button type="button"
+                id="openMonthlyBillingPreviewModal"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md">
+          Preview Monthly Billing
+        </button>
         
         <% if @organization.owner && policy([:admin, @organization.owner]).masquerade? %>
           <%= link_to "Visit Organization Portal", masquerade_path(@organization.owner),
@@ -324,54 +326,6 @@
       </div>
     </div>
 
-    <% if @monthly_billing_preview.present? %>
-      <div class="rounded-2xl border border-blue-200 bg-blue-50 p-8 shadow-sm">
-        <h3 class="text-base font-semibold text-gray-900 mb-2">Monthly Billing Preview</h3>
-        <p class="text-sm text-gray-600 mb-4">
-          Service Month: <span class="font-medium"><%= @monthly_billing_preview[:service_month] %></span>
-          (<%= @monthly_billing_preview[:period_start] %> to <%= @monthly_billing_preview[:period_end] %>)
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div class="rounded-lg bg-white border border-blue-100 p-4">
-            <p class="text-xs text-gray-500">Collections</p>
-            <p class="text-lg font-semibold text-gray-900"><%= number_to_currency(@monthly_billing_preview[:collections_cents].to_i / 100.0) %></p>
-          </div>
-          <div class="rounded-lg bg-white border border-blue-100 p-4">
-            <p class="text-xs text-gray-500">Collection Rate</p>
-            <p class="text-lg font-semibold text-gray-900"><%= @monthly_billing_preview[:collection_rate_percent].to_f %>%</p>
-          </div>
-          <div class="rounded-lg bg-white border border-blue-100 p-4">
-            <p class="text-xs text-gray-500">Deductible Claims</p>
-            <p class="text-lg font-semibold text-gray-900"><%= @monthly_billing_preview[:deductible_claims_count].to_i %></p>
-          </div>
-        </div>
-
-        <div class="overflow-x-auto rounded-lg border border-blue-100 bg-white">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Line Item</th>
-                <th class="px-4 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Amount</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <% @monthly_billing_preview[:line_items].each do |item| %>
-                <tr>
-                  <td class="px-4 py-2 text-sm text-gray-800"><%= item[:description] %></td>
-                  <td class="px-4 py-2 text-sm text-gray-900 text-right"><%= number_to_currency(item[:amount_cents].to_i / 100.0) %></td>
-                </tr>
-              <% end %>
-              <tr class="bg-gray-50">
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900">Total</td>
-                <td class="px-4 py-2 text-sm font-semibold text-gray-900 text-right"><%= number_to_currency(@monthly_billing_preview[:total_cents].to_i / 100.0) %></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    <% end %>
-
     <!-- Activation Notice -->
     <% unless @organization.activated? %>
       <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
@@ -407,3 +361,106 @@
 </div>
 
 <%= render "admin/organizations/activate_organization_modal", organization: @organization %>
+
+<div id="monthlyBillingPreviewModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="monthlyBillingPreviewModal-title" role="dialog" aria-modal="true">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <div id="monthlyBillingPreviewOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-200"></div>
+    <div class="relative z-10 w-full max-w-4xl rounded-lg bg-white shadow-xl">
+      <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+        <h3 id="monthlyBillingPreviewModal-title" class="text-lg font-semibold text-gray-900">Monthly Billing Preview</h3>
+        <button type="button" id="closeMonthlyBillingPreviewModal" class="text-gray-400 hover:text-gray-600">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="px-6 py-5">
+        <div id="monthlyBillingPreviewLoading" class="text-sm text-gray-500">Loading preview...</div>
+        <div id="monthlyBillingPreviewError" class="hidden text-sm text-red-600"></div>
+        <div id="monthlyBillingPreviewContent" class="hidden"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const openBtn = document.getElementById("openMonthlyBillingPreviewModal");
+    const modal = document.getElementById("monthlyBillingPreviewModal");
+    const overlay = document.getElementById("monthlyBillingPreviewOverlay");
+    const closeBtn = document.getElementById("closeMonthlyBillingPreviewModal");
+    const loadingEl = document.getElementById("monthlyBillingPreviewLoading");
+    const errorEl = document.getElementById("monthlyBillingPreviewError");
+    const contentEl = document.getElementById("monthlyBillingPreviewContent");
+    const previewUrl = "<%= preview_monthly_invoice_admin_organization_path(@organization, format: :json) %>";
+
+    if (!openBtn || !modal) return;
+
+    function formatCurrency(cents) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((Number(cents) || 0) / 100);
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      document.body.style.overflow = "";
+    }
+
+    function openModal() {
+      modal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      loadPreview();
+    }
+
+    function renderPreview(preview) {
+      const rows = (preview.line_items || []).map(function(item) {
+        return '<tr class="border-b border-gray-100">' +
+          '<td class="px-4 py-2 text-sm text-gray-800">' + item.description + '</td>' +
+          '<td class="px-4 py-2 text-sm text-gray-900 text-right">' + formatCurrency(item.amount_cents) + '</td>' +
+        '</tr>';
+      }).join("");
+
+      contentEl.innerHTML =
+        '<p class="text-sm text-gray-600 mb-4">Service Month: <span class="font-medium">' + preview.service_month + '</span> (' + preview.period_start + ' to ' + preview.period_end + ')</p>' +
+        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
+          '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Collections</p><p class="text-lg font-semibold text-gray-900">' + formatCurrency(preview.collections_cents) + '</p></div>' +
+          '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Collection Rate</p><p class="text-lg font-semibold text-gray-900">' + Number(preview.collection_rate_percent || 0) + '%</p></div>' +
+          '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Deductible Claims</p><p class="text-lg font-semibold text-gray-900">' + Number(preview.deductible_claims_count || 0) + '</p></div>' +
+        '</div>' +
+        '<div class="overflow-x-auto rounded-lg border border-gray-200">' +
+          '<table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-xs text-gray-600 uppercase">Line Item</th><th class="px-4 py-2 text-right text-xs text-gray-600 uppercase">Amount</th></tr></thead>' +
+          '<tbody>' + rows +
+          '<tr class="bg-gray-50"><td class="px-4 py-2 text-sm font-semibold text-gray-900">Total</td><td class="px-4 py-2 text-sm font-semibold text-gray-900 text-right">' + formatCurrency(preview.total_cents) + '</td></tr>' +
+          '</tbody></table>' +
+        '</div>';
+    }
+
+    function loadPreview() {
+      loadingEl.classList.remove("hidden");
+      errorEl.classList.add("hidden");
+      contentEl.classList.add("hidden");
+
+      fetch(previewUrl, { headers: { "Accept": "application/json" }, credentials: "same-origin" })
+        .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })
+        .then(function(result) {
+          if (!result.ok || !result.data.success) {
+            throw new Error((result.data && result.data.error) || "Failed to load preview");
+          }
+          renderPreview(result.data.preview);
+          loadingEl.classList.add("hidden");
+          contentEl.classList.remove("hidden");
+        })
+        .catch(function(error) {
+          loadingEl.classList.add("hidden");
+          errorEl.textContent = error.message || "Failed to load preview";
+          errorEl.classList.remove("hidden");
+        });
+    }
+
+    openBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", closeModal);
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+    });
+  })();
+</script>
