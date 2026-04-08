@@ -143,16 +143,10 @@
           </button>
         <% end %>
 
-        <%= button_to "Run Monthly Billing",
-            charge_monthly_invoice_admin_organization_path(@organization),
-            method: :post,
-            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-slate-700 hover:bg-slate-800 rounded-md border-0",
-            form: { data: { turbo_confirm: "Queue monthly billing for this organization?" } } %>
-
         <button type="button"
                 id="openMonthlyBillingPreviewModal"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md">
-          Preview Monthly Billing
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-slate-700 hover:bg-slate-800 rounded-md border-0">
+          Monthly Billing
         </button>
         
         <% if @organization.owner && policy([:admin, @organization.owner]).masquerade? %>
@@ -364,40 +358,42 @@
 
 <div id="monthlyBillingPreviewModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="monthlyBillingPreviewModal-title" role="dialog" aria-modal="true">
   <div class="relative flex min-h-full items-center justify-center p-4">
-    <div id="monthlyBillingPreviewOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-200"></div>
-    <div class="relative z-10 w-full max-w-4xl rounded-lg bg-white shadow-xl">
-      <div class="px-6 pt-6 pb-4 border-b border-gray-200 flex items-center justify-between">
-        <h3 id="monthlyBillingPreviewModal-title" class="text-lg font-semibold text-gray-900">Monthly Billing Preview</h3>
-        <button type="button" id="closeMonthlyBillingPreviewModal" class="text-gray-400 hover:text-gray-600">
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="px-6 py-6">
+    <div id="monthlyBillingPreviewOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out opacity-0" onclick="closeMonthlyBillingPreviewModal()"></div>
+    <div id="monthlyBillingPreviewContentCard" class="relative z-10 w-full max-w-4xl rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out scale-95 opacity-0">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="monthlyBillingPreviewModal-title" class="text-lg font-semibold text-gray-900">Monthly Billing Preview</h3>
+          <button type="button" id="closeMonthlyBillingPreviewModal" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
         <div id="monthlyBillingPreviewLoading" class="text-sm text-gray-500">Loading preview...</div>
         <div id="monthlyBillingPreviewError" class="hidden text-sm text-red-600"></div>
         <div id="monthlyBillingPreviewContent" class="hidden"></div>
-      </div>
-      <div class="px-6 pb-6 pt-2 border-t border-gray-200 flex items-center justify-end gap-3">
-        <button type="button"
-                id="closeMonthlyBillingPreviewModalFooter"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-          Close
-        </button>
-        <form id="queueMonthlyBillingFromModalForm"
-              action="<%= charge_monthly_invoice_admin_organization_path(@organization) %>"
-              method="post"
-              data-turbo-confirm="Queue monthly billing for this service month?">
-          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-          <input type="hidden" name="month" id="monthlyBillingPreviewMonth" value="">
-          <button type="submit"
-                  id="queueMonthlyBillingFromModalButton"
-                  class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled>
-            Queue Monthly Billing
+
+        <div class="mt-6 flex items-center justify-end gap-3">
+          <button type="button"
+                  id="closeMonthlyBillingPreviewModalFooter"
+                  class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Close
           </button>
-        </form>
+          <form id="queueMonthlyBillingFromModalForm"
+                action="<%= charge_monthly_invoice_admin_organization_path(@organization) %>"
+                method="post"
+                data-turbo-confirm="Queue monthly billing for this service month?">
+            <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+            <input type="hidden" name="month" id="monthlyBillingPreviewMonth" value="">
+            <button type="submit"
+                    id="queueMonthlyBillingFromModalButton"
+                    class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+              Queue Monthly Billing
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -408,6 +404,7 @@
     const openBtn = document.getElementById("openMonthlyBillingPreviewModal");
     const modal = document.getElementById("monthlyBillingPreviewModal");
     const overlay = document.getElementById("monthlyBillingPreviewOverlay");
+    const card = document.getElementById("monthlyBillingPreviewContentCard");
     const closeBtn = document.getElementById("closeMonthlyBillingPreviewModal");
     const closeFooterBtn = document.getElementById("closeMonthlyBillingPreviewModalFooter");
     const loadingEl = document.getElementById("monthlyBillingPreviewLoading");
@@ -423,16 +420,33 @@
       return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((Number(cents) || 0) / 100);
     }
 
-    function closeModal() {
-      modal.classList.add("hidden");
-      document.body.style.overflow = "";
-    }
-
     function openModal() {
       modal.classList.remove("hidden");
       document.body.style.overflow = "hidden";
+      requestAnimationFrame(function() {
+        overlay.classList.remove("opacity-0");
+        overlay.classList.add("opacity-100");
+        if (card) {
+          card.classList.remove("scale-95", "opacity-0");
+          card.classList.add("scale-100", "opacity-100");
+        }
+      });
       loadPreview();
     }
+
+    function closeModal() {
+      overlay.classList.remove("opacity-100");
+      overlay.classList.add("opacity-0");
+      if (card) {
+        card.classList.remove("scale-100", "opacity-100");
+        card.classList.add("scale-95", "opacity-0");
+      }
+      setTimeout(function() {
+        modal.classList.add("hidden");
+        document.body.style.overflow = "";
+      }, 300);
+    }
+    window.closeMonthlyBillingPreviewModal = closeModal;
 
     function renderPreview(preview) {
       const rows = (preview.line_items || []).map(function(item) {
@@ -443,13 +457,13 @@
       }).join("");
 
       contentEl.innerHTML =
-        '<p class="text-sm text-gray-600 mb-6">Service Month: <span class="font-medium">' + preview.service_month + '</span> (' + preview.period_start + ' to ' + preview.period_end + ')</p>' +
+        '<p class="text-sm text-gray-600 mb-4">Service Month: <span class="font-medium">' + preview.service_month + '</span> (' + preview.period_start + ' to ' + preview.period_end + ')</p>' +
         '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">' +
           '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Collections</p><p class="text-lg font-semibold text-gray-900">' + formatCurrency(preview.collections_cents) + '</p></div>' +
           '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Collection Rate</p><p class="text-lg font-semibold text-gray-900">' + Number(preview.collection_rate_percent || 0) + '%</p></div>' +
           '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Deductible Claims</p><p class="text-lg font-semibold text-gray-900">' + Number(preview.deductible_claims_count || 0) + '</p></div>' +
         '</div>' +
-        '<div class="overflow-x-auto rounded-lg border border-gray-200 mt-1">' +
+        '<div class="overflow-x-auto rounded-lg border border-gray-200">' +
           '<table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-xs text-gray-600 uppercase">Line Item</th><th class="px-4 py-2 text-right text-xs text-gray-600 uppercase">Amount</th></tr></thead>' +
           '<tbody>' + rows +
           '<tr class="bg-gray-50"><td class="px-4 py-2 text-sm font-semibold text-gray-900">Total</td><td class="px-4 py-2 text-sm font-semibold text-gray-900 text-right">' + formatCurrency(preview.total_cents) + '</td></tr>' +
