@@ -24,6 +24,10 @@ module Admin
     show?
   end
 
+  def charge_monthly_invoice?
+    preview_monthly_invoice?
+  end
+
   def update?
     accessible?("admin", "organizations", "update")
   end
