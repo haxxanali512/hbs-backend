@@ -93,14 +93,16 @@ class Tenant::StripeController < Tenant::BaseController
       organization.setup_billing!
     end
 
-    # Charge onboarding fee
-    onboarding_result = OnboardingFeeService.charge_onboarding_fee!(organization)
+    # Charge onboarding fee only during activation billing step.
+    if organization.activation_status == "compliance_setup"
+      onboarding_result = OnboardingFeeService.charge_onboarding_fee!(organization)
 
-    if onboarding_result[:success]
-      Rails.logger.info "Onboarding fee charged successfully for organization #{organization.id}"
-    else
-      Rails.logger.error "Failed to charge onboarding fee for organization #{organization.id}: #{onboarding_result[:error]}"
-      # Don't fail the Stripe setup if onboarding fee fails - just log it
+      if onboarding_result[:success]
+        Rails.logger.info "Onboarding fee charged successfully for organization #{organization.id}"
+      else
+        Rails.logger.error "Failed to charge onboarding fee for organization #{organization.id}: #{onboarding_result[:error]}"
+        # Don't fail Stripe setup if onboarding fee fails - just log it.
+      end
     end
 
     render json: { success: true }

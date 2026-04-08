@@ -25,6 +25,10 @@ class Tenant::DashboardController < Tenant::BaseController
     end
   end
 
+  def client_directory
+    render "tenant/resources/client_directory"
+  end
+
   # Activation methods (moved from Tenant::ActivationController)
 
   private

@@ -1,0 +1,32 @@
+<div id="client-directory-banner" class="bg-blue-50 border-b border-blue-200 px-4 md:px-8 py-3">
+  <div class="flex items-start md:items-center justify-between gap-3">
+    <p class="text-sm text-blue-900">
+      New: Client Communication Directory is now available in the portal.
+      <%= link_to "View Directory", tenant_client_directory_path, class: "font-semibold underline hover:text-blue-700" %>
+    </p>
+    <button type="button"
+            id="dismiss-client-directory-banner"
+            class="inline-flex items-center rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
+      Dismiss
+    </button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var storageKey = "dismissedClientDirectoryBannerV1";
+    var banner = document.getElementById("client-directory-banner");
+    var dismissBtn = document.getElementById("dismiss-client-directory-banner");
+    if (!banner || !dismissBtn) return;
+
+    if (window.localStorage.getItem(storageKey) === "1") {
+      banner.style.display = "none";
+      return;
+    }
+
+    dismissBtn.addEventListener("click", function() {
+      window.localStorage.setItem(storageKey, "1");
+      banner.style.display = "none";
+    });
+  })();
+</script>

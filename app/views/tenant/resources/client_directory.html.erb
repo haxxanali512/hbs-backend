@@ -1,0 +1,216 @@
+<style>
+  .client-directory-page {
+    --navy: #1e3a5f;
+    --navy-dark: #152b47;
+    --navy-light: #2a4f7c;
+    --green: #3aaa7a;
+    --green-light: #4dc48e;
+    --green-pale: #e8f7f1;
+    --teal: #2d8a6e;
+    --white: #ffffff;
+    --gray-50: #f8fafc;
+    --gray-100: #f0f4f8;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-700: #334155;
+  }
+
+  .client-directory-page * { box-sizing: border-box; }
+  .client-directory-page .page {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--white);
+    box-shadow: 0 4px 40px rgba(30,58,95,0.10);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .client-directory-page .header {
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, var(--navy-light) 100%);
+    padding: 48px 56px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .client-directory-page .header::before {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    border: 2px solid rgba(58,170,122,0.18);
+  }
+  .client-directory-page .header::after {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    border: 2px solid rgba(58,170,122,0.10);
+  }
+  .client-directory-page .header-inner { display: flex; align-items: center; gap: 28px; position: relative; z-index: 1; }
+  .client-directory-page .logo-wrap img { height: 72px; width: auto; filter: brightness(0) invert(1); opacity: 0.92; }
+  .client-directory-page .header-text { flex: 1; }
+  .client-directory-page .header-text h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+  }
+  .client-directory-page .header-text p {
+    margin-top: 8px;
+    font-size: 13.5px;
+    color: rgba(255,255,255,0.72);
+    line-height: 1.6;
+    max-width: 480px;
+  }
+  .client-directory-page .accent-line { width: 48px; height: 3px; background: var(--green); border-radius: 2px; margin: 12px 0; }
+  .client-directory-page .body { padding: 40px 56px 56px; }
+  .client-directory-page .section { margin-bottom: 44px; }
+  .client-directory-page .section-label { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .client-directory-page .pill {
+    background: var(--navy);
+    color: var(--white);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+  }
+  .client-directory-page .line { flex: 1; height: 1px; background: var(--gray-200); }
+  .client-directory-page .channels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .client-directory-page .channel-card {
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .client-directory-page .channel-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--green), var(--teal));
+  }
+  .client-directory-page .channel-icon {
+    width: 38px; height: 38px; background: var(--green-pale); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 14px;
+  }
+  .client-directory-page .channel-title { font-size: 15.5px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .client-directory-page .channel-method {
+    font-size: 12px; font-weight: 600; color: var(--green); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .client-directory-page .channel-desc { font-size: 13px; color: var(--gray-600); line-height: 1.6; }
+  .client-directory-page .channel-tip {
+    margin-top: 20px; background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    border-radius: 10px; padding: 14px 18px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .client-directory-page .channel-tip p { font-size: 12.5px; color: rgba(255,255,255,0.88); line-height: 1.55; }
+  .client-directory-page .team-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+  .client-directory-page .team-table thead tr th {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-400);
+    padding: 0 18px 4px; text-align: left;
+  }
+  .client-directory-page .team-card {
+    display: grid; grid-template-columns: 200px 1fr auto; align-items: center;
+    background: var(--white); border: 1.5px solid var(--gray-200); border-radius: 12px; overflow: hidden;
+  }
+  .client-directory-page .team-identity { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-right: 1px solid var(--gray-200); }
+  .client-directory-page .avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: var(--white); flex-shrink: 0;
+  }
+  .client-directory-page .avatar.green { background: linear-gradient(135deg, var(--teal), var(--green)); }
+  .client-directory-page .name { font-weight: 600; font-size: 14px; color: var(--navy); }
+  .client-directory-page .role { font-size: 11.5px; color: var(--gray-400); margin-top: 2px; }
+  .client-directory-page .team-scope { padding: 16px 20px; font-size: 13px; color: var(--gray-600); line-height: 1.55; border-right: 1px solid var(--gray-200); }
+  .client-directory-page .scope-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .client-directory-page .scope-tag { font-size: 11px; font-weight: 500; color: var(--navy); background: var(--gray-100); border-radius: 6px; padding: 2px 8px; }
+  .client-directory-page .team-contact { padding: 16px 20px; display: flex; align-items: center; }
+  .client-directory-page .email-link {
+    display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--green);
+    text-decoration: none; background: var(--green-pale); padding: 7px 12px; border-radius: 8px;
+  }
+  .client-directory-page .decision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .client-directory-page .decision-item { background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 14px 16px; }
+  .client-directory-page .decision-q { font-size: 12.5px; color: var(--gray-600); line-height: 1.5; }
+  .client-directory-page .decision-ans { font-weight: 600; color: var(--navy); font-size: 12.5px; margin-top: 3px; }
+  .client-directory-page .footer {
+    background: var(--navy-dark); padding: 22px 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .client-directory-page .footer p { font-size: 12px; color: rgba(255,255,255,0.7); }
+  .client-directory-page .brand { color: rgba(255,255,255,0.95); font-weight: 600; }
+</style>
+
+<div class="client-directory-page py-6">
+  <div class="page">
+    <div class="header">
+      <div class="header-inner">
+        <div class="logo-wrap">
+          <%= image_tag "HBS-logo-scaled (1).png", alt: "HBS Logo" %>
+        </div>
+        <div class="header-text">
+          <div class="accent-line"></div>
+          <h1>Client Communication Directory</h1>
+          <p>To ensure you receive the fastest and most accurate support, please use this guide to determine the best way to reach our team.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="section">
+        <div class="section-label"><div class="pill">Start Here — Primary Channels</div><div class="line"></div></div>
+        <div class="channels">
+          <div class="channel-card">
+            <div class="channel-icon">💬</div>
+            <div class="channel-method">Encounter Comments (In Portal)</div>
+            <div class="channel-title">Encounter-Specific Questions</div>
+            <div class="channel-desc">Use for questions tied to a specific patient, date of service, or insurance claim.</div>
+          </div>
+          <div class="channel-card">
+            <div class="channel-icon">🎫</div>
+            <div class="channel-method">Support Ticket (In Portal)</div>
+            <div class="channel-title">General Requests & New Tasks</div>
+            <div class="channel-desc">Use for anything not tied to a specific encounter — document submissions, new requests, and follow-up.</div>
+          </div>
+        </div>
+        <div class="channel-tip">
+          <p><strong>Use the portal first.</strong> It keeps requests tracked, prioritized, and routed to the right person.</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label"><div class="pill">Team Directory</div><div class="line"></div></div>
+        <table class="team-table">
+          <thead><tr><th style="width:200px">Contact</th><th>Reach Out For</th><th>Email</th></tr></thead>
+          <tbody>
+            <tr><td colspan="3"><div class="team-card"><div class="team-identity"><div class="avatar">SM</div><div><div class="name">Steven Meddaugh</div><div class="role">CEO / Strategy</div></div></div><div class="team-scope">High-level strategy, relationship concerns, major escalations and financial decisions.<div class="scope-tags"><span class="scope-tag">Strategy</span><span class="scope-tag">Escalations</span><span class="scope-tag">Financial</span></div></div><div class="team-contact"><a class="email-link" href="mailto:steven@holisticbusinesssolutions.com">steven@holisticbusinesssolutions.com</a></div></div></td></tr>
+            <tr><td colspan="3"><div class="team-card"><div class="team-identity"><div class="avatar">KM</div><div><div class="name">Kaleb Miller</div><div class="role">Director of Billing Services</div></div></div><div class="team-scope">Billing oversight, revenue concerns, escalated claim issues and operational alignment.<div class="scope-tags"><span class="scope-tag">Billing Oversight</span><span class="scope-tag">Revenue</span><span class="scope-tag">Claims</span></div></div><div class="team-contact"><a class="email-link" href="mailto:kaleb@holisticbusinesssolutions.com">kaleb@holisticbusinesssolutions.com</a></div></div></td></tr>
+            <tr><td colspan="3"><div class="team-card"><div class="team-identity"><div class="avatar green">JC</div><div><div class="name">Jessica</div><div class="role">Client Success / Billing</div></div></div><div class="team-scope">Day-to-day communication, status updates, onboarding support and general coordination.<div class="scope-tags"><span class="scope-tag">Day-to-Day</span><span class="scope-tag">Status Updates</span><span class="scope-tag">Onboarding</span></div></div><div class="team-contact"><a class="email-link" href="mailto:billing@holisticbusinesssolutions.com">billing@holisticbusinesssolutions.com</a></div></div></td></tr>
+            <tr><td colspan="3"><div class="team-card"><div class="team-identity"><div class="avatar green">HD</div><div><div class="name">Hassan</div><div class="role">Technical / Portal Support</div></div></div><div class="team-scope">Portal issues, bugs, access problems and system-related errors.<div class="scope-tags"><span class="scope-tag">Portal Issues</span><span class="scope-tag">Technical</span><span class="scope-tag">Access</span></div></div><div class="team-contact"><a class="email-link" href="mailto:dev@holisticbusinesssolutions.com">dev@holisticbusinesssolutions.com</a></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section" style="margin-bottom:0">
+        <div class="section-label"><div class="pill">Quick Decision Guide</div><div class="line"></div></div>
+        <div class="decision-grid">
+          <div class="decision-item"><div><div class="decision-q"><strong>"This is about a specific claim or patient."</strong></div><div class="decision-ans">-> Encounter Comments</div></div></div>
+          <div class="decision-item"><div><div class="decision-q"><strong>"This is a new request or general question."</strong></div><div class="decision-ans">-> Support Ticket</div></div></div>
+          <div class="decision-item"><div><div class="decision-q"><strong>"I need help understanding status."</strong></div><div class="decision-ans">-> Jessica (billing@)</div></div></div>
+          <div class="decision-item"><div><div class="decision-q"><strong>"Billing issue or revenue concern."</strong></div><div class="decision-ans">-> Kaleb (kaleb@)</div></div></div>
+          <div class="decision-item"><div><div class="decision-q"><strong>"Something isn't working in portal."</strong></div><div class="decision-ans">-> Hassan (dev@)</div></div></div>
+          <div class="decision-item"><div><div class="decision-q"><strong>"Strategic or serious concern."</strong></div><div class="decision-ans">-> Steven (steven@)</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="brand">Holistic Business Solutions</p>
+      <p>Using the correct channel ensures faster, more accurate outcomes.</p>
+    </div>
+  </div>
+</div>
