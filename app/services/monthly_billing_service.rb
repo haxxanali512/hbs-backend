@@ -36,6 +36,12 @@ class MonthlyBillingService
     { success: false, error: e.message }
   end
 
+  # Preview-only breakdown used by admin UI modal.
+  # Returns raw calculation payload including line items in cents.
+  def self.preview_breakdown(organization:, period:)
+    ClaimsCalculator.calculate(organization, period)
+  end
+
   private
 
   def self.charge_with_stripe(billing, invoice, organization, period)

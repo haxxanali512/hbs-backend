@@ -25,7 +25,7 @@ class Admin::OrganizationsController < Admin::BaseController
 
   def preview_monthly_invoice
     period = billing_period_from_params
-    calculation = ClaimsCalculator.calculate(@organization, period)
+    calculation = MonthlyBillingService.preview_breakdown(organization: @organization, period: period)
     total_cents = calculation[:line_items].sum { |item| item[:amount_cents].to_i }
 
     preview_payload = {

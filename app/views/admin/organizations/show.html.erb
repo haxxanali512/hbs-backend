@@ -145,7 +145,7 @@
 
         <button type="button"
                 id="openMonthlyBillingPreviewModal"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-slate-700 hover:bg-slate-800 rounded-md border-0">
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md border-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           Monthly Billing
         </button>
         
@@ -153,13 +153,13 @@
           <%= link_to "Visit Organization Portal", masquerade_path(@organization.owner),
               target: '_blank',
               rel: 'noopener noreferrer',
-              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md",
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md",
               title: "Impersonate #{@organization.owner.display_name}" %>
         <% else %>
           <% tenant_portal_url = "#{request.protocol}#{organization_subdomain_url(@organization.subdomain)}" %>
           <%= link_to "Visit Organization Portal", tenant_portal_url,
               target: '_blank',
-              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md" %>
         <% end %>
 
         <% if current_user.permissions_for("admin", "organizations", "destroy") || current_user.permissions_for("admin", "organizations", "hard_destroy") %>
@@ -388,7 +388,7 @@
             <input type="hidden" name="month" id="monthlyBillingPreviewMonth" value="">
             <button type="submit"
                     id="queueMonthlyBillingFromModalButton"
-                    class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled>
               Queue Monthly Billing
             </button>
