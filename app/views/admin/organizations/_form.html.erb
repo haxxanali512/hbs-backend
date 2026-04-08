@@ -235,6 +235,9 @@
 
     <%= f.fields_for :organization_setting do |s| %>
       <% setting = @organization.organization_setting %>
+      <% entitlements = setting&.feature_entitlements || {} %>
+      <% enabled_modules = entitlements["enabled_modules"] || entitlements[:enabled_modules] || {} %>
+      <% module_rates = entitlements["module_billing_rates_cents"] || entitlements[:module_billing_rates_cents] || {} %>
 
       <div class="space-y-6">
         <div class="flex items-center">
@@ -259,6 +262,52 @@
             <%= s.label :ezclaim_api_version, "API Version", class: "block text-sm font-medium text-gray-700 mb-1" %>
             <%= s.text_field :ezclaim_api_version, class: "w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "3.0.0" %>
             <p class="mt-1 text-xs text-gray-500">EZClaim API version. Default is 3.0.0.</p>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="text-sm font-semibold text-gray-900">Billing Module Entitlements</h4>
+          <p class="mt-1 text-xs text-gray-500">Enable monthly fixed-fee modules and optionally override each module's rate in cents.</p>
+
+          <div class="mt-4 space-y-4">
+            <% [
+              [ "appointment", "Appointment Module" ],
+              [ "calendar", "Calendar Module" ],
+              [ "eligibility", "Eligibility Module" ]
+            ].each do |module_key, module_label| %>
+              <% enabled = ActiveModel::Type::Boolean.new.cast(enabled_modules[module_key] || enabled_modules[module_key.to_sym]) %>
+              <% current_rate = module_rates[module_key] || module_rates[module_key.to_sym] %>
+              <div class="rounded-lg border border-gray-200 p-4">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <label class="text-sm font-medium text-gray-900"><%= module_label %></label>
+                    <p class="text-xs text-gray-500">Included as a separate invoice line item when enabled.</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input type="hidden"
+                           name="organization[organization_setting_attributes][feature_entitlements][enabled_modules][<%= module_key %>]"
+                           value="0">
+                    <%= check_box_tag "organization[organization_setting_attributes][feature_entitlements][enabled_modules][#{module_key}]",
+                        "1",
+                        enabled,
+                        id: "module_enabled_#{module_key}",
+                        class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <label for="module_enabled_<%= module_key %>" class="text-sm text-gray-700">Enabled</label>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <label for="module_rate_<%= module_key %>" class="block text-xs font-medium text-gray-700">Monthly Fee (cents)</label>
+                  <%= number_field_tag "organization[organization_setting_attributes][feature_entitlements][module_billing_rates_cents][#{module_key}]",
+                      current_rate,
+                      id: "module_rate_#{module_key}",
+                      min: 0,
+                      step: 1,
+                      placeholder: "Leave blank to use default",
+                      class: "mt-1 block w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+                </div>
+              </div>
+            <% end %>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ class Admin::OrganizationsController < Admin::BaseController
   include Admin::Concerns::OrganizationConcern
   include ActivationStepsConcern
 
-  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :hard_destroy, :activate_tenant, :suspend_tenant, :toggle_checklist_step, :toggle_plan_step ]
+  before_action :set_organization, only: [ :show, :edit, :update, :destroy, :hard_destroy, :activate_tenant, :suspend_tenant, :charge_monthly_invoice, :preview_monthly_invoice, :toggle_checklist_step, :toggle_plan_step ]
 
   def index
     @organizations = build_organizations_index_query.with_discarded
@@ -21,6 +21,28 @@ class Admin::OrganizationsController < Admin::BaseController
 
   def show
     @onboarding_steps = build_detailed_activation_steps(@organization) if @organization.activated?
+  end
+
+  def preview_monthly_invoice
+    period = billing_period_from_params
+    calculation = ClaimsCalculator.calculate(@organization, period)
+    total_cents = calculation[:line_items].sum { |item| item[:amount_cents].to_i }
+
+    @monthly_billing_preview = {
+      period_start: period.begin.to_date,
+      period_end: period.end.to_date,
+      service_month: period.begin.strftime("%Y-%m"),
+      collection_rate_percent: calculation[:collection_rate_percent],
+      collections_cents: calculation[:collections_cents],
+      deductible_claims_count: calculation[:deductible_claims_count],
+      line_items: calculation[:line_items],
+      total_cents: total_cents
+    }
+    @onboarding_steps = build_detailed_activation_steps(@organization) if @organization.activated?
+
+    render :show
+  rescue => e
+    redirect_to admin_organization_path(@organization), alert: "Could not generate billing preview: #{e.message}"
   end
 
   def new
@@ -109,6 +131,40 @@ class Admin::OrganizationsController < Admin::BaseController
 
     redirect_to admin_organization_path(@organization),
                 notice: "Organization suspended successfully."
+  end
+
+  def charge_monthly_invoice
+    billing = @organization.organization_billing
+    unless billing&.active?
+      redirect_to admin_organization_path(@organization), alert: "Billing is not configured or not active for this organization."
+      return
+    end
+
+    month = params[:month].presence
+    period = if month.present?
+      begin
+        parsed = Date.strptime(month, "%Y-%m")
+        parsed.beginning_of_month..parsed.end_of_month
+      rescue ArgumentError
+        nil
+      end
+    else
+      previous_month = Time.current.beginning_of_month - 1.day
+      previous_month.beginning_of_month.to_date..previous_month.end_of_month.to_date
+    end
+
+    unless period
+      redirect_to admin_organization_path(@organization), alert: "Invalid month format. Use YYYY-MM."
+      return
+    end
+
+    OrganizationMonthlyBillingJob.perform_later(
+      @organization.id,
+      period_start: period.begin,
+      period_end: period.end
+    )
+
+    redirect_to admin_organization_path(@organization), notice: "Monthly billing was queued for #{period.begin.strftime('%B %Y')}."
   end
 
   def toggle_checklist_step
@@ -206,7 +262,8 @@ class Admin::OrganizationsController < Admin::BaseController
         :ezclaim_enabled,
         :ezclaim_api_token,
         :ezclaim_api_url,
-        :ezclaim_api_version
+        :ezclaim_api_version,
+        feature_entitlements: {}
       ],
       organization_contact_attributes: [
         :id,
@@ -234,6 +291,21 @@ class Admin::OrganizationsController < Admin::BaseController
         :identifiers_change_effective_on
       ]
     )
+  end
+
+  def billing_period_from_params
+    month = params[:month].presence
+    return default_previous_month_period if month.blank?
+
+    parsed = Date.strptime(month, "%Y-%m")
+    parsed.beginning_of_month..parsed.end_of_month
+  rescue ArgumentError
+    default_previous_month_period
+  end
+
+  def default_previous_month_period
+    previous_month = Time.current.beginning_of_month - 1.day
+    previous_month.beginning_of_month.to_date..previous_month.end_of_month.to_date
   end
 
   def send_checklist_step_notification(checklist, step_name, completed)

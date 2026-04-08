@@ -47,6 +47,8 @@ Rails.application.routes.draw do
         member do
           post :activate_tenant
           post :suspend_tenant
+          post :charge_monthly_invoice
+          get :preview_monthly_invoice
           patch :toggle_checklist_step
           patch :toggle_plan_step
           delete :hard_destroy
