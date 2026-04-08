@@ -20,7 +20,7 @@ module Admin
     accessible?("admin", "organizations", "create")
   end
 
-  def preview_monthly_invoice
+  def preview_monthly_invoice?
     show?
   end
 
