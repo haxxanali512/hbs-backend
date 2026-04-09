@@ -1,6 +1,4 @@
 class EligibilityCheckMailer < ApplicationMailer
-  default from: "support@hbsdata.com"
-
   def result_ready(user:, organization:, check_id:, check_result:, submitted_params:)
     @user = user
     @organization = organization
