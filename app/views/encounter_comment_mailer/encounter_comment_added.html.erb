@@ -1,0 +1,15 @@
+<p>A new encounter comment has been added.</p>
+
+<p>
+  <strong>Organization:</strong> <%= @organization&.name %><br>
+  <strong>Patient Identifier:</strong> <%= @patient_identifier %><br>
+  <strong>Date of Service:</strong> <%= @date_of_service %><br>
+  <strong>Comment Author:</strong> <%= @author&.display_name || @author&.email %>
+</p>
+
+<p>
+  Review and reply in the portal:<br>
+  <a href="<%= @portal_url %>"><%= @portal_url %></a>
+</p>
+
+<p>For privacy and security, detailed clinical content is not included in this email.</p>
