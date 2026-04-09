@@ -2,8 +2,6 @@ require "digest"
 require "socket"
 
 class ErrorNotificationMailer < ApplicationMailer
-  default from: ENV.fetch("ERROR_NOTIFICATION_FROM", "errors@hbsdata.com")
-
   def notify_error(exception, request_details = {})
     @exception = exception
     @request_details = request_details

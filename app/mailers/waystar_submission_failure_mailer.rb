@@ -1,7 +1,5 @@
 # Mailer to notify organization when Waystar EDI submissions fail
 class WaystarSubmissionFailureMailer < ApplicationMailer
-  default from: "support@holisticbusinesssolution.com"
-
   def notify_failures(organization:, results:)
     @organization = organization
     @results = results
