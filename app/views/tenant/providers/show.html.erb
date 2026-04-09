@@ -33,8 +33,8 @@
             <div>
               <label class="text-sm font-medium text-gray-500">Status</label>
               <p class="text-sm">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @provider.status_badge_color %>">
-                  <%= @provider.status.humanize %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= @provider.tenant_status_badge_color %>">
+                  <%= @provider.tenant_status_label %>
                 </span>
               </p>
             </div>

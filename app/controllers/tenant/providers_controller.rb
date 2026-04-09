@@ -8,7 +8,14 @@ class Tenant::ProvidersController < Tenant::BaseController
 
     # Apply filters
     @providers = @providers.search(params[:search]) if params[:search].present?
-    @providers = @providers.where(status: params[:status]) if params[:status].present?
+    if params[:status].present?
+      @providers =
+        if params[:status] == "active"
+          @providers.where(status: [ "pending", "approved" ])
+        else
+          @providers.where(status: params[:status])
+        end
+    end
     @providers = @providers.by_specialty(params[:specialty_id]) if params[:specialty_id].present?
 
     @pagy, @providers = pagy(@providers, items: 20)
