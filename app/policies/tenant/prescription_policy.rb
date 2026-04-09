@@ -7,6 +7,10 @@ class Tenant::PrescriptionPolicy < ApplicationPolicy
     accessible?("tenant", "prescriptions", "show")
   end
 
+  def export?
+    index?
+  end
+
   def create?
     accessible?("tenant", "prescriptions", "create")
   end
