@@ -40,6 +40,7 @@ class OrgAcceptedPlan < ApplicationRecord
   # =========================
   validates :organization_id, :insurance_plan_id, :network_type, :effective_date, :added_by_id, presence: true
   validates :insurance_plan_id, uniqueness: { scope: :organization_id, message: "ORG_PLAN_DUP" }
+  validates :notes, length: { maximum: 5000 }, allow_blank: true
   validate :date_range_valid
   validate :insurance_plan_must_be_active
   validate :in_network_enrollment_verification

@@ -36,7 +36,6 @@ class Admin::OrgAcceptedPlansController < Admin::BaseController
     @org_accepted_plan = OrgAcceptedPlan.new(org_accepted_plan_params)
     @org_accepted_plan.added_by_id = current_user.id
     if @org_accepted_plan.save
-      create_note_if_present(@org_accepted_plan)
       redirect_to admin_org_accepted_plan_path(@org_accepted_plan), notice: "Organization accepted plan created."
     else
       render :new, status: :unprocessable_entity
@@ -47,7 +46,6 @@ class Admin::OrgAcceptedPlansController < Admin::BaseController
 
   def update
     if @org_accepted_plan.update(org_accepted_plan_params)
-      create_note_if_present(@org_accepted_plan)
       redirect_to admin_org_accepted_plan_path(@org_accepted_plan), notice: "Organization accepted plan updated."
     else
       render :edit, status: :unprocessable_entity
@@ -135,14 +133,7 @@ class Admin::OrgAcceptedPlansController < Admin::BaseController
   def org_accepted_plan_params
     params.require(:org_accepted_plan).permit(
       :organization_id, :insurance_plan_id, :status, :network_type,
-      :enrollment_status, :effective_date, :end_date
+      :enrollment_status, :effective_date, :end_date, :notes
     )
-  end
-
-  def create_note_if_present(plan)
-    note_body = params[:note_body].to_s.strip
-    return if note_body.blank?
-
-    plan.plan_notes.create!(body: note_body, created_by: current_user)
   end
 end
