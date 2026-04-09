@@ -21,13 +21,18 @@ class EligibilityCheckJob < ApplicationJob
       submitted_params: params
     ).deliver_later
   rescue FuseEligibilityCheckFromParamsService::Error, FuseApiService::Error => e
-    EligibilityCheckMailer.result_failed(
-      user: user,
-      organization: organization,
-      error_message: normalized_error_message(e.message),
-      submitted_params: params
-    ).deliver_later if user.present? && organization.present?
-    raise
+    if user.present? && organization.present? && should_send_failure_email?(organization: organization, user: user, params: params, error_message: e.message)
+      EligibilityCheckMailer.result_failed(
+        user: user,
+        organization: organization,
+        error_message: normalized_error_message(e.message),
+        submitted_params: params
+      ).deliver_later
+    end
+
+    Rails.logger.error(
+      "EligibilityCheckJob failed for org=#{organization_id} user=#{user_id}: #{e.class} - #{e.message}"
+    )
   end
 
   private
@@ -51,5 +56,22 @@ class EligibilityCheckJob < ApplicationJob
     end
 
     message.sub(/\AFuse API error \(\d+\):\s*/i, "").presence || "Request validation failed."
+  end
+
+  # Prevent duplicate failure emails for the same input/error in a short window.
+  def should_send_failure_email?(organization:, user:, params:, error_message:)
+    fingerprint_source = {
+      org_id: organization.id,
+      user_id: user.id,
+      params: params,
+      error: normalized_error_message(error_message)
+    }.to_s
+    digest = Digest::SHA256.hexdigest(fingerprint_source)
+    cache_key = "eligibility_check_failure_email:#{digest}"
+
+    return false if Rails.cache.exist?(cache_key)
+
+    Rails.cache.write(cache_key, true, expires_in: 1.hour)
+    true
   end
 end
