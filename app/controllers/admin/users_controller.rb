@@ -30,41 +30,7 @@ class Admin::UsersController < ::ApplicationController
   end
 
   def create
-    random_password = SecureRandom.uuid
-
-    mode = invite_params[:invite_organization_mode]
-    organization_id = invite_params[:organization_id]
-    org_attrs = invite_params[:organizations_attributes] || {}
-
-    @user = User.new(
-      invite_params.except(:organizations_attributes, :invite_organization_mode, :organization_id).merge(
-        password: random_password,
-        password_confirmation: random_password,
-        invited_by: current_user,
-        status: "pending"
-      )
-    )
-
-    if @user.save
-      case mode
-      when "existing"
-        if organization_id.present?
-          org = Organization.kept.find_by(id: organization_id)
-          org&.add_member(@user, nil)
-        end
-      when "new"
-        if org_attrs.present? && org_attrs["name"].present? && org_attrs["subdomain"].present?
-          org = Organization.new(
-            name: org_attrs["name"],
-            subdomain: org_attrs["subdomain"],
-            owner: @user
-          )
-          if org.save
-            org.add_member(@user, nil)
-          end
-        end
-      end
-
+    if invite_user_and_attach_organization!
       redirect_to admin_users_path, notice: "User created and invitation sent successfully."
     else
       @roles = Role.order(:role_name)
@@ -203,35 +169,7 @@ class Admin::UsersController < ::ApplicationController
   end
 
   def send_invitation
-    mode = params.dig(:user, :invite_organization_mode)
-    organization_id = params.dig(:user, :organization_id)
-    org_attrs = invite_params[:organizations_attributes] || {}
-
-    # Only pass user fields to Devise invitable
-    user_attrs = invite_params.except(:organizations_attributes, :invite_organization_mode, :organization_id)
-    @user = User.invite!(user_attrs, current_user)
-
-    if @user.errors.empty?
-      # Handle organization assignment/creation based on mode
-      case mode
-      when "existing"
-        if organization_id.present?
-          org = Organization.kept.find_by(id: organization_id)
-          org&.add_member(@user, nil)
-        end
-      when "new"
-        if org_attrs.present? && org_attrs["name"].present? && org_attrs["subdomain"].present?
-          org = Organization.new(
-            name: org_attrs["name"],
-            subdomain: org_attrs["subdomain"],
-            owner: @user
-          )
-          if org.save
-            org.add_member(@user, nil)
-          end
-        end
-      end
-
+    if invite_user_and_attach_organization!
       redirect_to admin_users_path, notice: "Invitation sent successfully."
     else
       @roles = Role.order(:role_name)
@@ -265,6 +203,74 @@ class Admin::UsersController < ::ApplicationController
       :organization_id,
       organizations_attributes: [ :name, :subdomain ]
     )
+  end
+
+  # Devise Invitable sends the invitation email from User.invite! by default.
+  # We defer delivery until after organization membership/ownership exists so
+  # invitation_instructions can build accept_user_invitation_url on
+  # subdomain.localhost (tenant) instead of falling back to admin.
+  def invite_user_and_attach_organization!
+    mode = invite_params[:invite_organization_mode]
+    organization_id = invite_params[:organization_id]
+    org_attrs = invite_params[:organizations_attributes] || {}
+
+    user_attrs = invite_params
+      .except(:organizations_attributes, :invite_organization_mode, :organization_id)
+      .merge(status: :pending, skip_invitation: true)
+
+    @user = User.invite!(user_attrs, current_user)
+    return false if @user.errors.any?
+
+    attach_invited_user_to_organization!(@user, mode: mode, organization_id: organization_id, org_attrs: org_attrs)
+    @user.deliver_invitation
+    true
+  end
+
+  def attach_invited_user_to_organization!(user, mode:, organization_id:, org_attrs:)
+    case mode.to_s
+    when "none"
+      nil
+    when "existing"
+      if organization_id.present?
+        org = Organization.kept.find_by(id: organization_id)
+        org&.add_member(user, nil)
+      end
+    when "new"
+      nested = organization_attributes_hash(org_attrs)
+      if nested[:name].present? && nested[:subdomain].present?
+        org = Organization.new(
+          name: nested[:name],
+          subdomain: nested[:subdomain],
+          owner: user
+        )
+        if org.save
+          org.add_member(user, nil)
+        end
+      end
+    end
+  end
+
+  # fields_for :organizations_attributes often submits { "0" => { "name" => ... } }
+  def organization_attributes_hash(org_attrs)
+    return {} if org_attrs.blank?
+
+    raw = parameters_to_hash(org_attrs)
+    h = raw.with_indifferent_access
+    return h if h[:name].present? || h[:subdomain].present?
+
+    nested = raw.values.find { |v| v.is_a?(Hash) || v.is_a?(ActionController::Parameters) }
+    parameters_to_hash(nested || {}).with_indifferent_access
+  end
+
+  def parameters_to_hash(value)
+    case value
+    when ActionController::Parameters
+      value.to_unsafe_h
+    when Hash
+      value
+    else
+      {}
+    end
   end
 
   def authorize_user
