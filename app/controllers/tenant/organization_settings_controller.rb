@@ -1,8 +1,9 @@
 class Tenant::OrganizationSettingsController < Tenant::BaseController
   before_action :set_current_organization
-  before_action :set_organization_setting, only: [ :show, :edit, :update ]
+  before_action :set_organization_setting, only: [ :show, :edit, :update, :update_billing_method ]
 
   def show
+    @organization_billing = @current_organization.organization_billing || @current_organization.build_organization_billing
   end
 
   def edit
@@ -16,6 +17,25 @@ class Tenant::OrganizationSettingsController < Tenant::BaseController
       @organization = @current_organization
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  def update_billing_method
+    billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+    provider = params[:provider].to_s
+
+    case provider
+    when "manual"
+      billing.update!(
+        provider: :manual,
+        billing_status: :pending_approval
+      )
+      OrganizationBillingMailer.manual_payment_request(billing).deliver_now
+      redirect_to tenant_organization_setting_path, notice: "Manual billing request submitted successfully."
+    else
+      redirect_to tenant_organization_setting_path, alert: "Unsupported billing provider selection."
+    end
+  rescue => e
+    redirect_to tenant_organization_setting_path, alert: "Unable to update billing method: #{e.message}"
   end
 
   private

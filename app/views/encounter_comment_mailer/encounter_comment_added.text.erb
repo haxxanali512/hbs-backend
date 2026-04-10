@@ -1,0 +1,11 @@
+A new encounter comment has been added.
+
+Organization: <%= @organization&.name %>
+Patient Identifier: <%= @patient_identifier %>
+Date of Service: <%= @date_of_service %>
+Comment Author: <%= @author&.display_name || @author&.email %>
+
+Review and reply in the portal:
+<%= @portal_url %>
+
+For privacy and security, detailed clinical content is not included in this email.

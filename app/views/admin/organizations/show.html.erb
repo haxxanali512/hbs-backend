@@ -142,18 +142,24 @@
             Activate Organization
           </button>
         <% end %>
+
+        <button type="button"
+                id="openMonthlyBillingPreviewModal"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md border-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          Monthly Billing
+        </button>
         
         <% if @organization.owner && policy([:admin, @organization.owner]).masquerade? %>
           <%= link_to "Visit Organization Portal", masquerade_path(@organization.owner),
               target: '_blank',
               rel: 'noopener noreferrer',
-              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md",
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md",
               title: "Impersonate #{@organization.owner.display_name}" %>
         <% else %>
           <% tenant_portal_url = "#{request.protocol}#{organization_subdomain_url(@organization.subdomain)}" %>
           <%= link_to "Visit Organization Portal", tenant_portal_url,
               target: '_blank',
-              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md" %>
+              class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md" %>
         <% end %>
 
         <% if current_user.permissions_for("admin", "organizations", "destroy") || current_user.permissions_for("admin", "organizations", "hard_destroy") %>
@@ -349,3 +355,154 @@
 </div>
 
 <%= render "admin/organizations/activate_organization_modal", organization: @organization %>
+
+<div id="monthlyBillingPreviewModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="monthlyBillingPreviewModal-title" role="dialog" aria-modal="true">
+  <div class="relative flex min-h-full items-center justify-center p-4">
+    <div id="monthlyBillingPreviewOverlay" class="absolute inset-0 bg-black/40 transition-opacity duration-300 ease-in-out opacity-0" onclick="closeMonthlyBillingPreviewModal()"></div>
+    <div id="monthlyBillingPreviewContentCard" class="relative z-10 w-full max-w-4xl rounded-lg bg-white shadow-xl transform transition-all duration-300 ease-in-out scale-95 opacity-0">
+      <div class="bg-white px-6 py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="monthlyBillingPreviewModal-title" class="text-lg font-semibold text-gray-900">Monthly Billing Preview</h3>
+          <button type="button" id="closeMonthlyBillingPreviewModal" class="text-gray-400 hover:text-gray-500">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div id="monthlyBillingPreviewLoading" class="text-sm text-gray-500">Loading preview...</div>
+        <div id="monthlyBillingPreviewError" class="hidden text-sm text-red-600"></div>
+        <div id="monthlyBillingPreviewContent" class="hidden"></div>
+
+        <div class="mt-6 flex items-center justify-end gap-3">
+          <button type="button"
+                  id="closeMonthlyBillingPreviewModalFooter"
+                  class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Close
+          </button>
+          <form id="queueMonthlyBillingFromModalForm"
+                action="<%= charge_monthly_invoice_admin_organization_path(@organization) %>"
+                method="post"
+                data-turbo-confirm="Queue monthly billing for this service month?">
+            <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+            <input type="hidden" name="month" id="monthlyBillingPreviewMonth" value="">
+            <button type="submit"
+                    id="queueMonthlyBillingFromModalButton"
+                    class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+              Queue Monthly Billing
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const openBtn = document.getElementById("openMonthlyBillingPreviewModal");
+    const modal = document.getElementById("monthlyBillingPreviewModal");
+    const overlay = document.getElementById("monthlyBillingPreviewOverlay");
+    const card = document.getElementById("monthlyBillingPreviewContentCard");
+    const closeBtn = document.getElementById("closeMonthlyBillingPreviewModal");
+    const closeFooterBtn = document.getElementById("closeMonthlyBillingPreviewModalFooter");
+    const loadingEl = document.getElementById("monthlyBillingPreviewLoading");
+    const errorEl = document.getElementById("monthlyBillingPreviewError");
+    const contentEl = document.getElementById("monthlyBillingPreviewContent");
+    const queueMonthInput = document.getElementById("monthlyBillingPreviewMonth");
+    const queueBtn = document.getElementById("queueMonthlyBillingFromModalButton");
+    const previewUrl = "<%= preview_monthly_invoice_admin_organization_path(@organization, format: :json) %>";
+
+    if (!openBtn || !modal) return;
+
+    function formatCurrency(cents) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((Number(cents) || 0) / 100);
+    }
+
+    function openModal() {
+      modal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      requestAnimationFrame(function() {
+        overlay.classList.remove("opacity-0");
+        overlay.classList.add("opacity-100");
+        if (card) {
+          card.classList.remove("scale-95", "opacity-0");
+          card.classList.add("scale-100", "opacity-100");
+        }
+      });
+      loadPreview();
+    }
+
+    function closeModal() {
+      overlay.classList.remove("opacity-100");
+      overlay.classList.add("opacity-0");
+      if (card) {
+        card.classList.remove("scale-100", "opacity-100");
+        card.classList.add("scale-95", "opacity-0");
+      }
+      setTimeout(function() {
+        modal.classList.add("hidden");
+        document.body.style.overflow = "";
+      }, 300);
+    }
+    window.closeMonthlyBillingPreviewModal = closeModal;
+
+    function renderPreview(preview) {
+      const rows = (preview.line_items || []).map(function(item) {
+        return '<tr class="border-b border-gray-100">' +
+          '<td class="px-4 py-2 text-sm text-gray-800">' + item.description + '</td>' +
+          '<td class="px-4 py-2 text-sm text-gray-900 text-right">' + formatCurrency(item.amount_cents) + '</td>' +
+        '</tr>';
+      }).join("");
+
+      contentEl.innerHTML =
+        '<p class="text-sm text-gray-600 mb-4">Service Month: <span class="font-medium">' + preview.service_month + '</span> (' + preview.period_start + ' to ' + preview.period_end + ')</p>' +
+        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">' +
+          '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Collections</p><p class="text-lg font-semibold text-gray-900">' + formatCurrency(preview.collections_cents) + '</p></div>' +
+          '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Collection Rate</p><p class="text-lg font-semibold text-gray-900">' + Number(preview.collection_rate_percent || 0) + '%</p></div>' +
+          '<div class="rounded-lg bg-gray-50 border border-gray-200 p-3"><p class="text-xs text-gray-500">Deductible Claims</p><p class="text-lg font-semibold text-gray-900">' + Number(preview.deductible_claims_count || 0) + '</p></div>' +
+        '</div>' +
+        '<div class="overflow-x-auto rounded-lg border border-gray-200">' +
+          '<table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-xs text-gray-600 uppercase">Line Item</th><th class="px-4 py-2 text-right text-xs text-gray-600 uppercase">Amount</th></tr></thead>' +
+          '<tbody>' + rows +
+          '<tr class="bg-gray-50"><td class="px-4 py-2 text-sm font-semibold text-gray-900">Total</td><td class="px-4 py-2 text-sm font-semibold text-gray-900 text-right">' + formatCurrency(preview.total_cents) + '</td></tr>' +
+          '</tbody></table>' +
+        '</div>';
+    }
+
+    function loadPreview() {
+      loadingEl.classList.remove("hidden");
+      errorEl.classList.add("hidden");
+      contentEl.classList.add("hidden");
+      if (queueBtn) queueBtn.disabled = true;
+      if (queueMonthInput) queueMonthInput.value = "";
+
+      fetch(previewUrl, { headers: { "Accept": "application/json" }, credentials: "same-origin" })
+        .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })
+        .then(function(result) {
+          if (!result.ok || !result.data.success) {
+            throw new Error((result.data && result.data.error) || "Failed to load preview");
+          }
+          renderPreview(result.data.preview);
+          if (queueMonthInput) queueMonthInput.value = result.data.preview.service_month;
+          if (queueBtn) queueBtn.disabled = false;
+          loadingEl.classList.add("hidden");
+          contentEl.classList.remove("hidden");
+        })
+        .catch(function(error) {
+          loadingEl.classList.add("hidden");
+          errorEl.textContent = error.message || "Failed to load preview";
+          errorEl.classList.remove("hidden");
+        });
+    }
+
+    openBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+    if (closeFooterBtn) closeFooterBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", closeModal);
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+    });
+  })();
+</script>

@@ -11,6 +11,10 @@ class Tenant::OrganizationSettingPolicy < ApplicationPolicy
     update?
   end
 
+  def update_billing_method?
+    update?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

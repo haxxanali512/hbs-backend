@@ -420,19 +420,21 @@ class NotificationService
 
       members = organization.organization_memberships.active.includes(:user).map(&:user).uniq
       members.each do |user|
+        action_url = "/tenant/encounters/#{encounter.id}"
         Notification.create!(
           user: user,
           organization: organization,
           notification_type: Notification::NOTIFICATION_TYPES[:encounter_comment_from_hbs],
           title: title,
           message: "#{comment.author.display_name} commented on this encounter.",
-          action_url: "/tenant/encounters/#{encounter.id}",
+          action_url: action_url,
           metadata: {
             encounter_id: encounter.id,
             patient_id: comment.patient_id,
             organization_id: organization.id
           }
         )
+        send_encounter_comment_email(recipient: user, comment: comment, portal_url: tenant_portal_url_for(organization, action_url))
       end
     end
 
@@ -458,13 +460,14 @@ class NotificationService
         .uniq(&:id)
 
       recipients.each do |admin|
+        action_url = "/admin/encounters/#{encounter.id}"
         Notification.create!(
           user: admin,
           organization: organization,
           notification_type: Notification::NOTIFICATION_TYPES[:encounter_comment_from_tenant],
           title: title,
           message: message,
-          action_url: "/admin/encounters/#{encounter.id}",
+          action_url: action_url,
           metadata: {
             encounter_id: encounter.id,
             patient_id: comment.patient_id,
@@ -474,6 +477,7 @@ class NotificationService
             comment_preview: preview
           }
         )
+        send_encounter_comment_email(recipient: admin, comment: comment, portal_url: admin_portal_url_for(action_url))
       end
     end
 
@@ -564,6 +568,30 @@ class NotificationService
         action_url: "/",
         metadata: {}
       )
+    end
+
+    def send_encounter_comment_email(recipient:, comment:, portal_url:)
+      return unless recipient&.email.present?
+
+      EncounterCommentMailer.with(
+        recipient: recipient,
+        comment: comment,
+        portal_url: portal_url
+      ).encounter_comment_added.deliver_later
+    rescue => e
+      Rails.logger.error("Failed to send encounter comment email to #{recipient&.email}: #{e.message}")
+    end
+
+    def tenant_portal_url_for(organization, path)
+      host = ENV.fetch("HOST", "localhost:3000")
+      protocol = Rails.env.production? ? "https" : "http"
+      "#{protocol}://#{organization.subdomain}.#{host}#{path}"
+    end
+
+    def admin_portal_url_for(path)
+      host = ENV.fetch("HOST", "localhost:3000")
+      protocol = Rails.env.production? ? "https" : "http"
+      "#{protocol}://#{host}#{path}"
     end
   end
 end

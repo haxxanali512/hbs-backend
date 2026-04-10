@@ -10,7 +10,7 @@ class Tenant::GocardlessController < Tenant::BaseController
       redirect_params = {
         description: "Billing setup for #{@current_organization.name}",
         session_token: SecureRandom.uuid,
-        success_redirect_url: "#{request.base_url}/tenant/gocardless/redirect_flow/complete",
+        success_redirect_url: "#{request.base_url}/tenant/gocardless/redirect_flow/complete?context=#{params[:context].presence || 'activation'}",
         given_name: params[:given_name],
         family_name: params[:family_name],
         email: params[:email],
@@ -93,33 +93,47 @@ class Tenant::GocardlessController < Tenant::BaseController
           )
         end
 
-        # Charge onboarding fee
-        onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
+        # Charge onboarding fee only during activation billing step.
+        if @current_organization.activation_status == "compliance_setup"
+          onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
 
-        if onboarding_result[:success]
-          Rails.logger.info "Onboarding fee charged successfully for organization #{@current_organization.id}"
-        else
-          Rails.logger.error "Failed to charge onboarding fee for organization #{@current_organization.id}: #{onboarding_result[:error]}"
-          # Don't fail the GoCardless setup if onboarding fee fails - just log it
+          if onboarding_result[:success]
+            Rails.logger.info "Onboarding fee charged successfully for organization #{@current_organization.id}"
+          else
+            Rails.logger.error "Failed to charge onboarding fee for organization #{@current_organization.id}: #{onboarding_result[:error]}"
+            # Don't fail GoCardless setup if onboarding fee fails - just log it.
+          end
         end
 
         # Clear session
         session.delete(:gocardless_redirect_flow_id)
         session.delete(:gocardless_session_token)
 
-        redirect_to "#{tenant_activation_billing_path}?gocardless=success", notice: "Direct debit authorization completed successfully! ✅"
+        if params[:context] == "settings"
+          redirect_to tenant_organization_setting_path, notice: "Direct debit authorization completed successfully! ✅"
+        else
+          redirect_to "#{tenant_activation_billing_path}?gocardless=success", notice: "Direct debit authorization completed successfully! ✅"
+        end
       else
         # Clear session on failure
         session.delete(:gocardless_redirect_flow_id)
         session.delete(:gocardless_session_token)
-        redirect_to tenant_activation_billing_path, alert: "Authorization failed: #{result[:error]}"
+        if params[:context] == "settings"
+          redirect_to tenant_organization_setting_path, alert: "Authorization failed: #{result[:error]}"
+        else
+          redirect_to tenant_activation_billing_path, alert: "Authorization failed: #{result[:error]}"
+        end
       end
     rescue => e
       Rails.logger.error "GoCardless completion error: #{e.message}"
       # Clear session on error
       session.delete(:gocardless_redirect_flow_id)
       session.delete(:gocardless_session_token)
-      redirect_to tenant_activation_billing_path, alert: "Failed to complete authorization. Please try again."
+      if params[:context] == "settings"
+        redirect_to tenant_organization_setting_path, alert: "Failed to complete authorization. Please try again."
+      else
+        redirect_to tenant_activation_billing_path, alert: "Failed to complete authorization. Please try again."
+      end
     end
   end
 

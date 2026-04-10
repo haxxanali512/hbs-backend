@@ -31,9 +31,15 @@
                 </td>
               <% end %>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">
-                  <%= encounter.patient.first_name %> <%= encounter.patient.last_name %>
-                </div>
+                <% if encounter.patient.present? %>
+                  <div class="text-sm font-medium">
+                    <%= link_to encounter.patient.full_name,
+                        tenant_patient_path(encounter.patient),
+                        class: "text-indigo-600 hover:text-indigo-800 hover:underline" %>
+                  </div>
+                <% else %>
+                  <div class="text-sm font-medium text-gray-500">Patient not found</div>
+                <% end %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">

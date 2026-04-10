@@ -47,6 +47,8 @@ Rails.application.routes.draw do
         member do
           post :activate_tenant
           post :suspend_tenant
+          post :charge_monthly_invoice
+          get :preview_monthly_invoice
           patch :toggle_checklist_step
           patch :toggle_plan_step
           delete :hard_destroy
@@ -351,6 +353,7 @@ Rails.application.routes.draw do
 
     namespace :tenant do
       get "dashboard", to: "dashboard#index"
+      get "client_directory", to: "dashboard#client_directory"
 
       # Activation wizard (moved to dashboard)
       get "activation",                 to: "activation#index"
@@ -557,7 +560,9 @@ Rails.application.routes.draw do
           end
         end
 
-        resource :organization_setting, only: [ :show, :edit, :update ]
+        resource :organization_setting, only: [ :show, :edit, :update ] do
+          patch :update_billing_method
+        end
       end
     end
   end

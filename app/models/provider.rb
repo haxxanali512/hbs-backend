@@ -161,6 +161,20 @@ class Provider < ApplicationRecord
     end
   end
 
+  # Tenant-facing status presentation intentionally hides "pending"
+  # to avoid implying blocked usability.
+  def tenant_status_label
+    return "Active" if pending? || approved?
+
+    status.humanize
+  end
+
+  def tenant_status_badge_color
+    return "bg-green-100 text-green-800" if pending? || approved?
+
+    status_badge_color
+  end
+
   private
 
   def normalize_npi

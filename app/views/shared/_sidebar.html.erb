@@ -403,6 +403,7 @@
           <% support_tickets_active = controller_path == 'tenant/support_tickets' %>
           <% settings_active = controller_path == 'tenant/organization_settings' %>
           <% resources_active = controller_path == 'tenant/resources' %>
+          <% client_directory_active = controller_path == 'tenant/dashboard' && action_name == 'client_directory' %>
 
           <% practice_active = providers_active || specialties_active || fee_schedules_active || accepted_plans_active || org_locations_active || payer_enrollments_active %>
           <% clinical_active = patients_active || coverages_active || encounters_active || clinical_documentations_active || prescriptions_active || eligibility_checks_active %>
@@ -596,6 +597,11 @@
                 <li>
                   <%= link_to tenant_resources_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{resources_active ? 'active' : ''} #{resources_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
                     <span>Resources</span>
+                  <% end %>
+                </li>
+                <li>
+                  <%= link_to tenant_client_directory_path, class: "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium #{client_directory_active ? 'active' : ''} #{client_directory_active ? 'bg-[rgba(47,173,111,0.1)] text-[#2FAD6F80]' : 'text-[#173D6C] hover:text-[#2FAD6F] hover:bg-transparent'}" do %>
+                    <span>Client Directory</span>
                   <% end %>
                 </li>
               <% end %>

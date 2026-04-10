@@ -81,6 +81,51 @@
       </div>
     </div>
 
+    <!-- Billing & Payment Methods -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Billing & Payment Methods</h2>
+      </div>
+
+      <% billing = @organization_billing %>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Current Provider</label>
+          <p class="mt-1 text-sm text-gray-900"><%= billing.provider.present? ? billing.provider.humanize : "Not configured" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Billing Status</label>
+          <p class="mt-1 text-sm text-gray-900"><%= billing.billing_status.present? ? billing.billing_status.humanize : "N/A" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Saved Card / Account</label>
+          <p class="mt-1 text-sm text-gray-900">
+            <% if billing.method_last4.present? %>
+              **** <%= billing.method_last4 %>
+            <% elsif billing.gocardless_customer_id.present? %>
+              Direct Debit (GoCardless)
+            <% else %>
+              No payment method saved
+            <% end %>
+          </p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Note</label>
+          <p class="mt-1 text-sm text-gray-500">Multiple payment methods are planned. Current schema supports one active primary method.</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <button type="button" id="open-settings-stripe-modal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+          Add / Update Card (Stripe)
+        </button>
+        <button type="button" id="open-settings-gocardless-modal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+          Add / Update Direct Debit (GoCardless)
+        </button>
+        <%= button_to "Request Manual Billing", update_billing_method_tenant_organization_setting_path(provider: "manual"), method: :patch, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50" %>
+      </div>
+    </div>
+
     <!-- Resource Status -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <% summary = @current_organization.resource_status_summary %>
@@ -163,4 +208,203 @@
     </div>
   </div>
 </div>
+
+<!-- Stripe Card Setup Modal (Settings) -->
+<div id="settings-stripe-modal" class="fixed inset-0 bg-gray-600 bg-opacity-0 overflow-y-auto h-full w-full hidden z-50 transition-all duration-300 ease-in-out">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="relative transform transition-all duration-300 ease-in-out scale-95 opacity-0 w-full max-w-md shadow-xl rounded-lg bg-white" id="settings-stripe-modal-content">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Add / Update Card</h3>
+          <button id="close-settings-stripe-modal" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form id="settings-card-form">
+          <div id="settings-card-element" class="p-3 border border-gray-200 rounded-lg bg-white"></div>
+          <div id="settings-card-errors" class="mt-2 text-sm text-red-600 hidden"></div>
+          <div class="mt-5 flex items-center justify-end gap-3">
+            <button type="button" id="cancel-settings-stripe-card" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+            <button type="submit" id="submit-settings-card" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save Card</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GoCardless Setup Modal (Settings) -->
+<div id="settings-gocardless-modal" class="fixed inset-0 bg-gray-600 bg-opacity-0 overflow-y-auto h-full w-full hidden z-50 transition-all duration-300 ease-in-out">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="relative transform transition-all duration-300 ease-in-out scale-95 opacity-0 w-full max-w-2xl shadow-xl rounded-lg bg-white" id="settings-gocardless-modal-content">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Set Up Direct Debit</h3>
+          <button id="close-settings-gocardless-modal" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form id="settings-gocardless-form" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="settings-gc-given-name" value="<%= current_user.first_name %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="First Name" required>
+            <input type="text" id="settings-gc-family-name" value="<%= current_user.last_name %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Last Name" required>
+          </div>
+          <input type="email" id="settings-gc-email" value="<%= current_user.email %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Email" required>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="settings-gc-address-line1" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Address Line 1" required>
+            <input type="text" id="settings-gc-city" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="City" required>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="settings-gc-postal-code" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Postal Code" required>
+            <select id="settings-gc-country-code" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" required>
+              <option value="GB">United Kingdom</option>
+              <option value="US">United States</option>
+              <option value="CA">Canada</option>
+            </select>
+          </div>
+          <div id="settings-gc-errors" class="hidden text-sm text-red-600"></div>
+          <div class="mt-5 flex items-center justify-end gap-3">
+            <button type="button" id="cancel-settings-gocardless" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+            <button type="submit" id="submit-settings-gocardless" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Set Up Direct Debit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function initializeOrganizationSettingsBilling() {
+    if (window._organizationSettingsBillingInitialized) return;
+    window._organizationSettingsBillingInitialized = true;
+
+    const stripeModal = document.getElementById("settings-stripe-modal");
+    const stripeModalContent = document.getElementById("settings-stripe-modal-content");
+    const openStripe = document.getElementById("open-settings-stripe-modal");
+    const closeStripe = document.getElementById("close-settings-stripe-modal");
+    const cancelStripe = document.getElementById("cancel-settings-stripe-card");
+    const stripeErrors = document.getElementById("settings-card-errors");
+
+    const gcModal = document.getElementById("settings-gocardless-modal");
+    const gcModalContent = document.getElementById("settings-gocardless-modal-content");
+    const openGc = document.getElementById("open-settings-gocardless-modal");
+    const closeGc = document.getElementById("close-settings-gocardless-modal");
+    const cancelGc = document.getElementById("cancel-settings-gocardless");
+
+    if (!stripeModal || !gcModal) return;
+
+    let stripe, elements, cardElement;
+
+    function openModal(modal, content) {
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        modal.classList.remove("bg-opacity-0");
+        modal.classList.add("bg-opacity-50");
+        content.classList.remove("scale-95", "opacity-0");
+        content.classList.add("scale-100", "opacity-100");
+      }, 10);
+    }
+
+    function closeModal(modal, content) {
+      modal.classList.remove("bg-opacity-50");
+      modal.classList.add("bg-opacity-0");
+      content.classList.remove("scale-100", "opacity-100");
+      content.classList.add("scale-95", "opacity-0");
+      setTimeout(() => modal.classList.add("hidden"), 300);
+    }
+
+    function initStripeForSettings() {
+      if (stripe) return;
+      if (typeof Stripe === "undefined") return;
+      stripe = Stripe("<%= Rails.configuration.stripe[:publishable_key] %>");
+      elements = stripe.elements();
+      cardElement = elements.create("card");
+      cardElement.mount("#settings-card-element");
+      cardElement.on("change", function(event) {
+        if (event.error) {
+          stripeErrors.textContent = event.error.message;
+          stripeErrors.classList.remove("hidden");
+        } else {
+          stripeErrors.classList.add("hidden");
+        }
+      });
+    }
+
+    openStripe?.addEventListener("click", function(e) {
+      e.preventDefault();
+      openModal(stripeModal, stripeModalContent);
+      setTimeout(initStripeForSettings, 50);
+    });
+    closeStripe?.addEventListener("click", function(e) { e.preventDefault(); closeModal(stripeModal, stripeModalContent); });
+    cancelStripe?.addEventListener("click", function(e) { e.preventDefault(); closeModal(stripeModal, stripeModalContent); });
+    stripeModal?.addEventListener("click", function(e) { if (e.target === stripeModal) closeModal(stripeModal, stripeModalContent); });
+
+    document.getElementById("settings-card-form")?.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById("submit-settings-card");
+      submitBtn.disabled = true;
+      try {
+        const siResp = await fetch("/tenant/stripe/setup_intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content }
+        });
+        const siData = await siResp.json();
+        if (!siData.success) throw new Error(siData.error || "Failed to create setup intent");
+        const result = await stripe.confirmCardSetup(siData.client_secret, { payment_method: { card: cardElement } });
+        if (result.error) throw new Error(result.error.message);
+
+        const saveResp = await fetch("/tenant/stripe/confirm_card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
+          body: JSON.stringify({ payment_method_id: result.setupIntent.payment_method })
+        });
+        const saveData = await saveResp.json();
+        if (!saveData.success) throw new Error(saveData.error || "Failed to save card");
+        window.location.reload();
+      } catch (err) {
+        stripeErrors.textContent = err.message;
+        stripeErrors.classList.remove("hidden");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    openGc?.addEventListener("click", function(e) { e.preventDefault(); openModal(gcModal, gcModalContent); });
+    closeGc?.addEventListener("click", function(e) { e.preventDefault(); closeModal(gcModal, gcModalContent); });
+    cancelGc?.addEventListener("click", function(e) { e.preventDefault(); closeModal(gcModal, gcModalContent); });
+    gcModal?.addEventListener("click", function(e) { if (e.target === gcModal) closeModal(gcModal, gcModalContent); });
+
+    document.getElementById("settings-gocardless-form")?.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const errorEl = document.getElementById("settings-gc-errors");
+      const payload = {
+        given_name: document.getElementById("settings-gc-given-name").value,
+        family_name: document.getElementById("settings-gc-family-name").value,
+        email: document.getElementById("settings-gc-email").value,
+        address_line1: document.getElementById("settings-gc-address-line1").value,
+        city: document.getElementById("settings-gc-city").value,
+        postal_code: document.getElementById("settings-gc-postal-code").value,
+        country_code: document.getElementById("settings-gc-country-code").value,
+        context: "settings"
+      };
+
+      try {
+        const resp = await fetch("/tenant/gocardless/create_redirect_flow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error || "Failed to start authorization");
+        window.location.href = data.redirect_url;
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove("hidden");
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeOrganizationSettingsBilling);
+  } else {
+    initializeOrganizationSettingsBilling();
+  }
+  document.addEventListener("turbo:load", initializeOrganizationSettingsBilling);
+</script>
 
