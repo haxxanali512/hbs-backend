@@ -1,23 +1,12 @@
 class Tenant::PrescriptionsController < Tenant::BaseController
+  include PrescriptionsExpirationExportable
+
   before_action :set_prescription, only: [ :show, :edit, :update, :destroy, :archive, :unarchive ]
   before_action :load_form_options, only: [ :new, :edit, :create, :update ]
 
   def index
-    @prescriptions = @current_organization.prescriptions
-      .includes(:patient, :specialty, :procedure_code, :provider, :diagnosis_codes)
-      .kept
-      .order(created_at: :desc)
-
-    # Filtering
-    @prescriptions = @prescriptions.where(patient_id: params[:patient_id]) if params[:patient_id].present?
-    @prescriptions = @prescriptions.where(archived: params[:archived] == "true") if params[:archived].present?
-    @prescriptions = @prescriptions.where(expired: params[:expired] == "true") if params[:expired].present?
-    @prescriptions = @prescriptions.where(specialty_id: params[:specialty_id]) if params[:specialty_id].present?
-
-    if params[:expiring] == "true"
-      @prescriptions = @prescriptions.where(archived: false)
-        .where("expires_on BETWEEN ? AND ?", Date.current, Date.current + 30.days)
-    end
+    @prescriptions = base_scope
+    @prescriptions = apply_filters(@prescriptions)
 
     # Search
     if params[:search].present?
@@ -28,6 +17,22 @@ class Tenant::PrescriptionsController < Tenant::BaseController
     end
 
     @pagy, @prescriptions = pagy(@prescriptions, items: 20)
+  end
+
+  def export
+    prescriptions = apply_filters(base_scope)
+    if params[:search].present?
+      prescriptions = prescriptions.joins(:patient).where(
+        "patients.first_name ILIKE ? OR patients.last_name ILIKE ? OR prescriptions.title ILIKE ?",
+        "%#{params[:search]}%", "%#{params[:search]}%", "%#{params[:search]}%"
+      )
+    end
+
+    csv_data = prescriptions_to_csv(prescriptions)
+    send_data csv_data,
+              filename: prescription_export_filename(params[:expiration_filter]),
+              type: "text/csv",
+              disposition: "attachment"
   end
 
   def show
@@ -114,6 +119,28 @@ class Tenant::PrescriptionsController < Tenant::BaseController
   end
 
   private
+
+  def base_scope
+    @current_organization.prescriptions
+      .includes(:patient, :specialty, :procedure_code, :provider, :diagnosis_codes)
+      .kept
+      .order(created_at: :desc)
+  end
+
+  def apply_filters(scope)
+    scope = scope.where(patient_id: params[:patient_id]) if params[:patient_id].present?
+    scope = scope.where(archived: params[:archived] == "true") if params[:archived].present?
+    scope = scope.where(expired: params[:expired] == "true") if params[:expired].present?
+    scope = scope.where(specialty_id: params[:specialty_id]) if params[:specialty_id].present?
+
+    if params[:expiring] == "true"
+      scope = scope.where(archived: false)
+        .where("expires_on BETWEEN ? AND ?", Date.current, Date.current + 30.days)
+    end
+
+    scope = apply_expiration_filter_to_scope(scope, params[:expiration_filter])
+    scope
+  end
 
   def set_prescription
     @prescription = @current_organization.prescriptions.find(params[:id])

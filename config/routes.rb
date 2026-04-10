@@ -323,7 +323,11 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :prescriptions, only: [ :index, :show ]
+      resources :prescriptions, only: [ :index, :show ] do
+        collection do
+          get :export
+        end
+      end
     end
   end
 
@@ -523,6 +527,7 @@ Rails.application.routes.draw do
           collection do
             get :specialties_for_provider
             get :procedure_codes_for_specialty
+            get :export
           end
         end
 
