@@ -25,7 +25,7 @@ class Tenant::ProvidersController < Tenant::BaseController
   def show; end
 
   def new
-    @provider = Provider.new(status: "drafted")
+    @provider = Provider.new(status: "pending")
     @specialties = Specialty.active.order(:name)
   end
 
@@ -112,7 +112,7 @@ class Tenant::ProvidersController < Tenant::BaseController
 
   def build_new_provider
     @provider = Provider.new(
-      provider_params.except(:specialty_ids)
+      provider_params.except(:specialty_ids).merge(status: "pending")
     )
 
     @provider.assign_to_organization_id = @current_organization.id

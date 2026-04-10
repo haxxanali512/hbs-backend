@@ -106,6 +106,7 @@ class Admin::SupportTicketsController < Admin::BaseController
   def assign_ticket(ticket, assignee_id)
     assignee = User.find(assignee_id)
     ticket.update!(assigned_to_user: assignee)
+    NotificationService.notify_support_ticket_assigned(ticket, assignee: assignee, assigned_by: current_user)
     SupportTicketEventPublisher.ticket_assigned(ticket, current_user)
     SupportTicketMailer.ticket_assigned(ticket, current_user).deliver_later
   end

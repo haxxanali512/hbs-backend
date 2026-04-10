@@ -25,6 +25,8 @@ class Notification < ApplicationRecord
     payer_enrollment_needs_verification: "payer_enrollment_needs_verification",
     encounter_comment_from_hbs: "encounter_comment_from_hbs",
     encounter_comment_from_tenant: "encounter_comment_from_tenant",
+    support_ticket_created_from_tenant: "support_ticket_created_from_tenant",
+    support_ticket_assigned: "support_ticket_assigned",
     support_ticket_comment_from_hbs: "support_ticket_comment_from_hbs",
     support_ticket_comment_from_tenant: "support_ticket_comment_from_tenant",
     password_reset_requested: "password_reset_requested",

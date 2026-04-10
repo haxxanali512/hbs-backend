@@ -485,6 +485,58 @@ class NotificationService
     # Support ticket comment notifications
     # =========================
 
+    def notify_support_ticket_created_from_tenant(ticket)
+      organization = ticket.organization
+      return unless ticket && organization
+
+      title = "New Support Ticket Submitted — #{ticket.subject}"
+      message = "Tenant #{organization.name} submitted a new support ticket."
+
+      recipients =
+        if ticket.assigned_to_user&.hbs_user?
+          [ ticket.assigned_to_user ]
+        else
+          User.joins(:role)
+              .where(roles: { role_name: "Super Admin" })
+              .where("status IS NULL OR status != ?", User.statuses[:inactive])
+              .kept
+        end
+
+      recipients.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: organization,
+          notification_type: Notification::NOTIFICATION_TYPES[:support_ticket_created_from_tenant],
+          title: title,
+          message: message,
+          action_url: "/admin/support_tickets/#{ticket.id}",
+          metadata: {
+            support_ticket_id: ticket.id,
+            organization_id: organization.id
+          }
+        )
+      end
+    end
+
+    def notify_support_ticket_assigned(ticket, assignee:, assigned_by:)
+      organization = ticket.organization
+      return unless ticket && organization && assignee
+
+      Notification.create!(
+        user: assignee,
+        organization: organization,
+        notification_type: Notification::NOTIFICATION_TYPES[:support_ticket_assigned],
+        title: "Support Ticket Assigned — #{ticket.subject}",
+        message: "#{assigned_by&.display_name || 'An admin'} assigned you support ticket ##{ticket.id}.",
+        action_url: "/admin/support_tickets/#{ticket.id}",
+        metadata: {
+          support_ticket_id: ticket.id,
+          organization_id: organization.id,
+          assigned_by_user_id: assigned_by&.id
+        }
+      )
+    end
+
     def notify_support_ticket_comment_from_hbs(comment)
       ticket = comment.support_ticket
       organization = ticket.organization

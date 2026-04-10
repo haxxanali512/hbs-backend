@@ -54,6 +54,7 @@ class Tenant::SupportTicketsController < Tenant::BaseController
         end
       end
       SupportTicketEventPublisher.ticket_created(@support_ticket)
+      NotificationService.notify_support_ticket_created_from_tenant(@support_ticket)
       SupportTicketMailer.acknowledgement(@support_ticket).deliver_later
       SupportTicketEventPublisher.auto_acknowledged(@support_ticket)
       redirect_to tenant_support_ticket_path(@support_ticket), notice: "Support ticket submitted."
