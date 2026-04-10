@@ -16,6 +16,7 @@
       <h3 class="text-base font-medium text-gray-800">User Details</h3>
     </div>
     <div class="space-y-6 border-t border-gray-100 p-5 sm:p-6">
+      <% invite_mode = params.dig(:user, :invite_organization_mode).presence || "none" %>
       <%= form_with url: send_invitation_admin_users_path, scope: :user, method: :post, local: true do |f| %>
         <div class="-mx-2.5 flex flex-wrap gap-y-5">
           <div class="w-full px-2.5 xl:w-1/2">
@@ -31,21 +32,26 @@
             <%= f.email_field :email, placeholder: "Email address", required: true, autocomplete: "email", class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
           </div>
           <div class="w-full px-2.5 xl:w-1/2">
-            <%= f.collection_select :role_id, @roles, :id, :role_name, { prompt: "Select Role" }, class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Role <span class="text-red-600" aria-hidden="true">*</span></label>
+            <%= f.collection_select :role_id, @roles, :id, :role_name,
+                  { prompt: "Select Role" },
+                  { class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10", required: true, aria: { required: true } } %>
           </div>
 
           <!-- Organization Invitation Options -->
           <div class="w-full px-2.5">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Organization Invitation</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Organization (optional)</label>
             <select name="user[invite_organization_mode]" id="invite_organization_mode"
                     class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10">
-              <option value="existing" selected>Invite into existing organization</option>
-              <option value="new">Invite into new organization</option>
+              <option value="none" <%= "selected" if invite_mode == "none" %>>No organization</option>
+              <option value="existing" <%= "selected" if invite_mode == "existing" %>>Add to existing organization</option>
+              <option value="new" <%= "selected" if invite_mode == "new" %>>Create new organization</option>
             </select>
+            <p class="mt-1 text-xs text-gray-500">Use “No organization” for HBS staff or users not tied to a tenant.</p>
           </div>
 
           <!-- Existing Organization Select -->
-          <div class="w-full px-2.5 xl:w-1/2" id="existing_organization_wrapper">
+          <div class="w-full px-2.5 xl:w-1/2" id="existing_organization_wrapper" style="<%= invite_mode == "existing" ? "" : "display: none;" %>">
             <label class="block text-sm font-medium text-gray-700 mb-1">Existing Organization</label>
             <%= f.collection_select :organization_id, @organizations, :id, :name,
                   { prompt: "Select Organization" },
@@ -54,12 +60,12 @@
 
           <!-- New Organization Fields -->
           <%= f.fields_for :organizations_attributes do |of| %>
-            <div class="w-full px-2.5 xl:w-1/2" id="new_org_name_wrapper" style="display:none;">
+            <div class="w-full px-2.5 xl:w-1/2" id="new_org_name_wrapper" style="<%= invite_mode == "new" ? "" : "display: none;" %>">
               <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
               <%= of.text_field :name, placeholder: "Enter Organization Name",
                     class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
             </div>
-            <div class="w-full px-2.5 xl:w-1/2" id="new_org_subdomain_wrapper" style="display:none;">
+            <div class="w-full px-2.5 xl:w-1/2" id="new_org_subdomain_wrapper" style="<%= invite_mode == "new" ? "" : "display: none;" %>">
               <label class="block text-sm font-medium text-gray-700 mb-1">Organization Subdomain</label>
               <%= of.text_field :subdomain, placeholder: "Enter Organization Subdomain",
                     class: "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden shadow-sm focus:border-indigo-300 focus:ring-indigo-500/10" %>
@@ -88,10 +94,14 @@
         if (existingWrapper) existingWrapper.style.display = 'block';
         if (newNameWrapper) newNameWrapper.style.display = 'none';
         if (newSubdomainWrapper) newSubdomainWrapper.style.display = 'none';
-      } else {
+      } else if (mode === 'new') {
         if (existingWrapper) existingWrapper.style.display = 'none';
         if (newNameWrapper) newNameWrapper.style.display = 'block';
         if (newSubdomainWrapper) newSubdomainWrapper.style.display = 'block';
+      } else {
+        if (existingWrapper) existingWrapper.style.display = 'none';
+        if (newNameWrapper) newNameWrapper.style.display = 'none';
+        if (newSubdomainWrapper) newSubdomainWrapper.style.display = 'none';
       }
     }
 

@@ -36,34 +36,36 @@
 
       <!-- Spans both columns -->
       <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-gray-700">Role</label>
+        <label class="block text-sm font-medium text-gray-700">Role <span class="text-red-600" aria-hidden="true">*</span></label>
         <%= f.collection_select :role_id, @roles, :id, :role_name,
             { prompt: "Select role" },
-            class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+            { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500", required: true, aria: { required: true } } %>
       </div>
 
       <% unless @user.persisted? %>
+        <% selected_mode = params.dig(:user, :invite_organization_mode).presence || "none" %>
         <div class="md:col-span-2">
           <div class="mt-4 rounded-xl border border-gray-200 p-4">
             <h4 class="text-sm font-medium text-gray-800 mb-3">Organization</h4>
 
             <!-- Mode dropdown -->
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Invite To</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Organization (optional)</label>
               <select name="user[invite_organization_mode]"
                       id="invite_organization_mode_form"
                       class="mt-1 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <% selected_mode = params.dig(:user, :invite_organization_mode) || "existing" %>
-                <option value="existing" <%= "selected" if selected_mode == "existing" %>>Existing organization</option>
-                <option value="new" <%= "selected" if selected_mode == "new" %>>New organization</option>
+                <option value="none" <%= "selected" if selected_mode == "none" %>>No organization</option>
+                <option value="existing" <%= "selected" if selected_mode == "existing" %>>Add to existing organization</option>
+                <option value="new" <%= "selected" if selected_mode == "new" %>>Create new organization</option>
               </select>
+              <p class="mt-1 text-xs text-gray-500">Use “No organization” for HBS staff or users who are not tied to a tenant yet.</p>
             </div>
 
             <!-- FIXED: Consistent 2-column layout -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               <!-- Existing org select -->
-              <div id="existing_organization_wrapper_form" class="col-span-1 md:col-span-2 w-full">
+              <div id="existing_organization_wrapper_form" class="col-span-1 md:col-span-2 w-full" style="<%= selected_mode == "existing" ? "" : "display: none;" %>">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Existing Organization</label>
 
                 <select name="user[organization_id]"
@@ -85,7 +87,7 @@
                   <!-- Organization Name -->
                   <div id="new_org_name_wrapper_form"
                       class="w-full md:w-1/2"
-                      style="display: none;">
+                      style="<%= selected_mode == "new" ? "" : "display: none;" %>">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
                     <%= of.text_field :name,
                           placeholder: "Client's Organization Name",
@@ -96,7 +98,7 @@
                   <!-- Subdomain -->
                   <div id="new_org_subdomain_wrapper_form"
                       class="w-full md:w-1/2"
-                      style="display: none;">
+                      style="<%= selected_mode == "new" ? "" : "display: none;" %>">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
                     <div class="mt-1 flex rounded-md shadow-sm w-full">
                       <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">
@@ -160,10 +162,14 @@
         existingWrapper.style.display = 'block';
         newNameWrapper.style.display = 'none';
         newSubdomainWrapper.style.display = 'none';
-      } else {
+      } else if (mode === 'new') {
         existingWrapper.style.display = 'none';
         newNameWrapper.style.display = 'block';
         newSubdomainWrapper.style.display = 'block';
+      } else {
+        existingWrapper.style.display = 'none';
+        newNameWrapper.style.display = 'none';
+        newSubdomainWrapper.style.display = 'none';
       }
     }
 
