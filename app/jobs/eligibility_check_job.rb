@@ -13,21 +13,21 @@ class EligibilityCheckJob < ApplicationJob
       poll: true
     )
 
-    EligibilityCheckMailer.result_ready(
+    deliver_ready_email(
       user: user,
       organization: organization,
       check_id: result[:check_id],
       check_result: result[:check_result],
       submitted_params: params
-    ).deliver_later
+    )
   rescue FuseEligibilityCheckFromParamsService::Error, FuseApiService::Error => e
-    if user.present? && organization.present? && should_send_failure_email?(organization: organization, user: user, params: params, error_message: e.message)
-      EligibilityCheckMailer.result_failed(
+    if user.present? && organization.present?
+      deliver_failed_email(
         user: user,
         organization: organization,
         error_message: normalized_error_message(e.message),
         submitted_params: params
-      ).deliver_later
+      )
     end
 
     Rails.logger.error(
@@ -36,6 +36,33 @@ class EligibilityCheckJob < ApplicationJob
   end
 
   private
+
+  def deliver_ready_email(user:, organization:, check_id:, check_result:, submitted_params:)
+    EligibilityCheckMailer.result_ready(
+      user: user,
+      organization: organization,
+      check_id: check_id,
+      check_result: check_result,
+      submitted_params: submitted_params
+    ).deliver_now
+  rescue StandardError => e
+    Rails.logger.error(
+      "EligibilityCheckJob mail delivery failed (ready) for org=#{organization.id} user=#{user.id}: #{e.class} - #{e.message}"
+    )
+  end
+
+  def deliver_failed_email(user:, organization:, error_message:, submitted_params:)
+    EligibilityCheckMailer.result_failed(
+      user: user,
+      organization: organization,
+      error_message: error_message,
+      submitted_params: submitted_params
+    ).deliver_now
+  rescue StandardError => e
+    Rails.logger.error(
+      "EligibilityCheckJob mail delivery failed (failed) for org=#{organization.id} user=#{user.id}: #{e.class} - #{e.message}"
+    )
+  end
 
   def normalized_error_message(raw_message)
     message = raw_message.to_s.strip
@@ -56,22 +83,5 @@ class EligibilityCheckJob < ApplicationJob
     end
 
     message.sub(/\AFuse API error \(\d+\):\s*/i, "").presence || "Request validation failed."
-  end
-
-  # Prevent duplicate failure emails for the same input/error in a short window.
-  def should_send_failure_email?(organization:, user:, params:, error_message:)
-    fingerprint_source = {
-      org_id: organization.id,
-      user_id: user.id,
-      params: params,
-      error: normalized_error_message(error_message)
-    }.to_s
-    digest = Digest::SHA256.hexdigest(fingerprint_source)
-    cache_key = "eligibility_check_failure_email:#{digest}"
-
-    return false if Rails.cache.exist?(cache_key)
-
-    Rails.cache.write(cache_key, true, expires_in: 1.hour)
-    true
   end
 end
