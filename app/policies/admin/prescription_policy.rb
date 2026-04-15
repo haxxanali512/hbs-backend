@@ -6,5 +6,9 @@ class Admin::PrescriptionPolicy < ApplicationPolicy
   def show?
     accessible?("admin", "prescriptions", "show")
   end
+
+  def export?
+    index?
+  end
 end
 

@@ -1,15 +1,31 @@
 class Admin::PrescriptionsController < Admin::BaseController
-  def index
-    @prescriptions = Prescription.kept
-      .includes(:patient, :organization, :provider)
-      .left_joins(documents_attachments: :blob)
+  include PrescriptionsExpirationExportable
 
-    apply_filters
+  def index
+    @prescriptions = base_scope
+    apply_filters_to(@prescriptions) do |filtered|
+      @prescriptions = filtered
+    end
     apply_search
     apply_sort
 
     @pagy, @prescriptions = pagy(@prescriptions.distinct, items: 20)
     load_filter_options
+  end
+
+  def export
+    scope = base_scope
+    apply_filters_to(scope) do |filtered|
+      @prescriptions = filtered
+    end
+    apply_search
+    apply_sort
+
+    csv_data = prescriptions_to_csv(@prescriptions.distinct)
+    send_data csv_data,
+              filename: prescription_export_filename(params[:expiration_filter]),
+              type: "text/csv",
+              disposition: "attachment"
   end
 
   def show
@@ -19,6 +35,18 @@ class Admin::PrescriptionsController < Admin::BaseController
   end
 
   private
+
+  def base_scope
+    Prescription.kept
+      .includes(:patient, :organization, :provider)
+      .left_joins(documents_attachments: :blob)
+  end
+
+  def apply_filters_to(scope)
+    @prescriptions = scope
+    apply_filters
+    yield @prescriptions
+  end
 
   def apply_filters
     if params[:organization_id].present?
@@ -60,6 +88,8 @@ class Admin::PrescriptionsController < Admin::BaseController
         @prescriptions = @prescriptions.where(active_storage_attachments: { id: nil })
       end
     end
+
+    @prescriptions = apply_expiration_filter_to_scope(@prescriptions, params[:expiration_filter])
   end
 
   def apply_search
@@ -122,8 +152,21 @@ class Admin::PrescriptionsController < Admin::BaseController
         param: :file_present,
         label: "File Present",
         options: [["All", ""], ["Yes", "yes"], ["No", "no"]]
+      },
+      {
+        param: :expiration_filter,
+        label: "Expiration Status",
+        options: [
+          ["All", ""],
+          ["Already Expired", "expired"],
+          ["Expiring in <= 30 Days", "30"],
+          ["Expiring in <= 60 Days", "60"],
+          ["Expiring in <= 90 Days", "90"],
+          ["Expiring in <= 120 Days", "120"]
+        ]
       }
     ]
   end
+
 end
 
