@@ -635,15 +635,51 @@ class NotificationService
     end
 
     def tenant_portal_url_for(organization, path)
-      host = ENV.fetch("HOST", "localhost:3000")
-      protocol = Rails.env.production? ? "https" : "http"
+      host = base_portal_host
+      protocol = portal_protocol_for(host)
       "#{protocol}://#{organization.subdomain}.#{host}#{path}"
     end
 
     def admin_portal_url_for(path)
-      host = ENV.fetch("HOST", "localhost:3000")
-      protocol = Rails.env.production? ? "https" : "http"
+      host = base_portal_host
+      protocol = portal_protocol_for(host)
       "#{protocol}://#{host}#{path}"
+    end
+
+    def base_portal_host
+      mailer_options = Rails.application.config.action_mailer.default_url_options || {}
+      routes_options = Rails.application.routes.default_url_options || {}
+      configured_host = ENV["DOMAIN"].presence ||
+                        ENV["HOST"].presence ||
+                        mailer_options[:host] ||
+                        routes_options[:host]
+      configured_port = mailer_options[:port] || routes_options[:port]
+
+      host = configured_host.to_s.sub(%r{\Ahttps?://}, "").split("/").first
+      if host.blank?
+        return "localhost:3000" if Rails.env.development? || Rails.env.test?
+        return "holisticbusinesssolution.com"
+      end
+
+      host_parts = host.split(".")
+      normalized_host = if host_parts.length >= 3 && %w[www admin].include?(host_parts.first)
+        host_parts.drop(1).join(".")
+      else
+        host
+      end
+
+      if configured_port.present? && normalized_host.exclude?(":")
+        "#{normalized_host}:#{configured_port}"
+      else
+        normalized_host
+      end
+    end
+
+    def portal_protocol_for(host)
+      explicit_protocol = ENV["APP_PROTOCOL"].presence
+      return explicit_protocol if explicit_protocol.present?
+
+      host.include?("localhost") ? "http" : "https"
     end
   end
 end
