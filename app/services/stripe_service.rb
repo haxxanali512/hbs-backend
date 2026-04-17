@@ -89,6 +89,7 @@ class StripeService
     end
   end
 
+
   # Set default payment method on customer (for invoices/off-session charges)
   def set_default_payment_method(customer_id, payment_method_id)
     configure_stripe
@@ -184,6 +185,7 @@ class StripeService
       }
     end
   end
+
 
   # Retrieve a checkout session
   def fetch_checkout_session(session_id)

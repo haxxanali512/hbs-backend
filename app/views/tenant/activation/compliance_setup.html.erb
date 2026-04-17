@@ -1,44 +1,89 @@
-<div class="min-h-screen bg-gray-50 py-8">
-  <div class="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
-    <h1 class="text-2xl font-bold text-gray-900">Business Information</h1>
-    <p class="mt-1 text-sm text-gray-600">Step 1 of 4: provide the required organization intake details.</p>
+<div class="min-h-screen bg-gray-50">
+  <div class="bg-white border-b border-gray-200">
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h10"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900">Business Information</h1>
+            <p class="text-sm text-gray-500">Provide your core onboarding details</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="text-right">
+            <p class="text-sm font-medium text-gray-900"><%= current_user.email %></p>
+            <p class="text-xs text-gray-500">Account Manager</p>
+          </div>
+          <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <span class="text-white font-medium text-sm"><%= current_user.email.first.upcase %></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <%= form_with url: tenant_activation_compliance_path, method: :patch, scope: :intake, class: "mt-6 space-y-6" do |f| %>
-      <div class="rounded-lg border border-gray-200 bg-white p-6">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+  <div class="w-full mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold text-gray-900">Organization Intake</h2>
+        <div class="flex items-center space-x-2 text-sm text-gray-500">
+          <span>Step 1 of 4</span>
+          <div class="w-16 h-1 bg-gray-200 rounded-full">
+            <div class="w-4 h-1 bg-blue-600 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+      <p class="text-gray-600">This information becomes the initial source of truth for your organization profile.</p>
+    </div>
+
+    <% if flash[:alert].present? %>
+      <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <%= flash[:alert] %>
+      </div>
+    <% end %>
+
+    <%= form_with url: tenant_activation_compliance_path, method: :patch, scope: :intake, class: "space-y-6" do |f| %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Required Business Fields</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <%= f.label :company_name, "Company Name", class: "block text-sm font-medium text-gray-700" %>
-            <%= f.text_field :company_name, value: @organization.name, required: true, class: "mt-1 block w-full rounded-md border-gray-300 text-sm" %>
+            <%= f.text_field :company_name, value: @organization.name, required: true, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
           </div>
           <div>
             <%= f.label :owner_name, "Owner Name", class: "block text-sm font-medium text-gray-700" %>
-            <%= f.text_field :owner_name, value: [@owner.first_name, @owner.last_name].compact.join(" "), required: true, class: "mt-1 block w-full rounded-md border-gray-300 text-sm" %>
+            <%= f.text_field :owner_name, value: [@owner.first_name, @owner.last_name].compact.join(" "), required: true, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
           </div>
           <div>
             <%= f.label :primary_email, "Primary Email", class: "block text-sm font-medium text-gray-700" %>
-            <%= f.email_field :primary_email, value: @contact.email.presence || @owner.email, required: true, class: "mt-1 block w-full rounded-md border-gray-300 text-sm" %>
+            <%= f.email_field :primary_email, value: @contact.email.presence || @owner.email, required: true, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
           </div>
           <div>
             <%= f.label :phone_number, "Phone Number", class: "block text-sm font-medium text-gray-700" %>
-            <%= f.text_field :phone_number, value: @contact.phone, required: true, class: "mt-1 block w-full rounded-md border-gray-300 text-sm" %>
+            <%= f.text_field :phone_number, value: @contact.phone, required: true, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
           </div>
           <div class="md:col-span-2">
             <%= f.label :business_address, "Business Address", class: "block text-sm font-medium text-gray-700" %>
-            <%= f.text_area :business_address, value: @contact.address_line1, rows: 3, required: true, class: "mt-1 block w-full rounded-md border-gray-300 text-sm" %>
+            <%= f.text_area :business_address, value: @contact.address_line1, rows: 4, required: true, class: "mt-2 block w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
           </div>
           <div>
             <%= f.label :ein, "EIN (9 digits)", class: "block text-sm font-medium text-gray-700" %>
-            <%= f.text_field :ein, value: @identifier.tax_identification_number, required: true, maxlength: 9, pattern: "\\d{9}", class: "mt-1 block w-full rounded-md border-gray-300 text-sm" %>
+            <%= f.text_field :ein, value: @identifier.tax_identification_number, required: true, maxlength: 9, pattern: "\\d{9}", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
           </div>
           <div>
             <%= f.label :npi, "NPI (10 digits)", class: "block text-sm font-medium text-gray-700" %>
-            <%= f.text_field :npi, value: @identifier.npi, required: true, maxlength: 10, pattern: "\\d{10}", class: "mt-1 block w-full rounded-md border-gray-300 text-sm" %>
+            <%= f.text_field :npi, value: @identifier.npi, required: true, maxlength: 10, pattern: "\\d{10}", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end">
-        <%= f.submit "Continue to Contract", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" %>
+      <div class="flex items-center justify-end">
+        <%= f.submit "Continue to Contract", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
       </div>
     <% end %>
   </div>

@@ -1,7 +1,7 @@
 <div class="min-h-screen bg-gray-50 py-8">
   <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
     <h1 class="text-2xl font-bold text-gray-900">Onboarding Payment</h1>
-    <p class="mt-1 text-sm text-gray-600">Step 3 of 4: add a Stripe card and pay the one-time $500 onboarding fee.</p>
+    <p class="mt-1 text-sm text-gray-600">Step 3 of 4: add payment method and pay the one-time $500 onboarding fee.</p>
 
     <div class="mt-6 rounded-lg border border-gray-200 bg-white p-6">
       <div class="space-y-3 text-sm text-gray-700">
@@ -24,19 +24,12 @@
       </div>
 
       <div class="mt-5 flex flex-wrap items-center gap-3">
-        <%= link_to "Add/Update Card", tenant_activation_stripe_card_path, class: "inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
-
-        <%= form_with url: "/tenant/gocardless/create_redirect_flow", method: :post, local: true, class: "inline" do |g| %>
-          <%= g.hidden_field :given_name, value: current_user.first_name %>
-          <%= g.hidden_field :family_name, value: current_user.last_name %>
-          <%= g.hidden_field :email, value: current_user.email %>
-          <%= g.hidden_field :address_line1, value: @current_organization.organization_contact&.address_line1.to_s.presence || "Address required" %>
-          <%= g.hidden_field :city, value: @current_organization.organization_contact&.city.to_s.presence || "City" %>
-          <%= g.hidden_field :postal_code, value: @current_organization.organization_contact&.zip.to_s.presence || "00000" %>
-          <%= g.hidden_field :country_code, value: (@current_organization.organization_contact&.country.presence || "US") %>
-          <%= g.hidden_field :context, value: "activation" %>
-          <%= g.submit "Authorize GoCardless", class: "inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
-        <% end %>
+        <button type="button" id="open-activation-stripe-modal" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Add / Update Card (Stripe)
+        </button>
+        <button type="button" id="open-activation-gocardless-modal" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Add / Update Direct Debit (GoCardless)
+        </button>
       </div>
 
       <div class="mt-4">
@@ -51,3 +44,202 @@
     </div>
   </div>
 </div>
+
+<!-- Stripe Card Setup Modal -->
+<div id="activation-stripe-modal" class="fixed inset-0 bg-gray-600 bg-opacity-0 overflow-y-auto h-full w-full hidden z-50 transition-all duration-300 ease-in-out">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="relative transform transition-all duration-300 ease-in-out scale-95 opacity-0 w-full max-w-md shadow-xl rounded-lg bg-white" id="activation-stripe-modal-content">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Add / Update Card</h3>
+          <button id="close-activation-stripe-modal" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form id="activation-card-form">
+          <div id="activation-card-element" class="p-3 border border-gray-200 rounded-lg bg-white"></div>
+          <div id="activation-card-errors" class="mt-2 text-sm text-red-600 hidden"></div>
+          <div class="mt-5 flex items-center justify-end gap-3">
+            <button type="button" id="cancel-activation-stripe-card" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+            <button type="submit" id="submit-activation-card" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save Card</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GoCardless Setup Modal -->
+<div id="activation-gocardless-modal" class="fixed inset-0 bg-gray-600 bg-opacity-0 overflow-y-auto h-full w-full hidden z-50 transition-all duration-300 ease-in-out">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="relative transform transition-all duration-300 ease-in-out scale-95 opacity-0 w-full max-w-2xl shadow-xl rounded-lg bg-white" id="activation-gocardless-modal-content">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Set Up Direct Debit</h3>
+          <button id="close-activation-gocardless-modal" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form id="activation-gocardless-form" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="activation-gc-given-name" value="<%= current_user.first_name %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="First Name" required>
+            <input type="text" id="activation-gc-family-name" value="<%= current_user.last_name %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Last Name" required>
+          </div>
+          <input type="email" id="activation-gc-email" value="<%= current_user.email %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Email" required>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="activation-gc-address-line1" value="<%= @current_organization.organization_contact&.address_line1 %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Address Line 1" required>
+            <input type="text" id="activation-gc-city" value="<%= @current_organization.organization_contact&.city %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="City" required>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="activation-gc-postal-code" value="<%= @current_organization.organization_contact&.zip %>" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" placeholder="Postal Code" required>
+            <select id="activation-gc-country-code" class="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm" required>
+              <option value="GB" <%= "selected" if @current_organization.organization_contact&.country == "GB" %>>United Kingdom</option>
+              <option value="US" <%= "selected" if @current_organization.organization_contact&.country.blank? || @current_organization.organization_contact&.country == "US" %>>United States</option>
+              <option value="CA" <%= "selected" if @current_organization.organization_contact&.country == "CA" %>>Canada</option>
+            </select>
+          </div>
+          <div id="activation-gc-errors" class="hidden text-sm text-red-600"></div>
+          <div class="mt-5 flex items-center justify-end gap-3">
+            <button type="button" id="cancel-activation-gocardless" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+            <button type="submit" id="submit-activation-gocardless" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Set Up Direct Debit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function initializeActivationBillingPaymentModals() {
+    if (window._activationBillingPaymentModalsInitialized) return;
+    window._activationBillingPaymentModalsInitialized = true;
+
+    const stripeModal = document.getElementById("activation-stripe-modal");
+    const stripeModalContent = document.getElementById("activation-stripe-modal-content");
+    const openStripe = document.getElementById("open-activation-stripe-modal");
+    const closeStripe = document.getElementById("close-activation-stripe-modal");
+    const cancelStripe = document.getElementById("cancel-activation-stripe-card");
+    const stripeErrors = document.getElementById("activation-card-errors");
+
+    const gcModal = document.getElementById("activation-gocardless-modal");
+    const gcModalContent = document.getElementById("activation-gocardless-modal-content");
+    const openGc = document.getElementById("open-activation-gocardless-modal");
+    const closeGc = document.getElementById("close-activation-gocardless-modal");
+    const cancelGc = document.getElementById("cancel-activation-gocardless");
+
+    if (!stripeModal || !gcModal) return;
+
+    let stripe, elements, cardElement;
+
+    function openModal(modal, content) {
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        modal.classList.remove("bg-opacity-0");
+        modal.classList.add("bg-opacity-50");
+        content.classList.remove("scale-95", "opacity-0");
+        content.classList.add("scale-100", "opacity-100");
+      }, 10);
+    }
+
+    function closeModal(modal, content) {
+      modal.classList.remove("bg-opacity-50");
+      modal.classList.add("bg-opacity-0");
+      content.classList.remove("scale-100", "opacity-100");
+      content.classList.add("scale-95", "opacity-0");
+      setTimeout(() => modal.classList.add("hidden"), 300);
+    }
+
+    function initStripeForActivation() {
+      if (stripe) return;
+      if (typeof Stripe === "undefined") return;
+      stripe = Stripe("<%= Rails.configuration.stripe[:publishable_key] %>");
+      elements = stripe.elements();
+      cardElement = elements.create("card");
+      cardElement.mount("#activation-card-element");
+      cardElement.on("change", function(event) {
+        if (event.error) {
+          stripeErrors.textContent = event.error.message;
+          stripeErrors.classList.remove("hidden");
+        } else {
+          stripeErrors.classList.add("hidden");
+        }
+      });
+    }
+
+    openStripe?.addEventListener("click", function(e) {
+      e.preventDefault();
+      openModal(stripeModal, stripeModalContent);
+      setTimeout(initStripeForActivation, 50);
+    });
+    closeStripe?.addEventListener("click", function(e) { e.preventDefault(); closeModal(stripeModal, stripeModalContent); });
+    cancelStripe?.addEventListener("click", function(e) { e.preventDefault(); closeModal(stripeModal, stripeModalContent); });
+    stripeModal?.addEventListener("click", function(e) { if (e.target === stripeModal) closeModal(stripeModal, stripeModalContent); });
+
+    document.getElementById("activation-card-form")?.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById("submit-activation-card");
+      submitBtn.disabled = true;
+      try {
+        const siResp = await fetch("/tenant/stripe/setup_intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name=\"csrf-token\"]').content }
+        });
+        const siData = await siResp.json();
+        if (!siData.success) throw new Error(siData.error || "Failed to create setup intent");
+        const result = await stripe.confirmCardSetup(siData.client_secret, { payment_method: { card: cardElement } });
+        if (result.error) throw new Error(result.error.message);
+
+        const saveResp = await fetch("/tenant/stripe/confirm_card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name=\"csrf-token\"]').content },
+          body: JSON.stringify({ payment_method_id: result.setupIntent.payment_method })
+        });
+        const saveData = await saveResp.json();
+        if (!saveData.success) throw new Error(saveData.error || "Failed to save card");
+        window.location.reload();
+      } catch (err) {
+        stripeErrors.textContent = err.message;
+        stripeErrors.classList.remove("hidden");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    openGc?.addEventListener("click", function(e) { e.preventDefault(); openModal(gcModal, gcModalContent); });
+    closeGc?.addEventListener("click", function(e) { e.preventDefault(); closeModal(gcModal, gcModalContent); });
+    cancelGc?.addEventListener("click", function(e) { e.preventDefault(); closeModal(gcModal, gcModalContent); });
+    gcModal?.addEventListener("click", function(e) { if (e.target === gcModal) closeModal(gcModal, gcModalContent); });
+
+    document.getElementById("activation-gocardless-form")?.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const errorEl = document.getElementById("activation-gc-errors");
+      const payload = {
+        given_name: document.getElementById("activation-gc-given-name").value,
+        family_name: document.getElementById("activation-gc-family-name").value,
+        email: document.getElementById("activation-gc-email").value,
+        address_line1: document.getElementById("activation-gc-address-line1").value,
+        city: document.getElementById("activation-gc-city").value,
+        postal_code: document.getElementById("activation-gc-postal-code").value,
+        country_code: document.getElementById("activation-gc-country-code").value,
+        context: "activation"
+      };
+
+      try {
+        const resp = await fetch("/tenant/gocardless/create_redirect_flow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": document.querySelector('meta[name=\"csrf-token\"]').content },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error || "Failed to start authorization");
+        window.location.href = data.redirect_url;
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove("hidden");
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeActivationBillingPaymentModals);
+  } else {
+    initializeActivationBillingPaymentModals();
+  }
+  document.addEventListener("turbo:load", initializeActivationBillingPaymentModals);
+</script>

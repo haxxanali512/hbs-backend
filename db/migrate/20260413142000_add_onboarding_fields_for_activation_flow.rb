@@ -1,4 +1,4 @@
-class AddOnboardingFieldsForActivationFlow < ActiveRecord::Migration[8.0]
+class AddOnboardingFieldsForActivationFlow < ActiveRecord::Migration[7.2]
   def change
     add_column :organizations, :referral_code, :string
 

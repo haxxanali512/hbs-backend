@@ -1,12 +1,57 @@
-<div class="min-h-screen bg-gray-50 py-8">
-  <div class="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
-    <h1 class="text-2xl font-bold text-gray-900">Contract, Tier, and Referral</h1>
-    <p class="mt-1 text-sm text-gray-600">Step 2 of 4: review agreement, select your tier, and add optional referral attribution.</p>
+<div class="min-h-screen bg-gray-50">
+  <div class="bg-white border-b border-gray-200">
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900">Contract, Tier, and Referral</h1>
+            <p class="text-sm text-gray-500">Review agreement and confirm your billing selection</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="text-right">
+            <p class="text-sm font-medium text-gray-900"><%= current_user.email %></p>
+            <p class="text-xs text-gray-500">Account Manager</p>
+          </div>
+          <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <span class="text-white font-medium text-sm"><%= current_user.email.first.upcase %></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <%= form_with url: tenant_activation_documents_path, method: :post, class: "mt-6 space-y-6" do |f| %>
-      <div class="rounded-lg border border-gray-200 bg-white p-6">
-        <h2 class="text-lg font-semibold text-gray-900">Contract</h2>
-        <div id="contract-body" class="mt-3 h-64 overflow-y-auto rounded-md border border-gray-200 p-4 text-sm text-gray-700">
+  <div class="w-full mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold text-gray-900">Agreement and Tier Selection</h2>
+        <div class="flex items-center space-x-2 text-sm text-gray-500">
+          <span>Step 2 of 4</span>
+          <div class="w-16 h-1 bg-gray-200 rounded-full">
+            <div class="w-8 h-1 bg-blue-600 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+      <p class="text-gray-600">You must review the full contract before continuing to payment.</p>
+    </div>
+
+    <% if flash[:alert].present? %>
+      <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <%= flash[:alert] %>
+      </div>
+    <% end %>
+
+    <%= form_with url: tenant_activation_documents_path, method: :post, class: "space-y-6" do |f| %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900">Contract</h3>
+        <div id="contract-body"
+             class="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700"
+             style="height: 260px; max-height: 260px; overflow-y: auto; overflow-x: hidden;">
           <p class="font-medium text-gray-900">Holistic Business Solutions Master Service Agreement</p>
           <p class="mt-2">This agreement governs your use of HBS services and describes service scope, fee structure, and legal obligations.</p>
           <p class="mt-2">You agree to submit accurate business information and maintain compliance with applicable federal and state requirements.</p>
@@ -14,19 +59,25 @@
           <p class="mt-2">The onboarding fee of $500 is required and must clear successfully before activation is completed.</p>
           <p class="mt-2">By accepting, you confirm you are authorized to bind your organization to these terms.</p>
           <p class="mt-2">HBS may update this agreement periodically. Contract versioning is retained for audit purposes.</p>
+          <% 12.times do |i| %>
+            <p class="mt-2">
+              Section <%= i + 1 %>: Placeholder contract copy for QA. This block exists to ensure scroll testing is consistent.
+              Review obligations, service standards, security responsibilities, payment terms, and dispute resolution language.
+            </p>
+          <% end %>
           <p class="mt-2">End of contract preview.</p>
         </div>
         <div class="mt-4 flex items-start">
-          <input id="agreement_accepted" name="agreement_accepted" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600" disabled>
+          <input id="agreement_accepted" name="agreement_accepted" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" disabled>
           <label for="agreement_accepted" class="ml-2 text-sm text-gray-700">I reviewed the full contract and agree to the terms.</label>
         </div>
       </div>
 
-      <div class="rounded-lg border border-gray-200 bg-white p-6">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label for="selected_tier" class="block text-sm font-medium text-gray-700">Billing Tier</label>
-            <select id="selected_tier" name="selected_tier" required class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+            <select id="selected_tier" name="selected_tier" required class="mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
               <option value="">Select tier</option>
               <option value="6%" <%= "selected" if @organization.tier == "6%" %>>6%</option>
               <option value="7%" <%= "selected" if @organization.tier == "7%" %>>7%</option>
@@ -36,13 +87,13 @@
           </div>
           <div>
             <label for="referral_code" class="block text-sm font-medium text-gray-700">Referral Code (Optional)</label>
-            <input id="referral_code" name="referral_code" value="<%= @organization.referral_code %>" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+            <input id="referral_code" name="referral_code" value="<%= @organization.referral_code %>" class="mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end">
-        <%= f.submit "Continue to Payment", id: "continue_to_payment", disabled: true, class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" %>
+      <div class="flex items-center justify-end">
+        <%= f.submit "Continue to Payment", id: "continue_to_payment", disabled: true, class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
       </div>
     <% end %>
   </div>
