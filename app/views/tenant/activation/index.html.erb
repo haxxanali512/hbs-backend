@@ -91,20 +91,20 @@
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <% case @organization.activation_status %>
         <% when 'pending' %>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Ready to get started?</h3>
-          <p class="text-gray-600 mb-6">Let's begin by setting up your compliance information (GSA/BAA agreements).</p>
-          <%= link_to "Start Compliance Setup", tenant_activation_compliance_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Step 1: Business Information</h3>
+          <p class="text-gray-600 mb-6">Submit required business intake details including EIN and NPI.</p>
+          <%= link_to "Start Intake", tenant_activation_compliance_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
         <% when 'compliance_setup' %>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Next: Billing Setup</h3>
-          <p class="text-gray-600 mb-6">Set up your payment method to continue.</p>
-          <%= link_to "Continue to Billing", tenant_activation_billing_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Step 2: Contract + Tier</h3>
+          <p class="text-gray-600 mb-6">Review the agreement, select your tier, and optionally add a referral code.</p>
+          <%= link_to "Continue to Contract", tenant_activation_documents_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
         <% when 'billing_setup' %>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Next: Terms & Conditions</h3>
-          <p class="text-gray-600 mb-6">Accept the Terms of Use and Privacy Policy to continue.</p>
-          <%= link_to "Continue to Terms & Conditions", tenant_activation_documents_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Step 3: Onboarding Payment</h3>
+          <p class="text-gray-600 mb-6">Pay the one-time $500 onboarding fee by Stripe card.</p>
+          <%= link_to "Continue to Payment", tenant_activation_billing_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
         <% when 'terms_agreement' %>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">🎉 Ready to Activate!</h3>
-          <p class="text-gray-600 mb-6">All steps completed. Activate your organization to get started.</p>
+          <p class="text-gray-600 mb-6">All onboarding steps are complete. Activate your organization to access the dashboard.</p>
           <%= link_to "Activate Organization", tenant_activation_complete_path, class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" %>
         <% end %>
       </div>

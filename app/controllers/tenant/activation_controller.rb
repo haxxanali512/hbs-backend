@@ -9,82 +9,136 @@ class Tenant::ActivationController < Tenant::BaseController
     @steps = build_activation_steps(@current_organization)
     @organization = @current_organization
   end
+
   def billing_setup
     @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
   end
 
   def update_billing
     @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
+    selected_provider = params.dig(:organization_billing, :provider).presence || @billing.provider || "stripe"
 
-    billing_attributes = billing_params.to_h
-    case billing_attributes[:provider]
-    when "stripe", "gocardless"
-      billing_attributes[:billing_status] = "active"
-    when "manual"
-      billing_attributes[:billing_status] = "pending_approval"
-    end
-
-    if @billing.update(billing_attributes)
-      if @billing.active?
-        onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
-
-        if onboarding_result[:success]
-          @current_organization.billing_setup_complete!
-          Rails.logger.info "Onboarding fee charged successfully for organization #{@current_organization.id}"
-        else
-          Rails.logger.error "Failed to charge onboarding fee for organization #{@current_organization.id}: #{onboarding_result[:error]}"
-        end
+    case selected_provider
+    when "stripe"
+      @billing.provider = :stripe
+      @billing.billing_status = :active
+      unless @billing.stripe_customer_id.present? && @billing.stripe_payment_method_id.present?
+        flash.now[:alert] = "Please add a Stripe card before continuing."
+        render :billing_setup, status: :unprocessable_entity
+        return
       end
-
-      # Send email notification for non-manual payment methods
-      unless @billing.manual?
-        OrganizationBillingMailer.billing_setup_completed(@billing).deliver_now
+    when "gocardless"
+      @billing.provider = :gocardless
+      @billing.billing_status = :active
+      unless @billing.gocardless_customer_id.present? && @billing.gocardless_mandate_id.present?
+        flash.now[:alert] = "Please authorize a GoCardless mandate before continuing."
+        render :billing_setup, status: :unprocessable_entity
+        return
       end
-
-      redirect_to tenant_activation_documents_path, notice: "Billing setup complete ✅"
     else
-      render :billing_setup
+      flash.now[:alert] = "Unsupported payment provider selected."
+      render :billing_setup, status: :unprocessable_entity
+      return
     end
+
+    onboarding_result = OnboardingFeeService.charge_onboarding_fee!(@current_organization)
+    unless onboarding_result[:success]
+      flash.now[:alert] = "Payment failed: #{onboarding_result[:error]}"
+      render :billing_setup, status: :unprocessable_entity
+      return
+    end
+
+    @billing.last_payment_date = Time.current
+    @billing.next_payment_due ||= 1.month.from_now
+    @billing.save!
+
+    @current_organization.terms_agreement_complete! if @current_organization.billing_setup?
+    OrganizationBillingMailer.billing_setup_completed(@billing).deliver_now
+
+    redirect_to tenant_activation_complete_path, notice: "Payment received. You can now activate your organization."
   end
 
   def compliance_setup
-    OrganizationMailer.compliance_setup_required(@current_organization).deliver_now
-    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
+    @organization = @current_organization
+    @contact = @organization.organization_contact || @organization.build_organization_contact
+    @identifier = @organization.organization_identifier || @organization.build_organization_identifier
+    @owner = @organization.owner
   end
 
   def update_compliance
-    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
-    if @compliance.update(compliance_params)
-      if @compliance.gsa_signed_at.present? && @compliance.baa_signed_at.present?
-        @current_organization.compliance_setup_complete!
-        redirect_to tenant_activation_billing_path, notice: "Compliance verified! You can now proceed to billing setup."
-      else
-        redirect_to tenant_activation_compliance_path, notice: "Compliance verification required. Please verify your compliance information."
-      end
-    else
-      render :compliance_setup
+    @organization = @current_organization
+    @contact = @organization.organization_contact || @organization.build_organization_contact
+    @identifier = @organization.organization_identifier || @organization.build_organization_identifier
+    @owner = @organization.owner
+
+    ActiveRecord::Base.transaction do
+      @organization.update!(name: intake_params[:company_name])
+      @owner.update!(
+        first_name: parsed_owner_name.first.presence || @owner.first_name,
+        last_name: parsed_owner_name.second.presence || @owner.last_name,
+        email: intake_params[:primary_email]
+      )
+      @contact.update!(
+        address_line1: intake_params[:business_address],
+        phone: intake_params[:phone_number],
+        email: intake_params[:primary_email],
+        contact_type: (@contact.contact_type || 0)
+      )
+      @identifier.update!(
+        tax_identification_number: intake_params[:ein],
+        tax_id_type: :ein,
+        npi: intake_params[:npi],
+        npi_type: (@identifier.npi_type || :type_2)
+      )
+
+      validate_intake_identifiers!
+      @organization.compliance_setup_complete! if @organization.pending?
     end
+
+    redirect_to tenant_activation_documents_path, notice: "Business information saved."
+  rescue => e
+    flash.now[:alert] = e.message
+    render :compliance_setup, status: :unprocessable_entity
   end
 
   def document_signing
-    OrganizationMailer.document_signing_required(@current_organization).deliver_now
-    @compliance = @organization.organization_compliance
+    @organization = @current_organization
+    @compliance = @organization.organization_compliance || @organization.build_organization_compliance
   end
 
   def complete_document_signing
+    @organization = @current_organization
     @compliance = @organization.organization_compliance || @organization.build_organization_compliance
 
-    if @compliance.update(terms_of_use: true, privacy_policy_accepted: true)
-      @organization.terms_agreement_complete!
-
-      redirect_to tenant_activation_complete_path, notice: "Terms & Conditions accepted ✅"
-    else
-      @compliance = @organization.organization_compliance || @organization.build_organization_compliance
-      render :document_signing
+    unless ActiveModel::Type::Boolean.new.cast(params[:agreement_accepted])
+      flash.now[:alert] = "You must review and accept the contract."
+      render :document_signing, status: :unprocessable_entity
+      return
     end
+
+    selected_tier = params[:selected_tier].to_s
+    unless %w[6% 7% 8% 9%].include?(selected_tier)
+      flash.now[:alert] = "Please select a billing tier."
+      render :document_signing, status: :unprocessable_entity
+      return
+    end
+
+    ActiveRecord::Base.transaction do
+      @organization.update!(tier: selected_tier, referral_code: params[:referral_code].presence)
+      @compliance.update!(
+        terms_of_use: true,
+        privacy_policy_accepted: true,
+        contract_accepted_at: Time.current,
+        contract_version: "activation_contract_v1"
+      )
+      @organization.billing_setup_complete! if @organization.compliance_setup?
+    end
+
+    redirect_to tenant_activation_billing_path, notice: "Contract accepted and tier selected."
   end
 
   def activate
+    @organization = @current_organization
     @organization.activate!
 
     OrganizationMailer.activation_completed(@organization).deliver_now
@@ -104,104 +158,22 @@ class Tenant::ActivationController < Tenant::BaseController
   end
 
   def manual_payment
-    # Create or update organization billing with manual status
-    billing = @current_organization.organization_billing || @current_organization.build_organization_billing
-    billing.update!(
-      billing_status: "pending_approval",
-      provider: "manual"
-    )
-
-    # Send notification to super admins
-    OrganizationBillingMailer.manual_payment_request(billing).deliver_now
-
-    render json: {
-      success: true,
-      message: "Manual payment request submitted successfully. A super admin will review and approve your billing setup."
-    }
-  rescue => e
-    Rails.logger.error "Manual payment submission failed: #{e.message}"
     render json: {
       success: false,
-      error: "Failed to submit manual payment request. Please try again."
-    }, status: :unprocessable_entity
+      error: "Manual payment is not supported for onboarding. Please pay with a Stripe card."
+    }
+  end
+
+  def send_agreement
+    render json: { success: false, error: "DocuSign is not used in this onboarding flow." }, status: :unprocessable_entity
+  end
+
+  def check_docusign_status
+    render json: { success: true, results: {} }
   end
 
   def stripe_card
     @billing = @current_organization.organization_billing || @current_organization.build_organization_billing
-  end
-
-  def send_agreement
-    @compliance = @current_organization.organization_compliance || @current_organization.build_organization_compliance
-
-    docusign_service = DocusignService.new
-    result = docusign_service.send_agreement(@current_organization, current_user)
-
-    if result[:success]
-      @compliance.update!(
-        gsa_envelope_id: result[:envelope_id],
-        baa_envelope_id: result[:envelope_id],
-        gsa_signed_at: nil, # Will be updated via webhook when signed
-        baa_signed_at: nil  # Will be updated via webhook when signed
-      )
-
-      render json: {
-        success: true,
-        message: "GSA and BAA Agreement sent for signature",
-        envelope_id: result[:envelope_id]
-      }
-    else
-      render json: {
-        success: false,
-        error: result[:error]
-      }, status: :unprocessable_entity
-    end
-  end
-
-  def check_docusign_status
-    @compliance = @current_organization.organization_compliance
-
-    return render json: { success: false, error: "No compliance record found" } unless @compliance
-
-    # If already signed, return cached status
-    if @compliance.gsa_signed_at.present? && @compliance.baa_signed_at.present?
-      Rails.logger.info "Agreement already signed, returning cached status"
-      return render json: {
-        success: true,
-        results: {
-          gsa: { success: true, status: "completed", envelope_id: @compliance.gsa_envelope_id },
-          baa: { success: true, status: "completed", envelope_id: @compliance.baa_envelope_id }
-        }
-      }
-    end
-
-    docusign_service = DocusignService.new
-    results = {}
-
-    # Since we now use the same envelope for both GSA and BAA, check either envelope ID
-    envelope_id = @compliance.gsa_envelope_id.present? ? @compliance.gsa_envelope_id : @compliance.baa_envelope_id
-
-    if envelope_id.present?
-      Rails.logger.info "Checking DocuSign status for envelope: #{envelope_id}"
-      envelope_result = docusign_service.get_envelope_status(envelope_id)
-      Rails.logger.info "DocuSign status response: #{envelope_result.inspect}"
-
-      # If completed, update the database
-      if envelope_result[:success] && envelope_result[:status] == "completed"
-        Rails.logger.info "Agreement completed, updating database"
-        @compliance.update!(
-          gsa_signed_at: Time.current,
-          baa_signed_at: Time.current
-        )
-      end
-
-      # Return the same result for both GSA and BAA since they use the same envelope
-      results[:gsa] = envelope_result
-      results[:baa] = envelope_result
-    else
-      Rails.logger.info "No envelope ID found for organization #{@current_organization.id}"
-    end
-
-    render json: { success: true, results: results }
   end
 
   private
@@ -209,23 +181,21 @@ class Tenant::ActivationController < Tenant::BaseController
   def build_activation_steps(organization)
     status_value = organization.activation_status_before_type_cast
 
-    # Flow: pending → compliance_setup → billing_setup → terms_agreement → activated
     steps_definitions = [
-      { name: "Organization Created", key: :pending },
-      { name: "Compliance Setup", key: :compliance_setup },
-      { name: "Billing Setup", key: :billing_setup },
-      { name: "Terms & Conditions", key: :terms_agreement },
+      { name: "Business Information", key: :pending },
+      { name: "Contract & Tier", key: :compliance_setup },
+      { name: "Onboarding Payment", key: :billing_setup },
+      { name: "Ready To Activate", key: :terms_agreement },
       { name: "Activation Complete", key: :activated }
     ]
 
     steps_definitions.map.with_index do |step, _index|
       step_index = Organization.activation_statuses[step[:key]]
 
-      # First step ("Organization Created") is always completed once the org exists
+      # First step is current while status is pending
       if step[:key] == :pending
-        completed = true
-        current   = status_value == Organization.activation_statuses[:compliance_setup] ||
-                    (status_value.zero? && organization.persisted?)
+        completed = status_value > Organization.activation_statuses[:pending]
+        current   = status_value == Organization.activation_statuses[:pending] && organization.persisted?
       else
         completed = step_index < status_value
         current   = step_index == status_value
@@ -250,14 +220,18 @@ class Tenant::ActivationController < Tenant::BaseController
     # Use @current_organization (set by set_tenant_context); @organization is set in individual actions
     org = @current_organization
     return redirect_to new_user_session_path, alert: "No organization context available." if org.nil?
-    # Flow: pending → compliance_setup → billing_setup → terms_agreement → activated
+    # Flow:
+    # pending => business information
+    # compliance_setup => contract/tier/referral
+    # billing_setup => Stripe payment
+    # terms_agreement => activation ready
     case org.activation_status
     when "pending"
-      redirect_to tenant_activation_compliance_path unless action_name == "index" || action_name == "compliance_setup" || action_name == "update_compliance" || action_name == "send_agreement" || action_name == "check_docusign_status"
+      redirect_to tenant_activation_compliance_path unless action_name == "index" || action_name == "compliance_setup" || action_name == "update_compliance"
     when "compliance_setup"
-      redirect_to tenant_activation_billing_path unless action_name == "index" || action_name == "billing_setup" || action_name == "update_billing" || action_name == "stripe_card" || action_name == "save_stripe_card" || action_name == "manual_payment"
-    when "billing_setup"
       redirect_to tenant_activation_documents_path unless action_name == "index" || action_name == "document_signing" || action_name == "complete_document_signing"
+    when "billing_setup"
+      redirect_to tenant_activation_billing_path unless action_name == "index" || action_name == "billing_setup" || action_name == "update_billing" || action_name == "stripe_card" || action_name == "save_stripe_card"
     when "terms_agreement"
       redirect_to tenant_activation_complete_path unless action_name == "index" || action_name == "activation_complete" || action_name == "activate"
     when "activated"
@@ -265,11 +239,16 @@ class Tenant::ActivationController < Tenant::BaseController
     end
   end
 
-  def billing_params
-    params.require(:organization_billing).permit(:billing_status, :last_payment_date, :next_payment_due, :method_last4, :provider)
+  def intake_params
+    params.require(:intake).permit(:company_name, :owner_name, :primary_email, :phone_number, :business_address, :ein, :npi)
   end
 
-  def compliance_params
-    params.require(:organization_compliance).permit(:gsa_signed_at, :gsa_envelope_id, :baa_signed_at, :baa_envelope_id, :phi_access_locked_at, :data_retention_expires_at, :terms_of_use, :privacy_policy_accepted)
+  def parsed_owner_name
+    intake_params[:owner_name].to_s.split(/\s+/, 2)
+  end
+
+  def validate_intake_identifiers!
+    raise "EIN must be 9 digits." unless intake_params[:ein].to_s.match?(/\A\d{9}\z/)
+    raise "NPI must be 10 digits." unless intake_params[:npi].to_s.match?(/\A\d{10}\z/)
   end
 end

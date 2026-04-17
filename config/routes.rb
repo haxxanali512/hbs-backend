@@ -42,7 +42,6 @@ Rails.application.routes.draw do
       root "dashboard#index", as: :root
 
       get "dashboard", to: "dashboard#index"
-
       resources :organizations do
         member do
           post :activate_tenant
@@ -571,3 +570,4 @@ Rails.application.routes.draw do
       end
     end
   end
+

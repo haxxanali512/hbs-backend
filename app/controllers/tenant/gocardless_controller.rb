@@ -31,23 +31,37 @@ class Tenant::GocardlessController < Tenant::BaseController
         # Store redirect flow ID and session token in session for completion
         session[:gocardless_redirect_flow_id] = result[:redirect_flow][:id]
         session[:gocardless_session_token] = result[:redirect_flow][:session_token]
-
-        render json: {
-          success: true,
-          redirect_url: result[:redirect_flow][:redirect_url]
-        }
+        respond_to do |format|
+          format.json do
+            render json: {
+              success: true,
+              redirect_url: result[:redirect_flow][:redirect_url]
+            }
+          end
+          format.html { redirect_to result[:redirect_flow][:redirect_url], allow_other_host: true }
+        end
       else
-        render json: {
-          success: false,
-          error: result[:error]
-        }, status: :unprocessable_entity
+        respond_to do |format|
+          format.json do
+            render json: {
+              success: false,
+              error: result[:error]
+            }, status: :unprocessable_entity
+          end
+          format.html { redirect_to tenant_activation_billing_path, alert: result[:error] }
+        end
       end
     rescue => e
       Rails.logger.error "GoCardless redirect flow error: #{e.message}"
-      render json: {
-        success: false,
-        error: "Failed to create authorization flow. Please try again."
-      }, status: :internal_server_error
+      respond_to do |format|
+        format.json do
+          render json: {
+            success: false,
+            error: "Failed to create authorization flow. Please try again."
+          }, status: :internal_server_error
+        end
+        format.html { redirect_to tenant_activation_billing_path, alert: "Failed to create authorization flow. Please try again." }
+      end
     end
   end
 
