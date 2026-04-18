@@ -48,28 +48,16 @@
 
     <%= form_with url: tenant_activation_documents_path, method: :post, class: "space-y-6" do |f| %>
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900">Contract</h3>
+        <h3 class="text-lg font-semibold text-gray-900">General Service Agreement, Exhibit A, and BAA</h3>
+        <p class="mt-1 text-xs text-gray-500">Scroll through the entire agreement to enable the acknowledgment below.</p>
         <div id="contract-body"
-             class="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700"
-             style="height: 260px; max-height: 260px; overflow-y: auto; overflow-x: hidden;">
-          <p class="font-medium text-gray-900">Holistic Business Solutions Master Service Agreement</p>
-          <p class="mt-2">This agreement governs your use of HBS services and describes service scope, fee structure, and legal obligations.</p>
-          <p class="mt-2">You agree to submit accurate business information and maintain compliance with applicable federal and state requirements.</p>
-          <p class="mt-2">Your selected billing tier applies to agreed service calculations and reporting as defined in your customer relationship.</p>
-          <p class="mt-2">The onboarding fee of $500 is required and must clear successfully before activation is completed.</p>
-          <p class="mt-2">By accepting, you confirm you are authorized to bind your organization to these terms.</p>
-          <p class="mt-2">HBS may update this agreement periodically. Contract versioning is retained for audit purposes.</p>
-          <% 12.times do |i| %>
-            <p class="mt-2">
-              Section <%= i + 1 %>: Placeholder contract copy for QA. This block exists to ensure scroll testing is consistent.
-              Review obligations, service standards, security responsibilities, payment terms, and dispute resolution language.
-            </p>
-          <% end %>
-          <p class="mt-2">End of contract preview.</p>
+             class="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700"
+             style="max-height: 22rem; overflow-y: auto; overflow-x: hidden;">
+          <%= render "tiered_gsa_baa_agreement" %>
         </div>
         <div class="mt-4 flex items-start">
           <input id="agreement_accepted" name="agreement_accepted" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" disabled>
-          <label for="agreement_accepted" class="ml-2 text-sm text-gray-700">I reviewed the full contract and agree to the terms.</label>
+          <label for="agreement_accepted" class="ml-2 text-sm text-gray-700">I have read the General Service Agreement (including Exhibit A – Tiered Scope of Services) and the Business Associate Agreement (Exhibit B), and I agree on behalf of my organization.</label>
         </div>
       </div>
 
@@ -100,23 +88,53 @@
 </div>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const contractBody = document.getElementById("contract-body");
-    const agreement = document.getElementById("agreement_accepted");
-    const continueButton = document.getElementById("continue_to_payment");
+  (function () {
+    function initDocumentSigningAgreement() {
+      const contractBody = document.getElementById("contract-body");
+      const agreement = document.getElementById("agreement_accepted");
+      const continueButton = document.getElementById("continue_to_payment");
+      if (!contractBody || !agreement || !continueButton) return;
+      if (contractBody.dataset.agreementScrollBound === "1") return;
+      contractBody.dataset.agreementScrollBound = "1";
 
-    function validate() {
-      continueButton.disabled = !agreement.checked;
+      function validate() {
+        continueButton.disabled = !agreement.checked;
+      }
+
+      function updateScrollAcknowledgement() {
+        const slack = 8;
+        const reachedBottom = contractBody.scrollTop + contractBody.clientHeight >= contractBody.scrollHeight - slack;
+        const fitsWithoutScrolling = contractBody.scrollHeight <= contractBody.clientHeight + slack;
+        if (reachedBottom || fitsWithoutScrolling) {
+          agreement.disabled = false;
+        }
+      }
+
+      contractBody.addEventListener("scroll", updateScrollAcknowledgement, { passive: true });
+      window.addEventListener("resize", updateScrollAcknowledgement);
+
+      if (typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(function () {
+          updateScrollAcknowledgement();
+        });
+        ro.observe(contractBody);
+      }
+
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(updateScrollAcknowledgement);
+      }
+
+      requestAnimationFrame(function () {
+        requestAnimationFrame(updateScrollAcknowledgement);
+      });
+
+      agreement.addEventListener("change", validate);
+      validate();
+      updateScrollAcknowledgement();
     }
 
-    contractBody.addEventListener("scroll", function() {
-      const reachedBottom = contractBody.scrollTop + contractBody.clientHeight >= contractBody.scrollHeight - 5;
-      if (reachedBottom) {
-        agreement.disabled = false;
-      }
-    });
-
-    agreement.addEventListener("change", validate);
-    validate();
-  });
+    document.addEventListener("turbo:load", initDocumentSigningAgreement);
+    document.addEventListener("DOMContentLoaded", initDocumentSigningAgreement);
+    initDocumentSigningAgreement();
+  })();
 </script>
