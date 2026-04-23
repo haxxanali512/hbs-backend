@@ -18,6 +18,13 @@ Rails.application.routes.draw do
     end
   end
 
+  get "portal_contexts", to: "portal_contexts#index"
+  patch "portal_contexts/:context", to: "portal_contexts#update", as: :portal_context
+
+  namespace :referral_partners, path: "referral_partner" do
+    resources :applications, only: [ :new, :create ]
+  end
+
   # API routes
   namespace :api do
     namespace :v1 do
@@ -42,6 +49,34 @@ Rails.application.routes.draw do
       root "dashboard#index", as: :root
 
       get "dashboard", to: "dashboard#index"
+      resources :referral_partner_applications, only: [ :index, :show, :update ] do
+        member do
+          patch :approve
+          patch :deny
+        end
+      end
+      resources :referral_partners do
+        member do
+          patch :suspend
+        end
+      end
+      resources :referral_relationships do
+        member do
+          patch :mark_ineligible
+        end
+        collection do
+          get :export
+        end
+      end
+      resources :referral_commissions, only: [ :index, :show, :update ] do
+        member do
+          patch :approve
+          patch :mark_paid
+        end
+        collection do
+          get :export
+        end
+      end
       resources :organizations do
         member do
           post :activate_tenant
@@ -330,6 +365,22 @@ Rails.application.routes.draw do
     end
   end
 
+  constraints subdomain: "referral" do
+    root "referral_partners/dashboard#index", as: :referral_root
+
+    namespace :referral_partners, path: "" do
+      resources :dashboard, only: [ :index ]
+      resources :referral_links, only: [ :index ]
+      resources :referrals, only: [ :index, :show ]
+      resources :payout_history, only: [ :index ] do
+        collection do
+          get :export
+        end
+      end
+      resource :profile, only: [ :show, :edit, :update ]
+    end
+  end
+
   # ===========================================================
   # TENANT (org subdomains, or localhost in development)
   # Only subdomains in ALLOWED_TENANT_SUBDOMAINS (if set) or that have an Organization can access.
@@ -570,4 +621,3 @@ Rails.application.routes.draw do
       end
     end
   end
-

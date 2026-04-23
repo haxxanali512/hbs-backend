@@ -1,0 +1,22 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div><h1 class="text-3xl font-bold text-gray-900"><%= @relationship.referred_practice_name %></h1><p class="mt-2 text-gray-600">Partner: <%= @relationship.referral_partner.full_name %></p></div>
+    <%= button_to "Mark Ineligible", mark_ineligible_admin_referral_relationship_path(@relationship), method: :patch, class: "inline-flex items-center rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50" %>
+  </div>
+  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <%= form_with model: [ :admin, @relationship ], class: "space-y-5" do |f| %>
+      <div class="grid gap-5 md:grid-cols-3">
+        <div><label class="block text-sm font-medium text-gray-700">Contract Signed</label><%= f.date_field :contract_signed_date, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+        <div><label class="block text-sm font-medium text-gray-700">Start Date</label><%= f.date_field :commission_start_date, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+        <div><label class="block text-sm font-medium text-gray-700">End Date</label><%= f.date_field :commission_end_date, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+      </div>
+      <div class="grid gap-5 md:grid-cols-3">
+        <div><label class="block text-sm font-medium text-gray-700">Tier</label><%= f.text_field :tier_selected, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+        <div><label class="block text-sm font-medium text-gray-700">Status</label><%= f.select :status, ReferralRelationship.statuses.keys.map { |status| [status.humanize, status] }, {}, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+        <div><label class="block text-sm font-medium text-gray-700">Eligibility</label><%= f.select :eligibility_status, ReferralRelationship.eligibility_statuses.keys.map { |status| [status.humanize, status] }, {}, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700">Ineligibility Reason</label><%= f.text_area :ineligibility_reason, rows: 3, class: "mt-2 block w-full rounded-lg border border-gray-200 px-4 py-3 text-sm" %></div>
+      <%= f.submit "Save Changes", class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700" %>
+    <% end %>
+  </div>
+</div>

@@ -44,7 +44,10 @@
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <% if current_user.dashboard_type == "tenant_dashboard" && current_organization.present? && current_organization.activated? %>
+                <% if show_portal_context_switcher? %>
+                  <%= render "shared/portal_context_switcher" %>
+                <% end %>
+                <% if current_portal_context == :tenant && current_organization.present? && current_organization.activated? %>
                   <%= link_to tenant_client_directory_path,
                       class: "group relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500",
                       aria: { label: "Client Directory" },
@@ -95,7 +98,7 @@
             </div>
           <% end %>
 
-          <% if current_user.dashboard_type == "tenant_dashboard" && current_organization.present? && current_organization.activated? %>
+          <% if current_portal_context == :tenant && current_organization.present? && current_organization.activated? %>
             <%= render "shared/client_directory_banner" %>
           <% end %>
 

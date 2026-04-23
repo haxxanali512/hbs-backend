@@ -1,0 +1,18 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Edit Profile</h1>
+  </div>
+
+  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <%= form_with model: @referral_partner, url: referral_partners_profile_path, class: "space-y-5" do |f| %>
+      <div class="grid gap-5 md:grid-cols-2">
+        <div><label class="block text-sm font-medium text-gray-700">First name</label><%= f.text_field :first_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+        <div><label class="block text-sm font-medium text-gray-700">Last name</label><%= f.text_field :last_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700">Phone</label><%= f.telephone_field :phone, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+      <div><label class="block text-sm font-medium text-gray-700">Tax Form Status</label><%= f.text_field :tax_form_status, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+      <div><label class="block text-sm font-medium text-gray-700">Notes</label><%= f.text_area :notes, rows: 4, class: "mt-2 block w-full rounded-lg border border-gray-200 px-4 py-3 text-sm" %></div>
+      <%= f.submit "Save Changes", class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700" %>
+    <% end %>
+  </div>
+</div>

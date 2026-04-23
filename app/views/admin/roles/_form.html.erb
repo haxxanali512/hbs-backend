@@ -92,13 +92,13 @@
         // If no scope selected, hide all
         block.style.display = 'none';
       } else if (selectedScope === 'global') {
-        // Global shows both admin and tenant blocks
+        // Global shows admin, tenant, and referral blocks
         block.style.display = 'block';
       } else if (selectedScope === 'admin' && blockScope === 'admin') {
         // Admin shows only admin blocks
         block.style.display = 'block';
-      } else if (selectedScope === 'tenant' && blockScope === 'tenant') {
-        // Tenant shows only tenant blocks
+      } else if (selectedScope === 'tenant' && (blockScope === 'tenant' || blockScope === 'referral_partner')) {
+        // Tenant scope can include referral partner access for mixed-context users
         block.style.display = 'block';
       } else {
         block.style.display = 'none';

@@ -1,0 +1,32 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900"><%= @referral_partner.full_name %></h1>
+      <p class="mt-2 text-gray-600">Referral partner application review.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <% if @referral_partner.pending? %>
+        <%= button_to "Approve", approve_admin_referral_partner_application_path(@referral_partner), method: :patch, class: "inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %>
+        <%= button_to "Deny", deny_admin_referral_partner_application_path(@referral_partner), method: :patch, params: { referral_partner: { notes: @referral_partner.notes } }, class: "inline-flex items-center rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50" %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <%= form_with model: [ :admin, @referral_partner ], url: admin_referral_partner_application_path(@referral_partner), class: "space-y-5" do |f| %>
+      <div class="grid gap-5 md:grid-cols-2">
+        <div><label class="block text-sm font-medium text-gray-700">Email</label><div class="mt-2 text-sm text-gray-900"><%= @referral_partner.email %></div></div>
+        <div><label class="block text-sm font-medium text-gray-700">Partner Type</label><div class="mt-2 text-sm text-gray-900"><%= @referral_partner.partner_type.humanize %></div></div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Linked Client Organization</label>
+        <%= f.collection_select :linked_client_organization_id, Organization.order(:name), :id, :name, { include_blank: "None" }, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Notes</label>
+        <%= f.text_area :notes, rows: 4, class: "mt-2 block w-full rounded-lg border border-gray-200 px-4 py-3 text-sm" %>
+      </div>
+      <%= f.submit "Save Notes", class: "inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+    <% end %>
+  </div>
+</div>

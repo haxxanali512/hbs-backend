@@ -23,6 +23,7 @@ class User < ApplicationRecord
            foreign_key: "assigned_to_user_id",
            dependent: :nullify
   has_many :notifications, dependent: :destroy
+  has_one :referral_partner, dependent: :nullify
 
   # after_create :send_invitation
 
@@ -47,7 +48,14 @@ class User < ApplicationRecord
   end
 
   def dashboard_type
-    role.scope == "global" ? "hbs_dashboard" : "tenant_dashboard"
+    case default_portal_context
+    when :admin
+      "hbs_dashboard"
+    when :referral_partner
+      "referral_partner_dashboard"
+    else
+      "tenant_dashboard"
+    end
   end
 
   def display_name
@@ -55,7 +63,7 @@ class User < ApplicationRecord
   end
 
   def permissions_for(type, controller, action)
-    role.access.dig(type, controller, action)
+    normalized_access.dig(type.to_s, controller.to_s, action.to_s)
   end
 
   def super_admin?
@@ -85,13 +93,15 @@ class User < ApplicationRecord
 
   def has_admin_access?
     return true if super_admin?
-    return false unless role&.access
-    permissions_for("admin", "encounters", "show") || permissions_for("admin", "encounter_comments", "create")
+    namespace_access_enabled?("admin")
   end
 
   def has_tenant_access?
-    return false unless role&.access
-    permissions_for("tenant", "encounters", "show") || permissions_for("tenant", "encounter_comments", "create")
+    namespace_access_enabled?("tenant")
+  end
+
+  def has_referral_partner_access?
+    namespace_access_enabled?("referral_partner")
   end
 
   def hbs_user?
@@ -123,5 +133,38 @@ class User < ApplicationRecord
   def organization_id
     # Return the first active organization's ID for tenant users
     active_organizations.first&.id
+  end
+
+  def available_portal_contexts
+    contexts = []
+    contexts << :admin if has_admin_access?
+    contexts << :tenant if has_tenant_access? && active_organizations.exists?
+    contexts << :referral_partner if has_referral_partner_access? && referral_partner.present?
+    contexts
+  end
+
+  def default_portal_context
+    available_portal_contexts.first
+  end
+
+  def multiple_portal_contexts?
+    available_portal_contexts.many?
+  end
+
+  private
+
+  def normalized_access
+    @normalized_access ||= role&.access.is_a?(Hash) ? role.access.deep_stringify_keys : {}
+  end
+
+  def namespace_access_enabled?(namespace)
+    namespace_access = normalized_access[namespace.to_s]
+    return false unless namespace_access.is_a?(Hash)
+
+    namespace_access.values.any? do |controller_permissions|
+      next false unless controller_permissions.is_a?(Hash)
+
+      controller_permissions.values.any?(true)
+    end
   end
 end

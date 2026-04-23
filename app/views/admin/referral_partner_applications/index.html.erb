@@ -1,0 +1,31 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Referral Partner Applications</h1>
+    <p class="mt-2 text-gray-600">Review and process pending applicants.</p>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Name</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Email</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Type</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Applied</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 bg-white">
+        <% @referral_partners.each do |partner| %>
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 text-sm font-medium text-gray-900"><%= link_to partner.full_name, admin_referral_partner_application_path(partner), class: "text-indigo-600 hover:text-indigo-800" %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= partner.email %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= partner.partner_type.humanize %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= partner.created_at.to_date %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= partner.status.humanize %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
