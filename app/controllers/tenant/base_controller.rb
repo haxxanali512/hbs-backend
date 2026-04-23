@@ -4,15 +4,28 @@ class Tenant::BaseController < ApplicationController
   private
 
   def ensure_tenant_access
-    # Allow access if user is a member of the organization OR if they're masquerading
-    unless current_org_member? || (respond_to?(:user_masquerade?) && user_masquerade?)
-      reset_session
-      redirect_to new_user_session_path, alert: "Access denied. Organization membership required."
-    end
+    # Tenant portal is restricted to:
+    #   1. Active members of the current organization, OR
+    #   2. Admins actively impersonating (masquerading) a tenant user.
+    # A Super Admin signed in directly cannot access tenant dashboards by just
+    # changing the subdomain; they must impersonate a tenant user.
+    return if impersonating?
+    return if current_org_member?
+
+    reset_session
+    redirect_to new_user_session_path, alert: "Access denied. Organization membership required."
   end
 
   def current_org_member?
-    current_user&.member_of?(current_organization)
+    return false unless current_user && current_organization
+
+    current_user.organization_memberships
+                .active
+                .exists?(organization: current_organization)
+  end
+
+  def impersonating?
+    respond_to?(:user_masquerade?) && user_masquerade?
   end
 
 
