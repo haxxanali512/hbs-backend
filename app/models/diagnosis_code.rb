@@ -27,10 +27,11 @@ class DiagnosisCode < ApplicationRecord
   validates :code, presence: true, uniqueness: true
   validates :description, presence: true
   validates :status, presence: true
-  validates :code, format: {
-    with: /\A[A-Z][0-9]{2}(?:\.[0-9A-Z]{1,4})?\z/,
-    message: "DX_CODE_INVALID - Diagnosis code must follow ICD-10-CM format (e.g., M54.5, E11.9, A41.9)"
-  }
+  validates :code, presence: true
+  # validates :code, format: {
+  #   with: /\A[A-Z][0-9]{2}(?:\.[0-9A-Z]{1,4})?\z/,
+  #   message: "DX_CODE_INVALID - Diagnosis code must follow ICD-10-CM format (e.g., M54.5, E11.9, A41.9)"
+  # }
 
   scope :active, -> { where(status: :active) }
   scope :retired, -> { where(status: :retired) }

@@ -123,7 +123,18 @@
                     <% end %>
 
                     <% can_soft_delete = current_user.permissions_for("tenant", "encounters", "destroy") %>
-                    <% can_hard_delete = current_user.permissions_for("tenant", "encounters", "hard_destroy") %>
+                    <% hard_allowed = (!encounter.cascaded? && !encounter.has_billing_document? && encounter.internal_status.to_s == "pending") %>
+                    <% can_hard_delete = hard_allowed && (current_user.permissions_for("tenant", "encounters", "hard_destroy") || current_user.permissions_for("tenant", "encounters", "destroy")) %>
+                    <% delete_message =
+                         if can_soft_delete && can_hard_delete
+                           "Choose <strong>Discard from table</strong> or <strong>Permanently delete</strong>."
+                         elsif can_soft_delete
+                           "<strong>Discard from table</strong> will remove this encounter from the list while keeping data for recovery."
+                         elsif can_hard_delete
+                           "<strong>Permanently delete</strong> will remove this encounter and related data. This cannot be undone."
+                         else
+                           ""
+                         end %>
                     <% if can_soft_delete || can_hard_delete %>
                       <button type="button"
                               class="text-red-700 hover:text-red-900"
@@ -132,7 +143,7 @@
                               data-delete-choice-confirm-label="Delete"
                               data-delete-choice-soft-url="<%= can_soft_delete ? tenant_encounter_path(encounter) : "" %>"
                               data-delete-choice-hard-url="<%= can_hard_delete ? hard_destroy_tenant_encounter_path(encounter) : "" %>"
-                              data-delete-choice-message="Choose <strong>Discard from table</strong> or <strong>Permanently delete</strong>.">
+                              data-delete-choice-message="<%= delete_message %>">
                         Delete
                       </button>
                     <% end %>

@@ -52,6 +52,7 @@ class Organization < ApplicationRecord
   has_many :payments, dependent: :restrict_with_error
   has_many :provider_assignments, dependent: :destroy
   has_many :providers, through: :provider_assignments
+  has_many :specialties, -> { distinct }, through: :providers
   # Documents now use Active Storage
   has_many_attached :documents
   has_many :organization_fee_schedules, dependent: :destroy

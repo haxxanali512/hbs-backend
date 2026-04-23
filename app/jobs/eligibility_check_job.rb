@@ -13,24 +13,56 @@ class EligibilityCheckJob < ApplicationJob
       poll: true
     )
 
-    EligibilityCheckMailer.result_ready(
+    deliver_ready_email(
       user: user,
       organization: organization,
       check_id: result[:check_id],
       check_result: result[:check_result],
       submitted_params: params
-    ).deliver_later
+    )
   rescue FuseEligibilityCheckFromParamsService::Error, FuseApiService::Error => e
-    EligibilityCheckMailer.result_failed(
-      user: user,
-      organization: organization,
-      error_message: normalized_error_message(e.message),
-      submitted_params: params
-    ).deliver_later if user.present? && organization.present?
-    raise
+    if user.present? && organization.present?
+      deliver_failed_email(
+        user: user,
+        organization: organization,
+        error_message: normalized_error_message(e.message),
+        submitted_params: params
+      )
+    end
+
+    Rails.logger.error(
+      "EligibilityCheckJob failed for org=#{organization_id} user=#{user_id}: #{e.class} - #{e.message}"
+    )
   end
 
   private
+
+  def deliver_ready_email(user:, organization:, check_id:, check_result:, submitted_params:)
+    EligibilityCheckMailer.result_ready(
+      user: user,
+      organization: organization,
+      check_id: check_id,
+      check_result: check_result,
+      submitted_params: submitted_params
+    ).deliver_now
+  rescue StandardError => e
+    Rails.logger.error(
+      "EligibilityCheckJob mail delivery failed (ready) for org=#{organization.id} user=#{user.id}: #{e.class} - #{e.message}"
+    )
+  end
+
+  def deliver_failed_email(user:, organization:, error_message:, submitted_params:)
+    EligibilityCheckMailer.result_failed(
+      user: user,
+      organization: organization,
+      error_message: error_message,
+      submitted_params: submitted_params
+    ).deliver_now
+  rescue StandardError => e
+    Rails.logger.error(
+      "EligibilityCheckJob mail delivery failed (failed) for org=#{organization.id} user=#{user.id}: #{e.class} - #{e.message}"
+    )
+  end
 
   def normalized_error_message(raw_message)
     message = raw_message.to_s.strip

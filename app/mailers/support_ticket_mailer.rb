@@ -1,6 +1,4 @@
 class SupportTicketMailer < ApplicationMailer
-  default from: "support@hbsdata.com"
-
   def acknowledgement(ticket)
     send_ticket_email(ticket: ticket, template_key: "support_ticket.acknowledgement")
   end

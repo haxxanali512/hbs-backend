@@ -16,6 +16,7 @@
     <!-- Form -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <%= form_with url: tenant_eligibility_checks_path, method: :post, class: "space-y-6", data: { turbo_frame: "_top" }, id: "eligibility_check_form" do |f| %>
+        <%= hidden_field_tag :check_id, SecureRandom.uuid %>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-4">
             <h3 class="text-lg font-medium text-gray-900">Patient</h3>
@@ -93,10 +94,32 @@
 
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <%= link_to "Cancel", tenant_dashboard_path, class: "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50" %>
-          <%= submit_tag "Check eligibility", class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer" %>
+          <%= submit_tag "Check eligibility",
+              id: "eligibility_check_submit",
+              class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer" %>
         </div>
       <% end %>
     </div>
   </div>
 </div>
+
+<script>
+  (function() {
+    function bindEligibilityFormSubmitLock() {
+      const form = document.getElementById("eligibility_check_form");
+      const submitBtn = document.getElementById("eligibility_check_submit");
+      if (!form || !submitBtn || form.dataset.submitLockBound === "1") return;
+      form.dataset.submitLockBound = "1";
+
+      form.addEventListener("submit", function() {
+        submitBtn.disabled = true;
+        submitBtn.classList.add("opacity-60", "cursor-not-allowed");
+        submitBtn.value = "Submitting...";
+      });
+    }
+
+    document.addEventListener("turbo:load", bindEligibilityFormSubmitLock);
+    document.addEventListener("DOMContentLoaded", bindEligibilityFormSubmitLock);
+  })();
+</script>
 
