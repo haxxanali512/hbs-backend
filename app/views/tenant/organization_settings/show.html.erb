@@ -200,7 +200,7 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div class="space-y-2">
           <%= link_to "Add Provider", new_tenant_provider_path, class: "block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors" unless summary[:providers][:present] %>
-          <%= link_to "Create Fee Schedule", new_tenant_fee_schedule_path, class: "block w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors" unless summary[:fee_schedules][:present] %>
+          <%= link_to "View Fee Schedules", tenant_fee_schedules_path, class: "block w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors" unless summary[:fee_schedules][:present] %>
           <%= link_to "Add Location", new_tenant_organization_location_path, class: "block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors" unless summary[:locations][:present] %>
           <%= link_to "View Specialties", tenant_specialties_path, class: "block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors" %>
         </div>

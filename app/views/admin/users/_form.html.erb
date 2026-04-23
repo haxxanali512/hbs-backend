@@ -81,44 +81,44 @@
 
 
               <!-- New org fields -->
-              <%= f.fields_for :organizations_attributes do |of| %>
-                <div class="w-full flex flex-col md:flex-row md:gap-4">
+              <% org_name_value = params.dig(:user, :organizations_attributes, :name).presence || params.dig(:user, :organizations_attributes, "0", :name).presence || params.dig(:user, :organizations_attributes, "0", "name") %>
+              <% org_subdomain_value = params.dig(:user, :organizations_attributes, :subdomain).presence || params.dig(:user, :organizations_attributes, "0", :subdomain).presence || params.dig(:user, :organizations_attributes, "0", "subdomain") %>
+              <div class="w-full flex flex-col md:flex-row md:gap-4">
 
-                  <!-- Organization Name -->
-                  <div id="new_org_name_wrapper_form"
-                      class="w-full md:w-1/2"
-                      style="<%= selected_mode == "new" ? "" : "display: none;" %>">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
-                    <%= of.text_field :name,
-                          placeholder: "Client's Organization Name",
-                          value: params.dig(:user, :organizations_attributes, :name),
-                          class: "mt-1 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
-                  </div>
-
-                  <!-- Subdomain -->
-                  <div id="new_org_subdomain_wrapper_form"
-                      class="w-full md:w-1/2"
-                      style="<%= selected_mode == "new" ? "" : "display: none;" %>">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
-                    <div class="mt-1 flex rounded-md shadow-sm w-full">
-                      <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                        https://
-                      </span>
-
-                      <%= of.text_field :subdomain,
-                            placeholder: "client's-organization",
-                            value: params.dig(:user, :organizations_attributes, :subdomain),
-                            class: "flex-1 rounded-none border border-gray-200 bg-white px-4 h-11 text-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500" %>
-
-                      <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                        .yourdomain.com
-                      </span>
-                    </div>
-                    <p class="mt-1 text-xs text-gray-500">Must be unique. Used for tenant subdomain.</p>
-                  </div>
-
+                <!-- Organization Name -->
+                <div id="new_org_name_wrapper_form"
+                    class="w-full md:w-1/2"
+                    style="<%= selected_mode == "new" ? "" : "display: none;" %>">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                  <input type="text"
+                         name="user[organizations_attributes][0][name]"
+                         value="<%= org_name_value %>"
+                         placeholder="Client's Organization Name"
+                         class="mt-1 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
-              <% end %>
+
+                <!-- Subdomain -->
+                <div id="new_org_subdomain_wrapper_form"
+                    class="w-full md:w-1/2"
+                    style="<%= selected_mode == "new" ? "" : "display: none;" %>">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Subdomain</label>
+                  <div class="mt-1 flex rounded-md shadow-sm w-full">
+                    <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">
+                      https://
+                    </span>
+                    <input type="text"
+                           name="user[organizations_attributes][0][subdomain]"
+                           value="<%= org_subdomain_value %>"
+                           placeholder="client-organization"
+                           class="flex-1 rounded-none border border-gray-200 bg-white px-4 h-11 text-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500">
+                    <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">
+                      .yourdomain.com
+                    </span>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-500">Must be unique. Used for tenant subdomain.</p>
+                </div>
+
+              </div>
 
 
             </div>
@@ -149,7 +149,7 @@
 <% end %>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initializeInviteOrganizationModeForm() {
     var modeSelect = document.getElementById('invite_organization_mode_form');
     var existingWrapper = document.getElementById('existing_organization_wrapper_form');
     var newNameWrapper = document.getElementById('new_org_name_wrapper_form');
@@ -159,17 +159,17 @@
       if (!modeSelect) return;
       var mode = modeSelect.value;
       if (mode === 'existing') {
-        existingWrapper.style.display = 'block';
-        newNameWrapper.style.display = 'none';
-        newSubdomainWrapper.style.display = 'none';
+        if (existingWrapper) existingWrapper.style.display = 'block';
+        if (newNameWrapper) newNameWrapper.style.display = 'none';
+        if (newSubdomainWrapper) newSubdomainWrapper.style.display = 'none';
       } else if (mode === 'new') {
-        existingWrapper.style.display = 'none';
-        newNameWrapper.style.display = 'block';
-        newSubdomainWrapper.style.display = 'block';
+        if (existingWrapper) existingWrapper.style.display = 'none';
+        if (newNameWrapper) newNameWrapper.style.display = 'block';
+        if (newSubdomainWrapper) newSubdomainWrapper.style.display = 'block';
       } else {
-        existingWrapper.style.display = 'none';
-        newNameWrapper.style.display = 'none';
-        newSubdomainWrapper.style.display = 'none';
+        if (existingWrapper) existingWrapper.style.display = 'none';
+        if (newNameWrapper) newNameWrapper.style.display = 'none';
+        if (newSubdomainWrapper) newSubdomainWrapper.style.display = 'none';
       }
     }
 
@@ -177,5 +177,8 @@
       modeSelect.addEventListener('change', toggleOrganizationModeForm);
       toggleOrganizationModeForm();
     }
-  });
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeInviteOrganizationModeForm);
+  document.addEventListener('turbo:load', initializeInviteOrganizationModeForm);
 </script>

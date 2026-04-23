@@ -649,11 +649,12 @@ class NotificationService
     def base_portal_host
       mailer_options = Rails.application.config.action_mailer.default_url_options || {}
       routes_options = Rails.application.routes.default_url_options || {}
+
       configured_host = ENV["DOMAIN"].presence ||
                         ENV["HOST"].presence ||
-                        mailer_options[:host] ||
-                        routes_options[:host]
-      configured_port = mailer_options[:port] || routes_options[:port]
+                        mailer_options[:host].presence ||
+                        routes_options[:host].presence
+      configured_port = mailer_options[:port].presence || routes_options[:port].presence
 
       host = configured_host.to_s.sub(%r{\Ahttps?://}, "").split("/").first
       if host.blank?
@@ -663,9 +664,9 @@ class NotificationService
 
       host_parts = host.split(".")
       normalized_host = if host_parts.length >= 3 && %w[www admin].include?(host_parts.first)
-        host_parts.drop(1).join(".")
+                          host_parts.drop(1).join(".")
       else
-        host
+                          host
       end
 
       if configured_port.present? && normalized_host.exclude?(":")
