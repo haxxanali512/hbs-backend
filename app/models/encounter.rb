@@ -824,6 +824,13 @@ class Encounter < ApplicationRecord
   end
 
   def set_duplicate_check_fingerprint
+    # Soft-deleted encounters should release their fingerprint so a discard
+    # operation never collides with another kept encounter.
+    if discarded?
+      self.duplicate_check_fingerprint = nil
+      return
+    end
+
     proc_ids = if procedure_code_ids.present?
       Array(procedure_code_ids).reject(&:blank?).map(&:to_i).sort
     else
