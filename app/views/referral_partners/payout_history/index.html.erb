@@ -1,0 +1,34 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Payout History</h1>
+      <p class="mt-2 text-gray-600">Monthly commissions and payout status.</p>
+    </div>
+    <%= link_to "Export CSV", export_referral_partners_payout_history_index_path, class: "inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Month</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Eligible Revenue</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission Amount</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Paid Date</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 bg-white">
+        <% @commissions.each do |commission| %>
+          <tr>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= commission.month.strftime("%Y-%m") %></td>
+            <td class="px-6 py-4 text-sm text-gray-700">$<%= commission.eligible_revenue %></td>
+            <td class="px-6 py-4 text-sm text-gray-700">$<%= commission.commission_amount %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= commission.payout_status.humanize %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= commission.payout_date || "—" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

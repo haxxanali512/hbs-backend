@@ -1,0 +1,38 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900"><%= @relationship.referred_practice_name %></h1>
+    <p class="mt-2 text-gray-600">Referral relationship details and commission history.</p>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"><div class="text-sm text-gray-500">Contract Signed</div><div class="mt-2 text-lg font-semibold text-gray-900"><%= @relationship.contract_signed_date || "—" %></div></div>
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"><div class="text-sm text-gray-500">Commission Window</div><div class="mt-2 text-lg font-semibold text-gray-900"><%= [@relationship.commission_start_date, @relationship.commission_end_date].compact.join(" to ") %></div></div>
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"><div class="text-sm text-gray-500">Status</div><div class="mt-2 text-lg font-semibold text-gray-900"><%= @relationship.status.humanize %></div></div>
+  </div>
+
+  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold text-gray-900">Monthly Commission History</h2>
+    <div class="mt-4 overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Month</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Eligible Revenue</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 bg-white">
+          <% @relationship.referral_commissions.order(month: :desc).each do |commission| %>
+            <tr>
+              <td class="px-4 py-3 text-sm text-gray-700"><%= commission.month.strftime("%Y-%m") %></td>
+              <td class="px-4 py-3 text-sm text-gray-700">$<%= commission.eligible_revenue %></td>
+              <td class="px-4 py-3 text-sm text-gray-700">$<%= commission.commission_amount %></td>
+              <td class="px-4 py-3 text-sm text-gray-700"><%= commission.payout_status.humanize %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,22 @@
+<%= form_with model: [ :admin, @referral_partner ], class: "space-y-5" do |f| %>
+  <div class="grid gap-5 md:grid-cols-2">
+    <div><label class="block text-sm font-medium text-gray-700">First name</label><%= f.text_field :first_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+    <div><label class="block text-sm font-medium text-gray-700">Last name</label><%= f.text_field :last_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+    <div><label class="block text-sm font-medium text-gray-700">Email</label><%= f.email_field :email, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+    <div><label class="block text-sm font-medium text-gray-700">Phone</label><%= f.telephone_field :phone, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+  </div>
+  <div class="grid gap-5 md:grid-cols-3">
+    <div><label class="block text-sm font-medium text-gray-700">Partner Type</label><%= f.select :partner_type, ReferralPartner.partner_types.keys.map { |type| [type.humanize, type] }, {}, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+    <div><label class="block text-sm font-medium text-gray-700">Status</label><%= f.select :status, ReferralPartner.statuses.keys.map { |status| [status.humanize, status] }, {}, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+    <div><label class="block text-sm font-medium text-gray-700">Tax Form Status</label><%= f.text_field :tax_form_status, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Linked Client Organization</label>
+    <%= f.collection_select :linked_client_organization_id, Organization.order(:name), :id, :name, { include_blank: "None" }, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %>
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Notes</label>
+    <%= f.text_area :notes, rows: 4, class: "mt-2 block w-full rounded-lg border border-gray-200 px-4 py-3 text-sm" %>
+  </div>
+  <%= f.submit class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700" %>
+<% end %>

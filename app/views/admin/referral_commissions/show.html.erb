@@ -1,0 +1,20 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div><h1 class="text-3xl font-bold text-gray-900"><%= @commission.referral_relationship.referred_practice_name %> - <%= @commission.month.strftime("%Y-%m") %></h1><p class="mt-2 text-gray-600">Partner: <%= @commission.referral_partner.full_name %></p></div>
+    <div class="flex gap-3">
+      <% if @commission.pending? %><%= button_to "Approve", approve_admin_referral_commission_path(@commission), method: :patch, class: "inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700" %><% end %>
+      <% unless @commission.paid? %><%= button_to "Mark Paid", mark_paid_admin_referral_commission_path(@commission), method: :patch, class: "inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %><% end %>
+    </div>
+  </div>
+  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <%= form_with model: [ :admin, @commission ], class: "space-y-5" do |f| %>
+      <div class="grid gap-5 md:grid-cols-3">
+        <div><label class="block text-sm font-medium text-gray-700">Eligible Revenue</label><%= f.number_field :eligible_revenue, step: "0.01", class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+        <div><label class="block text-sm font-medium text-gray-700">Commission Percent</label><%= f.number_field :commission_percent, step: "0.01", class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+        <div><label class="block text-sm font-medium text-gray-700">Payout Date</label><%= f.date_field :payout_date, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700">Notes</label><%= f.text_area :notes, rows: 3, class: "mt-2 block w-full rounded-lg border border-gray-200 px-4 py-3 text-sm" %></div>
+      <%= f.submit "Save Changes", class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700" %>
+    <% end %>
+  </div>
+</div>

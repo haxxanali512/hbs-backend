@@ -1,0 +1,36 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">My Referrals</h1>
+    <p class="mt-2 text-gray-600">Newest referrals appear first.</p>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Practice Name</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Tier</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission Start</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Commission End</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Eligibility</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 bg-white">
+        <% @relationships.each do |relationship| %>
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 text-sm font-medium text-gray-900"><%= link_to relationship.referred_practice_name, referral_partners_referral_path(relationship), class: "text-indigo-600 hover:text-indigo-800" %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= relationship.status.humanize %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= relationship.tier_selected.presence || "—" %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= relationship.commission_start_date || "—" %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= relationship.commission_end_date || "—" %></td>
+            <td class="px-6 py-4 text-sm text-gray-700"><%= relationship.eligibility_status.humanize %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <% if @relationships.empty? %>
+      <div class="px-6 py-12 text-center text-sm text-gray-500">No referrals yet.</div>
+    <% end %>
+  </div>
+</div>

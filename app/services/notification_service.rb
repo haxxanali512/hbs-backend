@@ -173,6 +173,69 @@ class NotificationService
       )
     end
 
+    def notify_referral_partner_application_submitted(referral_partner)
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: nil,
+          notification_type: Notification::NOTIFICATION_TYPES[:referral_partner_application_submitted],
+          title: "New Referral Partner Application",
+          message: "#{referral_partner.full_name} applied as a #{referral_partner.partner_type.humanize.downcase}.",
+          action_url: "/admin/referral_partner_applications/#{referral_partner.id}"
+        )
+      end
+    end
+
+    def notify_referral_partner_application_approved(referral_partner, invited_by:)
+      return unless referral_partner.user
+
+      Notification.create!(
+        user: referral_partner.user,
+        organization: nil,
+        notification_type: Notification::NOTIFICATION_TYPES[:referral_partner_application_approved],
+        title: "Referral Partner Application Approved",
+        message: "Your referral partner access has been approved by #{invited_by.display_name}.",
+        action_url: referral_partner_absolute_url("/dashboard")
+      )
+    end
+
+    def notify_referral_attached_to_new_client(relationship)
+      return unless relationship.referral_partner.user
+
+      Notification.create!(
+        user: relationship.referral_partner.user,
+        organization: relationship.referred_org,
+        notification_type: Notification::NOTIFICATION_TYPES[:referral_attached_to_new_client],
+        title: "New Referral Attached",
+        message: "#{relationship.referred_practice_name} has been linked to your referral code.",
+        action_url: referral_partner_absolute_url("/referrals/#{relationship.id}")
+      )
+
+      super_admins.each do |admin|
+        Notification.create!(
+          user: admin,
+          organization: relationship.referred_org,
+          notification_type: Notification::NOTIFICATION_TYPES[:referral_attached_to_new_client],
+          title: "Referral Attached To New Client",
+          message: "#{relationship.referred_practice_name} was attributed to #{relationship.referral_partner.full_name}.",
+          action_url: "/admin/referral_relationships/#{relationship.id}"
+        )
+      end
+    end
+
+    def notify_referral_payout_paid(commission)
+      return unless commission.referral_partner.user
+
+      Notification.create!(
+        user: commission.referral_partner.user,
+        organization: commission.referred_org,
+        notification_type: Notification::NOTIFICATION_TYPES[:referral_payout_paid],
+        title: "Referral Payout Marked Paid",
+        message: "Your #{commission.month.strftime('%B %Y')} commission was marked paid.",
+        action_url: referral_partner_absolute_url("/payout_history")
+      )
+    end
+
     # Notify super admins when a tenant submits encounters for billing
     def notify_encounters_submitted_for_billing(organization:, encounter_count:)
       # Find all super admin users (include active, pending, or nil status - exclude only inactive and discarded)
@@ -681,6 +744,20 @@ class NotificationService
       return explicit_protocol if explicit_protocol.present?
 
       host.include?("localhost") ? "http" : "https"
+    end
+
+    private
+
+    def super_admins
+      User.joins(:role)
+          .where(roles: { role_name: "Super Admin" })
+          .where("status IS NULL OR status != ?", User.statuses[:inactive])
+          .kept
+    end
+
+    def referral_partner_absolute_url(path)
+      host = ENV["HOST"].presence || "holisticbusinesssolutions.com"
+      "https://referral.#{host}#{path}"
     end
   end
 end

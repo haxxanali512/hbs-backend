@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_21_110200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -1116,6 +1116,66 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
     t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
   end
 
+  create_table "referral_commissions", force: :cascade do |t|
+    t.bigint "referral_relationship_id", null: false
+    t.date "month", null: false
+    t.decimal "eligible_revenue", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "commission_percent", precision: 5, scale: 2, default: "12.0", null: false
+    t.decimal "commission_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "payout_status", default: 0, null: false
+    t.date "payout_date"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["referral_relationship_id", "month"], name: "index_referral_commissions_on_relationship_and_month", unique: true
+    t.index ["referral_relationship_id"], name: "index_referral_commissions_on_referral_relationship_id"
+  end
+
+  create_table "referral_partners", force: :cascade do |t|
+    t.bigint "user_id"
+    t.bigint "linked_client_organization_id"
+    t.string "first_name", null: false
+    t.string "last_name", null: false
+    t.string "email", null: false
+    t.string "phone"
+    t.integer "partner_type", default: 6, null: false
+    t.integer "status", default: 0, null: false
+    t.string "referral_code"
+    t.string "referral_url"
+    t.datetime "agreement_signed_at"
+    t.datetime "approved_at"
+    t.string "tax_form_status"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((email)::text)", name: "index_referral_partners_on_lower_email", unique: true
+    t.index ["linked_client_organization_id"], name: "index_referral_partners_on_linked_client_organization_id"
+    t.index ["referral_code"], name: "index_referral_partners_on_referral_code", unique: true
+    t.index ["user_id"], name: "index_referral_partners_on_user_id"
+  end
+
+  create_table "referral_relationships", force: :cascade do |t|
+    t.bigint "referral_partner_id", null: false
+    t.bigint "referred_org_id", null: false
+    t.string "referral_source"
+    t.string "referred_practice_name"
+    t.date "contract_signed_date"
+    t.date "commission_start_date"
+    t.date "commission_end_date"
+    t.string "tier_selected"
+    t.integer "status", default: 0, null: false
+    t.text "ineligibility_reason"
+    t.decimal "total_revenue_to_date", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "total_commission_to_date", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "eligibility_status", default: 0, null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["referral_partner_id", "referred_org_id"], name: "index_referral_relationships_on_partner_and_org", unique: true
+    t.index ["referral_partner_id"], name: "index_referral_relationships_on_referral_partner_id"
+    t.index ["referred_org_id"], name: "index_referral_relationships_on_referred_org_id"
+  end
+
   create_table "remit_captures", force: :cascade do |t|
     t.string "capturable_type", null: false
     t.bigint "capturable_id", null: false
@@ -1405,6 +1465,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
   add_foreign_key "provider_notes", "providers"
   add_foreign_key "provider_specialties", "providers"
   add_foreign_key "provider_specialties", "specialties"
+  add_foreign_key "referral_commissions", "referral_relationships"
+  add_foreign_key "referral_partners", "organizations", column: "linked_client_organization_id"
+  add_foreign_key "referral_partners", "users"
+  add_foreign_key "referral_relationships", "organizations", column: "referred_org_id"
+  add_foreign_key "referral_relationships", "referral_partners"
   add_foreign_key "support_ticket_comments", "support_tickets"
   add_foreign_key "support_ticket_comments", "users", column: "author_user_id"
   add_foreign_key "support_ticket_tasks", "support_tickets"

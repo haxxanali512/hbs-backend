@@ -1,0 +1,41 @@
+<div class="min-h-screen bg-gray-50 py-10">
+  <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Referral Partner Application</h1>
+      <p class="mt-2 text-gray-600">Apply to join the HBS referral partner program.</p>
+    </div>
+
+    <div class="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+      <%= form_with model: @referral_partner, url: referral_partners_applications_path, class: "space-y-5" do |f| %>
+        <div class="grid gap-5 md:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">First name</label>
+            <%= f.text_field :first_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Last name</label>
+            <%= f.text_field :last_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Email</label>
+          <%= f.email_field :email, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Phone</label>
+          <%= f.telephone_field :phone, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Partner type</label>
+          <%= f.select :partner_type, ReferralPartner.partner_types.keys.map { |type| [type.humanize, type] }, { prompt: "Select partner type" }, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm" %>
+        </div>
+        <% if @referral_partner.errors.any? %>
+          <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <%= @referral_partner.errors.full_messages.to_sentence %>
+          </div>
+        <% end %>
+        <%= f.submit "Submit Application", class: "inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700" %>
+      <% end %>
+    </div>
+  </div>
+</div>

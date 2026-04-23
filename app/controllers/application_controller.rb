@@ -11,7 +11,9 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
   around_action :set_tenant_context, unless: -> { devise_controller? || controller_name == "notifications" }
   before_action :has_access?, unless: :devise_controller?
-  helper_method :current_organization, :current_organization_date, :current_organization_time_zone, :format_in_organization_tz
+  helper_method :current_organization, :current_organization_date, :current_organization_time_zone,
+                :format_in_organization_tz, :current_portal_context, :available_portal_contexts,
+                :portal_context_path_for, :show_portal_context_switcher?
 
   protected
 
@@ -51,7 +53,7 @@ class ApplicationController < ActionController::Base
 
   def user_not_authorized
     flash[:alert] = "You are not authorized to perform this action."
-    redirect_to request.referer || tenant_dashboard_path
+    redirect_to request.referer || portal_context_path_for(current_portal_context || current_user&.default_portal_context || :tenant), allow_other_host: true
   end
 
   def handle_server_error(exception)
@@ -99,6 +101,12 @@ class ApplicationController < ActionController::Base
     devise_parameter_sanitizer.permit(:sign_up, keys: [ :username, :first_name, :last_name ])
   end
 
+  def after_sign_in_path_for(resource)
+    return portal_contexts_path if resource.multiple_portal_contexts?
+
+    portal_context_path_for(resource.default_portal_context, user: resource) || super
+  end
+
   def pundit_user
     {
       user: current_user,
@@ -120,6 +128,58 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  def current_portal_context
+    return nil unless current_user
+
+    requested = session[:portal_context].presence&.to_sym
+    available = current_user.available_portal_contexts
+    available.include?(requested) ? requested : current_user.default_portal_context
+  end
+
+  def available_portal_contexts
+    Array(current_user&.available_portal_contexts)
+  end
+
+  def show_portal_context_switcher?
+    user_signed_in? && available_portal_contexts.many?
+  end
+
+  def portal_context_path_for(context, user: current_user)
+    return root_path if context.blank? || user.blank?
+
+    case context.to_sym
+    when :admin
+      admin_dashboard_path
+    when :referral_partner
+      referral_portal_url_for
+    when :tenant
+      tenant_portal_url_for(user)
+    else
+      root_path
+    end
+  end
+
+  def tenant_portal_url_for(user)
+    organization = user.active_organizations.first
+    return root_path unless organization
+
+    if Rails.env.development?
+      "http://#{organization.subdomain}.localhost:3000/tenant/dashboard"
+    else
+      host = ENV.fetch("HOST", request.host_with_port)
+      "#{request.protocol}#{organization.subdomain}.#{host}/tenant/dashboard"
+    end
+  end
+
+  def referral_portal_url_for(path = "/dashboard")
+    if Rails.env.development?
+      "http://referral.localhost:3000#{path}"
+    else
+      host = ENV.fetch("HOST", request.host_with_port)
+      "#{request.protocol}referral.#{host}#{path}"
+    end
+  end
 
   def set_current_organization
     return unless user_signed_in?

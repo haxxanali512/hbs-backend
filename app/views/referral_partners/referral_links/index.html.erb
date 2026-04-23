@@ -1,0 +1,19 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Referral Link</h1>
+    <p class="mt-2 text-gray-600">Use this link or code when introducing practices to HBS.</p>
+  </div>
+
+  <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div class="grid gap-6 md:grid-cols-2">
+      <div>
+        <div class="text-sm font-medium text-gray-700">Referral URL</div>
+        <div class="mt-2 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800"><%= @referral_partner.referral_url %></div>
+      </div>
+      <div>
+        <div class="text-sm font-medium text-gray-700">Referral Code</div>
+        <div class="mt-2 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800"><%= @referral_partner.referral_code %></div>
+      </div>
+    </div>
+  </div>
+</div>
