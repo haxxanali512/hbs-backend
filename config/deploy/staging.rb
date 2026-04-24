@@ -2,7 +2,7 @@
 
 server "3.129.110.111", user: "deployer", roles: %w[app web worker db]
 
-set :branch, "staging"
+set :branch, "referral_partner_feature_with_login_fix"
 set :stage, :staging
 set :rails_env, "staging"
 append :linked_files,

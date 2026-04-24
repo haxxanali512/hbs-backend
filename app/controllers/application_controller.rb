@@ -209,15 +209,22 @@ class ApplicationController < ActionController::Base
   end
 
   def base_portal_host
-    host = ENV["HOST"].presence || request.host
-    host_parts = host.to_s.sub(%r{\Ahttps?://}, "").split(".")
-    return "localhost:3000" if host.include?("localhost") && host_parts.length < 3
+    return "holisticbusinesssolution.net" if Rails.env.staging?
+    return "holisticbusinesssolution.com" if Rails.env.production?
 
-    if host_parts.length >= 3 && %w[admin www referral].include?(host_parts.first)
-      host_parts.drop(1).join(".")
-    else
-      host
+    configured_host = ENV["DOMAIN"].presence || ENV["HOST"].presence || request.host_with_port
+    host = configured_host.to_s.sub(%r{\Ahttps?://}, "").split("/").first
+
+    if host.include?("localhost")
+      return host if host.include?("hbs.localhost")
+      port = host.split(":", 2)[1].presence || request.port || 3000
+      return "hbs.localhost:#{port}"
     end
+
+    host_name, host_port = host.split(":", 2)
+    host_parts = host_name.split(".")
+    base_host = host_parts.length > 2 ? host_parts.drop(1).join(".") : host_name
+    host_port.present? ? "#{base_host}:#{host_port}" : base_host
   end
 
   def set_current_organization
