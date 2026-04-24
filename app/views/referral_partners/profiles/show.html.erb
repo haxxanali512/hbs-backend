@@ -1,0 +1,58 @@
+<div class="w-full py-8 px-4 sm:px-6 lg:px-8">
+  <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Profile</h1>
+      <p class="mt-2 text-sm text-gray-600">Manage your referral partner contact details and tax information status.</p>
+    </div>
+    <%= link_to edit_referral_partner_profile_path, class: "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6.232-6.232a2.5 2.5 0 013.536 3.536L12.536 14.5a4 4 0 01-1.414.95L8 16l.55-3.122A4 4 0 019 11z" />
+      </svg>
+      Edit Profile
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+    <div class="xl:col-span-2 rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div class="border-b border-gray-200 px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-900">Partner Information</h2>
+      </div>
+
+      <dl class="grid gap-6 p-6 md:grid-cols-2">
+        <div>
+          <dt class="text-sm font-medium text-gray-500">First Name</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900"><%= current_referral_partner.first_name %></dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Last Name</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900"><%= current_referral_partner.last_name %></dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Email</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900"><%= current_referral_partner.email %></dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Phone</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900"><%= current_referral_partner.phone.presence || "—" %></dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Tax Form Status</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900"><%= current_referral_partner.tax_form_status.presence || "Not provided" %></dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Partner Type</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900"><%= current_referral_partner.partner_type.humanize %></dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div class="border-b border-gray-200 px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-900">Notes</h2>
+      </div>
+      <div class="p-6">
+        <p class="text-sm leading-6 text-gray-600"><%= current_referral_partner.notes.presence || "No internal partner notes have been added yet." %></p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   devise_for :users, controllers: {
+    sessions: "users/sessions",
     invitations: "users/invitations",
     masquerades: "admin/masquerades"
   }
@@ -16,6 +17,10 @@ Rails.application.routes.draw do
       patch :mark_all_as_read
       get :unread_count
     end
+  end
+
+  resource :portal_context, only: [] do
+    patch :switch
   end
 
   # API routes
@@ -210,6 +215,42 @@ Rails.application.routes.draw do
 
       resources :resources
 
+      resources :referral_partner_applications, only: [ :index, :show, :update ] do
+        member do
+          patch :approve
+          patch :deny
+        end
+      end
+
+      resources :referral_partners do
+        collection do
+          get :existing_user
+          get :search_users
+        end
+        member do
+          patch :suspend
+        end
+      end
+
+      resources :referral_relationships, except: [ :new, :create ] do
+        member do
+          patch :mark_ineligible
+        end
+        collection do
+          get :export
+        end
+      end
+
+      resources :referral_commissions, only: [ :index, :show, :update ] do
+        member do
+          patch :approve
+          patch :mark_paid
+        end
+        collection do
+          get :export
+        end
+      end
+
       resources :fee_schedules do
         member do
           post :lock
@@ -327,6 +368,24 @@ Rails.application.routes.draw do
           get :export
         end
       end
+    end
+  end
+
+  constraints subdomain: "referral" do
+    root "referral_partners/applications#new", as: :referral_root
+
+    scope module: "referral_partners", as: "referral_partner" do
+      get "dashboard", to: "dashboard#index"
+      get "apply", to: "applications#new"
+      post "apply", to: "applications#create"
+      resource :referral_link, only: [ :show ]
+      resources :referrals, only: [ :index, :show ]
+      resources :payout_history, only: [ :index ] do
+        collection do
+          get :export
+        end
+      end
+      resource :profile, only: [ :show, :edit, :update ]
     end
   end
 
@@ -570,4 +629,3 @@ Rails.application.routes.draw do
       end
     end
   end
-

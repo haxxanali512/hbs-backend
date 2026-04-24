@@ -1,0 +1,110 @@
+<div class="w-full mx-auto py-8 px-4 sm:px-6 lg:px-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900"><%= @referral_partner.full_name %></h1>
+    <div class="flex items-center gap-3">
+      <%= link_to "Edit Partner", edit_admin_referral_partner_path(@referral_partner), class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md" %>
+      <% if @referral_partner.approved? %>
+        <%= button_to "Suspend Partner",
+            suspend_admin_referral_partner_path(@referral_partner),
+            method: :patch,
+            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-md" %>
+      <% end %>
+      <%= link_to "Back to Partners", admin_referral_partners_path, class: "text-sm text-gray-700 hover:text-gray-900" %>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Partner Information</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Full Name</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.full_name %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Email</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.email %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Phone</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.phone.presence || "—" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Partner Type</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.partner_type.humanize %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Status</label>
+          <% status_classes = case @referral_partner.status
+            when "approved" then "bg-emerald-50 text-emerald-700"
+            when "denied" then "bg-red-50 text-red-700"
+            when "suspended" then "bg-amber-50 text-amber-700"
+            else "bg-gray-50 text-gray-700"
+          end %>
+          <span class="mt-1 inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium <%= status_classes %>">
+            <%= @referral_partner.status.humanize %>
+          </span>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Tax Form Status</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.tax_form_status.presence || "—" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Referral Code</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.referral_code.presence || "—" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Referral URL</label>
+          <% if @referral_partner.referral_url.present? %>
+            <p class="mt-1 text-sm break-all">
+              <%= link_to @referral_partner.referral_url, @referral_partner.referral_url, target: "_blank", rel: "noopener noreferrer", class: "text-indigo-600 hover:text-indigo-800" %>
+            </p>
+          <% else %>
+            <p class="mt-1 text-sm text-gray-900">—</p>
+          <% end %>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Linked User</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.user&.email || "Not linked" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Linked Client</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.linked_client&.name || "—" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Approved At</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.approved_at&.strftime("%B %d, %Y at %I:%M %p") || "—" %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Agreement Signed At</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.agreement_signed_at&.strftime("%B %d, %Y at %I:%M %p") || "—" %></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Performance Summary</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Total Referrals</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.referral_relationships.count %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Lifetime Commissions</label>
+          <p class="mt-1 text-sm text-gray-900"><%= number_to_currency(@referral_partner.referral_commissions.sum(:commission_amount)) %></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Notes</h3>
+      <% if @referral_partner.notes.present? %>
+        <div class="text-sm text-gray-700">
+          <%= simple_format(@referral_partner.notes) %>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-500">No notes added for this referral partner.</p>
+      <% end %>
+    </div>
+  </div>
+</div>

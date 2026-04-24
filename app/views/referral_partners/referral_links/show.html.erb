@@ -1,0 +1,95 @@
+<div class="w-full py-8 px-4 sm:px-6 lg:px-8">
+  <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Referral Link</h1>
+      <p class="mt-2 text-sm text-gray-600">Use this link during onboarding so attribution is preserved from the start.</p>
+    </div>
+    <%= link_to referral_partner_referrals_path, class: "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6M9 12h6M9 16h2" />
+      </svg>
+      View Referrals
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+    <div class="xl:col-span-2 rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div class="border-b border-gray-200 px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-900">Shareable Referral Details</h2>
+        <p class="mt-1 text-sm text-gray-500">Copy the exact URL below for referral attribution.</p>
+      </div>
+
+      <div class="space-y-4 p-6">
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Referral Code</p>
+          <p class="mt-2 text-base font-semibold text-gray-900"><%= current_referral_partner.referral_code.presence || "Pending approval" %></p>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Referral URL</p>
+          <p id="referral-url-value" class="mt-2 break-all text-sm text-gray-900"><%= current_referral_partner.referral_url.presence || "Referral URL will appear after approval." %></p>
+        </div>
+
+        <div id="referral-link-feedback" class="hidden rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          Referral link copied.
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button type="button"
+                  id="copy-referral-link"
+                  class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                  <%= "disabled" if current_referral_partner.referral_url.blank? %>>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h5" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V7z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 3v4h4" />
+            </svg>
+            Copy Referral Link
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div class="border-b border-gray-200 px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-900">Qualification Notes</h2>
+      </div>
+
+      <div class="space-y-4 p-6 text-sm text-gray-600">
+        <div class="rounded-lg border border-blue-100 bg-blue-50 p-4">
+          Referral attribution only qualifies when the referral code or link is attached before onboarding is completed.
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          Commission eligibility begins on the first day of the month after the referred client signs.
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          Commissionable revenue excludes software, consulting, and non-billing services.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("turbo:load", function() {
+    var button = document.getElementById("copy-referral-link");
+    var feedback = document.getElementById("referral-link-feedback");
+    if (!button || button.dataset.copyInitialized === "1") return;
+
+    button.dataset.copyInitialized = "1";
+
+    button.addEventListener("click", function() {
+      var value = document.getElementById("referral-url-value")?.textContent?.trim();
+      if (!value) return;
+
+      navigator.clipboard.writeText(value).then(function() {
+        if (!feedback) return;
+        feedback.classList.remove("hidden");
+        setTimeout(function() {
+          feedback.classList.add("hidden");
+        }, 2500);
+      });
+    });
+  });
+</script>

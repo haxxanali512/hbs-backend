@@ -32,7 +32,8 @@ module HbsCustoms
       def data
         {
           tenant: tenant_permissions,
-          admin: admin_permissions
+          admin: admin_permissions,
+          referral_partner: referral_partner_permissions
         }
       end
 
@@ -120,10 +121,24 @@ module HbsCustoms
           support_ticket_comments: DEFAULT_CRUD.except(:destroy).merge(redact: false),
           email_template_keys: DEFAULT_CRUD,
           email_templates: DEFAULT_CRUD,
+          referral_partner_applications: DEFAULT_CRUD.merge(approve: false, deny: false),
+          referral_partners: DEFAULT_CRUD.merge(suspend: false),
+          referral_relationships: DEFAULT_CRUD.merge(mark_ineligible: false, export: false),
+          referral_commissions: DEFAULT_CRUD.merge(approve: false, mark_paid: false, export: false),
           data_exports_imports: DEFAULT_CRUD.except(:destroy, :edit, :create, :update, :show).merge(download_sample: false, export: false, import: false, waystar_import: false, upload_processing_file: false),
           prescriptions: DEFAULT_CRUD,
           encounter_templates: DEFAULT_CRUD,
           resources: DEFAULT_CRUD
+        }.freeze
+      end
+
+      def referral_partner_permissions
+        {
+          dashboard: { index: false },
+          referral_links: { show: false },
+          referrals: { index: false, show: false },
+          payout_history: { index: false, export: false },
+          profiles: { show: false, edit: false, update: false }
         }.freeze
       end
 

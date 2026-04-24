@@ -1,0 +1,70 @@
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Referral Partner Applications</h1>
+          <p class="mt-2 text-gray-600">Review and process incoming partner applications</p>
+        </div>
+      </div>
+    </div>
+
+    <%= render "shared/filters" %>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Partner Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Applied</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% if @referral_partners.present? && @referral_partners.any? %>
+              <% @referral_partners.each do |partner| %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                      <div class="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold">
+                        <%= partner.full_name.first.to_s.upcase %>
+                      </div>
+                      <div>
+                        <%= link_to partner.full_name, admin_referral_partner_application_path(partner), class: "font-medium text-indigo-600 hover:text-indigo-700" %>
+                        <div class="text-sm text-gray-500"><%= partner.email %></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= partner.partner_type.humanize %></td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><%= partner.created_at.strftime("%b %d, %Y") %></td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <% classes = case partner.status
+                      when "approved" then "bg-emerald-50 text-emerald-700"
+                      when "denied" then "bg-red-50 text-red-700"
+                      when "suspended" then "bg-amber-50 text-amber-700"
+                      else "bg-gray-50 text-gray-700"
+                    end %>
+                    <span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium <%= classes %>"><%= partner.status.humanize %></span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <%= link_to "View", admin_referral_partner_application_path(partner), class: "text-indigo-600 hover:text-indigo-800" %>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if @referral_partners.empty? %>
+        <div class="text-center py-12">
+          <div class="text-gray-500 text-lg">No referral partner applications found</div>
+          <div class="text-gray-400 text-sm mt-2">Try adjusting your filters or check back after new applications are submitted</div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

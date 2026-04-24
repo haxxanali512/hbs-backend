@@ -132,6 +132,7 @@ class Tenant::ActivationController < Tenant::BaseController
         contract_version: "activation_contract_v1"
       )
       @organization.billing_setup_complete! if @organization.compliance_setup?
+      ReferralPartners::AttributionService.call(organization: @organization, referral_code: params[:referral_code].presence)
     end
 
     redirect_to tenant_activation_billing_path, notice: "Contract accepted and tier selected."

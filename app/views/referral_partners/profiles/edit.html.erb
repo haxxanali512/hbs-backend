@@ -1,0 +1,57 @@
+<div class="w-full py-8 px-4 sm:px-6 lg:px-8">
+  <div class="mb-6 flex flex-col gap-3">
+    <%= link_to referral_partner_profile_path, class: "inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to Profile
+    <% end %>
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Edit Profile</h1>
+      <p class="mt-2 text-sm text-gray-600">Update your referral partner contact details and status fields.</p>
+    </div>
+  </div>
+
+  <div class="max-w-4xl rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+    <%= form_with model: current_referral_partner, url: referral_partner_profile_path, class: "space-y-6", data: { turbo: false } do |f| %>
+      <% if current_referral_partner.errors.any? %>
+        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <ul class="space-y-1">
+            <% current_referral_partner.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">First Name</label>
+          <%= f.text_field :first_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Last Name</label>
+          <%= f.text_field :last_name, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Phone</label>
+          <%= f.telephone_field :phone, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Tax Form Status</label>
+          <%= f.text_field :tax_form_status, class: "mt-2 block h-11 w-full rounded-lg border border-gray-200 px-4 text-sm focus:border-blue-500 focus:ring-blue-500" %>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Notes</label>
+        <%= f.text_area :notes, rows: 4, class: "mt-2 block w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:ring-blue-500" %>
+      </div>
+
+      <div class="flex items-center justify-end gap-3">
+        <%= link_to "Cancel", referral_partner_profile_path, class: "text-sm font-medium text-gray-700 hover:text-gray-900" %>
+        <%= f.submit "Save Changes", class: "inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700" %>
+      </div>
+    <% end %>
+  </div>
+</div>

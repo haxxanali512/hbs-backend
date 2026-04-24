@@ -15,10 +15,9 @@ class HomeController < ApplicationController
       user_org = current_user.organization_memberships.active.first&.organization
       if user_org
         tenant_url = if Rails.env.development?
-          "http://#{user_org.subdomain}.localhost:3000"
+          "http://#{user_org.subdomain}.hbs.localhost:3000"
         else
-          host = ENV.fetch("HOST", request.host_with_port)
-          "#{request.protocol}#{user_org.subdomain}.#{host}"
+          "#{request.protocol}#{user_org.subdomain}.#{send(:base_portal_host)}"
         end
         redirect_to tenant_url, allow_other_host: true
         return
