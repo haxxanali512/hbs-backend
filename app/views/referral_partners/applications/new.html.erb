@@ -1,0 +1,254 @@
+<style>
+  .referral-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 500ms ease, transform 500ms ease;
+  }
+
+  .referral-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .referral-hero-mark {
+    animation: referralFloat 6s ease-in-out infinite;
+  }
+
+  @keyframes referralFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+</style>
+
+<div class="min-h-screen bg-gray-950 text-white">
+  <section class="relative overflow-hidden border-b border-white/10 bg-[#0d1526]">
+    <div class="pointer-events-none absolute inset-0 opacity-[0.06]">
+      <div class="mx-auto mt-10 flex h-full max-w-6xl items-start justify-end px-8">
+        <%= image_tag "HBS-logo-scaled (1).png", alt: "", class: "h-56 w-auto" %>
+      </div>
+    </div>
+
+    <div class="relative mx-auto grid max-w-7xl gap-14 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-24">
+      <div class="referral-reveal">
+        <div class="mb-8 flex items-center gap-4">
+          <div class="referral-hero-mark flex h-16 w-16 items-center justify-center rounded-2xl bg-white/95 shadow-2xl">
+            <%= image_tag "HBS-logo-scaled (1).png", alt: "Holistic Business Solutions", class: "h-10 w-auto" %>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">Holistic Business Solutions</p>
+            <p class="mt-1 text-sm text-slate-300">Referral Partner Program</p>
+          </div>
+        </div>
+
+        <h1 class="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          Refer practices you trust and track every eligible month from one place.
+        </h1>
+        <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+          Approved partners receive a unique referral code, onboarding link, and a dedicated portal to follow referred practices, commission windows, and payout history.
+        </p>
+
+        <div class="mt-8 flex flex-wrap gap-3">
+          <span class="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-200">12% of eligible collected billing revenue</span>
+          <span class="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200">12-month commission window</span>
+          <span class="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200">Monthly payout review</span>
+        </div>
+
+        <div class="mt-12 grid gap-4 sm:grid-cols-3">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur referral-reveal">
+            <div class="text-3xl font-semibold text-white">12%</div>
+            <div class="mt-2 text-sm text-slate-300">Commission on eligible revenue collected for billing services.</div>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur referral-reveal">
+            <div class="text-3xl font-semibold text-white">10</div>
+            <div class="mt-2 text-sm text-slate-300">Business days after month-end for payout generation and review.</div>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur referral-reveal">
+            <div class="text-3xl font-semibold text-white">1</div>
+            <div class="mt-2 text-sm text-slate-300">Portal to view links, referral activity, eligibility, and payout history.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="referral-reveal">
+        <% if @submitted %>
+          <div class="rounded-3xl border border-emerald-400/30 bg-white p-8 text-slate-900 shadow-2xl">
+            <div class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 class="mt-6 text-2xl font-semibold">Application received</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-600">
+              Thank you for applying to the HBS Referral Partner Program. Our team will review your information and send onboarding details after approval.
+            </p>
+            <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              You can share this page with other potential partners at
+              <span class="font-medium text-slate-900"><%= referral_root_url %></span>
+            </div>
+            <div class="mt-6">
+              <%= link_to "Submit another application", referral_root_path, class: "inline-flex items-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800" %>
+            </div>
+          </div>
+        <% else %>
+          <div class="rounded-3xl border border-white/10 bg-white p-8 text-slate-900 shadow-2xl">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-semibold">Apply to become a partner</h2>
+                <p class="mt-2 text-sm text-slate-600">Tell us a bit about you and we’ll review your application.</p>
+              </div>
+              <div class="hidden h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 sm:flex">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0112 20.055a12.083 12.083 0 01-6.16-9.477L12 14z" />
+                </svg>
+              </div>
+            </div>
+
+            <%= form_with model: @referral_partner, url: referral_partner_apply_path, class: "mt-8 space-y-6" do |f| %>
+              <% if @referral_partner.errors.any? %>
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <ul class="space-y-1">
+                    <% @referral_partner.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              <% end %>
+
+              <div>
+                <label class="block text-sm font-medium text-slate-700">Full Name</label>
+                <%= text_field_tag "referral_partner[full_name]",
+                  [@referral_partner.first_name, @referral_partner.last_name].compact.join(" ").strip,
+                  class: "mt-2 block h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+                  placeholder: "Your full name" %>
+              </div>
+
+              <div class="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">Email</label>
+                  <%= f.email_field :email,
+                    class: "mt-2 block h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+                    placeholder: "name@example.com" %>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">Phone</label>
+                  <%= f.telephone_field :phone,
+                    class: "mt-2 block h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500",
+                    placeholder: "(555) 123-4567" %>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-slate-700">Partner Type</label>
+                <%= f.select :partner_type,
+                  ReferralPartner.partner_types.keys.map { |key| [key.humanize, key] },
+                  { prompt: "Select partner type" },
+                  class: "mt-2 block h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+              </div>
+
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                By applying, you’re asking to be reviewed for referral partner eligibility. Approved partners receive a unique referral code and onboarding link after review.
+              </div>
+
+              <div class="flex items-center justify-between gap-4">
+                <div class="text-xs leading-5 text-slate-500">
+                  Commission eligibility begins on the first day of the month following the referred client’s executed agreement date.
+                </div>
+                <%= f.submit "Submit Application", class: "inline-flex items-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700" %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white text-slate-900">
+    <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div class="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+        <div class="referral-reveal">
+          <p class="text-xs font-semibold uppercase tracking-[0.28em] text-blue-600">How It Works</p>
+          <h2 class="mt-4 text-3xl font-semibold tracking-tight">Simple approval flow, clear attribution, transparent payout tracking.</h2>
+          <p class="mt-4 text-base leading-7 text-slate-600">
+            The launch version is designed to keep referrals easy to submit and easy to monitor once approved.
+          </p>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="referral-reveal rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <div class="text-sm font-semibold text-slate-900">1. Apply</div>
+            <p class="mt-3 text-sm leading-6 text-slate-600">Submit your name, email, phone number, and partner type for review.</p>
+          </div>
+          <div class="referral-reveal rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <div class="text-sm font-semibold text-slate-900">2. Get approved</div>
+            <p class="mt-3 text-sm leading-6 text-slate-600">Approved partners receive a unique referral code, onboarding link, and portal access.</p>
+          </div>
+          <div class="referral-reveal rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <div class="text-sm font-semibold text-slate-900">3. Track activity</div>
+            <p class="mt-3 text-sm leading-6 text-slate-600">Follow referral status, commission eligibility, and payout history in the partner dashboard.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-16 grid gap-6 lg:grid-cols-2">
+        <div class="referral-reveal rounded-3xl border border-slate-200 bg-slate-50 p-8">
+          <h3 class="text-xl font-semibold text-slate-900">Program Terms</h3>
+          <ul class="mt-6 space-y-4 text-sm leading-6 text-slate-600">
+            <li class="flex gap-3"><span class="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span>Referral partners receive 12% of eligible collected billing revenue.</span></li>
+            <li class="flex gap-3"><span class="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span>Software subscriptions, consulting, and non-billing services are excluded.</span></li>
+            <li class="flex gap-3"><span class="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span>The commission window lasts 12 months starting on the first day of the month after contract execution.</span></li>
+            <li class="flex gap-3"><span class="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span>Payouts are generated monthly after collected revenue is confirmed and the client remains in good standing.</span></li>
+          </ul>
+        </div>
+
+        <div class="referral-reveal rounded-3xl border border-slate-200 bg-slate-950 p-8 text-white">
+          <h3 class="text-xl font-semibold">What approved partners receive</h3>
+          <div class="mt-6 grid gap-4">
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div class="text-sm font-semibold">Unique referral code</div>
+              <p class="mt-2 text-sm text-slate-300">A dedicated code and referral link for onboarding attribution.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div class="text-sm font-semibold">Partner dashboard</div>
+              <p class="mt-2 text-sm text-slate-300">See referral activity, eligibility windows, current earnings, and payout history.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div class="text-sm font-semibold">Clear monthly visibility</div>
+              <p class="mt-2 text-sm text-slate-300">Track which referred practices are active, eligible, ended, or awaiting payout review.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function() {
+    function initializeReferralLandingReveals() {
+      const elements = document.querySelectorAll(".referral-reveal");
+      if (!elements.length || typeof IntersectionObserver === "undefined") {
+        elements.forEach((element) => element.classList.add("is-visible"));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+
+      elements.forEach((element, index) => {
+        element.style.transitionDelay = `${Math.min(index * 60, 280)}ms`;
+        observer.observe(element);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", initializeReferralLandingReveals);
+    document.addEventListener("turbo:load", initializeReferralLandingReveals);
+  })();
+</script>

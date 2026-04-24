@@ -1,0 +1,96 @@
+<div class="w-full mx-auto py-8 px-4 sm:px-6 lg:px-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900"><%= @referral_partner.full_name %></h1>
+    <div class="flex items-center gap-3">
+      <% if @referral_partner.pending? %>
+        <%= button_to "Approve",
+            approve_admin_referral_partner_application_path(@referral_partner),
+            method: :patch,
+            data: { turbo: false },
+            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md" %>
+        <%= button_to "Deny",
+            deny_admin_referral_partner_application_path(@referral_partner),
+            method: :patch,
+            data: { turbo: false },
+            class: "inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-md" %>
+      <% end %>
+      <%= link_to "Back to Applications", admin_referral_partner_applications_path, class: "text-sm text-gray-700 hover:text-gray-900" %>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 class="text-base font-semibold text-gray-900 mb-4">Application Details</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Full Name</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.full_name %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Email</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.email %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Partner Type</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.partner_type.humanize %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Status</label>
+          <% status_classes = case @referral_partner.status
+            when "approved" then "bg-emerald-50 text-emerald-700"
+            when "denied" then "bg-red-50 text-red-700"
+            when "suspended" then "bg-amber-50 text-amber-700"
+            else "bg-gray-50 text-gray-700"
+          end %>
+          <span class="mt-1 inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium <%= status_classes %>">
+            <%= @referral_partner.status.humanize %>
+          </span>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Date Applied</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.created_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Approved At</label>
+          <p class="mt-1 text-sm text-gray-900"><%= @referral_partner.approved_at&.strftime("%B %d, %Y at %I:%M %p") || "—" %></p>
+        </div>
+      </div>
+    </div>
+
+    <%= form_with model: [ :admin, @referral_partner ], url: admin_referral_partner_application_path(@referral_partner), class: "space-y-6", data: { turbo: false } do |f| %>
+      <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+        <h3 class="text-base font-semibold text-gray-900 mb-4">Application Review</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Phone</label>
+            <%= f.telephone_field :phone, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Tax Form Status</label>
+            <%= f.text_field :tax_form_status, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Linked Client</label>
+            <%= f.collection_select :linked_client_id, Organization.order(:name), :id, :name, { include_blank: "None" }, class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Current Status</label>
+            <div class="mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+              <%= @referral_partner.status.humanize %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+        <h3 class="text-base font-semibold text-gray-900 mb-4">Internal Notes</h3>
+        <%= f.text_area :notes, rows: 5, class: "mt-2 block w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+
+        <div class="mt-6 flex items-center justify-end gap-4">
+          <%= link_to "Cancel", admin_referral_partner_applications_path, class: "text-sm text-gray-700 hover:text-gray-900" %>
+          <%= f.submit "Save Application Notes", class: "inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

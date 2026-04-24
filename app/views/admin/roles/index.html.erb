@@ -19,7 +19,12 @@
     { 
       label: 'Scope', 
       render: ->(role) {
-        scope_classes = role.global? ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'
+        scope_classes = case role.scope
+        when "global" then "bg-blue-50 text-blue-700"
+        when "admin" then "bg-violet-50 text-violet-700"
+        when "referral" then "bg-amber-50 text-amber-700"
+        else "bg-green-50 text-green-700"
+        end
         raw "<span class=\"inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium #{scope_classes}\">#{role.scope.humanize}</span>"
       }
     },

@@ -23,6 +23,7 @@ class User < ApplicationRecord
            foreign_key: "assigned_to_user_id",
            dependent: :nullify
   has_many :notifications, dependent: :destroy
+  has_one :referral_partner, dependent: :nullify
 
   # after_create :send_invitation
 
@@ -47,7 +48,10 @@ class User < ApplicationRecord
   end
 
   def dashboard_type
-    role.scope == "global" ? "hbs_dashboard" : "tenant_dashboard"
+    return "hbs_dashboard" if has_admin_access?
+    return "referral_dashboard" if has_referral_partner_access? && !has_tenant_access?
+
+    "tenant_dashboard"
   end
 
   def display_name
@@ -55,7 +59,7 @@ class User < ApplicationRecord
   end
 
   def permissions_for(type, controller, action)
-    role.access.dig(type, controller, action)
+    role&.access&.dig(type, controller, action)
   end
 
   def super_admin?
@@ -94,6 +98,31 @@ class User < ApplicationRecord
     permissions_for("tenant", "encounters", "show") || permissions_for("tenant", "encounter_comments", "create")
   end
 
+  def has_referral_partner_access?
+    has_referral_partner_permissions? && current_referral_partner.present?
+  end
+
+  def current_referral_partner
+    referral_partner
+  end
+
+  def available_portal_contexts
+    contexts = []
+    contexts << :admin if has_admin_access?
+    contexts << :tenant if has_tenant_access? && active_organizations.exists?
+    contexts << :referral_partner if has_referral_partner_access?
+    contexts
+  end
+
+  def multiple_portal_contexts?
+    available_portal_contexts.many?
+  end
+
+  def referral_partner_admin?
+    permissions_for("admin", "referral_partners", "index") ||
+      permissions_for("admin", "referral_partner_applications", "index")
+  end
+
   def hbs_user?
     super_admin? || role&.global?
   end
@@ -123,5 +152,13 @@ class User < ApplicationRecord
   def organization_id
     # Return the first active organization's ID for tenant users
     active_organizations.first&.id
+  end
+
+  private
+
+  def has_referral_partner_permissions?
+    permissions_for("referral_partner", "dashboard", "index") ||
+      permissions_for("referral_partner", "referrals", "index") ||
+      permissions_for("referral_partner", "payout_history", "index")
   end
 end

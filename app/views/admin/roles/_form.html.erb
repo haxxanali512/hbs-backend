@@ -12,7 +12,8 @@
             options_for_select([
               ['Global', 'global'],
               ['Admin', 'admin'],
-              ['Tenant', 'tenant']
+              ['Tenant', 'tenant'],
+              ['Referral', 'referral']
             ], @role.scope),
             { prompt: 'Select permission type' },
             { id: "role_scope", class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" } %>
@@ -94,11 +95,14 @@
       } else if (selectedScope === 'global') {
         // Global shows both admin and tenant blocks
         block.style.display = 'block';
-      } else if (selectedScope === 'admin' && blockScope === 'admin') {
-        // Admin shows only admin blocks
+      } else if (selectedScope === 'admin' && (blockScope === 'admin' || blockScope === 'referral_partner')) {
+        // Admin shows admin blocks plus referral module options
         block.style.display = 'block';
-      } else if (selectedScope === 'tenant' && blockScope === 'tenant') {
-        // Tenant shows only tenant blocks
+      } else if (selectedScope === 'referral' && blockScope === 'referral_partner') {
+        // Referral shows only referral partner blocks
+        block.style.display = 'block';
+      } else if (selectedScope === 'tenant' && (blockScope === 'tenant' || blockScope === 'referral_partner')) {
+        // Tenant shows tenant blocks plus referral module options
         block.style.display = 'block';
       } else {
         block.style.display = 'none';

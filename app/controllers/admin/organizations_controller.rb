@@ -261,6 +261,7 @@ class Admin::OrganizationsController < Admin::BaseController
       :name,
       :subdomain,
       :tier,
+      :referral_code,
       :owner_id,
       organization_setting_attributes: [
         :id,

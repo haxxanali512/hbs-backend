@@ -1,0 +1,39 @@
+<div class="w-full py-8 px-4 sm:px-6 lg:px-8">
+  <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">My Referrals</h1>
+      <p class="mt-2 text-sm text-gray-600">Review referred practices, their status, and active commission windows.</p>
+    </div>
+    <%= link_to referral_partner_referral_link_path, class: "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-2 2a4 4 0 01-5.656-5.656l1-1" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.172 13.828a4 4 0 010-5.656l2-2a4 4 0 115.656 5.656l-1 1" />
+      </svg>
+      Referral Link
+    <% end %>
+  </div>
+
+  <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div class="border-b border-gray-200 px-6 py-4">
+      <h2 class="text-lg font-semibold text-gray-900">Referral Relationships</h2>
+      <p class="mt-1 text-sm text-gray-500">Sorted by newest referral first.</p>
+    </div>
+
+    <% if @relationships.any? %>
+      <% columns = [
+        { label: "Practice Name", render: ->(relationship) { link_to relationship.referred_practice_name, referral_partner_referral_path(relationship), class: "font-medium text-blue-600 hover:text-blue-700" } },
+        { label: "Status", render: ->(relationship) { relationship.status.humanize } },
+        { label: "Tier", render: ->(relationship) { relationship.tier_selected.presence || "—" } },
+        { label: "Commission Start", render: ->(relationship) { relationship.commission_start_date&.strftime("%b %d, %Y") || "—" } },
+        { label: "Commission End", render: ->(relationship) { relationship.commission_end_date&.strftime("%b %d, %Y") || "—" } },
+        { label: "Eligibility", render: ->(relationship) { relationship.eligibility_status.humanize } }
+      ] %>
+      <%= render "shared/table", columns: columns, collection: @relationships %>
+    <% else %>
+      <div class="px-6 py-12 text-center">
+        <h3 class="text-base font-medium text-gray-900">No referrals yet</h3>
+        <p class="mt-2 text-sm text-gray-500">Once a practice is attributed to your referral code, it will appear here.</p>
+      </div>
+    <% end %>
+  </div>
+</div>

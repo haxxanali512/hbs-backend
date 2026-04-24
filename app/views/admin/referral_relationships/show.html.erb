@@ -1,0 +1,29 @@
+<div class="w-full px-4 py-8 sm:px-6 lg:px-8">
+  <div class="mb-6 flex items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900"><%= @referral_relationship.referred_practice_name %></h1>
+      <p class="mt-2 text-sm text-gray-600">Partner: <%= @referral_relationship.referral_partner.full_name %></p>
+    </div>
+    <div class="flex gap-3">
+      <%= link_to "Edit", edit_admin_referral_relationship_path(@referral_relationship), class: "inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+      <%= button_to "Mark Ineligible", mark_ineligible_admin_referral_relationship_path(@referral_relationship), method: :patch, params: { ineligibility_reason: "Marked ineligible by admin" }, class: "inline-flex items-center rounded-lg border border-amber-200 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50" %>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <dl class="grid gap-6 md:grid-cols-2 text-sm">
+      <div><dt class="text-gray-500">Commission Start</dt><dd class="mt-1 font-medium text-gray-900"><%= @referral_relationship.commission_start_date&.strftime("%b %d, %Y") || "—" %></dd></div>
+      <div><dt class="text-gray-500">Commission End</dt><dd class="mt-1 font-medium text-gray-900"><%= @referral_relationship.commission_end_date&.strftime("%b %d, %Y") || "—" %></dd></div>
+      <div><dt class="text-gray-500">Status</dt><dd class="mt-1 font-medium text-gray-900"><%= @referral_relationship.status.humanize %></dd></div>
+      <div><dt class="text-gray-500">Eligibility</dt><dd class="mt-1 font-medium text-gray-900"><%= @referral_relationship.eligibility_status.humanize %></dd></div>
+      <div><dt class="text-gray-500">Revenue To Date</dt><dd class="mt-1 font-medium text-gray-900"><%= number_to_currency(@referral_relationship.total_revenue_to_date) %></dd></div>
+      <div><dt class="text-gray-500">Commission To Date</dt><dd class="mt-1 font-medium text-gray-900"><%= number_to_currency(@referral_relationship.total_commission_to_date) %></dd></div>
+    </dl>
+
+    <% if @referral_relationship.ineligibility_reason.present? %>
+      <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <strong>Ineligibility Reason:</strong> <%= @referral_relationship.ineligibility_reason %>
+      </div>
+    <% end %>
+  </div>
+</div>

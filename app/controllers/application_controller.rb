@@ -11,7 +11,9 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
   around_action :set_tenant_context, unless: -> { devise_controller? || controller_name == "notifications" }
   before_action :has_access?, unless: :devise_controller?
-  helper_method :current_organization, :current_organization_date, :current_organization_time_zone, :format_in_organization_tz
+  helper_method :current_organization, :current_organization_date, :current_organization_time_zone,
+                :format_in_organization_tz, :current_portal_context, :available_portal_contexts,
+                :portal_destination_for, :show_portal_context_switcher?, :portal_switcher_contexts
 
   protected
 
@@ -99,6 +101,10 @@ class ApplicationController < ActionController::Base
     devise_parameter_sanitizer.permit(:sign_up, keys: [ :username, :first_name, :last_name ])
   end
 
+  def after_sign_in_path_for(resource)
+    portal_destination_for(default_portal_context_for(resource), user: resource) || super
+  end
+
   def pundit_user
     {
       user: current_user,
@@ -115,11 +121,104 @@ class ApplicationController < ActionController::Base
 
   def find_org_by_subdomain
     subdomain = request.subdomain
-    return nil if subdomain.blank? || subdomain == "www" || subdomain == "admin"
+    return nil if subdomain.blank? || %w[www admin referral].include?(subdomain)
     Organization.find_by(subdomain: subdomain)
   end
 
   private
+
+  def current_portal_context
+    return :tenant if self.class.name.start_with?("Tenant::")
+    return :referral_partner if request.subdomain == "referral"
+    return :admin if request.subdomain.in?([ "", "www", "admin", nil ])
+
+    nil
+  end
+
+  def available_portal_contexts
+    current_user&.available_portal_contexts || []
+  end
+
+  def show_portal_context_switcher?
+    user_signed_in? && portal_switcher_contexts.any?
+  end
+
+  def portal_switcher_contexts
+    return [] unless user_signed_in?
+
+    case current_portal_context
+    when :tenant
+      available_portal_contexts.select { |context| context == :referral_partner }
+    when :referral_partner
+      available_portal_contexts.select { |context| context == :tenant }
+    else
+      []
+    end
+  end
+
+  def default_portal_context_for(user)
+    return :tenant if user.available_portal_contexts.include?(:tenant)
+    return :referral_partner if user.available_portal_contexts.include?(:referral_partner)
+    return :admin if user.available_portal_contexts.include?(:admin)
+
+    nil
+  end
+
+  def portal_destination_for(context, user: current_user)
+    return nil if user.blank?
+
+    case context.to_sym
+    when :tenant
+      tenant_portal_url_for(user)
+    when :referral_partner
+      referral_portal_url_for("/dashboard")
+    when :admin
+      admin_portal_url_for("/admin/dashboard")
+    else
+      nil
+    end
+  rescue NoMethodError
+    nil
+  end
+
+  def tenant_portal_url_for(user)
+    organization = user.active_organizations.first
+    return nil unless organization
+
+    if Rails.env.development?
+      "http://#{organization.subdomain}.hbs.localhost:3000/tenant/dashboard"
+    else
+      "#{request.protocol}#{organization.subdomain}.#{base_portal_host}/tenant/dashboard"
+    end
+  end
+
+  def referral_portal_url_for(path)
+    if Rails.env.development?
+      "http://referral.hbs.localhost:3000#{path}"
+    else
+      "#{request.protocol}referral.#{base_portal_host}#{path}"
+    end
+  end
+
+  def admin_portal_url_for(path)
+    if Rails.env.development?
+      "http://admin.hbs.localhost:3000#{path}"
+    else
+      "#{request.protocol}admin.#{base_portal_host}#{path}"
+    end
+  end
+
+  def base_portal_host
+    host = ENV["HOST"].presence || request.host
+    host_parts = host.to_s.sub(%r{\Ahttps?://}, "").split(".")
+    return "localhost:3000" if host.include?("localhost") && host_parts.length < 3
+
+    if host_parts.length >= 3 && %w[admin www referral].include?(host_parts.first)
+      host_parts.drop(1).join(".")
+    else
+      host
+    end
+  end
 
   def set_current_organization
     return unless user_signed_in?

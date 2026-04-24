@@ -1,0 +1,144 @@
+<div class="w-full py-8 px-4 sm:px-6 lg:px-8">
+  <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Referral Dashboard</h1>
+      <p class="mt-2 text-sm text-gray-600">Track referrals, commission eligibility, and recent earnings for your referral account.</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <%= link_to referral_partner_referral_link_path, class: "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-2 2a4 4 0 01-5.656-5.656l1-1" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.172 13.828a4 4 0 010-5.656l2-2a4 4 0 115.656 5.656l-1 1" />
+        </svg>
+        Referral Link
+      <% end %>
+      <%= link_to referral_partner_payout_history_index_path, class: "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 14l3-3 3 2 4-5" />
+        </svg>
+        Payout History
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-gray-500">Total Referrals</p>
+        <div class="rounded-full bg-blue-50 p-2 text-blue-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6M9 12h6M9 16h2" />
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 text-3xl font-bold text-gray-900"><%= @relationships.count %></div>
+      <p class="mt-2 text-xs text-gray-500">All practices attributed to your referral code.</p>
+    </div>
+
+    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-gray-500">Active Referrals</p>
+        <div class="rounded-full bg-emerald-50 p-2 text-emerald-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12l4 4L19 6" />
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 text-3xl font-bold text-gray-900"><%= @relationships.active.count %></div>
+      <p class="mt-2 text-xs text-gray-500">Referred practices currently inside an active commission lifecycle.</p>
+    </div>
+
+    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-gray-500">Lifetime Earnings</p>
+        <div class="rounded-full bg-violet-50 p-2 text-violet-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-10V6m0 12v-2" />
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 text-3xl font-bold text-gray-900"><%= number_to_currency(@commissions.sum(:commission_amount)) %></div>
+      <p class="mt-2 text-xs text-gray-500">Total earned commissions across all qualified practices.</p>
+    </div>
+
+    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-gray-500">Current Month</p>
+        <div class="rounded-full bg-amber-50 p-2 text-amber-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M6 5h12a1 1 0 011 1v13a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1z" />
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 text-3xl font-bold text-gray-900"><%= number_to_currency(@current_month_earnings) %></div>
+      <p class="mt-2 text-xs text-gray-500">Commissions generated for the current month.</p>
+    </div>
+  </div>
+
+  <div class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
+    <div class="xl:col-span-2 rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Recent Referrals</h2>
+          <p class="mt-1 text-sm text-gray-500">Newest attributed practices in your referral pipeline.</p>
+        </div>
+        <%= link_to "View All", referral_partner_referrals_path, class: "text-sm font-medium text-blue-600 hover:text-blue-700" %>
+      </div>
+
+      <% if @relationships.any? %>
+        <% columns = [
+          { label: "Practice", render: ->(relationship) { link_to relationship.referred_practice_name, referral_partner_referral_path(relationship), class: "font-medium text-blue-600 hover:text-blue-700" } },
+          { label: "Status", render: ->(relationship) { relationship.status.humanize } },
+          { label: "Eligibility", render: ->(relationship) { relationship.eligibility_status.humanize } },
+          { label: "Window", render: ->(relationship) {
+              start_date = relationship.commission_start_date&.strftime("%b %d, %Y")
+              end_date = relationship.commission_end_date&.strftime("%b %d, %Y")
+              [start_date, end_date].compact.join(" - ").presence || "—"
+            } }
+        ] %>
+        <div class="p-0">
+          <%= render "shared/table", columns: columns, collection: @relationships.limit(5) %>
+        </div>
+      <% else %>
+        <div class="px-6 py-12 text-center">
+          <h3 class="text-base font-medium text-gray-900">No referrals yet</h3>
+          <p class="mt-2 text-sm text-gray-500">Once a practice signs up with your referral code, it will appear here automatically.</p>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div class="border-b border-gray-200 px-6 py-4">
+        <h2 class="text-lg font-semibold text-gray-900">Referral Link</h2>
+        <p class="mt-1 text-sm text-gray-500">Share this link during onboarding so attribution stays attached.</p>
+      </div>
+
+      <div class="space-y-4 p-6">
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Referral Code</p>
+          <p class="mt-2 text-sm font-semibold text-gray-900"><%= current_referral_partner.referral_code.presence || "Pending approval" %></p>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Referral URL</p>
+          <p class="mt-2 break-all text-sm text-gray-900"><%= current_referral_partner.referral_url.presence || "Referral URL will appear after approval." %></p>
+        </div>
+
+        <div class="rounded-lg border border-blue-100 bg-blue-50 p-4">
+          <p class="text-sm font-medium text-blue-900">Quick Reminder</p>
+          <p class="mt-1 text-sm text-blue-700">Referral attribution only qualifies when the referral code is attached before onboarding completes.</p>
+        </div>
+
+        <%= link_to referral_partner_referral_link_path, class: "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-2 2a4 4 0 01-5.656-5.656l1-1" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.172 13.828a4 4 0 010-5.656l2-2a4 4 0 115.656 5.656l-1 1" />
+          </svg>
+          Manage Referral Link
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

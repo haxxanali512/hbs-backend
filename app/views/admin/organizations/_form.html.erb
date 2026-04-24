@@ -57,6 +57,12 @@
             { class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
       </div>
       <div>
+        <label class="block text-sm font-medium text-gray-700">Referral Code</label>
+        <%= f.text_field :referral_code,
+              placeholder: "Optional referral code",
+              class: "mt-2 block w-full h-11 rounded-lg border border-gray-200 bg-white px-4 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500" %>
+      </div>
+      <div>
         <label class="block text-sm font-medium text-gray-700">Owner</label>
         <div class="mt-2 flex gap-2">
           <%= f.collection_select :owner_id, 
