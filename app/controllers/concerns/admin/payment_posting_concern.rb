@@ -15,6 +15,7 @@ module Admin::PaymentPostingConcern
 
   def build_payment_context
     @payment = Payment.new if @payment.nil?
+    @encounter ||= @payment.primary_encounter if @payment.persisted?
 
     if should_create_claim_for_payment_posting? && @encounter.claim.blank?
       @encounter.create_claim_with_lines_if_missing!
@@ -39,7 +40,9 @@ module Admin::PaymentPostingConcern
       end
     end
     @applications_by_line =
-      if @encounter
+      if @payment.persisted?
+        @payment.payment_applications.index_by(&:claim_line_id)
+      elsif @encounter
         @encounter.payment_applications.index_by(&:claim_line_id)
       else
         {}
@@ -142,6 +145,14 @@ module Admin::PaymentPostingConcern
   end
 
   def create_manual_payment_from_params
+    persist_manual_payment!(payment: nil)
+  end
+
+  def update_manual_payment_from_params
+    persist_manual_payment!(payment: @payment)
+  end
+
+  def persist_manual_payment!(payment:)
     raw_service_lines = params[:service_lines] || {}
     service_lines_params =
       if raw_service_lines.is_a?(ActionController::Parameters)
@@ -171,7 +182,7 @@ module Admin::PaymentPostingConcern
         next 0.to_d unless attrs.is_a?(Hash)
 
         status = attrs[:status].to_s.presence || attrs["status"].to_s
-        next 0.to_d unless [ "paid", "adjusted" ].include?(status)
+        next 0.to_d unless PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(status)
 
         amount_str = attrs[:amount_paid].to_s.presence || attrs["amount_paid"].to_s
         amount_str.present? ? BigDecimal(amount_str) : 0.to_d
@@ -190,22 +201,40 @@ module Admin::PaymentPostingConcern
         org_id: org_id,
         payer_id: payer&.id,
         encounter_id: @encounter&.id,
-        preferred_reference: remit_reference
+        preferred_reference: remit_reference,
+        excluding_payment_id: payment&.id
       )
 
-      @payment = Payment.create!(
-        invoice_id: nil,
-        amount: total_amount, # legacy invoice column is NOT NULL in production
-        organization_id: org_id,
-        payer: payer,
-        payment_date: payment_date || Date.current,
-        amount_total: total_amount,
-        remit_reference: resolved_remit_reference,
-        source_hash: SecureRandom.uuid,
-        payment_status: :succeeded,
-        payment_method: :manual,
-        processed_by_user: current_user
-      )
+      @payment =
+        if payment.present?
+          payment.update!(
+            organization_id: org_id,
+            payer: payer,
+            payment_date: payment_date || Date.current,
+            amount: total_amount,
+            amount_total: total_amount,
+            remit_reference: resolved_remit_reference,
+            payment_status: :succeeded,
+            payment_method: :manual,
+            processed_by_user: current_user
+          )
+          payment.payment_applications.destroy_all
+          payment
+        else
+          Payment.create!(
+            invoice_id: nil,
+            amount: total_amount, # legacy invoice column is NOT NULL in production
+            organization_id: org_id,
+            payer: payer,
+            payment_date: payment_date || Date.current,
+            amount_total: total_amount,
+            remit_reference: resolved_remit_reference,
+            source_hash: SecureRandom.uuid,
+            payment_status: :succeeded,
+            payment_method: :manual,
+            processed_by_user: current_user
+          )
+        end
 
       if @encounter && @claim
         claim_lines = @claim.claim_lines.includes(:procedure_code).to_a
@@ -291,13 +320,17 @@ module Admin::PaymentPostingConcern
     end
   end
 
-  def unique_manual_remit_reference(org_id:, payer_id:, encounter_id:, preferred_reference:)
+  def unique_manual_remit_reference(org_id:, payer_id:, encounter_id:, preferred_reference:, excluding_payment_id: nil)
     base_reference = preferred_reference.presence || (encounter_id ? "MANUAL-#{encounter_id}-#{Time.current.to_i}" : "MANUAL-#{Time.current.to_i}")
-    return base_reference unless Payment.exists?(organization_id: org_id, payer_id: payer_id, remit_reference: base_reference)
+    existing_scope = Payment.where(organization_id: org_id, payer_id: payer_id, remit_reference: base_reference)
+    existing_scope = existing_scope.where.not(id: excluding_payment_id) if excluding_payment_id.present?
+    return base_reference unless existing_scope.exists?
 
     1.upto(999) do |index|
       candidate = "#{base_reference}-#{index}"
-      return candidate unless Payment.exists?(organization_id: org_id, payer_id: payer_id, remit_reference: candidate)
+      scope = Payment.where(organization_id: org_id, payer_id: payer_id, remit_reference: candidate)
+      scope = scope.where.not(id: excluding_payment_id) if excluding_payment_id.present?
+      return candidate unless scope.exists?
     end
 
     "#{base_reference}-#{SecureRandom.hex(3)}"

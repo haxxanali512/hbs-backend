@@ -1,21 +1,10 @@
 <div class="min-h-screen bg-gray-50 py-8">
   <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
     <div class="mb-8">
       <div class="flex justify-between items-center">
         <div>
-          <h2 class="text-3xl font-bold text-gray-900">
-            <%= @payment&.persisted? ? "Edit Posted Payment" : (@encounter ? "Manual Payment Posting" : "New Manual Payment") %>
-          </h2>
-          <p class="mt-2 text-gray-600">
-            <% if @payment&.persisted? %>
-              Update service-line statuses and payment amounts for this posted payment.
-            <% elsif @encounter %>
-              Post payments for this encounter at the service-line level.
-            <% else %>
-              Create a manual payment record.
-            <% end %>
-          </p>
+          <h2 class="text-3xl font-bold text-gray-900">Edit Posted Payment</h2>
+          <p class="mt-2 text-gray-600">Update service-line statuses and payment amounts for this posted payment.</p>
         </div>
         <div>
           <% if @encounter %>
@@ -31,7 +20,6 @@
       </div>
     </div>
 
-    <!-- Form container -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <%= render "form",
                  payment: @payment,

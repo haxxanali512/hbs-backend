@@ -44,7 +44,7 @@ class Payment < ApplicationRecord
   # Derived helpers for allocations
   def applied_total
     # Only payer-paid/adjusted service-line amounts should count toward "applied".
-    payment_applications.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+    payment_applications.select { |a| PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(a.line_status.to_s) }.sum(&:amount_applied)
   end
 
   def remaining_amount
@@ -82,6 +82,10 @@ class Payment < ApplicationRecord
     return encounter.payment_status_display_label if encounter.present?
 
     payment_status.to_s.humanize
+  end
+
+  def service_line_editable?
+    payment_applications.map(&:encounter_id).compact.uniq.one?
   end
 
   private

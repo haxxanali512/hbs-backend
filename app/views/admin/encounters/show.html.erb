@@ -1,5 +1,6 @@
 <div class="min-h-screen bg-gray-50 py-8">
   <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <% editable_payment = @encounter.payment_applications.map(&:payment).compact.uniq.select(&:service_line_editable?).max_by(&:updated_at) %>
     <!-- Header -->
     <div class="mb-8">
       <div class="flex justify-between items-center">
@@ -128,6 +129,50 @@
           <% end %>
         </div>
 
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Payment Posting Summary</h2>
+            <% if editable_payment.present? && current_user.permissions_for("admin", "payments", "update") %>
+              <%= link_to "Edit Posted Payment", edit_admin_payment_path(editable_payment), class: "text-sm font-medium text-indigo-600 hover:text-indigo-800" %>
+            <% end %>
+          </div>
+
+          <% if @encounter.payment_applications.any? %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Line</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remit Reference</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Applied</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                  <% @encounter.payment_applications.sort_by(&:created_at).each do |application| %>
+                    <% claim_line = application.claim_line %>
+                    <% code = claim_line&.procedure_code&.code || "00000" %>
+                    <% description = claim_line&.procedure_code&.description || application.note.presence || "Interest Payment" %>
+                    <tr>
+                      <td class="px-4 py-2 text-sm text-gray-900">
+                        <div class="font-medium"><%= code %></div>
+                        <div class="text-xs text-gray-500"><%= description %></div>
+                      </td>
+                      <td class="px-4 py-2 text-sm text-gray-900"><%= application.payment&.remit_reference.presence || "—" %></td>
+                      <td class="px-4 py-2 text-sm text-gray-900 text-right">$<%= number_with_precision(application.amount_applied || 0, precision: 2, delimiter: ",") %></td>
+                      <td class="px-4 py-2 text-sm text-gray-900"><%= application.line_status_display_label %></td>
+                      <td class="px-4 py-2 text-sm text-gray-900"><%= (application.payment&.payment_date || application.payment&.created_at)&.strftime("%m/%d/%Y") || "—" %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500">No payment posting has been recorded for this encounter yet.</p>
+          <% end %>
+        </div>
+
         <!-- Notes -->
         <% if @encounter.notes.present? %>
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -158,8 +203,9 @@
                       class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
                 Submit for Billing
               </button>
-              <%= link_to "Post Payments",
-                          new_admin_payment_path(encounter_id: @encounter.id),
+              <% can_edit_posted_payment = editable_payment.present? && current_user.permissions_for("admin", "payments", "update") %>
+              <%= link_to(can_edit_posted_payment ? "Edit Posted Payment" : "Post Payments",
+                          can_edit_posted_payment ? edit_admin_payment_path(editable_payment) : new_admin_payment_path(encounter_id: @encounter.id),
                           class: "w-full inline-flex justify-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors" %>
             </div>
           </div>
@@ -216,4 +262,3 @@
     title: 'Submit for Billing',
     modal_type: 'claim'
 %>
-

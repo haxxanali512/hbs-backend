@@ -1,6 +1,6 @@
 <%= form_with model: [:admin, payment],
-              url: admin_payments_path,
-              method: :post,
+              url: payment.persisted? ? admin_payment_path(payment) : admin_payments_path,
+              method: payment.persisted? ? :patch : :post,
               id: "manual-payment-form",
               class: "space-y-6" do |f| %>
   <% if payment.errors.any? %>
@@ -189,14 +189,12 @@
                   <div class="flex">
                     <select
                       name="service_lines[interest][status]"
-                      class="mt-1 inline-block w-28 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm status-select"
+                      class="mt-1 inline-block w-44 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm status-select"
                       data-service-line-id="interest"
                     >
-                      <option value="" <%= current_status.blank? ? "selected" : "" %>>Unpaid</option>
-                      <option value="paid" <%= current_status == "paid" ? "selected" : "" %>>Paid</option>
-                      <option value="adjusted" <%= current_status == "adjusted" ? "selected" : "" %>>Adjusted</option>
-                      <option value="deductible" <%= current_status == "deductible" ? "selected" : "" %>>Deductible</option>
-                      <option value="denied" <%= current_status == "denied" ? "selected" : "" %>>Denied</option>
+                      <% PaymentApplication::LINE_STATUS_OPTIONS.each do |label, value| %>
+                        <option value="<%= value %>" <%= current_status == value || (value.blank? && current_status.blank?) ? "selected" : "" %>><%= label %></option>
+                      <% end %>
                     </select>
                   </div>
                 </td>
@@ -241,15 +239,13 @@
                     <div class="flex">
                       <select
                         name="service_lines[<%= line.id %>][status]"
-                        class="mt-1 inline-block w-28 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm status-select"
+                        class="mt-1 inline-block w-44 border border-gray-300 rounded-md px-2 py-1 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm status-select"
                         data-service-line-id="<%= line.id %>"
                       >
                         <% current_status = application&.line_status&.to_s %>
-                        <option value="" <%= current_status.blank? ? "selected" : "" %>>Unpaid</option>
-                        <option value="paid" <%= current_status == "paid" ? "selected" : "" %>>Paid</option>
-                        <option value="adjusted" <%= current_status == "adjusted" ? "selected" : "" %>>Adjusted</option>
-                        <option value="deductible" <%= current_status == "deductible" ? "selected" : "" %>>Deductible</option>
-                        <option value="denied" <%= current_status == "denied" ? "selected" : "" %>>Denied</option>
+                        <% PaymentApplication::LINE_STATUS_OPTIONS.each do |label, value| %>
+                          <option value="<%= value %>" <%= current_status == value || (value.blank? && current_status.blank?) ? "selected" : "" %>><%= label %></option>
+                        <% end %>
                       </select>
                     </div>
                   </td>
@@ -382,7 +378,7 @@
             totalBilled += billed;
           }
 
-          if (!isNaN(amount) && amount > 0 && (status === 'paid' || status === 'adjusted')) {
+          if (!isNaN(amount) && amount > 0 && (status === 'paid' || status === 'adjusted' || status === 'partial_deductible')) {
             totalPaid += amount;
           }
         });
@@ -443,9 +439,9 @@
             }
           }
 
-          if (status === 'paid' || status === 'adjusted') {
+          if (status === 'paid' || status === 'adjusted' || status === 'partial_deductible') {
             if (!(amount > 0)) {
-              errors.push('Paid/Adjusted lines must have amount greater than 0.');
+              errors.push('Paid/Adjusted/Partial Deductible lines must have amount greater than 0.');
             }
           }
         });
@@ -564,4 +560,3 @@
     })();
   </script>
 <% end %>
-

@@ -330,7 +330,7 @@ class Admin::EncountersController < Admin::BaseController
         clinical_documentations: { file_attachment: :blob },
         encounter_comments: { encounter_comment_attachments: { file_attachment: :blob } },
         patient_insurance_coverage: { insurance_plan: :payer },
-        payment_applications: { payment: :payer },
+        payment_applications: [ { payment: :payer }, { claim_line: :procedure_code } ],
         encounter_procedure_items: :procedure_code
       )
     end
