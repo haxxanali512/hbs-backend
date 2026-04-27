@@ -15,6 +15,7 @@ module Admin::PaymentPostingConcern
 
   def build_payment_context
     @payment = Payment.new if @payment.nil?
+    @encounter ||= @payment.primary_encounter if @payment.persisted?
 
     if should_create_claim_for_payment_posting? && @encounter.claim.blank?
       @encounter.create_claim_with_lines_if_missing!
@@ -39,7 +40,9 @@ module Admin::PaymentPostingConcern
       end
     end
     @applications_by_line =
-      if @encounter
+      if @payment.persisted?
+        @payment.payment_applications.index_by(&:claim_line_id)
+      elsif @encounter
         @encounter.payment_applications.index_by(&:claim_line_id)
       else
         {}
@@ -47,6 +50,7 @@ module Admin::PaymentPostingConcern
     @payers = Payer.active_only.order(:name)
     @default_payer = @encounter&.patient_insurance_coverage&.insurance_plan&.payer
     @selected_payer = @payment&.payer || @default_payer
+    @payment_adjustments = @payment&.payment_adjustments&.order(:created_at)&.to_a || []
   end
 
   def resolved_billed_amount_for_line(line)
@@ -142,6 +146,14 @@ module Admin::PaymentPostingConcern
   end
 
   def create_manual_payment_from_params
+    persist_manual_payment!(payment: nil)
+  end
+
+  def update_manual_payment_from_params
+    persist_manual_payment!(payment: @payment)
+  end
+
+  def persist_manual_payment!(payment:)
     raw_service_lines = params[:service_lines] || {}
     service_lines_params =
       if raw_service_lines.is_a?(ActionController::Parameters)
@@ -151,9 +163,16 @@ module Admin::PaymentPostingConcern
       end
     payment_params =
       if params[:payment].is_a?(ActionController::Parameters)
-        params[:payment].permit(:payment_date, :remit_reference, :payer_id, :generate_invoice)
+        params[:payment].permit(:payment_date, :remit_reference, :payer_id, :generate_invoice, :notes)
       else
         ActionController::Parameters.new
+      end
+    raw_adjustments = params[:payment_adjustments] || {}
+    payment_adjustments_params =
+      if raw_adjustments.is_a?(ActionController::Parameters)
+        raw_adjustments.permit!.to_h
+      else
+        raw_adjustments.to_h
       end
 
     payment_date = payment_params[:payment_date].presence && Date.parse(payment_params[:payment_date]) rescue nil
@@ -171,7 +190,7 @@ module Admin::PaymentPostingConcern
         next 0.to_d unless attrs.is_a?(Hash)
 
         status = attrs[:status].to_s.presence || attrs["status"].to_s
-        next 0.to_d unless [ "paid", "adjusted" ].include?(status)
+        next 0.to_d unless PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(status)
 
         amount_str = attrs[:amount_paid].to_s.presence || attrs["amount_paid"].to_s
         amount_str.present? ? BigDecimal(amount_str) : 0.to_d
@@ -186,33 +205,59 @@ module Admin::PaymentPostingConcern
           @default_payer
         end
 
+      adjustment_attributes = normalize_adjustment_attributes(payment_adjustments_params)
+      adjustments_total = adjustment_attributes.sum { |attrs| signed_adjustment_amount(attrs) }
+
       resolved_remit_reference = unique_manual_remit_reference(
         org_id: org_id,
         payer_id: payer&.id,
         encounter_id: @encounter&.id,
-        preferred_reference: remit_reference
+        preferred_reference: remit_reference,
+        excluding_payment_id: payment&.id
       )
 
-      @payment = Payment.create!(
-        invoice_id: nil,
-        amount: total_amount, # legacy invoice column is NOT NULL in production
-        organization_id: org_id,
-        payer: payer,
-        payment_date: payment_date || Date.current,
-        amount_total: total_amount,
-        remit_reference: resolved_remit_reference,
-        source_hash: SecureRandom.uuid,
-        payment_status: :succeeded,
-        payment_method: :manual,
-        processed_by_user: current_user
-      )
+      final_amount_total = total_amount + adjustments_total
+      if final_amount_total.negative?
+        raise ActiveRecord::RecordInvalid.new(payment || Payment.new), "Adjustments would reduce the final net payment below zero."
+      end
+
+      @payment =
+        if payment.present?
+          payment.update!(
+            organization_id: org_id,
+            payer: payer,
+            payment_date: payment_date || Date.current,
+            amount: final_amount_total,
+            amount_total: final_amount_total,
+            remit_reference: resolved_remit_reference,
+            payment_status: :succeeded,
+            payment_method: :manual,
+            notes: payment_params[:notes].presence
+          )
+          payment
+        else
+          Payment.create!(
+            invoice_id: nil,
+            amount: final_amount_total, # legacy invoice column is NOT NULL in production
+            organization_id: org_id,
+            payer: payer,
+            payment_date: payment_date || Date.current,
+            amount_total: final_amount_total,
+            remit_reference: resolved_remit_reference,
+            source_hash: SecureRandom.uuid,
+            payment_status: :succeeded,
+            payment_method: :manual,
+            processed_by_user: current_user,
+            notes: payment_params[:notes].presence
+          )
+        end
 
       if @encounter && @claim
         claim_lines = @claim.claim_lines.includes(:procedure_code).to_a
         claim_lines_by_id = claim_lines.index_by { |line| line.id.to_s }
         procedure_items_by_id = @encounter.encounter_procedure_items.index_by { |item| item.id.to_s }
         used_claim_line_ids = []
-        created_applications_count = 0
+        processed_application_keys = []
 
         service_lines_params.each do |line_key, attrs|
           next unless attrs.is_a?(Hash)
@@ -231,18 +276,17 @@ module Admin::PaymentPostingConcern
           # Support a custom, non-CPT payment service line (e.g. interest payments).
           # These entries are persisted as PaymentApplications with `claim_line` unset.
           if line_key_str == "interest"
-            PaymentApplication.create!(
+            sync_payment_application!(
               payment: @payment,
               claim: @claim,
               claim_line: nil,
               encounter: @encounter,
-              patient: @encounter.patient,
               amount_applied: amount_value,
               line_status: line_status,
-              denial_reason: line_status.to_s == "denied" ? denial_reason : nil,
+              denial_reason: denial_reason,
               note: note.presence || "Interest Payment"
             )
-            created_applications_count += 1
+            processed_application_keys << "interest"
             next
           end
 
@@ -262,42 +306,56 @@ module Admin::PaymentPostingConcern
           end
           used_claim_line_ids << claim_line.id
 
-          PaymentApplication.create!(
+          sync_payment_application!(
             payment: @payment,
             claim: @claim,
             claim_line: claim_line,
             encounter: @encounter,
-            patient: @encounter.patient,
             amount_applied: amount_value,
             line_status: line_status,
-            denial_reason: line_status.to_s == "denied" ? denial_reason : nil,
-            note: note,
-            # Note: keys are matched via claim_line_id; custom service lines
-            # are handled by posting against actual claim lines.
+            denial_reason: denial_reason,
+            note: note
           )
-          created_applications_count += 1
+          processed_application_keys << claim_line.id.to_s
         end
 
-        if created_applications_count.zero?
-          @payment.destroy!
-          raise ActiveRecord::RecordInvalid.new(@payment), "No valid service lines were mapped for this encounter payment."
+        cleanup_unused_payment_applications!(@payment, processed_application_keys)
+
+        if @payment.payment_applications.reload.empty?
+          if payment.present?
+            raise ActiveRecord::RecordInvalid.new(@payment), "No valid service lines were mapped for this encounter payment."
+          else
+            @payment.destroy!
+            raise ActiveRecord::RecordInvalid.new(@payment), "No valid service lines were mapped for this encounter payment."
+          end
         end
+
+        sync_payment_adjustments!(@payment, adjustment_attributes)
 
         @encounter.recalculate_payment_summary!
       elsif @encounter
         # Claim is an auxiliary artifact. Do not crash payment posting if it's absent.
-        update_encounter_payment_summary_without_claim!(total_amount, payment_date)
+        sync_payment_adjustments!(@payment, adjustment_attributes)
+        update_encounter_payment_summary_without_claim!(
+          final_amount_total,
+          payment_date,
+          previous_total: payment.present? ? payment.current_amount_total.to_d : 0.to_d
+        )
       end
     end
   end
 
-  def unique_manual_remit_reference(org_id:, payer_id:, encounter_id:, preferred_reference:)
+  def unique_manual_remit_reference(org_id:, payer_id:, encounter_id:, preferred_reference:, excluding_payment_id: nil)
     base_reference = preferred_reference.presence || (encounter_id ? "MANUAL-#{encounter_id}-#{Time.current.to_i}" : "MANUAL-#{Time.current.to_i}")
-    return base_reference unless Payment.exists?(organization_id: org_id, payer_id: payer_id, remit_reference: base_reference)
+    existing_scope = Payment.where(organization_id: org_id, payer_id: payer_id, remit_reference: base_reference)
+    existing_scope = existing_scope.where.not(id: excluding_payment_id) if excluding_payment_id.present?
+    return base_reference unless existing_scope.exists?
 
     1.upto(999) do |index|
       candidate = "#{base_reference}-#{index}"
-      return candidate unless Payment.exists?(organization_id: org_id, payer_id: payer_id, remit_reference: candidate)
+      scope = Payment.where(organization_id: org_id, payer_id: payer_id, remit_reference: candidate)
+      scope = scope.where.not(id: excluding_payment_id) if excluding_payment_id.present?
+      return candidate unless scope.exists?
     end
 
     "#{base_reference}-#{SecureRandom.hex(3)}"
@@ -309,9 +367,96 @@ module Admin::PaymentPostingConcern
     @encounter.encounter_procedure_items.joins(:procedure_code).exists?
   end
 
-  def update_encounter_payment_summary_without_claim!(total_amount, payment_date)
+  def normalize_adjustment_attributes(raw_adjustments)
+    raw_adjustments.values.filter_map do |attrs|
+      next unless attrs.is_a?(Hash)
+      next if ActiveModel::Type::Boolean.new.cast(attrs["_destroy"])
+
+      amount_raw = attrs[:amount].to_s.presence || attrs["amount"].to_s.presence
+      reason = attrs[:reason].to_s.presence || attrs["reason"].to_s.presence
+      notes = attrs[:notes].to_s.presence || attrs["notes"].to_s.presence
+      adjustment_type = attrs[:adjustment_type].to_s.presence || attrs["adjustment_type"].to_s.presence
+      adjustment_date = attrs[:adjustment_date].to_s.presence || attrs["adjustment_date"].to_s.presence
+      next if amount_raw.blank? && reason.blank? && notes.blank? && adjustment_type.blank? && adjustment_date.blank?
+
+      {
+        id: attrs[:id].presence || attrs["id"].presence,
+        adjustment_type: adjustment_type,
+        amount: amount_raw.present? ? BigDecimal(amount_raw) : 0.to_d,
+        adjustment_date: parse_adjustment_date(adjustment_date),
+        reason: reason,
+        notes: notes
+      }
+    end
+  end
+
+  def signed_adjustment_amount(attrs)
+    amount = attrs[:amount].to_d
+    attrs[:adjustment_type].to_s == "decrease" ? -amount : amount
+  end
+
+  def sync_payment_adjustments!(payment, adjustment_attributes)
+    existing_adjustments = payment.payment_adjustments.index_by { |adjustment| adjustment.id.to_s }
+    retained_ids = []
+
+    adjustment_attributes.each do |attrs|
+      adjustment =
+        if attrs[:id].present? && existing_adjustments.key?(attrs[:id].to_s)
+          retained_ids << attrs[:id].to_s
+          existing_adjustments[attrs[:id].to_s]
+        else
+          payment.payment_adjustments.build
+        end
+
+      adjustment.assign_attributes(
+        adjustment_type: attrs[:adjustment_type],
+        amount: attrs[:amount],
+        adjustment_date: attrs[:adjustment_date] || payment.payment_date || Date.current,
+        reason: attrs[:reason],
+        notes: attrs[:notes]
+      )
+      adjustment.save!
+      retained_ids << adjustment.id.to_s
+    end
+
+    payment.payment_adjustments.where.not(id: retained_ids).destroy_all
+  end
+
+  def sync_payment_application!(payment:, claim:, claim_line:, encounter:, amount_applied:, line_status:, denial_reason:, note:)
+    application =
+      payment.payment_applications.find_or_initialize_by(
+        claim_line: claim_line
+      )
+
+    application.claim = claim
+    application.encounter = encounter
+    application.patient = encounter.patient
+    application.amount_applied = amount_applied
+    application.line_status = line_status
+    application.denial_reason = line_status.to_s == "denied" ? denial_reason : nil
+    application.note = note
+    application.save!
+  end
+
+  def cleanup_unused_payment_applications!(payment, processed_application_keys)
+    payment.payment_applications.find_each do |application|
+      key = application.claim_line_id.present? ? application.claim_line_id.to_s : "interest"
+      application.destroy unless processed_application_keys.include?(key)
+    end
+  end
+
+  def parse_adjustment_date(value)
+    return nil if value.blank?
+
+    Date.parse(value)
+  rescue ArgumentError
+    nil
+  end
+
+  def update_encounter_payment_summary_without_claim!(total_amount, payment_date, previous_total: 0.to_d)
     current_total = @encounter.total_paid_amount.to_d
-    new_total = current_total + total_amount.to_d
+    new_total = current_total - previous_total.to_d + total_amount.to_d
+    new_total = 0.to_d if new_total.negative?
     status_key = new_total.positive? ? :partially_paid : :unpaid
 
     @encounter.update_columns(

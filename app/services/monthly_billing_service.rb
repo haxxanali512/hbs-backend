@@ -200,7 +200,7 @@ class ClaimsCalculator
   def self.collected_reimbursements_cents(organization, period)
     total = PaymentApplication.joins(:payment)
                               .where(payments: { organization_id: organization.id })
-                              .where(line_status: [ PaymentApplication.line_statuses[:paid], PaymentApplication.line_statuses[:adjusted] ])
+                              .where(line_status: PaymentApplication.payment_side_line_status_values)
                               .where("COALESCE(payments.payment_date, payments.created_at::date) BETWEEN ? AND ?", period.begin.to_date, period.end.to_date)
                               .sum(:amount_applied)
     (BigDecimal(total.to_s) * 100).round(0).to_i

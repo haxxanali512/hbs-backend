@@ -335,22 +335,31 @@ class Encounter < ApplicationRecord
 
   def recalculate_payment_summary!
     apps = payment_applications.includes(:payment).to_a
+    payments = apps.map(&:payment).compact.uniq
 
-    total_paid = apps.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+    total_paid = apps.select { |a| PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(a.line_status.to_s) }.sum(&:amount_applied)
+    total_paid += payments.sum(&:adjustments_total)
 
     statuses = apps.map(&:line_status).compact.uniq.map(&:to_s)
+    fully_paid_statuses = PaymentApplication::FULLY_PAID_LINE_STATUS_KEYS
+    payment_side_statuses = PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS
+    billed_amount = resolved_total_billed_amount_for_payment_summary(apps)
 
     new_status =
-      if apps.empty? || (total_paid.zero? && statuses.empty?)
+      if apps.empty? || (total_paid <= 0 && statuses.empty?)
         :unpaid
-      elsif statuses.all? { |s| s == "paid" || s == "adjusted" }
-        :paid
+      elsif statuses.all? { |s| fully_paid_statuses.include?(s) }
+        billed_amount.positive? && total_paid < billed_amount ? :partially_paid : :paid
       elsif statuses.all? { |s| s == "denied" }
         :denied
       elsif statuses.all? { |s| s == "deductible" }
         :deductible
-      elsif statuses.include?("paid") || statuses.include?("adjusted")
-        statuses.include?("denied") ? :mixed : :partially_paid
+      elsif statuses.include?("denied") && (statuses & payment_side_statuses).any?
+        :mixed
+      elsif statuses.include?("deductible") && (statuses & payment_side_statuses).any?
+        :mixed
+      elsif (statuses & payment_side_statuses).any?
+        total_paid <= 0 ? :unpaid : :partially_paid
       elsif statuses.include?("deductible")
         :mixed
       else
@@ -387,7 +396,8 @@ class Encounter < ApplicationRecord
   # Derived (not persisted): what remains after payer-paid/adjusted amounts.
   def patient_responsibility_amount
     billed = resolved_total_billed_amount_for_payment_summary
-    paid = payment_applications.select { |a| a.line_status_paid? || a.line_status_adjusted? }.sum(&:amount_applied)
+    paid = payment_applications.select { |a| PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(a.line_status.to_s) }.sum(&:amount_applied)
+    paid += payment_applications.map(&:payment).compact.uniq.sum(&:adjustments_total)
     [ billed - paid, 0.to_d ].max
   end
 

@@ -1,9 +1,10 @@
 class Admin::PaymentsController < Admin::BaseController
   include Admin::PaymentPostingConcern
+  before_action :set_payment, only: [ :edit, :update ]
 
   def index
     payments = Payment.includes(
-      :organization, :payer, :processed_by_user,
+      :organization, :payer, :processed_by_user, :payment_adjustments,
       payment_applications: { encounter: :patient }
     )
     .order(created_at: :desc)
@@ -34,6 +35,16 @@ class Admin::PaymentsController < Admin::BaseController
              layout: false
       return
     end
+  end
+
+  def edit
+    @encounter = @payment.primary_encounter
+    unless @payment.service_line_editable? && @encounter.present?
+      redirect_to admin_payments_path, alert: "This payment cannot be edited through service-line posting."
+      return
+    end
+
+    build_payment_context
   end
 
   def create
@@ -111,7 +122,35 @@ class Admin::PaymentsController < Admin::BaseController
     end
   end
 
+  def update
+    @encounter = @payment.primary_encounter
+    unless @payment.service_line_editable? && @encounter.present?
+      redirect_to admin_payments_path, alert: "This payment cannot be edited through service-line posting."
+      return
+    end
+
+    build_payment_context
+    update_manual_payment_from_params
+
+    redirect_to admin_encounter_path(@encounter), notice: "Payment updated."
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+    if e.respond_to?(:record) && e.record.respond_to?(:errors) && e.record.errors.any?
+      detail = e.record.errors.full_messages.join(", ")
+      @payment.errors.add(:base, detail) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to update payment: #{detail}"
+    else
+      @payment.errors.add(:base, e.message) if @payment.errors.empty?
+      flash.now[:alert] = "Failed to update payment: #{e.message}"
+    end
+
+    render :edit, status: :unprocessable_entity
+  end
+
   private
+
+  def set_payment
+    @payment = Payment.includes(:payment_adjustments, payment_applications: [ :encounter, { claim_line: :procedure_code } ]).find(params[:id])
+  end
 
   def base_payments_scope
   end

@@ -11,6 +11,14 @@ class Admin::PaymentPolicy < ApplicationPolicy
     new?
   end
 
+  def edit?
+    accessible?("admin", "payments", "update")
+  end
+
+  def update?
+    edit?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       scope.all
