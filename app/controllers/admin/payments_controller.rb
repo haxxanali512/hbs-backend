@@ -4,7 +4,7 @@ class Admin::PaymentsController < Admin::BaseController
 
   def index
     payments = Payment.includes(
-      :organization, :payer, :processed_by_user,
+      :organization, :payer, :processed_by_user, :payment_adjustments,
       payment_applications: { encounter: :patient }
     )
     .order(created_at: :desc)
@@ -149,7 +149,7 @@ class Admin::PaymentsController < Admin::BaseController
   private
 
   def set_payment
-    @payment = Payment.includes(payment_applications: [ :encounter, { claim_line: :procedure_code } ]).find(params[:id])
+    @payment = Payment.includes(:payment_adjustments, payment_applications: [ :encounter, { claim_line: :procedure_code } ]).find(params[:id])
   end
 
   def base_payments_scope

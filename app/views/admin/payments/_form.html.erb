@@ -84,19 +84,10 @@
         <% default_payer = @default_payer %>
         <% selected_payer = payment.payer || default_payer %>
         <%= f.label :payer_id, "Payer", class: "block text-sm font-medium text-gray-700 mb-1" %>
-
-        <% if encounter && selected_payer.present? %>
-          <input type="text"
-                 value="<%= selected_payer.name %>"
-                 class="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-700 sm:text-sm"
-                 readonly>
-          <%= f.hidden_field :payer_id, value: selected_payer.id %>
-        <% else %>
-          <%= f.select :payer_id,
-                       options_from_collection_for_select(@payers || Payer.active_only.order(:name), :id, :name, payment.payer_id),
-                       { prompt: "Select payer..." },
-                       class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
-        <% end %>
+        <%= f.select :payer_id,
+                     options_from_collection_for_select(@payers || Payer.active_only.order(:name), :id, :name, selected_payer&.id),
+                     { prompt: "Select payer..." },
+                     class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
       </div>
       <div>
         <%= f.label :payment_date, "Payment Date", class: "block text-sm font-medium text-gray-700 mb-1" %>
@@ -111,6 +102,15 @@
                          placeholder: "Optional reference (e.g. check #, ERA ID)",
                          class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
       </div>
+    </div>
+
+    <div>
+      <%= f.label :notes, "Payment Notes", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_area :notes,
+                      value: payment.notes,
+                      rows: 3,
+                      placeholder: "Optional internal notes for this payment",
+                      class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm" %>
     </div>
 
     <div class="flex items-center gap-2">
@@ -285,6 +285,149 @@
         </p>
       <% end %>
     </div>
+
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-medium text-gray-900">Adjustments</h3>
+        <button type="button"
+                id="add-adjustment-row"
+                class="inline-flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100">
+          <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-indigo-200 bg-white text-indigo-700">+</span>
+          Add Adjustment
+        </button>
+      </div>
+
+      <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Type</th>
+                <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Amount</th>
+                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Reason</th>
+                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Notes</th>
+                <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="payment-adjustments-body" class="divide-y divide-gray-200 bg-white">
+              <% @payment_adjustments.each_with_index do |adjustment, index| %>
+                <% row_key = adjustment.id || "existing_#{index}" %>
+                <tr class="adjustment-row" data-adjustment-row="true">
+                  <td class="px-4 py-3">
+                    <input type="hidden" name="payment_adjustments[<%= row_key %>][id]" value="<%= adjustment.id %>">
+                    <select name="payment_adjustments[<%= row_key %>][adjustment_type]"
+                            class="adjustment-type w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="increase" <%= adjustment.increase? ? "selected" : "" %>>Increase</option>
+                      <option value="decrease" <%= adjustment.decrease? ? "selected" : "" %>>Decrease</option>
+                    </select>
+                  </td>
+                  <td class="px-4 py-3">
+                    <input type="number"
+                           name="payment_adjustments[<%= row_key %>][amount]"
+                           step="0.01"
+                           min="0.01"
+                           value="<%= adjustment.amount %>"
+                           class="adjustment-amount w-full rounded-md border border-gray-300 px-3 py-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  </td>
+                  <td class="px-4 py-3">
+                    <input type="date"
+                           name="payment_adjustments[<%= row_key %>][adjustment_date]"
+                           value="<%= adjustment.adjustment_date || payment.payment_date || Date.current %>"
+                           class="adjustment-date w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  </td>
+                  <td class="px-4 py-3">
+                    <input type="text"
+                           name="payment_adjustments[<%= row_key %>][reason]"
+                           value="<%= adjustment.reason %>"
+                           placeholder="Supplemental reprocessing, recoupment..."
+                           class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  </td>
+                  <td class="px-4 py-3">
+                    <input type="text"
+                           name="payment_adjustments[<%= row_key %>][notes]"
+                           value="<%= adjustment.notes %>"
+                           placeholder="Optional notes"
+                           class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <button type="button"
+                            class="remove-adjustment-row text-sm font-medium text-red-600 hover:text-red-800">
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <div id="payment-adjustments-empty-state" class="<%= @payment_adjustments.any? ? 'hidden' : '' %> px-4 py-6 text-sm text-gray-500">
+          No adjustments added yet. Use adjustments for supplemental increases, recoupments, or other post-payment corrections.
+        </div>
+      </div>
+
+      <template id="payment-adjustment-row-template">
+        <tr class="adjustment-row" data-adjustment-row="true">
+          <td class="px-4 py-3">
+            <select data-name="adjustment_type"
+                    class="adjustment-type w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="increase">Increase</option>
+              <option value="decrease">Decrease</option>
+            </select>
+          </td>
+          <td class="px-4 py-3">
+            <input type="number"
+                   data-name="amount"
+                   step="0.01"
+                   min="0.01"
+                   class="adjustment-amount w-full rounded-md border border-gray-300 px-3 py-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+          <td class="px-4 py-3">
+            <input type="date"
+                   data-name="adjustment_date"
+                   value="<%= payment.payment_date || Date.current %>"
+                   class="adjustment-date w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+          <td class="px-4 py-3">
+            <input type="text"
+                   data-name="reason"
+                   placeholder="Supplemental reprocessing, recoupment..."
+                   class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+          <td class="px-4 py-3">
+            <input type="text"
+                   data-name="notes"
+                   placeholder="Optional notes"
+                   class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </td>
+          <td class="px-4 py-3 text-right">
+            <button type="button"
+                    class="remove-adjustment-row text-sm font-medium text-red-600 hover:text-red-800">
+              Remove
+            </button>
+          </td>
+        </tr>
+      </template>
+
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Original Payment</p>
+          <p id="payment-original-total" class="mt-1 text-lg font-semibold text-gray-900">$0.00</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Interest</p>
+          <p id="payment-interest-total" class="mt-1 text-lg font-semibold text-gray-900">$0.00</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Adjustments</p>
+          <p id="payment-adjustments-total" class="mt-1 text-lg font-semibold text-gray-900">$0.00</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Final Net Payment</p>
+          <p id="payment-final-net-total" class="mt-1 text-lg font-semibold text-gray-900">$0.00</p>
+        </div>
+      </div>
+    </div>
   <% else %>
     <!-- Info for non-encounter payments -->
     <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
@@ -317,7 +460,7 @@
                   encounter ? admin_encounter_path(encounter) : admin_payments_path,
                   class: "bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors" %>
     <% end %>
-    <%= f.submit(encounter ? "Post Payments" : "Create Payment",
+    <%= f.submit(payment.persisted? ? "Save Payment Changes" : (encounter ? "Post Payments" : "Create Payment"),
                  id: "post-payments-submit",
                  class: "bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors cursor-pointer") %>
   </div>
@@ -328,6 +471,67 @@
     (function() {
       function getForm() {
         return document.getElementById('manual-payment-form');
+      }
+
+      function adjustmentRows(form) {
+        return form.querySelectorAll('#payment-adjustments-body tr.adjustment-row');
+      }
+
+      function updateAdjustmentEmptyState(form) {
+        var emptyState = form.querySelector('#payment-adjustments-empty-state');
+        if (!emptyState) { return; }
+        emptyState.classList.toggle('hidden', adjustmentRows(form).length > 0);
+      }
+
+      function buildAdjustmentInputName(rowKey, fieldName) {
+        return 'payment_adjustments[' + rowKey + '][' + fieldName + ']';
+      }
+
+      function addAdjustmentRow() {
+        var form = getForm();
+        if (!form) { return; }
+
+        var template = form.querySelector('#payment-adjustment-row-template');
+        var tbody = form.querySelector('#payment-adjustments-body');
+        if (!template || !tbody) { return; }
+
+        var clone = template.content.cloneNode(true);
+        var row = clone.querySelector('tr');
+        var rowKey = 'new_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+        clone.querySelectorAll('[data-name]').forEach(function(element) {
+          element.name = buildAdjustmentInputName(rowKey, element.getAttribute('data-name'));
+        });
+
+        tbody.appendChild(clone);
+        bindAdjustmentRowEvents(form, row);
+        updateAdjustmentEmptyState(form);
+        updateTotal();
+        validateFormReadiness(true);
+      }
+
+      function removeAdjustmentRow(button) {
+        var form = getForm();
+        if (!form) { return; }
+        var row = button.closest('tr.adjustment-row');
+        if (!row) { return; }
+        row.remove();
+        updateAdjustmentEmptyState(form);
+        updateTotal();
+        validateFormReadiness(true);
+      }
+
+      function signedAdjustmentAmount(row) {
+        if (!row) { return 0.0; }
+
+        var amountInput = row.querySelector('.adjustment-amount');
+        var typeSelect = row.querySelector('.adjustment-type');
+        if (!amountInput || !typeSelect) { return 0.0; }
+
+        var amount = parseFloat(amountInput.value || '0');
+        if (isNaN(amount)) { amount = 0.0; }
+
+        return typeSelect.value === 'decrease' ? -amount : amount;
       }
 
       // Used by the "Add Interest" button in the service lines table.
@@ -360,7 +564,8 @@
         if (!form) { return; }
 
         var rows = form.querySelectorAll('#service-lines-body tr');
-        var totalPaid = 0.0;
+        var originalTotal = 0.0;
+        var interestTotal = 0.0;
         var totalBilled = 0.0;
 
         rows.forEach(function(row) {
@@ -378,23 +583,50 @@
             totalBilled += billed;
           }
 
-          if (!isNaN(amount) && amount > 0 && (status === 'paid' || status === 'adjusted' || status === 'partial_deductible')) {
-            totalPaid += amount;
+          if (!isNaN(amount) && amount > 0 && (status === 'paid' || status === 'adjusted' || status === 'partial' || status === 'partial_deductible')) {
+            if (lineId === 'interest') {
+              interestTotal += amount;
+            } else {
+              originalTotal += amount;
+            }
           }
         });
 
+        var adjustmentsTotal = 0.0;
+        adjustmentRows(form).forEach(function(row) {
+          adjustmentsTotal += signedAdjustmentAmount(row);
+        });
+
+        var finalNetTotal = originalTotal + interestTotal + adjustmentsTotal;
+        if (finalNetTotal < 0) { finalNetTotal = 0; }
+
         var paidEl = form.querySelector('#encounter-total-paid');
-        if (paidEl) { paidEl.textContent = '$' + totalPaid.toFixed(2); }
+        if (paidEl) { paidEl.textContent = '$' + finalNetTotal.toFixed(2); }
 
         var billedEl = form.querySelector('#encounter-total-billed');
         if (billedEl) { billedEl.textContent = '$' + totalBilled.toFixed(2); }
 
         var patientEl = form.querySelector('#patient-responsibility');
         if (patientEl) {
-          var responsibility = totalBilled - totalPaid;
+          var responsibility = totalBilled - finalNetTotal;
           if (responsibility < 0) { responsibility = 0; }
           patientEl.textContent = '$' + responsibility.toFixed(2);
         }
+
+        var originalEl = form.querySelector('#payment-original-total');
+        if (originalEl) { originalEl.textContent = '$' + originalTotal.toFixed(2); }
+
+        var interestEl = form.querySelector('#payment-interest-total');
+        if (interestEl) { interestEl.textContent = '$' + interestTotal.toFixed(2); }
+
+        var adjustmentsEl = form.querySelector('#payment-adjustments-total');
+        if (adjustmentsEl) {
+          var prefix = adjustmentsTotal > 0 ? '+' : '';
+          adjustmentsEl.textContent = prefix + '$' + adjustmentsTotal.toFixed(2);
+        }
+
+        var finalNetEl = form.querySelector('#payment-final-net-total');
+        if (finalNetEl) { finalNetEl.textContent = '$' + finalNetTotal.toFixed(2); }
       }
 
       function validateFormReadiness(showErrors) {
@@ -439,12 +671,46 @@
             }
           }
 
-          if (status === 'paid' || status === 'adjusted' || status === 'partial_deductible') {
+          if (status === 'paid' || status === 'adjusted' || status === 'partial' || status === 'partial_deductible') {
             if (!(amount > 0)) {
-              errors.push('Paid/Adjusted/Partial Deductible lines must have amount greater than 0.');
+              errors.push('Paid/Adjusted/Partial/Partial Deductible lines must have amount greater than 0.');
             }
           }
         });
+
+        var adjustmentsTotal = 0.0;
+        adjustmentRows(form).forEach(function(row) {
+          var amountInput = row.querySelector('.adjustment-amount');
+          var dateInput = row.querySelector('.adjustment-date');
+          var amount = parseFloat(amountInput && amountInput.value ? amountInput.value : '0');
+          if (isNaN(amount)) { amount = 0.0; }
+
+          if (amount > 0) {
+            if (!dateInput || !dateInput.value) {
+              errors.push('Adjustment date is required for each adjustment.');
+            }
+            hasAnyLineAction = true;
+          }
+
+          adjustmentsTotal += signedAdjustmentAmount(row);
+        });
+
+        var currentPaidTotal = 0.0;
+        rows.forEach(function(row) {
+          var lineId = row.id.replace('service-line-', '');
+          var amountInput = form.querySelector('input.amount-input[data-service-line-id="' + lineId + '"]');
+          var statusSelect = form.querySelector('select.status-select[data-service-line-id="' + lineId + '"]');
+          if (!amountInput || !statusSelect) { return; }
+          var amount = parseFloat(amountInput.value || '0');
+          if (isNaN(amount)) { amount = 0.0; }
+          if (amount > 0 && (statusSelect.value === 'paid' || statusSelect.value === 'adjusted' || statusSelect.value === 'partial' || statusSelect.value === 'partial_deductible')) {
+            currentPaidTotal += amount;
+          }
+        });
+
+        if ((currentPaidTotal + adjustmentsTotal) < 0) {
+          errors.push('Adjustments cannot reduce the final net payment below zero.');
+        }
 
         if (!hasAnyLineAction) {
           errors.push('Add at least one service-line payment entry before posting.');
@@ -474,6 +740,28 @@
           } else {
             submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
           }
+        }
+      }
+
+      function bindAdjustmentRowEvents(form, row) {
+        if (!row) { return; }
+
+        row.querySelectorAll('.adjustment-type, .adjustment-amount, .adjustment-date').forEach(function(input) {
+          input.addEventListener('input', function() {
+            updateTotal();
+            validateFormReadiness(true);
+          });
+          input.addEventListener('change', function() {
+            updateTotal();
+            validateFormReadiness(true);
+          });
+        });
+
+        var removeButton = row.querySelector('.remove-adjustment-row');
+        if (removeButton) {
+          removeButton.addEventListener('click', function() {
+            removeAdjustmentRow(removeButton);
+          });
         }
       }
 
@@ -532,6 +820,15 @@
           textarea.addEventListener('input', function() { validateFormReadiness(true); });
         });
 
+        var addAdjustmentButton = form.querySelector('#add-adjustment-row');
+        if (addAdjustmentButton) {
+          addAdjustmentButton.addEventListener('click', addAdjustmentRow);
+        }
+
+        adjustmentRows(form).forEach(function(row) {
+          bindAdjustmentRowEvents(form, row);
+        });
+
         form.addEventListener('submit', function(event) {
           validateFormReadiness(true);
           var submitBtn = form.querySelector('#post-payments-submit');
@@ -541,6 +838,7 @@
         });
 
         updateTotal();
+        updateAdjustmentEmptyState(form);
         validateFormReadiness(false);
       }
 

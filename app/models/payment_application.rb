@@ -1,10 +1,13 @@
 class PaymentApplication < ApplicationRecord
-  PAYMENT_SIDE_LINE_STATUS_KEYS = %w[paid adjusted partial_deductible].freeze
+  audited
+
+  PAYMENT_SIDE_LINE_STATUS_KEYS = %w[paid adjusted partial partial_deductible].freeze
   FULLY_PAID_LINE_STATUS_KEYS = %w[paid adjusted].freeze
   LINE_STATUS_OPTIONS = [
     [ "Unpaid", "" ],
     [ "Paid", "paid" ],
     [ "Adjusted", "adjusted" ],
+    [ "Partial", "partial" ],
     [ "Partial Deductible", "partial_deductible" ],
     [ "Deductible", "deductible" ],
     [ "Denied", "denied" ]
@@ -22,7 +25,8 @@ class PaymentApplication < ApplicationRecord
     denied: 2,
     adjusted: 3,
     deductible: 4,
-    partial_deductible: 5
+    partial_deductible: 5,
+    partial: 6
   }, prefix: true
 
   validates :denial_reason, presence: true, if: -> { line_status_denied? }
@@ -41,6 +45,7 @@ class PaymentApplication < ApplicationRecord
   def self.display_label_for(status)
     return "Unpaid" if status.blank?
     return "Partial Deductible" if status.to_s == "partial_deductible"
+    return "Partial" if status.to_s == "partial"
 
     status.to_s.humanize
   end

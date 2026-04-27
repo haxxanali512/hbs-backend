@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
+ActiveRecord::Schema[7.2].define(version: 2026_04_27_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -937,6 +937,20 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
     t.index ["fuse_eligibility_check_id"], name: "index_payers_on_fuse_eligibility_check_id", where: "((fuse_eligibility_check_id IS NOT NULL) AND ((fuse_eligibility_check_id)::text <> ''::text))"
   end
 
+  create_table "payment_adjustments", force: :cascade do |t|
+    t.bigint "payment_id", null: false
+    t.integer "adjustment_type", null: false
+    t.decimal "amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.date "adjustment_date", null: false
+    t.text "reason"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["adjustment_date"], name: "index_payment_adjustments_on_adjustment_date"
+    t.index ["adjustment_type"], name: "index_payment_adjustments_on_adjustment_type"
+    t.index ["payment_id"], name: "index_payment_adjustments_on_payment_id"
+  end
+
   create_table "payment_applications", force: :cascade do |t|
     t.bigint "payment_id", null: false
     t.bigint "claim_id", null: false
@@ -1114,6 +1128,66 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
     t.boolean "first_encounter_submitted_notified", default: false, null: false
     t.index ["discarded_at"], name: "index_providers_on_discarded_at"
     t.index ["npi"], name: "index_providers_on_npi", unique: true, where: "(npi IS NOT NULL)"
+  end
+
+  create_table "referral_commissions", force: :cascade do |t|
+    t.bigint "referral_relationship_id", null: false
+    t.date "month", null: false
+    t.decimal "eligible_revenue", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "commission_percent", precision: 5, scale: 2, default: "12.0", null: false
+    t.decimal "commission_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "payout_status", default: 0, null: false
+    t.date "payout_date"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["referral_relationship_id", "month"], name: "idx_ref_commissions_unique_month", unique: true
+    t.index ["referral_relationship_id"], name: "index_referral_commissions_on_referral_relationship_id"
+  end
+
+  create_table "referral_partners", force: :cascade do |t|
+    t.bigint "user_id"
+    t.string "first_name", null: false
+    t.string "last_name", null: false
+    t.string "email", null: false
+    t.string "phone"
+    t.integer "partner_type", default: 0, null: false
+    t.string "referral_code"
+    t.string "referral_url"
+    t.integer "status", default: 0, null: false
+    t.datetime "agreement_signed_at"
+    t.datetime "approved_at"
+    t.string "tax_form_status"
+    t.text "notes"
+    t.bigint "linked_client_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((email)::text)", name: "idx_referral_partners_lower_email", unique: true
+    t.index ["linked_client_id"], name: "index_referral_partners_on_linked_client_id"
+    t.index ["referral_code"], name: "index_referral_partners_on_referral_code", unique: true
+    t.index ["user_id"], name: "index_referral_partners_on_user_id"
+  end
+
+  create_table "referral_relationships", force: :cascade do |t|
+    t.bigint "referral_partner_id", null: false
+    t.bigint "referred_org_id", null: false
+    t.string "referral_source"
+    t.string "referred_practice_name"
+    t.date "contract_signed_date"
+    t.date "commission_start_date"
+    t.date "commission_end_date"
+    t.string "tier_selected"
+    t.integer "status", default: 0, null: false
+    t.text "ineligibility_reason"
+    t.decimal "total_revenue_to_date", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "total_commission_to_date", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "eligibility_status", default: 0, null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["referral_partner_id", "referred_org_id"], name: "idx_ref_relationship_partner_org", unique: true
+    t.index ["referral_partner_id"], name: "index_referral_relationships_on_referral_partner_id"
+    t.index ["referred_org_id"], name: "index_referral_relationships_on_referred_org_id"
   end
 
   create_table "remit_captures", force: :cascade do |t|
@@ -1382,6 +1456,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
   add_foreign_key "payer_enrollments", "organizations"
   add_foreign_key "payer_enrollments", "payers"
   add_foreign_key "payer_enrollments", "providers"
+  add_foreign_key "payment_adjustments", "payments"
   add_foreign_key "payment_applications", "claim_lines"
   add_foreign_key "payment_applications", "claims"
   add_foreign_key "payment_applications", "payments"
@@ -1405,6 +1480,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_04_13_142000) do
   add_foreign_key "provider_notes", "providers"
   add_foreign_key "provider_specialties", "providers"
   add_foreign_key "provider_specialties", "specialties"
+  add_foreign_key "referral_commissions", "referral_relationships"
+  add_foreign_key "referral_partners", "organizations", column: "linked_client_id"
+  add_foreign_key "referral_partners", "users"
+  add_foreign_key "referral_relationships", "organizations", column: "referred_org_id"
+  add_foreign_key "referral_relationships", "referral_partners"
   add_foreign_key "support_ticket_comments", "support_tickets"
   add_foreign_key "support_ticket_comments", "users", column: "author_user_id"
   add_foreign_key "support_ticket_tasks", "support_tickets"

@@ -45,7 +45,7 @@
                     </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                    $<%= number_with_precision((payment.amount_total || payment.amount || 0), precision: 2, delimiter: ",") %>
+                    $<%= number_with_precision(payment.current_amount_total, precision: 2, delimiter: ",") %>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <%= (payment.payment_date || payment.created_at)&.strftime("%m/%d/%Y") %>

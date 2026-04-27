@@ -337,7 +337,7 @@
                           <td class="px-4 py-2 whitespace-nowrap"><%= patient&.full_name || "N/A" %></td>
                           <td class="px-4 py-2 whitespace-nowrap"><%= service_type %></td>
                           <td class="px-4 py-2 whitespace-nowrap"><%= enc&.date_of_service&.strftime("%m/%d/%Y") || "N/A" %></td>
-                          <td class="px-4 py-2 whitespace-nowrap text-right">$<%= number_with_precision((payment.amount_total || payment.amount || 0), precision: 2, delimiter: ',') %></td>
+                          <td class="px-4 py-2 whitespace-nowrap text-right">$<%= number_with_precision(payment.current_amount_total, precision: 2, delimiter: ',') %></td>
                         </tr>
                       <% end %>
                     </tbody>

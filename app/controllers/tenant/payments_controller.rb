@@ -1,7 +1,7 @@
 class Tenant::PaymentsController < Tenant::BaseController
   def index
     @payments = @current_organization.payments
-      .includes(:payer)
+      .includes(:payer, :payment_adjustments)
       .order(payment_date: :desc, created_at: :desc)
 
     apply_filters
@@ -16,7 +16,7 @@ class Tenant::PaymentsController < Tenant::BaseController
     end
 
     payments = @current_organization.payments
-      .includes(:payer)
+      .includes(:payer, :payment_adjustments)
       .order(payment_date: :desc, created_at: :desc)
 
     apply_filters_to(payments) do |filtered|
@@ -105,7 +105,7 @@ class Tenant::PaymentsController < Tenant::BaseController
           (payment.payment_date || payment.created_at)&.strftime("%m/%d/%Y"),
           payment.payer&.name || "—",
           payment.remit_reference || "—",
-          payment.amount_total || payment.amount || 0,
+          payment.current_amount_total,
           payment.applied_total,
           payment.remaining_amount,
           payment.payment_status&.humanize,

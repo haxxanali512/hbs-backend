@@ -6,6 +6,7 @@ class Payment < ApplicationRecord
   belongs_to :payer, optional: true
   belongs_to :processed_by_user, class_name: "User", optional: true
   has_many :payment_applications, dependent: :destroy
+  has_many :payment_adjustments, dependent: :destroy
 
   enum :payment_method, {
     stripe: 0,
@@ -42,13 +43,38 @@ class Payment < ApplicationRecord
   after_destroy_commit :sync_encounters_after_payment_change
 
   # Derived helpers for allocations
-  def applied_total
-    # Only payer-paid/adjusted service-line amounts should count toward "applied".
+  def base_applied_total
+    # Only payer-paid/adjusted service-line amounts should count toward posted base amounts.
     payment_applications.select { |a| PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(a.line_status.to_s) }.sum(&:amount_applied)
   end
 
+  def original_payment_total
+    payment_applications
+      .reject { |application| application.claim_line_id.nil? }
+      .select { |application| PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(application.line_status.to_s) }
+      .sum(&:amount_applied)
+  end
+
+  def interest_total
+    payment_applications
+      .select { |application| application.claim_line_id.nil? && PaymentApplication::PAYMENT_SIDE_LINE_STATUS_KEYS.include?(application.line_status.to_s) }
+      .sum(&:amount_applied)
+  end
+
+  def adjustments_total
+    payment_adjustments.sum(&:signed_amount)
+  end
+
+  def applied_total
+    base_applied_total + adjustments_total
+  end
+
+  def final_net_payment_total
+    applied_total
+  end
+
   def remaining_amount
-    (amount_total || 0) - applied_total
+    (current_amount_total - applied_total)
   end
 
   def fully_applied?
@@ -86,6 +112,10 @@ class Payment < ApplicationRecord
 
   def service_line_editable?
     payment_applications.map(&:encounter_id).compact.uniq.one?
+  end
+
+  def current_amount_total
+    amount_total.presence || amount.presence || applied_total
   end
 
   private
